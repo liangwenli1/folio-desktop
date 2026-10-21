@@ -1494,6 +1494,1229 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{id}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            groups: {
+                                id: string;
+                                name: string;
+                                profiles: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            profiles: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/groups/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/workspaces/{id}/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    trash?: "0" | "1";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            profiles: {
+                                id: string;
+                                number: number;
+                                name: string;
+                                groupId: string | null;
+                                ownerId: string | null;
+                                tags: string[];
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                kernelVersion: string;
+                                /** @enum {string} */
+                                os: "windows" | "macos" | "linux";
+                                fingerprint: {
+                                    /** @enum {string} */
+                                    kind: "chromium";
+                                    seed: number;
+                                    hardwareConcurrency: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "firefox";
+                                    config: {
+                                        [key: string]: unknown;
+                                    };
+                                };
+                                proxyId: string | null;
+                                timezoneOverride: string | null;
+                                localeOverride: string | null;
+                                notes: string | null;
+                                lastOpenedAt: string | null;
+                                lastOpenedBy: string | null;
+                                createdAt: string;
+                                updatedAt: string;
+                                deletedAt: string | null;
+                                version: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** Format: uuid */
+                        groupId?: string | null;
+                        /** @default [] */
+                        tags?: string[];
+                        /** @enum {string} */
+                        kernel: "chromium" | "firefox";
+                        kernelVersion: string;
+                        /** @enum {string} */
+                        os: "windows" | "macos" | "linux";
+                        fingerprint: {
+                            /** @enum {string} */
+                            kind: "chromium";
+                            seed: number;
+                            hardwareConcurrency: number;
+                        } | {
+                            /** @enum {string} */
+                            kind: "firefox";
+                            config: {
+                                [key: string]: unknown;
+                            };
+                        };
+                        /** Format: uuid */
+                        proxyId?: string | null;
+                        timezoneOverride?: string | null;
+                        localeOverride?: string | null;
+                        notes?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            number: number;
+                            name: string;
+                            groupId: string | null;
+                            ownerId: string | null;
+                            tags: string[];
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            kernelVersion: string;
+                            /** @enum {string} */
+                            os: "windows" | "macos" | "linux";
+                            fingerprint: {
+                                /** @enum {string} */
+                                kind: "chromium";
+                                seed: number;
+                                hardwareConcurrency: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "firefox";
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                            proxyId: string | null;
+                            timezoneOverride: string | null;
+                            localeOverride: string | null;
+                            notes: string | null;
+                            lastOpenedAt: string | null;
+                            lastOpenedBy: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            deletedAt: string | null;
+                            version: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/profiles/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        profiles: {
+                            name: string;
+                            /** Format: uuid */
+                            groupId?: string | null;
+                            /** @default [] */
+                            tags?: string[];
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            kernelVersion: string;
+                            /** @enum {string} */
+                            os: "windows" | "macos" | "linux";
+                            fingerprint: {
+                                /** @enum {string} */
+                                kind: "chromium";
+                                seed: number;
+                                hardwareConcurrency: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "firefox";
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                            /** Format: uuid */
+                            proxyId?: string | null;
+                            timezoneOverride?: string | null;
+                            localeOverride?: string | null;
+                            notes?: string | null;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            profiles: {
+                                id: string;
+                                number: number;
+                                name: string;
+                                groupId: string | null;
+                                ownerId: string | null;
+                                tags: string[];
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                kernelVersion: string;
+                                /** @enum {string} */
+                                os: "windows" | "macos" | "linux";
+                                fingerprint: {
+                                    /** @enum {string} */
+                                    kind: "chromium";
+                                    seed: number;
+                                    hardwareConcurrency: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "firefox";
+                                    config: {
+                                        [key: string]: unknown;
+                                    };
+                                };
+                                proxyId: string | null;
+                                timezoneOverride: string | null;
+                                localeOverride: string | null;
+                                notes: string | null;
+                                lastOpenedAt: string | null;
+                                lastOpenedBy: string | null;
+                                createdAt: string;
+                                updatedAt: string;
+                                deletedAt: string | null;
+                                version: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        version: number;
+                        name?: string;
+                        /** Format: uuid */
+                        groupId?: string | null;
+                        tags?: string[];
+                        /** Format: uuid */
+                        proxyId?: string | null;
+                        kernelVersion?: string;
+                        /** @enum {string} */
+                        os?: "windows" | "macos" | "linux";
+                        fingerprint?: {
+                            /** @enum {string} */
+                            kind: "chromium";
+                            seed: number;
+                            hardwareConcurrency: number;
+                        } | {
+                            /** @enum {string} */
+                            kind: "firefox";
+                            config: {
+                                [key: string]: unknown;
+                            };
+                        };
+                        timezoneOverride?: string | null;
+                        localeOverride?: string | null;
+                        notes?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            number: number;
+                            name: string;
+                            groupId: string | null;
+                            ownerId: string | null;
+                            tags: string[];
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            kernelVersion: string;
+                            /** @enum {string} */
+                            os: "windows" | "macos" | "linux";
+                            fingerprint: {
+                                /** @enum {string} */
+                                kind: "chromium";
+                                seed: number;
+                                hardwareConcurrency: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "firefox";
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                            proxyId: string | null;
+                            timezoneOverride: string | null;
+                            localeOverride: string | null;
+                            notes: string | null;
+                            lastOpenedAt: string | null;
+                            lastOpenedBy: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            deletedAt: string | null;
+                            version: number;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/workspaces/{id}/profiles/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                        /** @enum {string} */
+                        action: "move" | "tag" | "untag" | "set-proxy" | "trash" | "restore" | "purge";
+                        /** Format: uuid */
+                        groupId?: string | null;
+                        tag?: string;
+                        /** Format: uuid */
+                        proxyId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            updated: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            number: number;
+                            name: string;
+                            groupId: string | null;
+                            ownerId: string | null;
+                            tags: string[];
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            kernelVersion: string;
+                            /** @enum {string} */
+                            os: "windows" | "macos" | "linux";
+                            fingerprint: {
+                                /** @enum {string} */
+                                kind: "chromium";
+                                seed: number;
+                                hardwareConcurrency: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "firefox";
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                            proxyId: string | null;
+                            timezoneOverride: string | null;
+                            localeOverride: string | null;
+                            notes: string | null;
+                            lastOpenedAt: string | null;
+                            lastOpenedBy: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            deletedAt: string | null;
+                            version: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/launch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            profile: {
+                                id: string;
+                                number: number;
+                                name: string;
+                                groupId: string | null;
+                                ownerId: string | null;
+                                tags: string[];
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                kernelVersion: string;
+                                /** @enum {string} */
+                                os: "windows" | "macos" | "linux";
+                                fingerprint: {
+                                    /** @enum {string} */
+                                    kind: "chromium";
+                                    seed: number;
+                                    hardwareConcurrency: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "firefox";
+                                    config: {
+                                        [key: string]: unknown;
+                                    };
+                                };
+                                proxyId: string | null;
+                                timezoneOverride: string | null;
+                                localeOverride: string | null;
+                                notes: string | null;
+                                lastOpenedAt: string | null;
+                                lastOpenedBy: string | null;
+                                createdAt: string;
+                                updatedAt: string;
+                                deletedAt: string | null;
+                                version: number;
+                            };
+                            proxy: {
+                                id: string;
+                                /** @enum {string} */
+                                type: "http" | "https" | "socks5";
+                                host: string;
+                                port: number;
+                                username: string | null;
+                                password: string | null;
+                            } | null;
+                            backup: {
+                                id: string;
+                                /** @enum {string} */
+                                type: "http" | "https" | "socks5";
+                                host: string;
+                                port: number;
+                                username: string | null;
+                                password: string | null;
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/proxies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            proxies: {
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                type: "http" | "https" | "socks5";
+                                host: string;
+                                port: number;
+                                username: string | null;
+                                hasPassword: boolean;
+                                backupId: string | null;
+                                lastCheck: {
+                                    ok: boolean;
+                                    ms: number | null;
+                                    ip: string | null;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    error: string | null;
+                                    checkedAt: string;
+                                } | null;
+                                profiles: number;
+                                createdAt: string;
+                                updatedAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        /** @enum {string} */
+                        type: "http" | "https" | "socks5";
+                        host: string;
+                        port: number;
+                        username?: string | null;
+                        password?: string | null;
+                        /** Format: uuid */
+                        backupId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "http" | "https" | "socks5";
+                            host: string;
+                            port: number;
+                            username: string | null;
+                            hasPassword: boolean;
+                            backupId: string | null;
+                            lastCheck: {
+                                ok: boolean;
+                                ms: number | null;
+                                ip: string | null;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                error: string | null;
+                                checkedAt: string;
+                            } | null;
+                            profiles: number;
+                            createdAt: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/proxies/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        text: string;
+                        /**
+                         * @default http
+                         * @enum {string}
+                         */
+                        defaultType?: "http" | "https" | "socks5";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            proxies: {
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                type: "http" | "https" | "socks5";
+                                host: string;
+                                port: number;
+                                username: string | null;
+                                hasPassword: boolean;
+                                backupId: string | null;
+                                lastCheck: {
+                                    ok: boolean;
+                                    ms: number | null;
+                                    ip: string | null;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    error: string | null;
+                                    checkedAt: string;
+                                } | null;
+                                profiles: number;
+                                createdAt: string;
+                                updatedAt: string;
+                            }[];
+                            errors: {
+                                line: number;
+                                text: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proxies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        /** @enum {string} */
+                        type?: "http" | "https" | "socks5";
+                        host?: string;
+                        port?: number;
+                        username?: string | null;
+                        password?: string | null;
+                        /** Format: uuid */
+                        backupId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "http" | "https" | "socks5";
+                            host: string;
+                            port: number;
+                            username: string | null;
+                            hasPassword: boolean;
+                            backupId: string | null;
+                            lastCheck: {
+                                ok: boolean;
+                                ms: number | null;
+                                ip: string | null;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                error: string | null;
+                                checkedAt: string;
+                            } | null;
+                            profiles: number;
+                            createdAt: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/proxies/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ok: boolean;
+                        ms: number | null;
+                        ip: string | null;
+                        geo: {
+                            country: string;
+                            countryName: string;
+                            region: string | null;
+                            city: string | null;
+                            lat: number;
+                            lon: number;
+                            timezone: string;
+                            locale: string;
+                        } | null;
+                        error: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "http" | "https" | "socks5";
+                            host: string;
+                            port: number;
+                            username: string | null;
+                            hasPassword: boolean;
+                            backupId: string | null;
+                            lastCheck: {
+                                ok: boolean;
+                                ms: number | null;
+                                ip: string | null;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                error: string | null;
+                                checkedAt: string;
+                            } | null;
+                            profiles: number;
+                            createdAt: string;
+                            updatedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/proxies/{id}/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            type: "http" | "https" | "socks5";
+                            host: string;
+                            port: number;
+                            username: string | null;
+                            password: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/net/echo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ip: string;
+                            geo: {
+                                country: string;
+                                countryName: string;
+                                region: string | null;
+                                city: string | null;
+                                lat: number;
+                                lon: number;
+                                timezone: string;
+                                locale: string;
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

@@ -43,9 +43,17 @@ export async function logout(){
   return { ok: true as const, data: null };
 }
 
-export function request(method: Method, path: string, body?: unknown){
-  if (!['GET', 'POST', 'PATCH'].includes(method) || !path.startsWith('/') || path.startsWith('//')){
-    return Promise.resolve<ApiResult>({ ok: false, error: { code: 'validation', message: 'Bad request', status: 400 } });
+// For the main process's own use (launching, proxy checks).
+export const api = <T = unknown>(method: Method, path: string, body?: unknown) => call<T>(method, path, body);
+
+// Routes that return proxy passwords are for the main process only.
+const MAIN_ONLY = [/^\/profiles\/[^/]+\/launch$/, /^\/proxies\/[^/]+\/credentials$/];
+
+// What the renderer may call through the bridge.
+export function forRenderer(method: Method, path: string, body?: unknown){
+  const bare = path.split('?')[0];
+  if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(method) || !path.startsWith('/') || path.startsWith('//') || MAIN_ONLY.some(r => r.test(bare))){
+    return Promise.resolve<ApiResult>({ ok: false, error: { code: 'forbidden', message: 'Not available here', status: 403 } });
   }
   return call(method, path, body);
 }

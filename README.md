@@ -1,10 +1,23 @@
 # folio-desktop
 
-The Folio workbench: an Electron app where people log in with the account they created on the website and manage their browser profiles. In this release it shows the account's workspaces and plan; profiles, proxies and automation come in the next phases (see `../PLAN.md`).
+The Folio workbench: an Electron app where people log in with the account they created on the website and manage their browser profiles. Automation, window sync and team features come in later phases (see `../PLAN.md`).
 
 ## Stack
 
-Electron, React, Vite (electron-vite), TypeScript. Kernel integration will use playwright-core 1.62.x for both engines; see `docs/kernel-evaluation.md`.
+Electron, React, Vite (electron-vite), TypeScript. Both browser engines are driven with playwright-core 1.62.x (Camoufox needs < 1.63); see `docs/kernel-evaluation.md`.
+
+## Opening a profile
+
+`src/main/launcher.ts` does it in the main process:
+
+1. `GET /profiles/:id/launch` returns the profile with its proxy and backup line, passwords included (that route and `/proxies/:id/credentials` are refused when the renderer asks).
+2. `kernels.ts` finds the engine version the profile was made with. Engines download on demand from their GitHub releases into `<userData>/kernels/<kind>-<version>/` and are checked against the sha256 in the manifest.
+3. `proxy-check.ts` sends a request through the proxy to the server's `/net/echo`, which returns the exit IP with its location and time zone. If the line is down, the backup line is tried. The results are reported back to the server.
+4. Time zone, language and geolocation come from the profile's overrides, otherwise from the exit.
+5. `forwarder.ts` starts a local HTTP proxy that forwards to the upstream (HTTP, HTTPS or SOCKS5, with a password if there is one), because neither engine accepts proxy passwords itself.
+6. Chromium (fingerprint-chromium) starts with only Folio's own switches; Firefox (Camoufox) gets the stored config. Camoufox also needs a 1.5 MB model on first use (`fingerprint.ts`).
+
+Live changes from other devices come over SSE (`changes.ts`).
 
 ## How the app talks to the server
 
@@ -27,6 +40,9 @@ FOLIO_API_URL=http://localhost:47110 FOLIO_SITE_URL=http://localhost:47120 npm r
 | `FOLIO_SITE_URL` | `http://localhost:47120` | Website, opened for checkout, billing and sign-up |
 | `FOLIO_USER_DATA` | Electron default | Separate data directory (tests, multiple instances) |
 | `FOLIO_PASSWORD_STORE` | unset | `basic` on Linux without a keyring (tests only) |
+| `FOLIO_KERNELS_DIR` | `<userData>/kernels` | Where engines live, as `<kind>-<version>/` |
+| `CAMOUFOX_FPGEN_DATA` | Camoufox's cache dir | Where the Firefox identity model lives |
+| `FOLIO_KERNEL_NO_SANDBOX`, `FOLIO_PROXY_LOOPBACK`, `FOLIO_TEST_HOOKS` | unset | Tests only: engines without a sandbox, proxying for loopback addresses, and exposing running browsers to the test |
 
 ## Scripts
 
@@ -35,5 +51,5 @@ FOLIO_API_URL=http://localhost:47110 FOLIO_SITE_URL=http://localhost:47120 npm r
 | `npm run build` | Builds main, preload and renderer into `out/` |
 | `npm run typecheck` | TypeScript check |
 | `npm test` | Unit tests (vitest) |
-| `npm run test:e2e` | Drives the built app with Playwright against a folio-server with `DEV_TOOLS=1 MOCK_PAYMENTS=1`. On Linux run under `xvfb-run` |
+| `npm run test:e2e` | Drives the built app with Playwright against a folio-server with `DEV_TOOLS=1 MOCK_PAYMENTS=1 DEV_PRIVATE_GEO=seattle`. On Linux run under `xvfb-run`. `engine.spec.ts` opens real engines and is skipped unless they are unpacked under `FOLIO_KERNELS_DIR` |
 | `npm run api:types` | Regenerates `src/shared/api-schema.d.ts` from the server's OpenAPI document |

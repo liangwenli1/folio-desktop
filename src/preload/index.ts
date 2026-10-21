@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ApiResult, FolioBridge } from '../shared/bridge';
 
 // Failures reach the renderer as plain { code, message, status } objects, which survive the context bridge.
@@ -8,6 +8,12 @@ async function unwrap<T>(p: Promise<ApiResult<T>>){
   return r.data;
 }
 
+function listen<T>(channel: string, cb: (payload: T) => void){
+  const handler = (_e: IpcRendererEvent, payload: T) => cb(payload);
+  ipcRenderer.on(channel, handler);
+  return () => { ipcRenderer.off(channel, handler); };
+}
+
 const bridge: FolioBridge = {
   login: (email, password) => unwrap(ipcRenderer.invoke('folio:login', email, password)),
   logout: () => unwrap(ipcRenderer.invoke('folio:logout')),
@@ -15,11 +21,21 @@ const bridge: FolioBridge = {
   api: (method, path, body) => unwrap(ipcRenderer.invoke('folio:api', method, path, body)),
   openSite: path => ipcRenderer.invoke('folio:openSite', path),
   info: () => ipcRenderer.invoke('folio:info'),
-  onFocus(cb){
-    const handler = () => cb();
-    ipcRenderer.on('app:focus', handler);
-    return () => { ipcRenderer.off('app:focus', handler); };
-  }
+  onFocus: cb => listen('app:focus', cb),
+
+  watch: workspaceId => ipcRenderer.invoke('folio:watch', workspaceId),
+  onChange: cb => listen('app:change', cb),
+
+  openProfile: id => ipcRenderer.invoke('folio:openProfile', id),
+  stopProfile: id => ipcRenderer.invoke('folio:stopProfile', id),
+  statuses: () => ipcRenderer.invoke('folio:statuses'),
+  onStatus: cb => listen('profile:status', cb),
+
+  checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),
+  newFingerprint: (kind, os) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os)),
+  kernels: () => ipcRenderer.invoke('folio:kernels'),
+  installKernel: (kind, version) => ipcRenderer.invoke('folio:installKernel', kind, version),
+  onKernelProgress: cb => listen('kernel:progress', cb)
 };
 
 contextBridge.exposeInMainWorld('folio', bridge);
