@@ -1,4 +1,6 @@
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { _electron as electron, request, type ElectronApplication } from '@playwright/test';
@@ -7,6 +9,43 @@ export const API = process.env.API_URL ?? 'http://localhost:47110';
 export const SITE = 'http://localhost:47120';
 export const PASSWORD = 'correct horse battery';
 let n = 0;
+
+// Real browser engines, unpacked as <kind>-<version>/. Tests that open profiles are skipped without them.
+export const KERNELS = process.env.FOLIO_KERNELS_DIR ?? '/kernels';
+export const hasKernels = existsSync(KERNELS);
+export const ENGINE_ENV = { FOLIO_KERNELS_DIR: KERNELS, FOLIO_PROXY_LOOPBACK: '1', FOLIO_KERNEL_NO_SANDBOX: '1', FOLIO_TEST_HOOKS: '1' };
+
+export const chromiumProfile = (name: string, extra: Record<string, unknown> = {}) => ({
+  name, kernel: 'chromium', kernelVersion: '150.0.7871.186', os: 'windows', fingerprint: { kind: 'chromium', seed: 1000 + n++, hardwareConcurrency: 8 }, ...extra
+});
+
+// A page for the launched browsers to load, so the test can read what they report.
+export async function startProbe(){
+  const server = http.createServer((_req, res) => { res.setHeader('content-type', 'text/html'); res.end('<!doctype html><title>probe</title>'); });
+  await new Promise<void>(r => server.listen(0, '127.0.0.1', () => r()));
+  const port = (server.address() as AddressInfo).port;
+  return { url: `http://localhost:${port}/`, port, close: () => new Promise<void>(r => server.close(() => r())) };
+}
+
+// What a running profile's browser reports on the probe page, read through the main process's test hook.
+export function inBrowser(app: ElectronApplication, id: string, url: string){
+  return app.evaluate(async (_e, { id, url }) => {
+    const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
+    const page = r.ctx.pages()[0] ?? await r.ctx.newPage();
+    await page.goto(url);
+    return page.evaluate(async () => ({
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: navigator.language, webdriver: navigator.webdriver,
+      cores: navigator.hardwareConcurrency, ua: navigator.userAgent,
+      rtc: await new Promise<string[]>(done => {
+        const found: string[] = [], pc = new RTCPeerConnection({ iceServers: [] });
+        pc.onicecandidate = e => { if (e.candidate) found.push(e.candidate.candidate); else done(found); };
+        pc.createDataChannel('x');
+        void pc.createOffer().then(o => pc.setLocalDescription(o));
+        setTimeout(() => done(found), 2500);
+      })
+    }));
+  }, { id, url });
+}
 
 // Creates an account the way the website does: register, verify, and optionally buy a plan.
 export async function account({ locale = 'en', buy }: { locale?: 'en' | 'zh'; buy?: { plan: string; period: string } } = {}){

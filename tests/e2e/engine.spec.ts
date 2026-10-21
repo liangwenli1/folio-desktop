@@ -1,25 +1,16 @@
 // Launching real engines through a password-protected SOCKS5 proxy. Needs the engines unpacked under
 // FOLIO_KERNELS_DIR (as <kind>-<version>/) and a folio-server with DEV_PRIVATE_GEO=seattle, since every
 // address in the test network is private.
-import { existsSync } from 'node:fs';
-import http, { type Server } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { account, dataDir, launch, logIn } from './helpers';
+import { ENGINE_ENV, account, dataDir, hasKernels, inBrowser, launch, logIn, startProbe } from './helpers';
 
-const KERNELS = process.env.FOLIO_KERNELS_DIR ?? '/kernels';
-const ENGINE_ENV = { FOLIO_KERNELS_DIR: KERNELS, FOLIO_PROXY_LOOPBACK: '1', FOLIO_KERNEL_NO_SANDBOX: '1', FOLIO_TEST_HOOKS: '1' };
-test.skip(!existsSync(KERNELS), 'browser engines are not unpacked here');
+test.skip(!hasKernels, 'browser engines are not unpacked here');
 test.setTimeout(180_000);
 
-let probe: Server, probeUrl = '';
-test.beforeAll(async () => {
-  probe = http.createServer((_req, res) => { res.setHeader('content-type', 'text/html'); res.end('<!doctype html><title>probe</title>'); });
-  await new Promise<void>(r => probe.listen(0, '127.0.0.1', () => r()));
-  probeUrl = `http://localhost:${(probe.address() as AddressInfo).port}/`;
-});
-test.afterAll(() => new Promise<void>(r => probe.close(() => r())));
+let probe: Awaited<ReturnType<typeof startProbe>>;
+test.beforeAll(async () => { probe = await startProbe(); });
+test.afterAll(() => probe.close());
 
 type Status = { id: string; state: string; error?: string; usedBackup?: boolean; exitGeo?: { city: string | null } | null };
 const statusOf = (win: Page, id: string) => win.evaluate(async pid => (await window.folio.statuses()).find(s => s.id === pid) ?? null, id);
@@ -35,26 +26,6 @@ async function opened(win: Page, id: string){
   await expect.poll(() => win.evaluate(pid => ((window as unknown as { last: Record<string, { state: string }> }).last[pid]?.state), id), { timeout: 120_000 })
     .toMatch(/running|error/);
   return win.evaluate(pid => (window as unknown as { last: Record<string, Status> }).last[pid], id);
-}
-
-// What the launched browser reports, read through the test hook in the main process.
-function inBrowser(app: ElectronApplication, id: string){
-  return app.evaluate(async (_e, { id, url }) => {
-    const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
-    const page = r.ctx.pages()[0] ?? await r.ctx.newPage();
-    await page.goto(url);
-    return page.evaluate(async () => ({
-      tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: navigator.language, webdriver: navigator.webdriver,
-      cores: navigator.hardwareConcurrency, ua: navigator.userAgent,
-      rtc: await new Promise<string[]>(done => {
-        const found: string[] = [], pc = new RTCPeerConnection({ iceServers: [] });
-        pc.onicecandidate = e => { if (e.candidate) found.push(e.candidate.candidate); else done(found); };
-        pc.createDataChannel('x');
-        void pc.createOffer().then(o => pc.setLocalDescription(o));
-        setTimeout(() => done(found), 2500);
-      })
-    }));
-  }, { id, url: probeUrl });
 }
 
 async function setupProfile(kernel: 'chromium' | 'firefox', proxyPass = 's3cret', withBackup = false){
@@ -83,12 +54,12 @@ for (const kernel of ['chromium', 'firefox'] as const){
     const s = await opened(win, profile.id);
     expect(s).toMatchObject({ state: 'running', usedBackup: false, exitGeo: { city: 'Seattle' } });
 
-    const seen = await inBrowser(app, profile.id);
+    const seen = await inBrowser(app, profile.id, probe.url);
     expect(seen).toMatchObject({ tz: 'America/Los_Angeles', lang: 'en-US', webdriver: false });
     if (kernel === 'chromium') expect(seen.rtc).toEqual([]);
     const cores = fingerprint.kind === 'chromium' ? fingerprint.hardwareConcurrency : fingerprint.config['navigator.hardwareConcurrency'];
     expect(seen.cores).toBe(cores);
-    expect(socks.seen.some(d => d.endsWith(`:${new URL(probeUrl).port}`))).toBe(true);
+    expect(socks.seen.some(d => d.endsWith(`:${probe.port}`))).toBe(true);
 
     const proxies = (await (await acct.api.get(`/workspaces/${acct.workspaceId}/proxies`)).json()).proxies;
     expect(proxies.find((p: { id: string }) => p.id === proxyId).lastCheck).toMatchObject({ ok: true, geo: { timezone: 'America/Los_Angeles' } });

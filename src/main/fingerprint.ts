@@ -30,13 +30,3 @@ export async function generate(kind: 'chromium' | 'firefox', os: Os, firefoxExe:
   config['audio:seed'] = randomInt(1, 2 ** 31 - 1);
   return { kind, config };
 }
-
-// A few readable facts about a Firefox identity, for the profile page.
-export function describeFirefox(config: Record<string, unknown>){
-  const n = (k: string) => (typeof config[k] === 'number' ? config[k] as number : null);
-  return {
-    screen: n('screen.width') && n('screen.height') ? `${n('screen.width')} × ${n('screen.height')}` : null,
-    gpu: (config['webGl:renderer'] ?? config['webgl:renderer'] ?? null) as string | null,
-    platform: (config['navigator.platform'] ?? null) as string | null
-  };
-}

@@ -2422,6 +2422,7 @@ export interface paths {
                                 createdAt: string;
                                 updatedAt: string;
                             }[];
+                            added: number;
                             errors: {
                                 line: number;
                                 text: string;

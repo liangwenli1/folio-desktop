@@ -1,4 +1,12 @@
+import type { Problem } from './csv';
+import type { CheckId } from './checks';
+
 export type Lang = 'en' | 'zh';
+type CheckText = { t: (x: CheckVars) => string; d: (x: CheckVars) => string };
+export interface CheckVars { ms: number; host: string; city: string; tz: string; set: string; setLang: string; lang: string; country: string; version: string; latest: string; size: string; kernel: string }
+
+const profilesN = (n: number) => (n === 1 ? '1 profile' : `${n} profiles`);
+const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
 
 export const en = {
   login: {
@@ -7,7 +15,10 @@ export const en = {
     noAccount: 'No account yet?', create: 'Create one on the website', forgot: 'Forgot your password?'
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', soon: 'Soon', soonHint: 'Arrives in an upcoming update' },
-  groups: 'Groups', allProfiles: 'All profiles',
+  groups: {
+    title: 'Groups', all: 'All profiles', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
+    rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`
+  },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
   periods: { monthly: 'monthly', yearly: 'yearly' },
   roles: { owner: 'Owner', admin: 'Admin', member: 'Member' },
@@ -20,13 +31,134 @@ export const en = {
     scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
   },
-  profiles: {
-    title: 'Profiles', sub: (n: number, plan: string) => `${n} profiles · ${plan}`,
-    emptyTitle: 'This workspace is ready',
-    emptyBody: (limit: number) => `It can hold ${limit} profiles. Creating and opening profiles arrives in the next update.`,
-    stamp: 'READY'
+  user: { language: 'Language', engines: 'Browser engines', logout: 'Log out' },
+  common: {
+    cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit',
+    selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
+    never: 'Never', justNow: 'Just now', minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
+    attribution: 'IP Geolocation by DB-IP'
   },
-  user: { language: 'Language', logout: 'Log out' },
+  os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
+  profiles: {
+    title: 'Profiles', count: profilesN,
+    sub: (n: number, running: number) => `${profilesN(n)} · ${running} running`,
+    showing: (shown: number, n: number, running: number) => `Showing ${shown} of ${n} · ${running} running`,
+    search: 'Search profiles', searchPh: 'Search name, number, city or tag', new: '+ New profile', import: 'Import',
+    sum: {
+      running: 'Running now', of: (n: number) => ` of ${n}`, runningSub: 'On this computer',
+      proxy: 'Proxy problems', proxyOk: 'All proxies answering', proxyNote: (down: number, slow: number) => [down && `${down} not answering`, slow && `${slow} slow`].filter(Boolean).join(' · '),
+      fp: 'Fingerprint warnings', fpOk: 'Everything matches its proxy', fpNote: (n: number) => (n === 1 ? 'Doesn’t match its proxy' : `${n} don’t match their proxy`),
+      usage: 'Plan usage', usageOf: (n: number) => ` / ${n} profiles`
+    },
+    filter: { label: 'Status', all: 'All', running: 'Running', issues: 'Needs attention' },
+    groupChip: (g: string) => `Group: ${g}`, clearGroup: (g: string) => `Clear group filter ${g}`,
+    sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
+    cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', last: 'Last opened', status: 'Status' },
+    open: 'Open', stop: 'Stop', openX: (n: string) => `Open ${n}`, stopX: (n: string) => `Stop ${n}`, starting: 'Starting…', inUse: 'In use now', runningFor: 'Running for ',
+    downloading: (pct: number) => `Downloading engine… ${pct}%`,
+    noProxy: 'No proxy', unchecked: 'Not checked', noResponse: 'No response', ms: (n: number) => `${n} ms`, mismatch: '! Doesn’t match its proxy',
+    emptyNone: 'No profiles yet.', emptyMatch: 'No profiles match.', emptyFor: (q: string) => `Nothing found for “${q}”.`,
+    emptyHint: (n: number) => `Try another search, or clear the filters to see all ${n}.`, clearFilters: 'Clear filters',
+    bulk: {
+      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete',
+      confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
+    },
+    done: {
+      trashed: (n: number) => `${profilesN(n)} moved to Trash`, moved: (n: number, g: string) => `${profilesN(n)} moved to ${g}`,
+      tagged: (n: number, t: string) => `Tagged ${profilesN(n)} “${t}”`, untagged: (n: number, t: string) => `Removed “${t}” from ${profilesN(n)}`,
+      proxySet: (n: number) => `Proxy changed on ${profilesN(n)}`, created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
+      stale: 'Someone changed this profile in the meantime. Try again.'
+    }
+  },
+  launch: {
+    kernel_missing: 'This engine isn’t downloaded on this computer.', proxy_down: 'The proxy didn’t answer, and there’s no working backup line.',
+    in_trash: 'This profile is in the Trash.', not_found: 'This profile no longer exists.', launch_failed: 'The browser didn’t start. Try again.',
+    download_failed: 'The engine download failed. Check the connection and try again.'
+  } as Record<string, string>,
+  detail: {
+    profile: 'Profile', close: 'Close details', emptyTitle: 'No profile selected.', emptyBody: 'Pick one from the list to see its fingerprint and proxy check.',
+    meta: (group: string, date: string) => `${group} · Created ${date}`, openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
+    card: 'FOLIO · BROWSER PROFILE', notChecked: 'Exit not checked yet', direct: 'Direct connection', directSub: 'Sites see this computer’s IP',
+    fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
+    hostTz: 'This computer’s', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `Fingerprint of ${n}`,
+    checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', warn: 'Warning', bad: 'Problem' }
+  },
+  checks: {
+    'proxy-ok': { t: x => `Proxy answering · ${x.ms} ms`, d: x => x.host },
+    'proxy-slow': { t: x => `Proxy is slow · ${x.ms} ms`, d: x => `${x.host}. Pages may time out.` },
+    'proxy-down': { t: () => 'Proxy didn’t respond', d: x => `${x.host}. The profile can’t open until it answers.` },
+    'proxy-backup': { t: () => 'Main line didn’t respond; the backup line takes over', d: x => x.host },
+    'proxy-none': { t: () => 'No proxy', d: () => 'Sites see this computer’s IP address.' },
+    'proxy-unchecked': { t: () => 'Proxy not checked yet', d: x => `${x.host}. Check it to see where it exits.` },
+    'tz-ok': { t: () => 'Time zone matches the exit IP', d: x => x.tz },
+    'tz-host': { t: () => 'Time zone follows this computer', d: () => 'Without a proxy, sites see this computer’s location anyway.' },
+    'tz-mismatch': { t: () => 'Time zone doesn’t match the exit IP', d: x => `Set by hand to ${x.set}, but the proxy exits in ${x.city}, which is on ${x.tz}.` },
+    'lang-ok': { t: () => 'Language matches the region', d: x => x.lang },
+    'lang-mismatch': { t: () => 'Language doesn’t match the exit IP', d: x => `Set by hand to ${x.setLang}, but the proxy exits in ${x.country}.` },
+    geo: { t: x => `Geolocation set near ${x.city}`, d: () => 'Accuracy about 50 m' },
+    rtc: { t: () => 'WebRTC shows the proxy IP only', d: () => 'The real IP of this computer stays hidden' },
+    'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => 'The newest engine on this computer' },
+    'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `${x.latest} is available. The fingerprint stays the same when you upgrade.` },
+    'engine-missing': { t: x => `${x.kernel} ${x.version} isn’t downloaded yet`, d: x => `About ${x.size}, once for all profiles. It downloads when you open the profile.` },
+    'engine-unavailable': { t: x => `${x.kernel} ${x.version} isn’t built for this computer’s system`, d: x => `Use ${x.latest} for this profile to open it here.` }
+  } satisfies Record<CheckId, CheckText>,
+  fixes: { check: 'Check again', backup: 'Make the backup the main line', 'choose-proxy': 'Choose a proxy', 'follow-tz': 'Follow the proxy', 'follow-lang': 'Follow the proxy', download: 'Download', use: (v: string) => `Use ${v}` },
+  form: {
+    newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Give it a name.',
+    group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
+    engine: 'Engine', recommended: 'Recommended', firefoxNote: 'Firefox engine: about 1.3 GB, downloaded once.', os: 'Operating system',
+    proxy: 'Proxy', noProxy: 'No proxy (this computer’s IP)', pasteProxy: 'Paste a new proxy…', pastePh: 'socks5://user:pass@host:port',
+    proxyAdded: 'Added to Proxies.', proxyBad: 'That doesn’t look like a proxy address.',
+    proxyOk: (place: string, ms: number) => `Answers in ${ms} ms, exits in ${place}`, proxyDown: 'The proxy didn’t answer.',
+    tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint', regen: 'Regenerate', fpHint: 'Time zone, language and geolocation follow the proxy.',
+    regenWarn: 'Sites will see a new device; logged-in sites may ask you to verify again.', fpErr: 'Couldn’t make a fingerprint.',
+    firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
+    create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy', custom: 'Set by hand',
+    tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: 'Not a time zone this computer knows.', langErr: 'Use a language tag like de-DE.',
+    notes: 'Notes', engineVersion: 'Engine version',
+    stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.'
+  },
+  importer: {
+    title: 'Import profiles', lead: 'One profile per row with a header row. Save Excel sheets as CSV first; up to 500 rows at a time.',
+    columns: 'Columns: name (required), group, tags (separated by |), os (windows, macos, linux), engine (chromium, firefox), proxy, timezone, language, notes.',
+    example: 'Insert an example', file: 'Choose a file…', pasteLabel: 'CSV', ready: (n: number) => `${profilesN(n)} ready to import.`,
+    problems: 'Fix these rows first:', row: (n: number) => `Row ${n}`, header: 'The first row needs a “name” column.',
+    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags of 24 characters', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', header: '' } satisfies Record<Problem | 'proxy', string>,
+    tooMany: 'Up to 500 rows at a time.', room: (free: number) => `The plan has room for ${profilesN(free)} more.`, firefox: 'Some rows use Firefox: download its engine first.',
+    submit: (n: number) => `Import ${profilesN(n)}`, steps: { proxies: 'Adding proxies…', groups: 'Creating groups…', fingerprints: (i: number, n: number) => `Making fingerprints… ${i} / ${n}`, saving: 'Saving…' },
+    done: (n: number) => `${profilesN(n)} imported`
+  },
+  proxies: {
+    title: 'Proxies', count: proxiesN, sub: (n: number, down: number) => `${proxiesN(n)}${down ? ` · ${down} not answering` : ''}`,
+    search: 'Search proxies', searchPh: 'Search name, host or city', add: '+ Add proxy', import: 'Import', checkAll: 'Check all',
+    cols: { proxy: 'Proxy', exit: 'Exit', check: 'Last check', profiles: 'Profiles', backup: 'Backup line' },
+    never: 'Not checked', noResponse: (why: string) => `No response${why === 'timeout' ? ' within 10 s' : ''}`, none: '—',
+    empty: 'No proxies yet. Add one, or import a list from your provider.',
+    bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use them keep working without a proxy.',
+    deleted: (n: number) => `${proxiesN(n)} deleted`, checked: (n: number) => `Checked ${proxiesN(n)}`, editX: (n: string) => `Edit ${n}`, checkX: (n: string) => `Check ${n}`,
+    formAdd: 'Add proxy', formEdit: 'Edit proxy', name: 'Name', namePh: 'Defaults to host:port', type: 'Type', host: 'Host', port: 'Port',
+    user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', passRemove: 'Remove the saved password',
+    backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t answer.',
+    hostErr: 'Enter a host name or IP address.', portErr: 'Ports go from 1 to 65535.',
+    importTitle: 'Import proxies', importLead: 'One per line, in any of these formats:', defaultType: 'Type for lines without one',
+    importBtn: 'Import', imported: (added: number, known: number) => `${proxiesN(added)} added${known ? `, ${known} already saved` : ''}`,
+    badLines: 'These lines couldn’t be read:', line: (n: number) => `Line ${n}`
+  },
+  trash: {
+    title: 'Trash', sub: (n: number) => `${profilesN(n)} · not counted toward the plan`, empty: 'The Trash is empty.',
+    deleted: 'Deleted', restore: 'Restore', purge: 'Delete forever', purgeAll: 'Empty Trash',
+    confirmPurge: (n: number) => `Delete ${profilesN(n)} forever?`, confirmNote: 'Their fingerprints and settings can’t be recovered.',
+    restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} deleted forever`
+  },
+  engines: {
+    title: 'Browser engines', lead: 'Each profile keeps the engine version it was made with, so it looks the same to sites until you choose to upgrade it.',
+    installed: 'Downloaded', download: (size: string) => `Download · ${size}`, usedBy: profilesN, failed: 'The download failed.', recommended: 'Default for new profiles'
+  },
+  onboarding: {
+    head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
+    proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
+    open: 'Open it', openD: 'The browser starts with the time zone and language of the proxy.', done: 'Done'
+  },
   loading: 'Loading…', retry: 'Try again',
   errors: {
     invalid_credentials: 'The email or password is not right.',
@@ -34,7 +166,11 @@ export const en = {
     rate_limited: 'Too many attempts. Wait a minute and try again.',
     validation: 'Enter your email and password.',
     network: 'Can’t reach Folio. Check your connection and try again.',
-    internal: 'Something went wrong on our side. Try again.'
+    internal: 'Something went wrong on our side. Try again.',
+    plan_limit: 'The plan has no room for more profiles. Move some to the Trash or add profiles to the plan.',
+    group_exists: 'There’s already a group with that name.',
+    bad_reference: 'That group or proxy was just deleted. Pick another one.',
+    forbidden: 'You don’t have access to that.'
   } as Record<string, string>
 };
 
@@ -47,7 +183,10 @@ export const zh: Dict = {
     noAccount: '还没有账号？', create: '去官网注册', forgot: '忘记密码？'
   },
   nav: { profiles: '环境', proxies: '代理', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', soon: '即将推出', soonHint: '会在后续版本中推出' },
-  groups: '分组', allProfiles: '全部环境',
+  groups: {
+    title: '分组', all: '全部环境', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
+    rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组里的环境会保留，变为未分组。`
+  },
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
   periods: { monthly: '月付', yearly: '年付' },
   roles: { owner: '所有者', admin: '管理员', member: '成员' },
@@ -60,13 +199,134 @@ export const zh: Dict = {
     scheduled: (plan: string, date: string) => `${date} 起改为${plan}`,
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
   },
-  profiles: {
-    title: '环境', sub: (n: number, plan: string) => `${n} 个环境 · ${plan}`,
-    emptyTitle: '这个团队已经准备好了',
-    emptyBody: (limit: number) => `最多可以放 ${limit} 个环境。新建和打开环境会在下一个版本推出。`,
-    stamp: 'READY'
+  user: { language: '语言', engines: '浏览器内核', logout: '退出登录' },
+  common: {
+    cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑',
+    selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,
+    never: '从未', justNow: '刚刚', minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
+    attribution: 'IP Geolocation by DB-IP'
   },
-  user: { language: '语言', logout: '退出登录' },
+  os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
+  profiles: {
+    title: '环境', count: (n: number) => `${n} 个环境`,
+    sub: (n: number, running: number) => `${n} 个环境 · ${running} 个运行中`,
+    showing: (shown: number, n: number, running: number) => `显示 ${shown} / ${n} 个 · ${running} 个运行中`,
+    search: '搜索环境', searchPh: '搜索名称、编号、城市或标签', new: '+ 新建环境', import: '导入',
+    sum: {
+      running: '正在运行', of: (n: number) => ` / ${n}`, runningSub: '在这台电脑上',
+      proxy: '代理异常', proxyOk: '所有代理都有响应', proxyNote: (down: number, slow: number) => [down && `${down} 个无响应`, slow && `${slow} 个较慢`].filter(Boolean).join(' · '),
+      fp: '指纹警告', fpOk: '全部与代理一致', fpNote: (n: number) => `${n} 个与代理不一致`,
+      usage: '套餐用量', usageOf: (n: number) => ` / ${n} 个环境`
+    },
+    filter: { label: '状态', all: '全部', running: '运行中', issues: '需处理' },
+    groupChip: (g: string) => `分组：${g}`, clearGroup: (g: string) => `清除分组筛选 ${g}`,
+    sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
+    cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', last: '最近打开', status: '状态' },
+    open: '打开', stop: '停止', openX: (n: string) => `打开 ${n}`, stopX: (n: string) => `停止 ${n}`, starting: '启动中…', inUse: '正在使用', runningFor: '已运行 ',
+    downloading: (pct: number) => `下载内核… ${pct}%`,
+    noProxy: '无代理', unchecked: '未检测', noResponse: '无响应', ms: (n: number) => `${n} ms`, mismatch: '! 与代理不一致',
+    emptyNone: '还没有环境。', emptyMatch: '没有符合条件的环境。', emptyFor: (q: string) => `没有找到「${q}」。`,
+    emptyHint: (n: number) => `换个关键词，或清除筛选查看全部 ${n} 个。`, clearFilters: '清除筛选',
+    bulk: {
+      open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除',
+      confirm: (n: number) => `把 ${n} 个环境移到回收站？`, confirmNote: '运行中的会先停止，之后可以撤销。', doTrash: '移到回收站'
+    },
+    done: {
+      trashed: (n: number) => `已把 ${n} 个环境移到回收站`, moved: (n: number, g: string) => `已把 ${n} 个环境移到「${g}」`,
+      tagged: (n: number, t: string) => `已给 ${n} 个环境加上「${t}」`, untagged: (n: number, t: string) => `已从 ${n} 个环境去掉「${t}」`,
+      proxySet: (n: number) => `已更换 ${n} 个环境的代理`, created: (x: string) => `「${x}」已创建`, saved: '已保存', failed: (name: string, why: string) => `${name}：${why}`,
+      stale: '这个环境刚被别人改过，请重试。'
+    }
+  },
+  launch: {
+    kernel_missing: '这台电脑还没有下载这个内核。', proxy_down: '代理没有响应，也没有可用的备用线路。',
+    in_trash: '这个环境在回收站里。', not_found: '这个环境已经不存在了。', launch_failed: '浏览器没能启动，请重试。',
+    download_failed: '内核下载失败，请检查网络后重试。'
+  } as Record<string, string>,
+  detail: {
+    profile: '环境', close: '关闭详情', emptyTitle: '没有选中环境。', emptyBody: '从列表里选一个，查看它的指纹和代理检测结果。',
+    meta: (group: string, date: string) => `${group} · ${date} 创建`, openProfile: '打开环境', edit: '编辑', trash: '移到回收站',
+    card: 'FOLIO · BROWSER PROFILE', notChecked: '还没检测出口', direct: '直连', directSub: '网站看到的是这台电脑的 IP',
+    fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
+    hostTz: '跟随本机', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `${n} 的指纹`,
+    checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', warn: '警告', bad: '问题' }
+  },
+  checks: {
+    'proxy-ok': { t: x => `代理正常 · ${x.ms} ms`, d: x => x.host },
+    'proxy-slow': { t: x => `代理较慢 · ${x.ms} ms`, d: x => `${x.host}。页面可能会超时。` },
+    'proxy-down': { t: () => '代理没有响应', d: x => `${x.host}。代理恢复前无法打开这个环境。` },
+    'proxy-backup': { t: () => '主线路无响应，将改用备用线路', d: x => x.host },
+    'proxy-none': { t: () => '没有代理', d: () => '网站看到的是这台电脑的 IP。' },
+    'proxy-unchecked': { t: () => '代理还没检测', d: x => `${x.host}。检测后可以看到出口位置。` },
+    'tz-ok': { t: () => '时区与出口 IP 一致', d: x => x.tz },
+    'tz-host': { t: () => '时区跟随这台电脑', d: () => '没有代理时，网站本来就能看到这台电脑的位置。' },
+    'tz-mismatch': { t: () => '时区与出口 IP 不一致', d: x => `手动设为 ${x.set}，但代理出口在 ${x.city}，那里是 ${x.tz}。` },
+    'lang-ok': { t: () => '语言与地区一致', d: x => x.lang },
+    'lang-mismatch': { t: () => '语言与出口 IP 不一致', d: x => `手动设为 ${x.setLang}，但代理出口在 ${x.country}。` },
+    geo: { t: x => `地理位置设在 ${x.city} 附近`, d: () => '精度约 50 米' },
+    rtc: { t: () => 'WebRTC 只显示代理 IP', d: () => '这台电脑的真实 IP 不会泄露' },
+    'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => '这台电脑上最新的内核' },
+    'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `可以升级到 ${x.latest}，指纹保持不变。` },
+    'engine-missing': { t: x => `${x.kernel} ${x.version} 还没下载`, d: x => `约 ${x.size}，所有环境共用，只下载一次。打开环境时会自动下载。` },
+    'engine-unavailable': { t: x => `${x.kernel} ${x.version} 没有这台电脑系统的版本`, d: x => `改用 ${x.latest} 就能在这里打开。` }
+  },
+  fixes: { check: '重新检测', backup: '把备用线路设为主线路', 'choose-proxy': '选择代理', 'follow-tz': '跟随代理', 'follow-lang': '跟随代理', download: '下载', use: (v: string) => `改用 ${v}` },
+  form: {
+    newTitle: '新建环境', editTitle: '编辑环境', name: '名称', defaultName: (n: number) => `环境 ${n}`, nameErr: '请填写名称。',
+    group: '分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组的名称',
+    engine: '内核', recommended: '推荐', firefoxNote: 'Firefox 内核约 1.3 GB，只需下载一次。', os: '操作系统',
+    proxy: '代理', noProxy: '不用代理（这台电脑的 IP）', pasteProxy: '粘贴新代理…', pastePh: 'socks5://用户名:密码@主机:端口',
+    proxyAdded: '已加入代理列表。', proxyBad: '这看起来不是代理地址。',
+    proxyOk: (place: string, ms: number) => `${ms} ms 响应，出口在 ${place}`, proxyDown: '代理没有响应。',
+    tags: '标签', tagsPh: '用逗号分隔', fp: '指纹', regen: '重新生成', fpHint: '时区、语言和地理位置会跟随代理。',
+    regenWarn: '网站会把它当成一台新设备，已登录的网站可能要求重新验证。', fpErr: '没能生成指纹。',
+    firefoxMissing: '下载 Firefox 内核后才能生成这个指纹。', download: '下载', downloading: (pct: number) => `下载中… ${pct}%`,
+    create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理', custom: '手动设置',
+    tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: '这台电脑不认识这个时区。', langErr: '请用 de-DE 这样的语言代码。',
+    notes: '备注', engineVersion: '内核版本',
+    stale: '你编辑期间别人改过这个环境。再次保存会覆盖他的修改，取消则保留他的修改。'
+  },
+  importer: {
+    title: '导入环境', lead: '每行一个环境，第一行是表头。Excel 表格请先另存为 CSV；每次最多 500 行。',
+    columns: '列：name 或 名称（必填）、group 分组、tags 标签（用 | 分隔）、os 系统（windows、macos、linux）、engine 内核（chromium、firefox）、proxy 代理、timezone 时区、language 语言、notes 备注。',
+    example: '填入示例', file: '选择文件…', pasteLabel: 'CSV', ready: (n: number) => `${n} 个环境可以导入。`,
+    problems: '请先修正这些行：', row: (n: number) => `第 ${n} 行`, header: '第一行需要有「name」或「名称」列。',
+    errs: { name: '名称为空或太长', os: '无法识别的系统', engine: '无法识别的内核', tags: '最多 10 个标签，每个不超过 24 个字', timezone: '无法识别的时区', language: '不是有效的语言代码', proxy: '代理地址无法识别', header: '' },
+    tooMany: '每次最多 500 行。', room: (free: number) => `套餐还能放 ${free} 个环境。`, firefox: '有的行用了 Firefox，请先下载 Firefox 内核。',
+    submit: (n: number) => `导入 ${n} 个环境`, steps: { proxies: '正在添加代理…', groups: '正在创建分组…', fingerprints: (i: number, n: number) => `正在生成指纹… ${i} / ${n}`, saving: '正在保存…' },
+    done: (n: number) => `已导入 ${n} 个环境`
+  },
+  proxies: {
+    title: '代理', count: (n: number) => `${n} 个代理`, sub: (n: number, down: number) => `${n} 个代理${down ? ` · ${down} 个无响应` : ''}`,
+    search: '搜索代理', searchPh: '搜索名称、主机或城市', add: '+ 添加代理', import: '导入', checkAll: '全部检测',
+    cols: { proxy: '代理', exit: '出口', check: '最近检测', profiles: '环境数', backup: '备用线路' },
+    never: '未检测', noResponse: (why: string) => `无响应${why === 'timeout' ? '（10 秒）' : ''}`, none: '—',
+    empty: '还没有代理。添加一个，或导入代理商给你的列表。',
+    bulkCheck: '检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '用到它们的环境会继续保留，改为不用代理。',
+    deleted: (n: number) => `已删除 ${n} 个代理`, checked: (n: number) => `已检测 ${n} 个代理`, editX: (n: string) => `编辑 ${n}`, checkX: (n: string) => `检测 ${n}`,
+    formAdd: '添加代理', formEdit: '编辑代理', name: '名称', namePh: '默认是 主机:端口', type: '类型', host: '主机', port: '端口',
+    user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', passRemove: '删除已保存的密码',
+    backup: '备用线路', backupNone: '无', backupHint: '这条线路无响应时自动改用备用线路。',
+    hostErr: '请填写主机名或 IP 地址。', portErr: '端口范围是 1 到 65535。',
+    importTitle: '导入代理', importLead: '每行一个，支持这些格式：', defaultType: '没写类型的行按此类型',
+    importBtn: '导入', imported: (added: number, known: number) => `新增 ${added} 个代理${known ? `，${known} 个已存在` : ''}`,
+    badLines: '这些行无法识别：', line: (n: number) => `第 ${n} 行`
+  },
+  trash: {
+    title: '回收站', sub: (n: number) => `${n} 个环境 · 不占套餐额度`, empty: '回收站是空的。',
+    deleted: '删除时间', restore: '恢复', purge: '彻底删除', purgeAll: '清空回收站',
+    confirmPurge: (n: number) => `彻底删除 ${n} 个环境？`, confirmNote: '它们的指纹和设置将无法找回。',
+    restored: (n: number) => `已恢复 ${n} 个环境`, purged: (n: number) => `已彻底删除 ${n} 个环境`
+  },
+  engines: {
+    title: '浏览器内核', lead: '每个环境会固定使用创建时的内核版本，在你决定升级之前，网站看到的它始终一样。',
+    installed: '已下载', download: (size: string) => `下载 · ${size}`, usedBy: (n: number) => `${n} 个环境在用`, failed: '下载失败。', recommended: '新环境默认使用'
+  },
+  onboarding: {
+    head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',
+    proxy: '添加代理', proxyD: '常见格式直接粘贴即可。', profile: '新建环境', profileD: '选好系统，指纹会自动生成。',
+    open: '打开它', openD: '浏览器会用代理所在地的时区和语言启动。', done: '已完成'
+  },
   loading: '加载中…', retry: '重试',
   errors: {
     invalid_credentials: '邮箱或密码不对。',
@@ -74,7 +334,11 @@ export const zh: Dict = {
     rate_limited: '操作太频繁，请等一分钟再试。',
     validation: '请填写邮箱和密码。',
     network: '连不上 Folio，请检查网络后重试。',
-    internal: '我们这边出了点问题，请重试。'
+    internal: '我们这边出了点问题，请重试。',
+    plan_limit: '套餐额度已满。把一些环境移到回收站，或给套餐增加环境。',
+    group_exists: '已经有同名的分组了。',
+    bad_reference: '这个分组或代理刚被删除了，请换一个。',
+    forbidden: '你没有权限访问这里。'
   }
 };
 
@@ -83,3 +347,20 @@ export const dicts: Record<Lang, Dict> = { en, zh };
 const locale = (lang: Lang) => (lang === 'zh' ? 'zh-CN' : 'en-US');
 export const day = (iso: string, lang: Lang) =>
   new Intl.DateTimeFormat(locale(lang), { year: 'numeric', month: lang === 'zh' ? 'long' : 'short', day: 'numeric' }).format(new Date(iso));
+
+export function ago(iso: string | null, d: Dict, now = Date.now()){
+  if (!iso) return d.common.never;
+  const s = (now - Date.parse(iso)) / 1000;
+  if (s < 60) return d.common.justNow;
+  if (s < 3600) return d.common.minAgo(Math.floor(s / 60));
+  if (s < 86400) return d.common.hAgo(Math.floor(s / 3600));
+  if (s < 172800) return d.common.yesterday;
+  return d.common.daysAgo(Math.floor(s / 86400));
+}
+
+const two = (n: number) => String(n).padStart(2, '0');
+export function runTime(ms: number){
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
+}
+export const errorText = (d: Dict, code: string) => d.errors[code] ?? d.errors.internal;

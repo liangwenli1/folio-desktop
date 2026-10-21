@@ -1,30 +1,39 @@
-import { useEffect, useRef, useState } from 'react';
-import { folio, type Me, type Workspace } from './api';
-import type { Dict, Lang } from './i18n';
+import { useState, type FormEvent } from 'react';
+import type { ProfileStatus } from '@shared/bridge';
+import { folio, isApiError, type Me, type Workspace } from './api';
+import { useWorkspaceData, type WorkspaceData } from './data';
+import { EnginesDialog } from './Engines';
+import { errorText, type Dict, type Lang } from './i18n';
 import { isPaid, planStatus } from './plan';
+import { ProfileForm } from './ProfileForm';
+import { ProfileImportDialog } from './ProfileImport';
+import { ProfilesPage, type GroupFilter } from './Profiles';
+import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
+import { TrashPage } from './Trash';
+import { Icon, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 
 interface Props {
   d: Dict; lang: Lang; me: Me; ws: Workspace;
-  onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>;
+  onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-const NAV = ['proxies', 'sync', 'tasks', 'api', 'team', 'activity', 'trash'] as const;
+type Page = 'profiles' | 'proxies' | 'trash';
+type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | null;
+const SOON: { key: 'sync' | 'tasks' | 'api' | 'team' | 'activity'; icon: IconName }[] = [
+  { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }, { key: 'team', icon: 'team' }, { key: 'activity', icon: 'activity' }
+];
 
-function useOutsideClose(open: boolean, close: () => void){
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) close(); };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
-    document.addEventListener('mousedown', onDown); document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-  }, [open, close]);
-  return ref;
+export function Workbench(props: Props){
+  return <Toasts><Shell {...props} /></Toasts>;
 }
 
-export function Workbench({ d, lang, me, ws, onSwitch, onLang, onLogout }: Props){
+function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Props){
+  const toast = useToast();
   const s = ws.subscription;
   const site = `/${lang}`;
+  const [page, setPage] = useState<Page>('profiles');
+  const [group, setGroup] = useState<GroupFilter>('all');
+  const [dialog, setDialog] = useState<Dialog>(null);
   const [wsOpen, setWsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const wsRef = useOutsideClose(wsOpen, () => setWsOpen(false));
@@ -32,6 +41,21 @@ export function Workbench({ d, lang, me, ws, onSwitch, onLang, onLogout }: Props
   const manager = ws.role !== 'member';
   const limit = s.entitlements.profiles;
   const initials = me.user.email.slice(0, 2).toUpperCase();
+
+  const data = useWorkspaceData(ws.id, {
+    workspace: onWorkspace,
+    launchError(st: ProfileStatus){
+      const p = data.profiles?.find(x => x.id === st.id);
+      const why = d.launch[st.error ?? ''] ?? d.launch.launch_failed;
+      toast(p ? d.profiles.done.failed(p.name, why) : why, st.error === 'kernel_missing' && p
+        ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined);
+    }
+  });
+  const used = data.profiles?.length ?? ws.usage.profiles;
+  const editing = dialog?.kind === 'edit' ? data.profiles?.find(p => p.id === dialog.id) : undefined;
+  const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
+  const close = () => setDialog(null);
+  const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); };
 
   return (
     <div className="app">
@@ -41,13 +65,13 @@ export function Workbench({ d, lang, me, ws, onSwitch, onLang, onLogout }: Props
         <div className="ws-wrap" ref={wsRef}>
           <button className="ws" type="button" aria-haspopup="listbox" aria-expanded={wsOpen} onClick={() => setWsOpen(o => !o)} title={d.ws.switch}>
             <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
-            <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 6.5 8 9.5l3-3" /></svg>
+            <Icon name="chev" />
           </button>
           {wsOpen && (
             <ul className="menu" role="listbox" aria-label={d.ws.switch}>
               {me.workspaces.map(w => (
                 <li key={w.id} role="option" aria-selected={w.id === ws.id}>
-                  <button type="button" onClick={() => { setWsOpen(false); onSwitch(w.id); }}>
+                  <button type="button" onClick={() => { setWsOpen(false); go('profiles'); onSwitch(w.id); }}>
                     <span>{w.name}</span><small>{d.plans[w.plan]} · {d.roles[w.role]}</small>
                   </button>
                 </li>
@@ -57,17 +81,21 @@ export function Workbench({ d, lang, me, ws, onSwitch, onLang, onLogout }: Props
         </div>
 
         <nav className="nav" aria-label="Main">
-          <button className="nav-i active" type="button" aria-current="page">{d.nav.profiles}<span className="cnt">{ws.usage.profiles}</span></button>
-          {NAV.map(k => (
-            <button key={k} className="nav-i" type="button" disabled title={d.nav.soonHint}>{d.nav[k]}<span className="soon">{d.nav.soon}</span></button>
+          <NavItem icon="profiles" label={d.nav.profiles} count={used} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
+          <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={page === 'proxies'} onClick={() => go('proxies')} />
+          {SOON.map(x => (
+            <button key={x.key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={x.icon} />{d.nav[x.key]}<span className="soon">{d.nav.soon}</span></button>
           ))}
+          <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={page === 'trash'} onClick={() => go('trash')} />
         </nav>
+
+        <Groups d={d} data={data} group={page === 'profiles' ? group : null} onPick={g => go('profiles', g)} />
 
         <section className="plan" aria-label={d.plans[s.plan]}>
           <p><b data-testid="plan-name">{d.plans[s.plan]}</b></p>
           {planStatus(s, d, lang) && <p className="muted" data-testid="plan-status">{planStatus(s, d, lang)}</p>}
-          <p data-testid="plan-usage">{d.plan.usage(ws.usage.profiles, limit)}</p>
-          <span className="meter"><i style={{ width: `${Math.min(100, (ws.usage.profiles / limit) * 100)}%` }} /></span>
+          <p data-testid="plan-usage">{d.plan.usage(used, limit)}</p>
+          <span className="meter"><i style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></span>
           {manager && (
             <div className="plan-actions">
               <button className="linkish" type="button" data-testid="plan-buy" onClick={() => folio.openSite(`${site}/checkout/?ws=${ws.id}`)}>
@@ -93,26 +121,114 @@ export function Workbench({ d, lang, me, ws, onSwitch, onLang, onLogout }: Props
                   ))}
                 </div>
               </div>
+              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'engines' }); }}>{d.user.engines}</button>
               <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}>{d.user.logout}</button>
             </div>
           )}
         </div>
       </aside>
 
-      <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{d.profiles.title}</h1><p className="muted">{d.profiles.sub(ws.usage.profiles, d.plans[s.plan])}</p></div>
-        </header>
-        <section className="empty">
-          <article className="idcard" aria-label={d.profiles.emptyTitle}>
-            <header className="id-head"><span>FOLIO · {ws.name.toUpperCase()}</span><span>No. <b>0000</b></span></header>
-            <h2>{d.profiles.emptyTitle}</h2>
-            <p className="muted">{d.profiles.emptyBody(limit)}</p>
-            <div className="mrz" aria-hidden="true"><span>{`FOLIO<${s.plan.toUpperCase()}<<${String(limit).padStart(4, '0')}<<<<<<<<<<<<<<<<`.slice(0, 32)}</span></div>
-            <div className="stamp" aria-hidden="true"><span className="s-top">FOLIO</span><span className="s-main">{d.profiles.stamp}</span></div>
-          </article>
-        </section>
-      </main>
+      {page === 'profiles' && (
+        <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup}
+          onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
+          onEdit={id => setDialog({ kind: 'edit', id })} onAddProxy={() => setDialog({ kind: 'proxy' })} />
+      )}
+      {page === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
+      {page === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
+
+      {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
+        <ProfileForm d={d} wsId={ws.id} data={data} onClose={close} profile={editing}
+          defaultGroup={group !== 'all' && group !== 'none' ? group : null}
+          onDone={p => { close(); toast(dialog.kind === 'new' ? d.profiles.done.created(p.name) : d.profiles.done.saved); }} />
+      )}
+      {dialog?.kind === 'import' && <ProfileImportDialog d={d} ws={ws} data={data} onClose={close} />}
+      {dialog?.kind === 'proxy' && (!dialog.id || editingProxy) && <ProxyForm d={d} wsId={ws.id} data={data} proxy={editingProxy} onClose={close} />}
+      {dialog?.kind === 'proxy-import' && <ProxyImportDialog d={d} wsId={ws.id} data={data} onClose={close} />}
+      {dialog?.kind === 'engines' && <EnginesDialog d={d} data={data} onClose={close} />}
+    </div>
+  );
+}
+
+function NavItem({ icon, label, count, active, onClick }: { icon: IconName; label: string; count?: number; active: boolean; onClick(): void }){
+  return (
+    <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
+      <Icon name={icon} />{label}{count !== undefined && <span className="cnt">{count}</span>}
+    </button>
+  );
+}
+
+// Groups in the sidebar: filter the profile list, add, rename and delete.
+function Groups({ d, data, group, onPick }: { d: Dict; data: WorkspaceData; group: GroupFilter | null; onPick(g: GroupFilter): void }){
+  const toast = useToast();
+  const G = d.groups;
+  const [adding, setAdding] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [menu, setMenu] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const menuRef = useOutsideClose(!!menu, () => setMenu(null));
+  const ungrouped = (data.profiles ?? []).filter(p => !p.groupId).length;
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+
+  async function save(e: FormEvent){
+    e.preventDefault();
+    const n = name.trim();
+    if (!n) return;
+    try {
+      if (renaming) await folio.api('PATCH', `/groups/${renaming}`, { name: n });
+      else await data.ensureGroup(n);
+      setAdding(false); setRenaming(null); setName('');
+    } catch (err){ fail(err); }
+    data.refresh('groups');
+  }
+  async function remove(id: string){
+    setConfirm(null);
+    try { await folio.api('DELETE', `/groups/${id}`); } catch (err){ fail(err); }
+    if (group === id) onPick('all');
+    data.refresh('groups', 'profiles');
+  }
+  const form = (
+    <form className="grp-form" onSubmit={save}>
+      <input aria-label={G.namePh} placeholder={G.namePh} value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus
+        onKeyDown={e => { if (e.key === 'Escape'){ setAdding(false); setRenaming(null); } }} />
+    </form>
+  );
+
+  return (
+    <div className="groups">
+      <div className="grp-t-row">
+        <p className="grp-t">{G.title}</p>
+        <button type="button" className="grp-add" aria-label={G.add} title={G.add} onClick={() => { setAdding(true); setRenaming(null); setName(''); }}>+</button>
+      </div>
+      <div className="nav">
+        {data.groups.map(g => renaming === g.id ? <div key={g.id}>{form}</div> : (
+          <div key={g.id} className="grp-item" ref={menu === g.id ? menuRef : undefined}>
+            <button type="button" className={`nav-i${group === g.id ? ' active' : ''}`} aria-current={group === g.id ? 'true' : undefined} onClick={() => onPick(g.id)}>
+              <span className="sq" aria-hidden="true" />{g.name}<span className="cnt">{g.profiles}</span>
+            </button>
+            <button type="button" className="grp-more" aria-label={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>
+            {menu === g.id && (
+              <div className="menu" role="menu">
+                <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setRenaming(g.id); setName(g.name); }}>{G.rename}</button>
+                <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setConfirm(g.id); }}>{G.delete}</button>
+              </div>
+            )}
+            {confirm === g.id && (
+              <div className="grp-confirm" role="alertdialog" aria-label={G.deleteConfirm(g.name)}>
+                <p>{G.deleteConfirm(g.name)}</p>
+                <div><button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                  <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(g.id)}>{G.delete}</button></div>
+              </div>
+            )}
+          </div>
+        ))}
+        {data.groups.length > 0 && ungrouped > 0 && (
+          <button type="button" className={`nav-i${group === 'none' ? ' active' : ''}`} onClick={() => onPick('none')}>
+            <span className="sq" aria-hidden="true" />{G.none}<span className="cnt">{ungrouped}</span>
+          </button>
+        )}
+        {adding && form}
+      </div>
     </div>
   );
 }

@@ -11,5 +11,10 @@ export type Me = Ok<'/me', 'get'>;
 export type WorkspaceSummary = Me['workspaces'][number];
 export type Workspace = Ok<'/workspaces/{id}', 'get'>;
 export type Subscription = Workspace['subscription'];
+export type Profile = Ok<'/workspaces/{id}/profiles', 'get'>['profiles'][number];
+export type Group = Ok<'/workspaces/{id}/groups', 'get'>['groups'][number];
+export type Proxy = Ok<'/workspaces/{id}/proxies', 'get'>['proxies'][number];
+export type ProxyImport = Ok<'/workspaces/{id}/proxies/import', 'post'>;
+export type Geo = NonNullable<NonNullable<Proxy['lastCheck']>['geo']>;
 
 export const isApiError = (e: unknown): e is ApiErrorBody => typeof e === 'object' && e !== null && 'code' in e && 'status' in e;

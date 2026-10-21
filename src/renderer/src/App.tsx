@@ -48,6 +48,7 @@ export function App(){
     <Workbench
       d={d} lang={lang} me={me} ws={ws}
       onSwitch={id => load(id)}
+      onWorkspace={() => load()}
       onLang={async l => { await folio.api('PATCH', '/me', { locale: l }); await load(); }}
       onLogout={async () => { await folio.logout(); setMe(null); setWs(null); setPhase('login'); }}
     />

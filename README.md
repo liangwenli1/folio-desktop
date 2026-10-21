@@ -19,6 +19,16 @@ Electron, React, Vite (electron-vite), TypeScript. Both browser engines are driv
 
 Live changes from other devices come over SSE (`changes.ts`).
 
+## Workbench screens
+
+The renderer (`src/renderer/src`) has three working pages; the other sidebar entries arrive in later phases.
+
+- **Profiles** (`Profiles.tsx`): summary strip, search, filters, sort, bulk actions (open, stop, move, tag, proxy, Trash with undo), the getting-started steps, and the detail drawer (`ProfileDetail.tsx`) with the passport card and consistency check. `ProfileForm.tsx` creates and edits profiles; `ProfileImport.tsx` imports a spreadsheet (`csv.ts`).
+- **Proxies** (`Proxies.tsx`): the proxy library with add, edit, paste import, checks and backup lines.
+- **Trash** (`Trash.tsx`): restore (within the plan) and delete forever.
+
+`data.ts` holds the workspace's lists, refetched on change events; `checks.ts` decides each profile's stamp (ISOLATED, REVIEW, OFFLINE) and the fixes it offers. Edits carry the version they started from, so a save over someone else's change is refused once before it replaces it.
+
 ## How the app talks to the server
 
 The renderer never sees the session token and makes no network requests itself (its CSP allows none). Everything goes through `window.folio`, exposed by the preload (`src/shared/bridge.ts`):
@@ -51,5 +61,5 @@ FOLIO_API_URL=http://localhost:47110 FOLIO_SITE_URL=http://localhost:47120 npm r
 | `npm run build` | Builds main, preload and renderer into `out/` |
 | `npm run typecheck` | TypeScript check |
 | `npm test` | Unit tests (vitest) |
-| `npm run test:e2e` | Drives the built app with Playwright against a folio-server with `DEV_TOOLS=1 MOCK_PAYMENTS=1 DEV_PRIVATE_GEO=seattle`. On Linux run under `xvfb-run`. `engine.spec.ts` opens real engines and is skipped unless they are unpacked under `FOLIO_KERNELS_DIR` |
+| `npm run test:e2e` | Drives the built app with Playwright against a folio-server with `DEV_TOOLS=1 MOCK_PAYMENTS=1 DEV_PRIVATE_GEO=seattle`. On Linux run under `xvfb-run`. Tests that open real engines are skipped unless they are unpacked under `FOLIO_KERNELS_DIR`; without internet access, point `CAMOUFOX_FPGEN_DATA` at a copy of the Firefox identity model |
 | `npm run api:types` | Regenerates `src/shared/api-schema.d.ts` from the server's OpenAPI document |
