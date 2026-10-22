@@ -19,6 +19,7 @@ import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stop
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
 import { createApiToken, loadLocalApi, localApi, revokeApiToken, setLocalApi } from './local-api';
 import { fromStore } from './extensions';
+import { leftWindowSync, onWindowSync, setLeader, startWindowSync, stopWindowSync, syncGoto, windowSync } from './windowsync';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -91,7 +92,7 @@ ipcMain.handle('folio:login', async (_e, email: string, password: string) => {
   if (r.ok) startScheduler();
   return r;
 });
-ipcMain.handle('folio:logout', async () => { watching(null); stopScheduler(); await stopRuns(); await stopAll(); forget(); return logout(); });
+ipcMain.handle('folio:logout', async () => { watching(null); stopScheduler(); stopWindowSync(); await stopRuns(); await stopAll(); forget(); return logout(); });
 ipcMain.handle('folio:hasSession', () => !!getToken());
 ipcMain.handle('folio:api', (_e, method: Method, path: string, body?: unknown) => forRenderer(method, String(path), body));
 ipcMain.handle('folio:openSite', async (_e, path: string) => {
@@ -205,7 +206,13 @@ ipcMain.handle('folio:watch', (_e, workspaceId: string | null) => {
   void prune();
 });
 
-onStatus(s => send('profile:status', s));
+onStatus(s => { send('profile:status', s); if (s.state === 'stopped' || s.state === 'error') leftWindowSync(s.id); });
+onWindowSync(s => send('sync:state', s));
+ipcMain.handle('folio:startWindowSync', (_e, ids: string[], leader?: string) => startWindowSync(Array.isArray(ids) ? ids.map(String) : [], leader ? String(leader) : undefined));
+ipcMain.handle('folio:stopWindowSync', () => stopWindowSync());
+ipcMain.handle('folio:setSyncLeader', (_e, id: string) => setLeader(String(id)));
+ipcMain.handle('folio:syncGoto', (_e, url: string) => syncGoto(String(url)));
+ipcMain.handle('folio:windowSync', () => windowSync());
 ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id)); });
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());

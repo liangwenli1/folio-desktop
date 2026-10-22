@@ -108,6 +108,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     } catch (e){ fail(e); }
   }
 
+  // Window sync is a Studio and Company feature; the selected profiles sync in list order, the first one leading.
+  const syncAllowed = ws.subscription.plan !== 'free';
+  async function startSync(){
+    const s = await folio.startWindowSync(list.filter(p => sel.has(p.id)).map(p => p.id));
+    toast(s ? P.done.syncing(all.find(p => p.id === s.leader)?.name ?? '', s.members.length - 1) : P.done.syncFailed);
+  }
   async function batch(action: BatchAction, extra: Parameters<WorkspaceData['batch']>[2], done: (n: number) => string){
     try { toast(done(await data.batch(action, ids, extra))); } catch (e){ fail(e); }
   }
@@ -208,6 +214,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           </label>
         </div>
 
+        {data.sync && <SyncBar d={d} data={data} names={new Map(all.map(p => [p.id, p.name]))} />}
         {ids.length > 0 && (
           <div className="bulk" data-testid="bulk">
             {confirm ? (
@@ -230,6 +237,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                 <b>{d.common.selected(ids.length)}</b>
                 <button type="button" className="bb" onClick={() => all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)).forEach(p => void open(p))}>{P.bulk.open}</button>
                 <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}>{P.bulk.stop}</button>
+                <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={syncAllowed ? undefined : d.windowSync.upgrade} onClick={() => void startSync()}>{P.bulk.sync}</button>
                 <select className="bb" aria-label={P.bulk.move} value="" onChange={e => {
                   const g = e.target.value === 'none' ? null : e.target.value;
                   void batch('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none));
@@ -315,6 +323,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
               )}
               {list.map(p => (
                 <Row key={p.id} d={d} p={p} h={healthOf.get(p.id)!} group={groupLabel(p)} now={now} cur={p.id === cur} checked={sel.has(p.id)}
+                  sync={data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null}
                   status={data.status[p.id]} progress={data.progress[kernelKey(p.kernel, p.kernelVersion)]}
                   onToggle={() => toggle(p.id)} onView={() => view(p.id)} onOpen={() => void open(p)} onStop={() => void stop(p)} />
               ))}
@@ -345,12 +354,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 }
 
 interface RowProps {
-  d: Dict; p: Profile; h: Health; group: string; now: number; cur: boolean; checked: boolean;
+  d: Dict; p: Profile; h: Health; group: string; now: number; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null;
   status?: WorkspaceData['status'][string]; progress?: WorkspaceData['progress'][string];
   onToggle(): void; onView(): void; onOpen(): void; onStop(): void;
 }
 
-function Row({ d, p, h, group, now, cur, checked, status, progress, onToggle, onView, onOpen, onStop }: RowProps){
+function Row({ d, p, h, group, now, cur, checked, sync, status, progress, onToggle, onView, onOpen, onStop }: RowProps){
   const P = d.profiles;
   const geo = h.geo, ms = h.px?.lastCheck?.ms;
   const latency = { none: null, unchecked: <span className="lat">{P.unchecked}</span>, down: <span className="lat down">{P.noResponse}</span>,
@@ -360,6 +369,7 @@ function Row({ d, p, h, group, now, cur, checked, status, progress, onToggle, on
   let act;
   if (status?.state === 'running') act = <>
     <span className="run"><span className="d" aria-hidden="true" /><span className="sr">{P.runningFor}</span><span>{runTime(now - (status.startedAt ?? now))}</span></span>
+    {sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}
     <button type="button" className="btn btn-xs btn-line" aria-label={P.stopX(p.name)} onClick={onStop}>{P.stop}</button>
   </>;
   else if (status) act = <span className="starting"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
@@ -412,5 +422,23 @@ function Onboarding({ d, data, onAddProxy, onNew, onOpen, onHide }: { d: Dict; d
         ))}
       </ol>
     </section>
+  );
+}
+
+// Above the list while windows sync: who leads, how many follow, an address for all of them, and Stop.
+function SyncBar({ d, data, names }: { d: Dict; data: WorkspaceData; names: Map<string, string> }){
+  const W = d.windowSync;
+  const [url, setUrl] = useState('');
+  const s = data.sync!;
+  return (
+    <div className="syncbar" role="status" aria-label={W.title}>
+      <span className="d good pulse" aria-hidden="true" />
+      <span><b>{W.on}</b> {W.summary(names.get(s.leader) ?? '', s.members.length - 1)}</span>
+      <form className="sync-url" onSubmit={e => { e.preventDefault(); if (url.trim()) void folio.syncGoto(url.trim()); setUrl(''); }}>
+        <input aria-label={W.address} placeholder={W.addressPh} value={url} onChange={e => setUrl(e.target.value)} spellCheck={false} />
+        <button type="submit" className="btn btn-xs btn-line">{W.open}</button>
+      </form>
+      <button type="button" className="btn btn-xs btn-line" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
+    </div>
   );
 }

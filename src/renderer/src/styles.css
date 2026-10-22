@@ -503,3 +503,16 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .ext-pick .check-row{color:var(--ink);font-size:13px}
 .ext-pick .mono{font-size:11px}
 .tw td.ver{font-size:12px}
+
+/* window sync */
+.syncbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:0 var(--gx) 10px;padding:10px 12px 10px 14px;border:1px solid var(--guilloche);border-radius:8px;background:color-mix(in srgb,var(--guilloche) 9%,var(--card));font-size:13px;flex:none}
+.syncbar > span:nth-child(2){flex:1 1 260px;min-width:0}
+.sync-url{display:flex;gap:6px;flex:1 1 280px}
+.sync-url input{flex:1;min-width:0;height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:5px;background:var(--card);font-size:12.5px}
+.sync-url.wide input{height:34px}
+.synctag{font-family:var(--f-data);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:1px 5px;border-radius:3px;background:color-mix(in srgb,var(--guilloche) 16%,transparent);color:var(--good)}
+html[lang="zh"] .synctag{font-family:var(--f-body);letter-spacing:0;font-size:11px}
+.sync-card{margin:16px var(--gx) 24px;max-width:760px}
+.sync-card .plain-list .d{margin-left:6px}
+.warn-text{color:var(--warn)}
+.cnt.on{color:var(--good)}

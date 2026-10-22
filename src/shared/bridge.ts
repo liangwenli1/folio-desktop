@@ -27,6 +27,9 @@ export interface KernelProgress { kind: KernelKind; version: string; done: numbe
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
 export type ExtensionSource = { file: Uint8Array } | { store: string };
+// The window sync under way: the leader and every window in it. `coords`: a follower didn't have the element the
+// leader clicked and got the click at the same place in its window; `failed`: something couldn't be repeated there.
+export interface WindowSync { leader: string; members: { id: string; issue: null | 'coords' | 'failed' }[] }
 // Where a script connects to a profile opened through the local API.
 export interface Debugging { protocol: 'cdp' | 'webdriver-bidi'; wsEndpoint: string; debuggerAddress?: string }
 export interface ApiToken { id: string; name: string; workspaceId: string; createdAt: string; lastUsedAt: string | null }
@@ -90,6 +93,13 @@ export interface FolioBridge {
   startup(): Promise<{ supported: boolean; enabled: boolean }>;
   setStartup(on: boolean): Promise<void>;
   setLabels(labels: Labels): Promise<void>;
+  // Window sync: the first profile leads (they open first if they aren't open), and the others follow.
+  startWindowSync(ids: string[], leader?: string): Promise<WindowSync | null>;
+  stopWindowSync(): Promise<void>;
+  setSyncLeader(id: string): Promise<WindowSync | null>;
+  syncGoto(url: string): Promise<void>;
+  windowSync(): Promise<WindowSync | null>;
+  onWindowSync(cb: (s: WindowSync | null) => void): () => void;
   // The local API: turn it on or off, change its port, and make or revoke tokens (a new token is shown once).
   localApi(): Promise<LocalApi>;
   setLocalApi(change: { enabled?: boolean; port?: number }): Promise<LocalApi>;

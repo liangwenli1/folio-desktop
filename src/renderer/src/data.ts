@@ -2,7 +2,7 @@
 // when the change stream says they changed (on this computer or another one); run status and engine
 // downloads come from the main process.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus } from '@shared/bridge';
+import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus, WindowSync } from '@shared/bridge';
 import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
 type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
@@ -18,6 +18,8 @@ export interface WorkspaceData {
   flows: Flow[]; tasks: Task[]; extensions: Extension[];
   // Bumped when runs change anywhere (pages showing runs fetch them again); the runs under way on this computer.
   runsSeq: number; active: ActiveRun[];
+  // The window sync under way on this computer.
+  sync: WindowSync | null;
   status: Record<string, ProfileStatus>; kernels: KernelState[]; progress: Record<string, KernelProgress>;
   refresh(...kinds: Kind[]): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
@@ -44,6 +46,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [extensions, setExtensions] = useState<Extension[]>([]);
   const [runsSeq, setRunsSeq] = useState(0);
   const [active, setActive] = useState<ActiveRun[]>([]);
+  const [sync, setSync] = useState<WindowSync | null>(null);
   const [status, setStatus] = useState<Record<string, ProfileStatus>>({});
   const [kernels, setKernels] = useState<KernelState[]>([]);
   const [progress, setProgress] = useState<Record<string, KernelProgress>>({});
@@ -89,6 +92,8 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     void folio.kernels().then(setKernels);
     void folio.activeRuns().then(setActive);
     const offRuns = folio.onRuns(setActive);
+    void folio.windowSync().then(setSync);
+    const offSync = folio.onWindowSync(setSync);
     const offStatus = folio.onStatus(s => {
       setStatus(m => {
         const next = { ...m };
@@ -109,7 +114,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
         waiting.current.delete(key);
       }
     });
-    return () => { offStatus(); offKernel(); offRuns(); };
+    return () => { offStatus(); offKernel(); offRuns(); offSync(); };
   }, []);
 
   const patch = useCallback(async (p: Profile, body: ProfilePatch) => {
@@ -158,5 +163,5 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     void folio.installKernel(kind, version);
   }), []);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
+  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
 }

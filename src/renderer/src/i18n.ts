@@ -75,7 +75,7 @@ export const en = {
     bulk: {
       open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', department: 'Department…', noDepartment: 'No department',
       tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
-      extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall',
+      extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall', sync: 'Sync windows',
       confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
@@ -85,7 +85,8 @@ export const en = {
       departmentSet: (n: number) => `Department changed on ${profilesN(n)}`, created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
       stale: 'Someone changed this profile in the meantime. Try again.',
       extAdded: (n: number, x: string, skipped: number) => `${x} installed in ${profilesN(n)}${skipped ? `; ${skipped} skipped (other engine, or already there)` : ''}`,
-      extRemoved: (n: number, x: string) => `${x} uninstalled from ${profilesN(n)}`
+      extRemoved: (n: number, x: string) => `${x} uninstalled from ${profilesN(n)}`,
+      syncing: (leader: string, n: number) => `Window sync started: ${leader} leads, ${n === 1 ? '1 window follows' : `${n} windows follow`}`, syncFailed: 'Window sync needs at least two open profiles.'
     }
   },
   launch: {
@@ -366,6 +367,17 @@ export const en = {
     addDo: 'Add', updateDo: 'Upload', uploading: 'Uploading…', fetching: 'Downloading from the store…',
     failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
   },
+  windowSync: {
+    title: 'Window sync', sub: 'Work in one window; the others do the same.', on: 'Window sync is on.', onBadge: 'On',
+    summary: (leader: string, n: number) => `${leader} leads and ${n === 1 ? '1 window follows' : `${n} windows follow`}.`,
+    leaderTag: 'Leader', followerTag: 'Sync', makeLeader: 'Make leader', stop: 'Stop sync', current: 'Syncing now',
+    address: 'Address for every window', addressPh: 'Open an address in every window', open: 'Open',
+    pick: 'Pick the windows', pickHelp: 'Clicks, typing, keys, scrolling, addresses and tabs in the leader repeat in the others. Profiles that aren’t open yet open first.',
+    running: 'Open', start: (n: number) => (n < 2 ? 'Pick at least two' : `Sync ${n} windows`), starting: 'Starting…',
+    limits: 'Not repeated: file pickers, drag and drop, and the browser’s own menus. A window whose page differs (signed out, say) does what the leader did on its own page.',
+    issues: { coords: 'Didn’t have the element the leader clicked, so the click went to the same place in its window.', failed: 'Something couldn’t be repeated here; look at this window.' },
+    upgrade: 'Window sync comes with the Studio and Company plans.'
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
     proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
@@ -475,7 +487,7 @@ export const zh: Dict = {
     bulk: {
       open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', assign: '分配给…', department: '部门…', noDepartment: '无部门',
       tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除', cookies: '导出 Cookie…',
-      extensions: '扩展…', install: '安装', uninstall: '卸载',
+      extensions: '扩展…', install: '安装', uninstall: '卸载', sync: '同步窗口',
       confirm: (n: number) => `把 ${n} 个环境移到回收站？`, confirmNote: '运行中的会先停止，之后可以撤销。', doTrash: '移到回收站'
     },
     done: {
@@ -485,7 +497,8 @@ export const zh: Dict = {
       departmentSet: (n: number) => `已更换 ${n} 个环境的部门`, created: (x: string) => `「${x}」已创建`, saved: '已保存', failed: (name: string, why: string) => `${name}：${why}`,
       stale: '这个环境刚被别人改过，请重试。',
       extAdded: (n: number, x: string, skipped: number) => `已给 ${n} 个环境装上 ${x}${skipped ? `，跳过 ${skipped} 个（内核不同或已经装了）` : ''}`,
-      extRemoved: (n: number, x: string) => `已从 ${n} 个环境卸掉 ${x}`
+      extRemoved: (n: number, x: string) => `已从 ${n} 个环境卸掉 ${x}`,
+      syncing: (leader: string, n: number) => `窗口同步已开始：${leader} 主控，${n} 个窗口跟随`, syncFailed: '窗口同步至少需要两个打开的环境。'
     }
   },
   launch: {
@@ -765,6 +778,17 @@ export const zh: Dict = {
     uuidNote: '每个环境给这个附加组件分配不同的内部地址，网站没法借它把不同环境关联起来。',
     addDo: '添加', updateDo: '上传', uploading: '正在上传…', fetching: '正在从商店下载…',
     failedCheck: (profile: string, names: string[]) => `${profile} 已打开，但 ${names.join('、')} 没有通过完整性校验，没有安装。`
+  },
+  windowSync: {
+    title: '窗口同步', sub: '在一个窗口里操作，其他窗口一起照做。', on: '窗口同步已开启。', onBadge: '开启',
+    summary: (leader: string, n: number) => `${leader} 主控，${n} 个窗口跟随。`,
+    leaderTag: '主控', followerTag: '同步', makeLeader: '设为主控', stop: '停止同步', current: '同步中',
+    address: '所有窗口一起打开的网址', addressPh: '在所有窗口里打开网址', open: '打开',
+    pick: '选择窗口', pickHelp: '主控窗口里的点击、输入、按键、滚动、网址和标签页，其他窗口照做。还没打开的环境会先打开。',
+    running: '已打开', start: (n: number) => (n < 2 ? '至少选两个' : `同步 ${n} 个窗口`), starting: '正在开始…',
+    limits: '不同步：选择文件的对话框、拖放、浏览器自身的菜单。页面不一样的窗口（比如没登录）会在自己的页面上照做。',
+    issues: { coords: '没有主控点的那个元素，点击落在它窗口里的同一位置。', failed: '有操作没能在这里照做，请看一下这个窗口。' },
+    upgrade: '窗口同步属于工作室版和公司版。'
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',

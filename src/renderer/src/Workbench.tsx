@@ -14,6 +14,7 @@ import { FlowsPage } from './Flows';
 import { TasksPage, type Focus } from './Tasks';
 import { ApiPage } from './Api';
 import { ExtensionsPage } from './Extensions';
+import { WindowSyncPage } from './WindowSync';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
@@ -24,11 +25,8 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'flows' | 'tasks' | 'api' | 'activity' | 'trash';
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'activity' | 'trash';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
-const soon = (d: Dict, key: 'sync', icon: IconName) => (
-  <button key={key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={icon} />{d.nav[key]}<span className="soon">{d.nav.soon}</span></button>
-);
 
 export function Workbench(props: Props){
   return <Toasts><Shell {...props} /></Toasts>;
@@ -134,7 +132,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           {manager && <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={shown === 'proxies'} onClick={() => go('proxies')} />}
           <NavItem icon="extensions" label={d.nav.extensions} count={data.extensions.length || undefined} active={shown === 'extensions'} onClick={() => go('extensions')} />
           <NavItem icon="team" label={d.nav.team} count={data.members.length || undefined} active={shown === 'team'} onClick={() => go('team')} />
-          {soon(d, 'sync', 'sync')}
+          <NavItem icon="sync" label={d.nav.sync} badge={data.sync ? d.windowSync.onBadge : undefined} active={shown === 'sync'} onClick={() => go('sync')} />
           <NavItem icon="flows" label={d.nav.flows} count={data.flows.length || undefined} active={shown === 'flows'} onClick={() => go('flows')} />
           <NavItem icon="tasks" label={d.nav.tasks} count={data.active.length || data.tasks.length || undefined} active={shown === 'tasks'} onClick={() => go('tasks')} />
           <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
@@ -195,6 +193,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
       {shown === 'extensions' && <ExtensionsPage d={d} ws={ws} data={data} />}
+      {shown === 'sync' && <WindowSyncPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
@@ -216,10 +215,10 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   );
 }
 
-function NavItem({ icon, label, count, active, onClick }: { icon: IconName; label: string; count?: number; active: boolean; onClick(): void }){
+function NavItem({ icon, label, count, badge, active, onClick }: { icon: IconName; label: string; count?: number; badge?: string; active: boolean; onClick(): void }){
   return (
     <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
-      <Icon name={icon} />{label}{count !== undefined && <span className="cnt">{count}</span>}
+      <Icon name={icon} />{label}{count !== undefined && <span className="cnt">{count}</span>}{badge && <span className="cnt on">{badge}</span>}
     </button>
   );
 }
