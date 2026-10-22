@@ -10,6 +10,7 @@ import { ProfileImportDialog } from './ProfileImport';
 import { ProfilesPage, type GroupFilter } from './Profiles';
 import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
 import { TeamPage } from './Team';
+import { FlowsPage } from './Flows';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
@@ -20,11 +21,11 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'team' | 'activity' | 'trash';
+type Page = 'profiles' | 'proxies' | 'team' | 'flows' | 'activity' | 'trash';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
-const SOON: { key: 'sync' | 'tasks' | 'api'; icon: IconName }[] = [
-  { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }
-];
+const soon = (d: Dict, key: 'sync' | 'tasks' | 'api', icon: IconName) => (
+  <button key={key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={icon} />{d.nav[key]}<span className="soon">{d.nav.soon}</span></button>
+);
 
 export function Workbench(props: Props){
   return <Toasts><Shell {...props} /></Toasts>;
@@ -114,9 +115,10 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           <NavItem icon="profiles" label={d.nav.profiles} count={used} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
           {manager && <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={shown === 'proxies'} onClick={() => go('proxies')} />}
           <NavItem icon="team" label={d.nav.team} count={data.members.length || undefined} active={shown === 'team'} onClick={() => go('team')} />
-          {SOON.map(x => (
-            <button key={x.key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={x.icon} />{d.nav[x.key]}<span className="soon">{d.nav.soon}</span></button>
-          ))}
+          {soon(d, 'sync', 'sync')}
+          <NavItem icon="flows" label={d.nav.flows} count={data.flows.length || undefined} active={shown === 'flows'} onClick={() => go('flows')} />
+          {soon(d, 'tasks', 'tasks')}
+          {soon(d, 'api', 'api')}
           <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
           {manager && <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
@@ -169,6 +171,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       )}
       {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
+      {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 

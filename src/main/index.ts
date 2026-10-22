@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import type { KernelKind, Method, Os } from '../shared/bridge';
+import type { KernelKind, Method, Os, Step } from '../shared/bridge';
 import { forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
@@ -15,6 +15,7 @@ import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './t
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { checkById, checkWorkspace } from './proxy-check';
+import { isScreenshot, tryFlow } from './runs';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -164,6 +165,17 @@ ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id));
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());
 ipcMain.handle('folio:checkProxy', (_e, id: string) => checkById(String(id)));
+
+// Trial runs from the flow editor, each by a token its progress events carry.
+const trials = new Map<string, AbortController>();
+ipcMain.handle('folio:tryFlow', (_e, profileId: string, steps: Step[], vars: Record<string, string>) => {
+  const token = randomUUID(), abort = new AbortController();
+  trials.set(token, abort);
+  void tryFlow(String(profileId), steps, { ...vars }, abort.signal, ev => send('flow:event', { token, ...ev })).finally(() => trials.delete(token));
+  return token;
+});
+ipcMain.handle('folio:stopFlow', (_e, token: string) => { trials.get(String(token))?.abort(); });
+ipcMain.handle('folio:showFile', (_e, path: string) => { if (isScreenshot(String(path))) shell.showItemInFolder(String(path)); });
 
 ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os) => {
   const kernelVersion = latest(kind);

@@ -25,7 +25,7 @@ async function loop(workspaceId: string, signal: AbortSignal, emit: (c: Change) 
       if (res.ok && res.body){
         delay = 1000;
         // Something may have changed while we were disconnected.
-        emit({ kind: 'workspace' }); emit({ kind: 'profiles' }); emit({ kind: 'proxies' }); emit({ kind: 'groups' });
+        emit({ kind: 'workspace' }); emit({ kind: 'profiles' }); emit({ kind: 'proxies' }); emit({ kind: 'groups' }); emit({ kind: 'flows' });
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buf = '';

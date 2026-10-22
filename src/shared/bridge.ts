@@ -1,5 +1,6 @@
 // The only surface the renderer gets from the main process (exposed by the preload as `window.folio`).
 // The session token and proxy passwords never leave the main process.
+import type { components } from './api-schema';
 
 export interface ApiErrorBody { code: string; message: string; status: number }
 export type ApiResult<T = unknown> = { ok: true; data: T } | { ok: false; error: ApiErrorBody };
@@ -22,7 +23,16 @@ export interface ProfileStatus {
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
-export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed'; ids?: string[] }
+export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows'; ids?: string[] }
+
+export type Step = components['schemas']['Step'];
+export interface FlowError { code: 'timeout' | 'navigation' | 'script' | 'variable' | 'no_item' | 'closed' | 'stopped' | 'failed'; message: string }
+// One line of a run's log: the step's place in the flow ("3.1" is the first step inside step 3), what it acted
+// on, how long it took, and what it found (an extracted value, the branch taken, the loop's count).
+export interface FlowLog { path: string; type: Step['type']; target: string; ms: number | null; value?: string; error?: FlowError }
+export interface FlowResult { ok: boolean; error?: FlowError; launchError?: string; data: Record<string, string>; screenshots: string[] }
+// A trial run's progress, by the token tryFlow returned.
+export interface FlowEvent { token: string; log?: FlowLog; done?: FlowResult }
 
 export interface FolioBridge {
   login(email: string, password: string): Promise<{ user: unknown }>;
@@ -51,6 +61,13 @@ export interface FolioBridge {
   stopProfile(id: string): Promise<void>;
   statuses(): Promise<ProfileStatus[]>;
   onStatus(cb: (s: ProfileStatus) => void): () => void;
+
+  // Runs a flow once on a profile (opening it when it is not open), in a new tab left open afterwards.
+  tryFlow(profileId: string, steps: Step[], vars: Record<string, string>): Promise<string>;
+  stopFlow(token: string): Promise<void>;
+  onFlow(cb: (e: FlowEvent) => void): () => void;
+  // Shows a screenshot a flow took in the system's file manager.
+  showFile(path: string): Promise<void>;
 
   checkProxy(id: string): Promise<CheckResult>;
   // Uses the newest engine version for this platform; Firefox needs that engine installed.

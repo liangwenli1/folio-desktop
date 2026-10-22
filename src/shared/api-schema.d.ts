@@ -3695,7 +3695,7 @@ export interface paths {
                 query?: {
                     profileId?: string;
                     actorId?: string;
-                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team";
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "automation";
                     before?: number;
                     limit?: number;
                 };
@@ -3720,7 +3720,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -3756,7 +3756,7 @@ export interface paths {
                 query?: {
                     profileId?: string;
                     actorId?: string;
-                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team";
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "automation";
                 };
                 header?: never;
                 path: {
@@ -3961,10 +3961,335 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{id}/flows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            flows: {
+                                id: string;
+                                name: string;
+                                steps: components["schemas"]["Step"][];
+                                version: number;
+                                createdBy: string | null;
+                                createdAt: string;
+                                updatedAt: string;
+                                canEdit: boolean;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        steps: components["schemas"]["StepInput"][];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            steps: components["schemas"]["Step"][];
+                            version: number;
+                            createdBy: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            canEdit: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/flows/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        version: number;
+                        name?: string;
+                        steps?: components["schemas"]["StepInput"][];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            steps: components["schemas"]["Step"][];
+                            version: number;
+                            createdBy: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            canEdit: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        StepInput: {
+            /** @enum {string} */
+            type: "open";
+            url: string;
+        } | {
+            /** @enum {string} */
+            type: "click";
+            selector: string;
+        } | {
+            /** @enum {string} */
+            type: "type";
+            selector: string;
+            text: string;
+            slow: boolean;
+        } | {
+            /** @enum {string} */
+            type: "press";
+            key: string;
+        } | {
+            /** @enum {string} */
+            type: "wait";
+            /** @enum {string} */
+            until: "time" | "visible" | "hidden";
+            seconds: number;
+            maxSeconds: number | null;
+            selector: string | null;
+        } | {
+            /** @enum {string} */
+            type: "scroll";
+            /** @enum {string} */
+            to: "element" | "pixels" | "bottom";
+            selector: string | null;
+            pixels: number | null;
+        } | {
+            /** @enum {string} */
+            type: "extract";
+            selector: string;
+            attribute: string | null;
+            variable: string;
+        } | {
+            /** @enum {string} */
+            type: "set";
+            variable: string;
+            value: string;
+        } | {
+            /** @enum {string} */
+            type: "screenshot";
+            selector: string | null;
+        } | {
+            /** @enum {string} */
+            type: "script";
+            code: string;
+            variable: string | null;
+        } | {
+            /** @enum {string} */
+            type: "if";
+            test: {
+                /** @enum {string} */
+                kind: "exists";
+                selector: string;
+            } | {
+                /** @enum {string} */
+                kind: "contains";
+                selector: string;
+                text: string;
+            } | {
+                /** @enum {string} */
+                kind: "equals";
+                variable: string;
+                value: string;
+            };
+            then: components["schemas"]["StepInput"][];
+            else: components["schemas"]["StepInput"][];
+        } | {
+            /** @enum {string} */
+            type: "loop";
+            /** @enum {string} */
+            mode: "times" | "each";
+            times: number | null;
+            selector: string | null;
+            steps: components["schemas"]["StepInput"][];
+        };
+        Step: {
+            /** @enum {string} */
+            type: "open";
+            url: string;
+        } | {
+            /** @enum {string} */
+            type: "click";
+            selector: string;
+        } | {
+            /** @enum {string} */
+            type: "type";
+            selector: string;
+            text: string;
+            slow: boolean;
+        } | {
+            /** @enum {string} */
+            type: "press";
+            key: string;
+        } | {
+            /** @enum {string} */
+            type: "wait";
+            /** @enum {string} */
+            until: "time" | "visible" | "hidden";
+            seconds: number;
+            maxSeconds: number | null;
+            selector: string | null;
+        } | {
+            /** @enum {string} */
+            type: "scroll";
+            /** @enum {string} */
+            to: "element" | "pixels" | "bottom";
+            selector: string | null;
+            pixels: number | null;
+        } | {
+            /** @enum {string} */
+            type: "extract";
+            selector: string;
+            attribute: string | null;
+            variable: string;
+        } | {
+            /** @enum {string} */
+            type: "set";
+            variable: string;
+            value: string;
+        } | {
+            /** @enum {string} */
+            type: "screenshot";
+            selector: string | null;
+        } | {
+            /** @enum {string} */
+            type: "script";
+            code: string;
+            variable: string | null;
+        } | {
+            /** @enum {string} */
+            type: "if";
+            test: {
+                /** @enum {string} */
+                kind: "exists";
+                selector: string;
+            } | {
+                /** @enum {string} */
+                kind: "contains";
+                selector: string;
+                text: string;
+            } | {
+                /** @enum {string} */
+                kind: "equals";
+                variable: string;
+                value: string;
+            };
+            then: components["schemas"]["Step"][];
+            else: components["schemas"]["Step"][];
+        } | {
+            /** @enum {string} */
+            type: "loop";
+            /** @enum {string} */
+            mode: "times" | "each";
+            times: number | null;
+            selector: string | null;
+            steps: components["schemas"]["Step"][];
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;

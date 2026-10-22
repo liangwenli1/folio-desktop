@@ -1,6 +1,6 @@
 # folio-desktop
 
-The Folio workbench: an Electron app where people log in with the account they created on the website and manage their browser profiles. Automation, window sync and team features come in later phases (see `../PLAN.md`).
+The Folio workbench: an Electron app where people log in with the account they created on the website and manage their browser profiles. Scheduled tasks, the local API and window sync come in later phases (see `../PLAN.md`).
 
 ## Stack
 
@@ -23,11 +23,12 @@ Live changes from other devices come over SSE (`changes.ts`).
 
 ## Workbench screens
 
-The renderer (`src/renderer/src`) has five working pages; the other sidebar entries arrive in later phases. What a person sees depends on their role: members get their own profiles (and, on Company, their departments'), no proxy library, no Trash, and cannot delete or assign.
+The renderer (`src/renderer/src`) has six working pages; the other sidebar entries arrive in later phases. What a person sees depends on their role: members get their own profiles (and, on Company, their departments'), no proxy library, no Trash, and cannot delete or assign.
 
 - **Profiles** (`Profiles.tsx`): summary strip, search, filters, sort, bulk actions (open, stop, move, tag, proxy, Trash with undo), the getting-started steps, and the detail drawer (`ProfileDetail.tsx`) with the passport card and consistency check. `ProfileForm.tsx` creates and edits profiles; `ProfileImport.tsx` imports a spreadsheet (`csv.ts`).
 - **Proxies** (`Proxies.tsx`): the proxy library with add, edit, paste import, checks and backup lines.
 - **Team** (`Team.tsx`): people and roles, invitations (emailed, with a link to copy), removing someone (their profiles go to a chosen person), leaving, and departments on Company. Invitations to the account show in the workspace menu.
+- **Flows** (`Flows.tsx`): the team's flows and the step editor (nested steps for conditions and loops, fields checked before saving), with a trial run on one profile: it opens the profile the normal way if needed, runs in a new tab and shows each step's log line as it happens. Steps run in `src/main/flow.ts`, which uses only Playwright's page API, so both engines run them the same way; Camoufox is started with `main_world_eval`, so scripts that start with `mw:` see the page's own JavaScript. Screenshots go to `<userData>/screenshots/`.
 - **Activity log** (`Activity.tsx`): who did what, on which computer, grouped by day and filtered by person or kind; Company exports it as CSV. Each profile's details show its last five entries.
 - **Trash** (`Trash.tsx`): restore (within the plan) and delete forever.
 

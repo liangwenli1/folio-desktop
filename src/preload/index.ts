@@ -38,6 +38,11 @@ const bridge: FolioBridge = {
   statuses: () => ipcRenderer.invoke('folio:statuses'),
   onStatus: cb => listen('profile:status', cb),
 
+  tryFlow: (profileId, steps, vars) => ipcRenderer.invoke('folio:tryFlow', profileId, steps, vars),
+  stopFlow: token => ipcRenderer.invoke('folio:stopFlow', token),
+  onFlow: cb => listen('flow:event', cb),
+  showFile: path => ipcRenderer.invoke('folio:showFile', path),
+
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),
   newFingerprint: (kind, os) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os)),
   kernels: () => ipcRenderer.invoke('folio:kernels'),

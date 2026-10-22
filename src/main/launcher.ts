@@ -81,7 +81,8 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
   await prepareFirefox();
   return Camoufox({
     executable_path: exe, persistent_context: true, user_data_dir: dir, headless: false, os: p.os, locale, config,
-    i_know_what_im_doing: true, exclude_addons: ['UBO'],
+    // Lets flow scripts that start with mw: see the page's own JavaScript; it does nothing until a script asks.
+    i_know_what_im_doing: true, exclude_addons: ['UBO'], main_world_eval: true,
     proxy: { server: `http://127.0.0.1:${port}`, ...(process.env.FOLIO_PROXY_LOOPBACK ? {} : { bypass: '127.0.0.1,localhost' }) },
     firefox_user_prefs: process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {}
   }) as Promise<BrowserContext>;
@@ -121,8 +122,10 @@ async function harvest(p: LaunchProfile, exe: string, dir: string, origins: stri
   } finally { await ctx.close(); }
 }
 
-export async function open(id: string){
-  if (running.has(id) || starting.has(id)) return;
+// Resolves when the browser is up (null) or could not start (the reason).
+export async function open(id: string): Promise<string | null> {
+  if (running.has(id)) return null;
+  if (starting.has(id)) return 'starting';
   starting.add(id);
   notify({ id, state: 'starting' });
   let fwd: Forwarder | null = null, locked = false;
@@ -193,11 +196,14 @@ export async function open(id: string){
     };
     running.set(id, entry);
     notify(status);
+    return null;
   } catch (e){
     await fwd?.close();
     if (locked) await api('DELETE', `/profiles/${id}/lock`);
-    notify({ id, state: 'error', error: e instanceof LaunchError ? e.code : 'launch_failed' });
+    const error = e instanceof LaunchError ? e.code : 'launch_failed';
+    notify({ id, state: 'error', error });
     if (!(e instanceof LaunchError)) console.error('launch failed', e);
+    return error;
   } finally {
     starting.delete(id);
   }
@@ -253,6 +259,11 @@ async function finish(id: string){
 // Saves the running profile's cookies now (before exporting them), when it runs on this computer.
 export const saveNow = (id: string) => autosave(id);
 export const isRunning = (id: string) => running.has(id);
+// A new tab in the profile's browser, for a flow to run in.
+export async function newPage(id: string){
+  const r = running.get(id);
+  return r ? { page: await r.ctx.newPage(), kernel: r.profile.kernel } : null;
+}
 // Adds imported cookies to the browser, when the profile runs on this computer.
 export async function addCookies(id: string, cookies: Cookie[]){
   await running.get(id)?.ctx.addCookies(cookies);

@@ -3,9 +3,9 @@
 // downloads come from the main process.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KernelKind, KernelProgress, KernelState, ProfileStatus } from '@shared/bridge';
-import { folio, isApiError, type Department, type Group, type Invitation, type Member, type Profile, type Proxy, type Role } from './api';
+import { folio, isApiError, type Department, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role } from './api';
 
-type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members';
+type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'trash' | 'restore' | 'purge';
 export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
@@ -15,6 +15,7 @@ export interface WorkspaceData {
   profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
   // The team: everyone in it, its departments, and (for owners and admins) invitations still open.
   members: Member[]; departments: Department[]; invitations: Invitation[];
+  flows: Flow[];
   status: Record<string, ProfileStatus>; kernels: KernelState[]; progress: Record<string, KernelProgress>;
   refresh(...kinds: Kind[]): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
@@ -36,6 +37,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [members, setMembers] = useState<Member[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [flows, setFlows] = useState<Flow[]>([]);
   const [status, setStatus] = useState<Record<string, ProfileStatus>>({});
   const [kernels, setKernels] = useState<KernelState[]>([]);
   const [progress, setProgress] = useState<Record<string, KernelProgress>>({});
@@ -52,6 +54,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
       if (k === 'trash') void run<{ profiles: Profile[] }>(`${base}/profiles?trash=1`, r => setTrash(r.profiles));
       if (k === 'groups') void run<{ groups: Group[] }>(`${base}/groups`, r => setGroups(r.groups));
       if (k === 'proxies') void run<{ proxies: Proxy[] }>(`${base}/proxies`, r => setProxies(r.proxies));
+      if (k === 'flows') void run<{ flows: Flow[] }>(`${base}/flows`, r => setFlows(r.flows));
       if (k === 'members'){
         void run<{ members: Member[] }>(`${base}/members`, r => setMembers(r.members));
         void run<{ departments: Department[] }>(`${base}/departments`, r => setDepartments(r.departments));
@@ -61,8 +64,8 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   }, [wsId, role]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]);
-    refresh('profiles', 'trash', 'groups', 'proxies', 'members');
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]);
+    refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows');
     void folio.watch(wsId);
     return folio.onChange(c => {
       if (c.kind === 'workspace') handlers.current.workspace();
@@ -141,5 +144,5 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     void folio.installKernel(kind, version);
   }), []);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
+  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
 }
