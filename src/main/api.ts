@@ -54,7 +54,11 @@ export async function logout(){
 export const api = <T = unknown>(method: Method | 'PUT', path: string, body?: unknown) => call<T>(method, path, body);
 
 // Proxy passwords, saved sign-in state and the locks around it stay in the main process.
-const MAIN_ONLY = [/^\/profiles\/[^/]+\/launch$/, /^\/proxies\/[^/]+\/credentials$/, /^\/profiles\/[^/]+\/(data|lock|lock\/renew)$/];
+// Starting a task run returns its variables (which may hold passwords); the reports are the runner's alone.
+const MAIN_ONLY = [
+  /^\/profiles\/[^/]+\/launch$/, /^\/proxies\/[^/]+\/credentials$/, /^\/profiles\/[^/]+\/(data|lock|lock\/renew)$/,
+  /^\/tasks\/[^/]+\/runs$/, /^\/runs\/[^/]+\/(items\/[^/]+|heartbeat|finish)$/
+];
 
 // What the renderer may call through the bridge.
 export function forRenderer(method: Method, path: string, body?: unknown){

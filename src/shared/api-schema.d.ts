@@ -3720,7 +3720,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -4119,6 +4119,705 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/workspaces/{id}/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            tasks: {
+                                id: string;
+                                name: string;
+                                flowId: string;
+                                profileIds: string[];
+                                profiles: number;
+                                concurrency: number;
+                                retries: number;
+                                timeoutMin: number;
+                                hasVariables: boolean;
+                                createdBy: string | null;
+                                canEdit: boolean;
+                                version: number;
+                                createdAt: string;
+                                updatedAt: string;
+                                lastRun: {
+                                    id: string;
+                                    taskId: string;
+                                    /** @enum {string} */
+                                    trigger: "manual" | "rerun";
+                                    /** @enum {string} */
+                                    status: "running" | "done" | "stopped" | "interrupted";
+                                    flowVersion: number;
+                                    startedBy: string | null;
+                                    deviceName: string | null;
+                                    startedAt: string;
+                                    finishedAt: string | null;
+                                    counts: {
+                                        pending: number;
+                                        running: number;
+                                        ok: number;
+                                        failed: number;
+                                        skipped: number;
+                                        canceled: number;
+                                    };
+                                } | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        /** Format: uuid */
+                        flowId: string;
+                        profileIds: string[];
+                        variables?: {
+                            [key: string]: {
+                                [key: string]: string;
+                            };
+                        } | null;
+                        concurrency: number;
+                        retries: number;
+                        timeoutMin: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            flowId: string;
+                            profileIds: string[];
+                            profiles: number;
+                            concurrency: number;
+                            retries: number;
+                            timeoutMin: number;
+                            hasVariables: boolean;
+                            createdBy: string | null;
+                            canEdit: boolean;
+                            version: number;
+                            createdAt: string;
+                            updatedAt: string;
+                            lastRun: {
+                                id: string;
+                                taskId: string;
+                                /** @enum {string} */
+                                trigger: "manual" | "rerun";
+                                /** @enum {string} */
+                                status: "running" | "done" | "stopped" | "interrupted";
+                                flowVersion: number;
+                                startedBy: string | null;
+                                deviceName: string | null;
+                                startedAt: string;
+                                finishedAt: string | null;
+                                counts: {
+                                    pending: number;
+                                    running: number;
+                                    ok: number;
+                                    failed: number;
+                                    skipped: number;
+                                    canceled: number;
+                                };
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        version: number;
+                        name?: string;
+                        /** Format: uuid */
+                        flowId?: string;
+                        profileIds?: string[];
+                        variables?: {
+                            [key: string]: {
+                                [key: string]: string;
+                            };
+                        } | null;
+                        concurrency?: number;
+                        retries?: number;
+                        timeoutMin?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            flowId: string;
+                            profileIds: string[];
+                            profiles: number;
+                            concurrency: number;
+                            retries: number;
+                            timeoutMin: number;
+                            hasVariables: boolean;
+                            createdBy: string | null;
+                            canEdit: boolean;
+                            version: number;
+                            createdAt: string;
+                            updatedAt: string;
+                            lastRun: {
+                                id: string;
+                                taskId: string;
+                                /** @enum {string} */
+                                trigger: "manual" | "rerun";
+                                /** @enum {string} */
+                                status: "running" | "done" | "stopped" | "interrupted";
+                                flowVersion: number;
+                                startedBy: string | null;
+                                deviceName: string | null;
+                                startedAt: string;
+                                finishedAt: string | null;
+                                counts: {
+                                    pending: number;
+                                    running: number;
+                                    ok: number;
+                                    failed: number;
+                                    skipped: number;
+                                    canceled: number;
+                                };
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/tasks/{id}/variables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            variables: {
+                                [key: string]: {
+                                    [key: string]: string;
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        trigger: "manual" | "rerun";
+                        profileIds?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            run: {
+                                id: string;
+                                taskId: string;
+                                /** @enum {string} */
+                                trigger: "manual" | "rerun";
+                                /** @enum {string} */
+                                status: "running" | "done" | "stopped" | "interrupted";
+                                flowVersion: number;
+                                startedBy: string | null;
+                                deviceName: string | null;
+                                startedAt: string;
+                                finishedAt: string | null;
+                                counts: {
+                                    pending: number;
+                                    running: number;
+                                    ok: number;
+                                    failed: number;
+                                    skipped: number;
+                                    canceled: number;
+                                };
+                            };
+                            steps: components["schemas"]["Step"][];
+                            items: {
+                                profileId: string;
+                                name: string;
+                                number: number;
+                                vars: {
+                                    [key: string]: string;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/items/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    profileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "running" | "ok" | "failed" | "skipped" | "canceled";
+                        attempts: number;
+                        error?: {
+                            code: string;
+                            message: string;
+                        } | null;
+                        log?: {
+                            attempt: number;
+                            path: string;
+                            type: string;
+                            target: string;
+                            ms: number | null;
+                            value?: string;
+                            error?: {
+                                code: string;
+                                message: string;
+                            };
+                        }[];
+                        data?: {
+                            [key: string]: string;
+                        };
+                        screenshots?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "done" | "stopped";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            taskId: string;
+                            /** @enum {string} */
+                            trigger: "manual" | "rerun";
+                            /** @enum {string} */
+                            status: "running" | "done" | "stopped" | "interrupted";
+                            flowVersion: number;
+                            startedBy: string | null;
+                            deviceName: string | null;
+                            startedAt: string;
+                            finishedAt: string | null;
+                            counts: {
+                                pending: number;
+                                running: number;
+                                ok: number;
+                                failed: number;
+                                skipped: number;
+                                canceled: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    taskId?: string;
+                    before?: string;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            runs: {
+                                id: string;
+                                taskId: string;
+                                /** @enum {string} */
+                                trigger: "manual" | "rerun";
+                                /** @enum {string} */
+                                status: "running" | "done" | "stopped" | "interrupted";
+                                flowVersion: number;
+                                startedBy: string | null;
+                                deviceName: string | null;
+                                startedAt: string;
+                                finishedAt: string | null;
+                                counts: {
+                                    pending: number;
+                                    running: number;
+                                    ok: number;
+                                    failed: number;
+                                    skipped: number;
+                                    canceled: number;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            run: {
+                                id: string;
+                                taskId: string;
+                                /** @enum {string} */
+                                trigger: "manual" | "rerun";
+                                /** @enum {string} */
+                                status: "running" | "done" | "stopped" | "interrupted";
+                                flowVersion: number;
+                                startedBy: string | null;
+                                deviceName: string | null;
+                                startedAt: string;
+                                finishedAt: string | null;
+                                counts: {
+                                    pending: number;
+                                    running: number;
+                                    ok: number;
+                                    failed: number;
+                                    skipped: number;
+                                    canceled: number;
+                                };
+                            };
+                            items: {
+                                profileId: string | null;
+                                profileName: string;
+                                profileNumber: number;
+                                /** @enum {string} */
+                                status: "pending" | "running" | "ok" | "failed" | "skipped" | "canceled";
+                                attempts: number;
+                                startedAt: string | null;
+                                finishedAt: string | null;
+                                error: {
+                                    code: string;
+                                    message: string;
+                                } | null;
+                                log: {
+                                    attempt: number;
+                                    path: string;
+                                    type: string;
+                                    target: string;
+                                    ms: number | null;
+                                    value?: string;
+                                    error?: {
+                                        code: string;
+                                        message: string;
+                                    };
+                                }[];
+                                data: {
+                                    [key: string]: string;
+                                };
+                                screenshots: string[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }

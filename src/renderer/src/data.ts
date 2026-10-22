@@ -2,10 +2,10 @@
 // when the change stream says they changed (on this computer or another one); run status and engine
 // downloads come from the main process.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { KernelKind, KernelProgress, KernelState, ProfileStatus } from '@shared/bridge';
-import { folio, isApiError, type Department, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role } from './api';
+import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus } from '@shared/bridge';
+import { folio, isApiError, type Department, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
-type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows';
+type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'trash' | 'restore' | 'purge';
 export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
@@ -15,7 +15,9 @@ export interface WorkspaceData {
   profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
   // The team: everyone in it, its departments, and (for owners and admins) invitations still open.
   members: Member[]; departments: Department[]; invitations: Invitation[];
-  flows: Flow[];
+  flows: Flow[]; tasks: Task[];
+  // Bumped when runs change anywhere (pages showing runs fetch them again); the runs under way on this computer.
+  runsSeq: number; active: ActiveRun[];
   status: Record<string, ProfileStatus>; kernels: KernelState[]; progress: Record<string, KernelProgress>;
   refresh(...kinds: Kind[]): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
@@ -38,6 +40,9 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [departments, setDepartments] = useState<Department[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [flows, setFlows] = useState<Flow[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [runsSeq, setRunsSeq] = useState(0);
+  const [active, setActive] = useState<ActiveRun[]>([]);
   const [status, setStatus] = useState<Record<string, ProfileStatus>>({});
   const [kernels, setKernels] = useState<KernelState[]>([]);
   const [progress, setProgress] = useState<Record<string, KernelProgress>>({});
@@ -55,6 +60,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
       if (k === 'groups') void run<{ groups: Group[] }>(`${base}/groups`, r => setGroups(r.groups));
       if (k === 'proxies') void run<{ proxies: Proxy[] }>(`${base}/proxies`, r => setProxies(r.proxies));
       if (k === 'flows') void run<{ flows: Flow[] }>(`${base}/flows`, r => setFlows(r.flows));
+      if (k === 'tasks') void run<{ tasks: Task[] }>(`${base}/tasks`, r => setTasks(r.tasks));
       if (k === 'members'){
         void run<{ members: Member[] }>(`${base}/members`, r => setMembers(r.members));
         void run<{ departments: Department[] }>(`${base}/departments`, r => setDepartments(r.departments));
@@ -64,13 +70,14 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   }, [wsId, role]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]);
-    refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows');
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]); setTasks([]);
+    refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks');
     void folio.watch(wsId);
     return folio.onChange(c => {
       if (c.kind === 'workspace') handlers.current.workspace();
       else if (c.kind === 'removed') handlers.current.removed();
       else if (c.kind === 'profiles') refresh('profiles', 'trash', 'groups');
+      else if (c.kind === 'runs'){ setRunsSeq(n => n + 1); refresh('tasks'); }
       else refresh(c.kind);
     });
   }, [wsId, refresh]);
@@ -78,6 +85,8 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   useEffect(() => {
     void folio.statuses().then(list => setStatus(Object.fromEntries(list.map(s => [s.id, s]))));
     void folio.kernels().then(setKernels);
+    void folio.activeRuns().then(setActive);
+    const offRuns = folio.onRuns(setActive);
     const offStatus = folio.onStatus(s => {
       setStatus(m => {
         const next = { ...m };
@@ -91,11 +100,13 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
       setProgress(m => ({ ...m, [key]: p }));
       if (p.finished || p.error){
         void folio.kernels().then(setKernels);
+    void folio.activeRuns().then(setActive);
+    const offRuns = folio.onRuns(setActive);
         waiting.current.get(key)?.(!!p.finished);
         waiting.current.delete(key);
       }
     });
-    return () => { offStatus(); offKernel(); };
+    return () => { offStatus(); offKernel(); offRuns(); };
   }, []);
 
   const patch = useCallback(async (p: Profile, body: ProfilePatch) => {
@@ -144,5 +155,5 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     void folio.installKernel(kind, version);
   }), []);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
+  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, runsSeq, active, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
 }

@@ -58,6 +58,8 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   const [confirm, setConfirm] = useState<string | null>(null);
   const email = new Map(data.members.map(m => [m.userId, m.email]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  // The tasks a flow is used by, by name; such a flow can't be deleted.
+  const users = (id: string) => data.tasks.filter(t => t.flowId === id).map(t => t.name).join(', ');
 
   async function duplicate(f: Flow){
     try {
@@ -101,9 +103,9 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
                   <td>{ago(f.updatedAt, d)}</td>
                   <td className="act"><span className="actin">
                     {confirm === f.id ? <>
-                      <span className="hint">{F.confirmDelete(f.name)}</span>
+                      <span className="hint">{users(f.id) ? F.inUse(users(f.id)) : F.confirmDelete(f.name)}</span>
                       <button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                      <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(f)}>{F.delete}</button>
+                      {!users(f.id) && <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(f)}>{F.delete}</button>}
                     </> : <>
                       <button type="button" className="btn btn-xs btn-line" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button>
                       <button type="button" className="btn btn-xs btn-ghost" onClick={() => void duplicate(f)}>{F.duplicate}</button>
@@ -419,6 +421,7 @@ function Trial({ d, profiles, steps, disabled }: { d: Dict; profiles: Profile[];
 export function flowError(d: Dict, e: { code: string; message: string }){
   const E = d.flows.errors;
   if (e.code === 'variable') return E.variable(e.message);
-  const text = E[e.code as Exclude<keyof typeof E, 'variable'>] ?? E.failed;
+  if (e.code === 'too_long') return E.too_long(e.message);
+  const text = E[e.code as Exclude<keyof typeof E, 'variable' | 'too_long'>] ?? E.failed;
   return e.message && e.code !== 'stopped' && e.code !== 'no_item' ? `${text} (${e.message})` : text;
 }

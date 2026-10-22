@@ -23,10 +23,13 @@ export interface ProfileStatus {
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
-export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows'; ids?: string[] }
+export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs'; ids?: string[] }
+// A task run under way on this computer.
+export interface ActiveRun { runId: string; taskId: string }
 
 export type Step = components['schemas']['Step'];
-export interface FlowError { code: 'timeout' | 'navigation' | 'script' | 'variable' | 'no_item' | 'closed' | 'stopped' | 'failed'; message: string }
+// `too_long`: a task's profile ran past the task's time limit.
+export interface FlowError { code: 'timeout' | 'navigation' | 'script' | 'variable' | 'no_item' | 'closed' | 'stopped' | 'failed' | 'too_long'; message: string }
 // One line of a run's log: the step's place in the flow ("3.1" is the first step inside step 3), what it acted
 // on, how long it took, and what it found (an extracted value, the branch taken, the loop's count).
 export interface FlowLog { path: string; type: Step['type']; target: string; ms: number | null; value?: string; error?: FlowError }
@@ -66,7 +69,12 @@ export interface FolioBridge {
   tryFlow(profileId: string, steps: Step[], vars: Record<string, string>): Promise<string>;
   stopFlow(token: string): Promise<void>;
   onFlow(cb: (e: FlowEvent) => void): () => void;
-  // Shows a screenshot a flow took in the system's file manager.
+  // Runs a task on this computer (all its profiles the person sees, or some of them again).
+  runTask(taskId: string, trigger: 'manual' | 'rerun', profileIds?: string[]): Promise<{ runId: string }>;
+  stopRun(runId: string): Promise<void>;
+  activeRuns(): Promise<ActiveRun[]>;
+  onRuns(cb: (runs: ActiveRun[]) => void): () => void;
+  // Shows a screenshot a flow took (a full path, or one relative to the screenshots folder) in the file manager.
   showFile(path: string): Promise<void>;
 
   checkProxy(id: string): Promise<CheckResult>;

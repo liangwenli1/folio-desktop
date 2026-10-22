@@ -85,3 +85,32 @@ export function readProfiles(text: string): { rows: ImportRow[]; errors: RowErro
   });
   return { rows, errors };
 }
+
+// Per-profile variables for a task: the first column names the profile (its name, or its number like #0042),
+// every other column is a variable. Only the task's profiles can be named.
+export type VarProblem = 'header' | 'variable' | 'profile' | 'repeat';
+export interface VarError { line: number; problem: VarProblem; value?: string }
+const VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
+export function readVariables(text: string, profiles: { id: string; name: string; number: number }[]){
+  const [head, ...body] = parseCsv(text);
+  const names = (head ?? []).slice(1).map(h => h.trim());
+  const errors: VarError[] = [];
+  const vars: Record<string, Record<string, string>> = {};
+  if (!names.length) return { vars, names, errors: [{ line: 1, problem: 'header' as const }] };
+  const bad = names.find(n => !VAR_NAME.test(n));
+  if (bad !== undefined) return { vars, names, errors: [{ line: 1, problem: 'variable' as const, value: bad }] };
+  body.forEach((cells, i) => {
+    const line = i + 2, ref = (cells[0] ?? '').trim();
+    const num = /^#?\d+$/.test(ref) ? Number(ref.replace('#', '')) : null;
+    const p = profiles.find(x => x.name === ref) ?? (num === null ? undefined : profiles.find(x => x.number === num));
+    if (!p) errors.push({ line, problem: 'profile', value: ref });
+    else if (vars[p.id]) errors.push({ line, problem: 'repeat', value: ref });
+    else vars[p.id] = Object.fromEntries(names.map((n, k) => [n, (cells[k + 1] ?? '').trim()]));
+  });
+  return { vars, names, errors };
+}
+
+export const toCsv = (rows: (string | number)[][]) => rows.map(r => r.map(v => {
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}).join(',')).join('\r\n');

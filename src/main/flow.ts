@@ -42,7 +42,7 @@ async function step(r: Run, s: Step, path: string, item: Locator | null){
   if (r.signal.aborted) throw new StepError('stopped', '');
   const started = Date.now();
   const line = (target: string, value?: string, error?: FlowError) =>
-    r.log({ path, type: s.type, target, ms: s.type === 'if' || s.type === 'loop' ? null : Date.now() - started, ...(value === undefined ? {} : { value: value.slice(0, 200) }), ...(error ? { error } : {}) });
+    r.log({ path, type: s.type, target: target.slice(0, 300), ms: s.type === 'if' || s.type === 'loop' ? null : Date.now() - started, ...(value === undefined ? {} : { value: value.slice(0, 200) }), ...(error ? { error: { code: error.code, message: error.message.slice(0, 300) } } : {}) });
   let target = '';
   try {
     target = describe(r, s);

@@ -223,7 +223,10 @@ export const en = {
       'workspace.export': (_p, x) => `exported all data (${profilesN(x.profiles)}, ${x.proxies} ${x.proxies === 1 ? 'proxy' : 'proxies'})`,
       'workspace.import': (_p, x) => `imported ${profilesN(x.profiles)}, ${x.proxies} new ${x.proxies === 1 ? 'proxy' : 'proxies'} and ${x.groups} new ${x.groups === 1 ? 'group' : 'groups'}`,
       'flow.create': (_p, x) => `created the flow ${x.name}`, 'flow.update': (_p, x) => (x.from ? `renamed the flow ${x.from} to ${x.name}` : `changed the flow ${x.name}`),
-      'flow.delete': (_p, x) => `deleted the flow ${x.name}`
+      'flow.delete': (_p, x) => `deleted the flow ${x.name}`,
+      'task.create': (_p, x) => `created the task ${x.name}`, 'task.update': (_p, x) => (x.from ? `renamed the task ${x.from} to ${x.name}` : `changed the task ${x.name}`),
+      'task.delete': (_p, x) => `deleted the task ${x.name}`, 'run.start': (_p, x) => `started ${x.name} on ${profilesN(x.profiles)}${x.trigger === 'rerun' ? ' (again)' : ''}`,
+      'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.skipped ? `, ${x.skipped} not run` : ''}`
     } satisfies Record<ActivityAction, Said>
   },
   transfer: {
@@ -241,7 +244,7 @@ export const en = {
     cols: { name: 'Flow', steps: 'Steps', by: 'Created by', updated: 'Changed' },
     empty: 'No flows yet. A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
-    confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string) => `${n} deleted`, copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
+    inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string) => `${n} deleted`, copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
     back: '← Flows', name: 'Flow name', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
     leave: 'Leave without saving your changes?', keepEditing: 'Keep editing', discard: 'Discard changes',
     readOnly: 'Only whoever created this flow, admins and the owner can change it. Duplicate it to make your own version.',
@@ -273,7 +276,39 @@ export const en = {
     errors: {
       timeout: 'Timed out: the element didn’t show up, or the page didn’t finish loading.', navigation: 'The page couldn’t be opened.', script: 'The script failed.',
       variable: (name: string) => `{{${name}}} has no value.`, no_item: '@item only works inside “For each matching element”.',
-      closed: 'The browser or tab was closed.', stopped: 'Stopped.', failed: 'The step failed.'
+      closed: 'The browser or tab was closed.', stopped: 'Stopped.', failed: 'The step failed.',
+      too_long: (min: string) => `Ran past the task’s limit of ${min} min.`
+    }
+  },
+  tasks: {
+    title: 'Scheduled tasks', sub: (n: number) => (n === 1 ? '1 task' : `${n} tasks`), new: '+ New task', needFlow: 'Make a flow first, on the Flows page.',
+    empty: 'No tasks yet. A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
+    cols: { task: 'Task', profiles: 'Profiles', last: 'Last run', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
+    never: 'Not run yet', run: 'Run', runX: (n: string) => `Run ${n}`, stop: 'Stop', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
+    confirmDelete: (n: string) => `Delete “${n}” and its runs?`, deleted: (n: string) => `${n} deleted`, started: (n: string) => `${n} started on this computer`,
+    saved: 'Task saved', stale: 'Someone changed this task in the meantime. Open it again and redo your change.',
+    status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted' },
+    progress: (done: number, all: number) => `${done} of ${all} done`, elsewhere: (where: string) => `on ${where}`,
+    counts: (c: { ok: number; failed: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} done`, c.failed && `${c.failed} failed`, c.skipped && `${c.skipped} skipped`, c.canceled && `${c.canceled} not run`].filter(Boolean).join(' · ') || 'Nothing ran',
+    back: '← Tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
+    runs: 'Runs', noRuns: 'No runs yet.', triggers: { manual: 'Manual', rerun: 'Rerun' }, result: 'Run results',
+    startedBy: (who: string, device: string | null, when: string) => `${who}${device ? ` on ${device}` : ''}, ${when}`,
+    rerun: (n: number) => `Run the ${n === 1 ? 'one' : n} that didn’t finish again`, export: 'Export CSV', exported: (path: string) => `Saved to ${path}`,
+    csv: { number: 'Number', profile: 'Profile', status: 'Result', attempts: 'Tries', problem: 'Problem' },
+    item: { pending: 'Waiting', running: 'Running', ok: 'Done', failed: 'Failed', skipped: 'Skipped', canceled: 'Not run' },
+    noLog: 'Nothing was logged.', attempt: (n: number) => `Try ${n}`, shotsWhere: (device: string) => (device ? `Screenshots are kept on ${device}.` : 'Screenshots are kept on the computer that ran it.'),
+    skip: { locked: 'Open on another computer.', not_found: 'The profile no longer exists.', in_trash: 'The profile is in the Trash.', forbidden: 'Not one of your profiles any more.' } as Record<string, string>,
+    form: {
+      newTitle: 'New task', editTitle: 'Edit task', create: 'Create task', save: 'Save changes', name: 'Name', flow: 'Flow',
+      profiles: (n: number) => `Profiles · ${n} selected`, search: 'Search profiles', all: 'Select all shown', none: 'No profiles match.',
+      concurrency: 'At a time', retries: 'When one fails', retriesN: (n: number) => (n === 0 ? 'Don’t retry' : n === 1 ? 'Retry once' : `Retry up to ${n} times`),
+      timeout: 'Time limit per profile', minutes: (n: number) => (n === 1 ? '1 minute' : `${n} minutes`),
+      memory: 'Each open profile takes roughly 300–500 MB of memory; set how many run at a time to suit this computer.',
+      vars: 'Variables per profile', varsHelp: 'Optional. A spreadsheet whose first column names the profile (name or number) and whose other columns are variables, used in the flow as {{column}}. Kept encrypted; only people who can edit the task see them.',
+      varsStored: (n: number, names: string) => `Set for ${profilesN(n)}: ${names}`, varsCleared: 'They will be removed when you save.',
+      varsReplace: 'Replace…', varsClear: 'Remove', varsKeep: 'Keep the current ones',
+      varsReady: (n: number, names: string) => `${names} for ${profilesN(n)}.`,
+      varErrs: { header: 'the first row needs the profile column and at least one variable', variable: 'variable names use letters, digits and _', profile: 'not one of the profiles selected above', repeat: 'this profile is already in an earlier row' }
     }
   },
   onboarding: {
@@ -309,7 +344,11 @@ export const en = {
     not_folio: 'That is not a Folio export file.',
     passphrase_short: 'Use a passphrase of at least 10 characters.',
     flow_too_deep: 'Steps can nest four levels deep at most.',
-    flow_too_long: 'A flow can have up to 300 steps.'
+    flow_too_long: 'A flow can have up to 300 steps.',
+    flow_in_use: 'Tasks use this flow. Delete them, or have them use another flow, first.',
+    task_running: 'This task is already running.',
+    no_profiles: 'None of this task’s profiles can run (they are gone, in the Trash, or not yours).',
+    run_finished: 'This run has already finished.'
   } as Record<string, string>
 };
 
@@ -521,7 +560,10 @@ export const zh: Dict = {
       'workspace.export': (_p, x) => `导出了全部数据（${x.profiles} 个环境、${x.proxies} 个代理）`,
       'workspace.import': (_p, x) => `导入了 ${x.profiles} 个环境，新增 ${x.proxies} 个代理和 ${x.groups} 个分组`,
       'flow.create': (_p, x) => `新建了流程 ${x.name}`, 'flow.update': (_p, x) => (x.from ? `把流程 ${x.from} 改名为 ${x.name}` : `修改了流程 ${x.name}`),
-      'flow.delete': (_p, x) => `删除了流程 ${x.name}`
+      'flow.delete': (_p, x) => `删除了流程 ${x.name}`,
+      'task.create': (_p, x) => `新建了任务 ${x.name}`, 'task.update': (_p, x) => (x.from ? `把任务 ${x.from} 改名为 ${x.name}` : `修改了任务 ${x.name}`),
+      'task.delete': (_p, x) => `删除了任务 ${x.name}`, 'run.start': (_p, x) => `${x.trigger === 'rerun' ? '重跑' : '运行'}了任务 ${x.name}，共 ${x.profiles} 个环境`,
+      'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '跑完了'}：${x.ok} 个成功，${x.failed} 个失败${x.skipped ? `，${x.skipped} 个没跑` : ''}`
     }
   },
   transfer: {
@@ -539,7 +581,7 @@ export const zh: Dict = {
     cols: { name: '流程', steps: '步骤', by: '创建人', updated: '修改时间' },
     empty: '还没有流程。流程是一串步骤（打开网页、点击、输入、提取……），可以在一个或多个环境上运行。',
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制一份再修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
-    confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string) => `已删除 ${n}`, copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
+    inUse: (tasks: string) => `被 ${tasks} 使用，不能删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string) => `已删除 ${n}`, copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
     back: '← 流程', name: '流程名称', save: '保存', saving: '正在保存…', saved: '流程已保存',
     leave: '修改还没保存，确定离开吗？', keepEditing: '继续编辑', discard: '放弃修改',
     readOnly: '只有这个流程的创建者、管理员和所有者能修改。可以复制一份，改成你自己的版本。',
@@ -571,7 +613,39 @@ export const zh: Dict = {
     errors: {
       timeout: '超时：元素没有出现，或者网页没有加载完。', navigation: '网页打不开。', script: '脚本出错了。',
       variable: (name: string) => `{{${name}}} 没有值。`, no_item: '@item 只能用在「对每个匹配的元素」循环里。',
-      closed: '浏览器或标签页被关掉了。', stopped: '已停止。', failed: '这一步失败了。'
+      closed: '浏览器或标签页被关掉了。', stopped: '已停止。', failed: '这一步失败了。',
+      too_long: (min: string) => `超过了任务设定的 ${min} 分钟。`
+    }
+  },
+  tasks: {
+    title: '定时任务', sub: (n: number) => `${n} 个任务`, new: '+ 新建任务', needFlow: '先在「流程」页建一个流程。',
+    empty: '还没有任务。任务会把一个流程放到一组环境上运行，几个几个地跑，并保留每次运行的结果。',
+    cols: { task: '任务', profiles: '环境', last: '上次运行', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
+    never: '还没运行过', run: '运行', runX: (n: string) => `运行 ${n}`, stop: '停止', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
+    confirmDelete: (n: string) => `删除「${n}」及其运行记录？`, deleted: (n: string) => `已删除 ${n}`, started: (n: string) => `${n} 已在这台电脑上开始运行`,
+    saved: '任务已保存', stale: '你编辑期间别人改过这个任务。请重新打开再改一次。',
+    status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断' },
+    progress: (done: number, all: number) => `已完成 ${done} / ${all}`, elsewhere: (where: string) => `在 ${where} 上`,
+    counts: (c: { ok: number; failed: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} 个成功`, c.failed && `${c.failed} 个失败`, c.skipped && `${c.skipped} 个跳过`, c.canceled && `${c.canceled} 个没跑`].filter(Boolean).join(' · ') || '一个也没跑',
+    back: '← 任务', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
+    runs: '运行记录', noRuns: '还没有运行记录。', triggers: { manual: '手动', rerun: '重跑' }, result: '运行结果',
+    startedBy: (who: string, device: string | null, when: string) => `${who}${device ? `，在 ${device} 上` : ''}，${when}`,
+    rerun: (n: number) => `重跑没成功的 ${n} 个`, export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`,
+    csv: { number: '编号', profile: '环境', status: '结果', attempts: '尝试次数', problem: '问题' },
+    item: { pending: '等待中', running: '运行中', ok: '成功', failed: '失败', skipped: '跳过', canceled: '没跑' },
+    noLog: '没有日志。', attempt: (n: number) => `第 ${n} 次尝试`, shotsWhere: (device: string) => (device ? `截图存在 ${device} 上。` : '截图存在运行它的电脑上。'),
+    skip: { locked: '正在另一台电脑上使用。', not_found: '这个环境已经不存在了。', in_trash: '这个环境在回收站里。', forbidden: '这个环境已经不归你了。' } as Record<string, string>,
+    form: {
+      newTitle: '新建任务', editTitle: '编辑任务', create: '创建任务', save: '保存修改', name: '名称', flow: '流程',
+      profiles: (n: number) => `环境 · 已选 ${n} 个`, search: '搜索环境', all: '全选筛出的', none: '没有匹配的环境。',
+      concurrency: '同时运行', retries: '失败时', retriesN: (n: number) => (n === 0 ? '不重试' : `最多重试 ${n} 次`),
+      timeout: '每个环境最长', minutes: (n: number) => `${n} 分钟`,
+      memory: '每个打开的环境大约占 300 到 500 MB 内存，同时运行几个请按电脑配置来设。',
+      vars: '按环境设置的变量', varsHelp: '可不填。上传一个表格：第一列是环境（名称或编号），其余每列是一个变量，在流程里写成 {{列名}}。加密保存，只有能编辑这个任务的人看得到。',
+      varsStored: (n: number, names: string) => `已为 ${n} 个环境设置：${names}`, varsCleared: '保存后会删除这些变量。',
+      varsReplace: '重新导入…', varsClear: '删除', varsKeep: '保留现有的',
+      varsReady: (n: number, names: string) => `${n} 个环境的 ${names}。`,
+      varErrs: { header: '第一行要有环境列和至少一个变量', variable: '变量名只能用字母、数字和下划线', profile: '不是上面选中的环境', repeat: '这个环境在前面的行里已经出现过' }
     }
   },
   onboarding: {
@@ -607,7 +681,11 @@ export const zh: Dict = {
     not_folio: '这不是 Folio 导出的文件。',
     passphrase_short: '口令至少 10 位。',
     flow_too_deep: '步骤最多嵌套四层。',
-    flow_too_long: '一个流程最多 300 个步骤。'
+    flow_too_long: '一个流程最多 300 个步骤。',
+    flow_in_use: '有任务在用这个流程，先删除这些任务或让它们改用别的流程。',
+    task_running: '这个任务正在运行。',
+    no_profiles: '这个任务的环境都不能运行（已删除、在回收站里，或者不归你）。',
+    run_finished: '这次运行已经结束了。'
   }
 };
 

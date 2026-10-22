@@ -15,7 +15,7 @@ import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './t
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { checkById, checkWorkspace } from './proxy-check';
-import { isScreenshot, tryFlow } from './runs';
+import { activeRuns, onRuns, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -47,7 +47,7 @@ function createWindow(){
 }
 
 ipcMain.handle('folio:login', (_e, email: string, password: string) => { forget(); return login(String(email), String(password)); });
-ipcMain.handle('folio:logout', async () => { watching(null); await stopAll(); forget(); return logout(); });
+ipcMain.handle('folio:logout', async () => { watching(null); await stopRuns(); await stopAll(); forget(); return logout(); });
 ipcMain.handle('folio:hasSession', () => !!getToken());
 ipcMain.handle('folio:api', (_e, method: Method, path: string, body?: unknown) => forRenderer(method, String(path), body));
 ipcMain.handle('folio:openSite', async (_e, path: string) => {
@@ -175,7 +175,12 @@ ipcMain.handle('folio:tryFlow', (_e, profileId: string, steps: Step[], vars: Rec
   return token;
 });
 ipcMain.handle('folio:stopFlow', (_e, token: string) => { trials.get(String(token))?.abort(); });
-ipcMain.handle('folio:showFile', (_e, path: string) => { if (isScreenshot(String(path))) shell.showItemInFolder(String(path)); });
+ipcMain.handle('folio:showFile', (_e, path: string) => { const full = screenshotPath(String(path)); if (full) shell.showItemInFolder(full); });
+onRuns(runs => send('runs:active', runs));
+ipcMain.handle('folio:runTask', (_e, taskId: string, trigger: 'manual' | 'rerun', profileIds?: string[]) =>
+  runTask(String(taskId), trigger === 'rerun' ? 'rerun' : 'manual', Array.isArray(profileIds) ? profileIds.map(String) : undefined));
+ipcMain.handle('folio:stopRun', (_e, runId: string) => { stopRun(String(runId)); });
+ipcMain.handle('folio:activeRuns', () => activeRuns());
 
 ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os) => {
   const kernelVersion = latest(kind);
@@ -205,12 +210,12 @@ app.whenReady().then(async () => {
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
-// Close every running profile before quitting, so no engine is left behind.
+// Stop task runs and close every running profile before quitting, so no engine is left behind.
 let quitting = false;
 app.on('before-quit', e => {
   if (quitting) return;
   quitting = true;
   e.preventDefault();
-  void stopAll().finally(() => app.quit());
+  void stopRuns().then(stopAll).finally(() => app.quit());
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

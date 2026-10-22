@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TEMPLATE, parseCsv, readProfiles } from '../../src/renderer/src/csv';
+import { TEMPLATE, parseCsv, readProfiles, readVariables, toCsv } from '../../src/renderer/src/csv';
 
 describe('parseCsv', () => {
   it('reads quotes, escaped quotes, line breaks inside quotes and CRLF', () => {
@@ -43,5 +43,29 @@ describe('readProfiles', () => {
 
   it('needs a name column', () => {
     expect(readProfiles('title,os\nA,windows')).toEqual({ rows: [], errors: [{ line: 1, problem: 'header' }] });
+  });
+});
+
+describe('readVariables', () => {
+  const profiles = [{ id: 'a', name: 'Shop-01', number: 1 }, { id: 'b', name: 'Shop 42', number: 42 }];
+  it('maps rows to profiles by name or number', () => {
+    expect(readVariables('profile,email,pass\nShop-01,ada@example.com,"p,1"\n#42,bob@example.com,', profiles)).toEqual({
+      names: ['email', 'pass'], errors: [],
+      vars: { a: { email: 'ada@example.com', pass: 'p,1' }, b: { email: 'bob@example.com', pass: '' } }
+    });
+    expect(readVariables('环境,email\n0042,x', profiles).vars).toEqual({ b: { email: 'x' } });
+  });
+  it('reports bad variable names, unknown profiles and repeats', () => {
+    expect(readVariables('profile', profiles).errors).toEqual([{ line: 1, problem: 'header' }]);
+    expect(readVariables('profile,e-mail', profiles).errors).toEqual([{ line: 1, problem: 'variable', value: 'e-mail' }]);
+    expect(readVariables('profile,email\nShop-99,x\nShop-01,y\n1,z', profiles).errors).toEqual([
+      { line: 2, problem: 'profile', value: 'Shop-99' }, { line: 4, problem: 'repeat', value: '1' }
+    ]);
+  });
+});
+
+describe('toCsv', () => {
+  it('quotes what needs quoting', () => {
+    expect(toCsv([['a', 'b,c'], [1, 'say "hi"\nthere']])).toBe('a,"b,c"\r\n1,"say ""hi""\nthere"');
   });
 });

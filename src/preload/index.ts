@@ -41,6 +41,10 @@ const bridge: FolioBridge = {
   tryFlow: (profileId, steps, vars) => ipcRenderer.invoke('folio:tryFlow', profileId, steps, vars),
   stopFlow: token => ipcRenderer.invoke('folio:stopFlow', token),
   onFlow: cb => listen('flow:event', cb),
+  runTask: (taskId, trigger, profileIds) => unwrap(ipcRenderer.invoke('folio:runTask', taskId, trigger, profileIds)),
+  stopRun: runId => ipcRenderer.invoke('folio:stopRun', runId),
+  activeRuns: () => ipcRenderer.invoke('folio:activeRuns'),
+  onRuns: cb => listen('runs:active', cb),
   showFile: path => ipcRenderer.invoke('folio:showFile', path),
 
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),

@@ -24,5 +24,8 @@ export type Department = Ok<'/workspaces/{id}/departments', 'get'>['departments'
 export type ActivityEntry = Ok<'/workspaces/{id}/activity', 'get'>['entries'][number];
 export type ActivityAction = ActivityEntry['action'];
 export type Flow = Ok<'/workspaces/{id}/flows', 'get'>['flows'][number];
+export type Task = Ok<'/workspaces/{id}/tasks', 'get'>['tasks'][number];
+export type Run = Ok<'/workspaces/{id}/runs', 'get'>['runs'][number];
+export type RunItem = Ok<'/runs/{id}', 'get'>['items'][number];
 
 export const isApiError = (e: unknown): e is ApiErrorBody => typeof e === 'object' && e !== null && 'code' in e && 'status' in e;
