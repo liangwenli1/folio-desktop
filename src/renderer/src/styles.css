@@ -215,6 +215,9 @@ select.bb option{color:var(--ink);background:var(--card)}
 .run{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-data);font-size:11px;color:var(--good);font-variant-numeric:tabular-nums}
 .run .d{background:var(--good)}
 .starting{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
+.away{font-size:12px;color:var(--warn);white-space:nowrap}
+.away-note{display:grid;gap:8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:8px;background:color-mix(in srgb,var(--warn) 8%,var(--card));font-size:12.5px}
+.away-note .d-actions{margin-top:0}
 tr.empty td{padding:40px 20px;text-align:center;color:var(--ink-2);cursor:default}
 tr.empty p{margin-bottom:12px}
 tr.empty b{color:var(--ink)}

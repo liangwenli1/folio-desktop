@@ -10,12 +10,14 @@ Electron, React, Vite (electron-vite), TypeScript. Both browser engines are driv
 
 `src/main/launcher.ts` does it in the main process:
 
-1. `GET /profiles/:id/launch` returns the profile with its proxy and backup line, passwords included (that route and `/proxies/:id/credentials` are refused when the renderer asks).
+1. `POST /profiles/:id/lock` makes this the only computer with the profile open. `GET /profiles/:id/launch` returns the profile with its proxy and backup line, passwords included. These routes, `/proxies/:id/credentials` and the saved-state routes are refused when the renderer asks.
 2. `kernels.ts` finds the engine version the profile was made with. Engines download on demand from their GitHub releases into `<userData>/kernels/<kind>-<version>/` and are checked against the sha256 in the manifest.
 3. `proxy-check.ts` sends a request through the proxy to the server's `/net/echo`, which returns the exit IP with its location and time zone. If the line is down, the backup line is tried. The results are reported back to the server.
 4. Time zone, language and geolocation come from the profile's overrides, otherwise from the exit.
 5. `forwarder.ts` starts a local HTTP proxy that forwards to the upstream (HTTP, HTTPS or SOCKS5, with a password if there is one), because neither engine accepts proxy passwords itself.
-6. Chromium (fingerprint-chromium) starts with only Folio's own switches; Firefox (Camoufox) gets the stored config. Camoufox also needs a 1.5 MB model on first use (`fingerprint.ts`).
+6. Sign-in state (`sync.ts`): when the server's package is not the one this computer's profile folder already matches, the engine is started offline (no window, a proxy nobody listens on, every page answered locally) to write it into the folder.
+7. Chromium (fingerprint-chromium) starts with only Folio's own switches; Firefox (Camoufox) gets the stored config. Camoufox also needs a 1.5 MB model on first use (`fingerprint.ts`).
+8. While the browser runs, the lock is renewed every 30 seconds and cookies are uploaded every 5 minutes. Browsers exit with their last window, so when it closes, however it closes, the engine is started offline again to read cookies, local storage and IndexedDB of every site the profile has used, the package is uploaded and the lock released. A profile taken over from another computer closes without uploading.
 
 Live changes from other devices come over SSE (`changes.ts`).
 

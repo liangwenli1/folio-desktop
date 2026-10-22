@@ -16,7 +16,7 @@ export interface Geo { country: string; countryName: string; region: string | nu
 export interface CheckResult { ok: boolean; ms: number | null; ip: string | null; geo: Geo | null; error: string | null }
 
 export interface ProfileStatus {
-  id: string; state: 'starting' | 'running' | 'stopped' | 'error';
+  id: string; state: 'starting' | 'restoring' | 'running' | 'saving' | 'stopped' | 'error';
   error?: string; startedAt?: number; usedBackup?: boolean; exitIp?: string | null; exitGeo?: Geo | null;
 }
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }

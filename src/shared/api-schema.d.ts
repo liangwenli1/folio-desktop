@@ -1696,6 +1696,21 @@ export interface paths {
                                 updatedAt: string;
                                 deletedAt: string | null;
                                 version: number;
+                                data: {
+                                    version: number;
+                                    size: number;
+                                    cookies: number;
+                                    storageBytes: number;
+                                    origins: number;
+                                    savedAt: string;
+                                    deviceName: string | null;
+                                } | null;
+                                lock: {
+                                    email: string;
+                                    deviceName: string | null;
+                                    since: string;
+                                    self: boolean;
+                                } | null;
                             }[];
                         };
                     };
@@ -1786,6 +1801,21 @@ export interface paths {
                             updatedAt: string;
                             deletedAt: string | null;
                             version: number;
+                            data: {
+                                version: number;
+                                size: number;
+                                cookies: number;
+                                storageBytes: number;
+                                origins: number;
+                                savedAt: string;
+                                deviceName: string | null;
+                            } | null;
+                            lock: {
+                                email: string;
+                                deviceName: string | null;
+                                since: string;
+                                self: boolean;
+                            } | null;
                         };
                     };
                 };
@@ -1892,6 +1922,21 @@ export interface paths {
                                 updatedAt: string;
                                 deletedAt: string | null;
                                 version: number;
+                                data: {
+                                    version: number;
+                                    size: number;
+                                    cookies: number;
+                                    storageBytes: number;
+                                    origins: number;
+                                    savedAt: string;
+                                    deviceName: string | null;
+                                } | null;
+                                lock: {
+                                    email: string;
+                                    deviceName: string | null;
+                                    since: string;
+                                    self: boolean;
+                                } | null;
                             }[];
                         };
                     };
@@ -1998,6 +2043,21 @@ export interface paths {
                             updatedAt: string;
                             deletedAt: string | null;
                             version: number;
+                            data: {
+                                version: number;
+                                size: number;
+                                cookies: number;
+                                storageBytes: number;
+                                origins: number;
+                                savedAt: string;
+                                deviceName: string | null;
+                            } | null;
+                            lock: {
+                                email: string;
+                                deviceName: string | null;
+                                since: string;
+                                self: boolean;
+                            } | null;
                         };
                     };
                 };
@@ -2046,77 +2106,6 @@ export interface paths {
                     content: {
                         "application/json": {
                             updated: number;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/profiles/{id}/opened": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id: string;
-                            number: number;
-                            name: string;
-                            groupId: string | null;
-                            ownerId: string | null;
-                            tags: string[];
-                            /** @enum {string} */
-                            kernel: "chromium" | "firefox";
-                            kernelVersion: string;
-                            /** @enum {string} */
-                            os: "windows" | "macos" | "linux";
-                            fingerprint: {
-                                /** @enum {string} */
-                                kind: "chromium";
-                                seed: number;
-                                hardwareConcurrency: number;
-                            } | {
-                                /** @enum {string} */
-                                kind: "firefox";
-                                config: {
-                                    [key: string]: unknown;
-                                };
-                            };
-                            proxyId: string | null;
-                            timezoneOverride: string | null;
-                            localeOverride: string | null;
-                            notes: string | null;
-                            lastOpenedAt: string | null;
-                            lastOpenedBy: string | null;
-                            createdAt: string;
-                            updatedAt: string;
-                            deletedAt: string | null;
-                            version: number;
                         };
                     };
                 };
@@ -2187,6 +2176,21 @@ export interface paths {
                                 updatedAt: string;
                                 deletedAt: string | null;
                                 version: number;
+                                data: {
+                                    version: number;
+                                    size: number;
+                                    cookies: number;
+                                    storageBytes: number;
+                                    origins: number;
+                                    savedAt: string;
+                                    deviceName: string | null;
+                                } | null;
+                                lock: {
+                                    email: string;
+                                    deviceName: string | null;
+                                    since: string;
+                                    self: boolean;
+                                } | null;
                             };
                             proxy: {
                                 id: string;
@@ -2711,6 +2715,219 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/lock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            expiresAt: string;
+                            data: {
+                                version: number;
+                                size: number;
+                                cookies: number;
+                                storageBytes: number;
+                                origins: number;
+                                savedAt: string;
+                                deviceName: string | null;
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/lock/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            expiresAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/lock/takeover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query: {
+                    cookies: number;
+                    storageBytes: number;
+                    origins: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            version: number;
+                            size: number;
+                            cookies: number;
+                            storageBytes: number;
+                            origins: number;
+                            savedAt: string;
+                            deviceName: string | null;
+                        };
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;

@@ -55,6 +55,7 @@ export const en = {
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
     cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', last: 'Last opened', status: 'Status' },
     open: 'Open', stop: 'Stop', openX: (n: string) => `Open ${n}`, stopX: (n: string) => `Stop ${n}`, starting: 'Starting…', inUse: 'In use now', runningFor: 'Running for ',
+    restoring: 'Restoring sign-ins…', saving: 'Saving sign-ins…', inUseOn: (where: string) => `In use on ${where}`,
     downloading: (pct: number) => `Downloading engine… ${pct}%`,
     noProxy: 'No proxy', unchecked: 'Not checked', noResponse: 'No response', ms: (n: number) => `${n} ms`, mismatch: '! Doesn’t match its proxy',
     emptyNone: 'No profiles yet.', emptyMatch: 'No profiles match.', emptyFor: (q: string) => `Nothing found for “${q}”.`,
@@ -73,7 +74,10 @@ export const en = {
   launch: {
     kernel_missing: 'This engine isn’t downloaded on this computer.', proxy_down: 'The proxy didn’t answer, and there’s no working backup line.',
     in_trash: 'This profile is in the Trash.', not_found: 'This profile no longer exists.', launch_failed: 'The browser didn’t start. Try again.',
-    download_failed: 'The engine download failed. Check the connection and try again.'
+    download_failed: 'The engine download failed. Check the connection and try again.',
+    locked: 'This profile is open on another computer.',
+    lock_lost: 'Someone took this profile over on another computer, so it was closed here.',
+    save_failed: 'The browser closed, but its sign-ins couldn’t be saved to Folio. They are still on this computer.'
   } as Record<string, string>,
   detail: {
     profile: 'Profile', close: 'Close details', emptyTitle: 'No profile selected.', emptyBody: 'Pick one from the list to see its fingerprint and proxy check.',
@@ -81,7 +85,9 @@ export const en = {
     card: 'FOLIO · BROWSER PROFILE', notChecked: 'Exit not checked yet', direct: 'Direct connection', directSub: 'Sites see this computer’s IP',
     fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
     hostTz: 'This computer’s', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `Fingerprint of ${n}`,
-    checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', warn: 'Warning', bad: 'Problem' }
+    checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', warn: 'Warning', bad: 'Problem' },
+    inUse: 'In use elsewhere', away: (device: string, email: string, since: string) => `Open on ${device} (${email}) since ${since}.`,
+    takeover: 'Take over', takeoverNote: 'Their browser closes. Changes made there in the last few minutes are lost.', takeoverDo: 'Take over and open'
   },
   checks: {
     'proxy-ok': { t: x => `Proxy answering · ${x.ms} ms`, d: x => x.host },
@@ -223,6 +229,7 @@ export const zh: Dict = {
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
     cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', last: '最近打开', status: '状态' },
     open: '打开', stop: '停止', openX: (n: string) => `打开 ${n}`, stopX: (n: string) => `停止 ${n}`, starting: '启动中…', inUse: '正在使用', runningFor: '已运行 ',
+    restoring: '正在恢复登录状态…', saving: '正在保存登录状态…', inUseOn: (where: string) => `${where} 正在使用`,
     downloading: (pct: number) => `下载内核… ${pct}%`,
     noProxy: '无代理', unchecked: '未检测', noResponse: '无响应', ms: (n: number) => `${n} ms`, mismatch: '! 与代理不一致',
     emptyNone: '还没有环境。', emptyMatch: '没有符合条件的环境。', emptyFor: (q: string) => `没有找到「${q}」。`,
@@ -241,7 +248,10 @@ export const zh: Dict = {
   launch: {
     kernel_missing: '这台电脑还没有下载这个内核。', proxy_down: '代理没有响应，也没有可用的备用线路。',
     in_trash: '这个环境在回收站里。', not_found: '这个环境已经不存在了。', launch_failed: '浏览器没能启动，请重试。',
-    download_failed: '内核下载失败，请检查网络后重试。'
+    download_failed: '内核下载失败，请检查网络后重试。',
+    locked: '这个环境正在另一台电脑上使用。',
+    lock_lost: '有人在另一台电脑上收回了这个环境，这里已关闭。',
+    save_failed: '浏览器已关闭，但登录状态没能保存到 Folio，仍保留在这台电脑上。'
   } as Record<string, string>,
   detail: {
     profile: '环境', close: '关闭详情', emptyTitle: '没有选中环境。', emptyBody: '从列表里选一个，查看它的指纹和代理检测结果。',
@@ -249,7 +259,9 @@ export const zh: Dict = {
     card: 'FOLIO · BROWSER PROFILE', notChecked: '还没检测出口', direct: '直连', directSub: '网站看到的是这台电脑的 IP',
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
     hostTz: '跟随本机', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `${n} 的指纹`,
-    checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', warn: '警告', bad: '问题' }
+    checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', warn: '警告', bad: '问题' },
+    inUse: '正在别处使用', away: (device: string, email: string, since: string) => `${since} 起在 ${device}（${email}）上打开。`,
+    takeover: '收回', takeoverNote: '对方的浏览器会被关闭，最近几分钟内在那边的改动会丢失。', takeoverDo: '收回并打开'
   },
   checks: {
     'proxy-ok': { t: x => `代理正常 · ${x.ms} ms`, d: x => x.host },

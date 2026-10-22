@@ -6,7 +6,7 @@ import { getToken, loadToken } from './session';
 import { watch } from './changes';
 import { generate } from './fingerprint';
 import { install, latest, list as listKernels, resolve as resolveKernel } from './kernels';
-import { onStatus, open, statuses, stop, stopAll } from './launcher';
+import { onStatus, open, statuses, stop, stopAll, verify } from './launcher';
 import { checkById, checkWorkspace } from './proxy-check';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
@@ -47,10 +47,14 @@ ipcMain.handle('folio:openSite', async (_e, path: string) => {
 });
 ipcMain.handle('folio:info', () => ({ locale: app.getLocale(), version: app.getVersion(), siteUrl: SITE_URL, platform: process.platform }));
 
-// The open workspace: live changes, plus a proxy health check every ten minutes.
+// The open workspace: live changes, plus a proxy health check every ten minutes. A change to profiles may be a
+// takeover of one running here, so their locks are checked right away.
 let health: NodeJS.Timeout | null = null;
 function watching(workspaceId: string | null){
-  watch(workspaceId, c => send('app:change', c));
+  watch(workspaceId, c => {
+    send('app:change', c);
+    if (c.kind === 'profiles') verify(c.ids);
+  });
   if (health) clearInterval(health);
   health = workspaceId ? setInterval(() => { void checkWorkspace(workspaceId); }, HEALTH_EVERY) : null;
 }

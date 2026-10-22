@@ -1,9 +1,9 @@
 // Launching real engines through a password-protected SOCKS5 proxy. Needs the engines unpacked under
 // FOLIO_KERNELS_DIR (as <kind>-<version>/) and a folio-server with DEV_PRIVATE_GEO=seattle, since every
 // address in the test network is private.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { ENGINE_ENV, account, dataDir, hasKernels, inBrowser, launch, logIn, startProbe } from './helpers';
+import { ENGINE_ENV, account, dataDir, hasKernels, inBrowser, lastStatus, launch, logIn, opened, startProbe, statusOf } from './helpers';
 
 test.skip(!hasKernels, 'browser engines are not unpacked here');
 test.setTimeout(180_000);
@@ -11,22 +11,6 @@ test.setTimeout(180_000);
 let probe: Awaited<ReturnType<typeof startProbe>>;
 test.beforeAll(async () => { probe = await startProbe(); });
 test.afterAll(() => probe.close());
-
-type Status = { id: string; state: string; error?: string; usedBackup?: boolean; exitGeo?: { city: string | null } | null };
-const statusOf = (win: Page, id: string) => win.evaluate(async pid => (await window.folio.statuses()).find(s => s.id === pid) ?? null, id);
-
-// Waits until the profile is running, or for its error.
-async function opened(win: Page, id: string){
-  await win.evaluate(pid => {
-    const w = window as unknown as { last: Record<string, unknown> };
-    w.last ??= {};
-    window.folio.onStatus(s => { w.last[s.id] = s; });
-    return window.folio.openProfile(pid);
-  }, id);
-  await expect.poll(() => win.evaluate(pid => ((window as unknown as { last: Record<string, { state: string }> }).last[pid]?.state), id), { timeout: 120_000 })
-    .toMatch(/running|error/);
-  return win.evaluate(pid => (window as unknown as { last: Record<string, Status> }).last[pid], id);
-}
 
 async function setupProfile(kernel: 'chromium' | 'firefox', proxyPass = 's3cret', withBackup = false){
   const socks = await startSocks5('alice', 's3cret');
@@ -65,7 +49,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     expect(proxies.find((p: { id: string }) => p.id === proxyId).lastCheck).toMatchObject({ ok: true, geo: { timezone: 'America/Los_Angeles' } });
 
     await win.evaluate(id => window.folio.stopProfile(id), profile.id);
-    await expect.poll(() => win.evaluate(id => (window as unknown as { last: Record<string, { state: string }> }).last[id].state, profile.id)).toBe('stopped');
+    await expect.poll(async () => (await lastStatus(win, profile.id))?.state).toBe('stopped');
     await app.close(); await socks.close();
   });
 }

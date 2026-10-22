@@ -3,7 +3,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { _electron as electron, request, type ElectronApplication } from '@playwright/test';
+import { _electron as electron, expect, request, type ElectronApplication, type Page } from '@playwright/test';
 
 export const API = process.env.API_URL ?? 'http://localhost:47110';
 export const SITE = 'http://localhost:47120';
@@ -88,4 +88,22 @@ export async function logIn(app: ElectronApplication, email: string){
   await win.fill('#password', PASSWORD);
   await win.click('button[type="submit"]');
   return win;
+}
+
+export type Status = { id: string; state: string; error?: string; usedBackup?: boolean; exitGeo?: { city: string | null } | null };
+export const statusOf = (win: Page, id: string) => win.evaluate(async pid => (await window.folio.statuses()).find(s => s.id === pid) ?? null, id);
+// The latest status the main process reported for a profile, recorded by opened().
+export const lastStatus = (win: Page, id: string) => win.evaluate(pid => (window as unknown as { last?: Record<string, Status> }).last?.[pid] ?? null, id);
+
+// Opens a profile and waits until it runs, or for its error.
+export async function opened(win: Page, id: string){
+  await win.evaluate(pid => {
+    const w = window as unknown as { last: Record<string, unknown>; listening?: boolean };
+    w.last ??= {};
+    if (!w.listening){ w.listening = true; window.folio.onStatus(s => { w.last[s.id] = s; }); }
+    delete w.last[pid];
+    return window.folio.openProfile(pid);
+  }, id);
+  await expect.poll(async () => (await lastStatus(win, id))?.state, { timeout: 120_000 }).toMatch(/running|error/);
+  return (await lastStatus(win, id))!;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import type { Profile } from './api';
 import { engineName, fingerprintFacts, type Check, type Fix, type Health } from './checks';
@@ -7,9 +7,13 @@ import { Icon, percent } from './ui';
 
 interface Props {
   d: Dict; lang: Lang; p: Profile | null; h: Health | null; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
-  busy: string | null;
-  onClose(): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
+  busy: string | null; canTakeOver: boolean;
+  onClose(): void; onTakeover(): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
 }
+
+// Open on another computer (this computer's own runs show up as a status instead).
+export const elsewhere = (p: Profile) => (p.lock && !p.lock.self ? p.lock : null);
+export const busyLabel = (d: Dict, state: string) => (state === 'restoring' ? d.profiles.restoring : state === 'saving' ? d.profiles.saving : d.profiles.starting);
 
 const IC = { ok: '✓', warn: '!', bad: '×' };
 const two = (n: number) => String(n).padStart(2, '0');
@@ -51,8 +55,10 @@ function useGuilloche(dep: unknown){
   return ref;
 }
 
-export function ProfileDetail({ d, lang, p, h, status, progress, group, now, busy, onClose, onOpen, onStop, onEdit, onTrash, onFix }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, group, now, busy, canTakeOver, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover }: Props){
   const canvas = useGuilloche(p?.id);
+  const [confirmTakeover, setConfirmTakeover] = useState(false);
+  useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
   const closeBtn = <button type="button" className="icon-btn only-drawer" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>;
   if (!p || !h){
     return (
@@ -63,6 +69,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, now, bus
     );
   }
   const num = String(p.number).padStart(4, '0');
+  const away = elsewhere(p);
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
   const tz = p.timezoneOverride ?? geo?.timezone ?? null, locale = p.localeOverride ?? geo?.locale ?? null;
   const kernel = p.kernel === 'chromium' ? 'Chromium' : 'Firefox';
@@ -92,8 +99,11 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, now, bus
 
   let primary;
   if (status?.state === 'running') primary = <button type="button" className="btn btn-line" onClick={onStop}>{d.profiles.stop} <span className="mono">{runTime(now - (status.startedAt ?? now))}</span></button>;
-  else if (status?.state === 'starting') primary = <button type="button" className="btn btn-line" disabled><span className="spin" aria-hidden="true" />{d.profiles.starting}</button>;
+  else if (status) primary = <button type="button" className="btn btn-line" disabled><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</button>;
   else if (progress && !progress.finished && !progress.error) primary = <button type="button" className="btn btn-line" disabled><span className="spin" aria-hidden="true" />{d.profiles.downloading(percent(progress))}</button>;
+  else if (away) primary = canTakeOver
+    ? <button type="button" className="btn btn-line" onClick={() => setConfirmTakeover(true)}>{d.detail.takeover}</button>
+    : <button type="button" className="btn btn-line" disabled>{d.detail.inUse}</button>;
   else primary = <button type="button" className="btn btn-stamp" onClick={onOpen}>{d.detail.openProfile}</button>;
 
   const row = (c: Check) => {
@@ -120,6 +130,18 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, now, bus
         <div className="d-top"><p className="sec-t">{d.detail.profile} <span className="mono">#{num}</span></p>{closeBtn}</div>
         <h2 data-testid="detail-name">{p.name}</h2>
         <p className="d-meta">{d.detail.meta(group, day(p.createdAt, lang))} · {engineName(p.kernel, p.kernelVersion)}</p>
+        {away && (
+          <div className="away-note" data-testid="away">
+            <p>{d.detail.away(away.deviceName ?? '—', away.email, new Date(away.since).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' }))}</p>
+            {confirmTakeover && <>
+              <p className="muted">{d.detail.takeoverNote}</p>
+              <div className="d-actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmTakeover(false)}>{d.common.cancel}</button>
+                <button type="button" className="btn btn-stamp btn-sm" onClick={() => { setConfirmTakeover(false); onTakeover(); }}>{d.detail.takeoverDo}</button>
+              </div>
+            </>}
+          </div>
+        )}
         <div className="d-actions">
           {primary}
           <button type="button" className="btn btn-ghost" onClick={onEdit}>{d.detail.edit}</button>

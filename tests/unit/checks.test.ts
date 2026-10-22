@@ -12,7 +12,7 @@ const proxy = (id: string, check: Partial<NonNullable<Proxy['lastCheck']>> | nul
 const profile = (over: Partial<Profile> = {}): Profile => ({
   id: 'p1', number: 1, name: 'US-Store-01', groupId: null, ownerId: null, tags: [], kernel: 'chromium', kernelVersion: '150.0.7871.186', os: 'windows',
   fingerprint: { kind: 'chromium', seed: 42, hardwareConcurrency: 8 }, proxyId: 'main', timezoneOverride: null, localeOverride: null, notes: null,
-  lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, version: 1, ...over
+  lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, version: 1, data: null, lock: null, ...over
 });
 const kernels: KernelState[] = [{ kind: 'chromium', version: '150.0.7871.186', installed: true, sizeHint: '150 MB' }];
 const map = (...list: Proxy[]) => new Map(list.map(p => [p.id, p]));

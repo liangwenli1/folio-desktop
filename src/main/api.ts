@@ -7,22 +7,26 @@ import { clearToken, getToken, setToken } from './session';
 
 export const API_URL = process.env.FOLIO_API_URL ?? 'http://localhost:47110';
 
-async function call<T>(method: Method, path: string, body?: unknown, withToken = true): Promise<ApiResult<T>> {
+// JSON both ways, except saved sign-in state, which travels as bytes (a Buffer body, an octet-stream answer).
+async function call<T>(method: Method | 'PUT', path: string, body?: unknown, withToken = true): Promise<ApiResult<T>> {
   const token = getToken();
+  const bytes = Buffer.isBuffer(body);
   let res: Response;
   try {
     res = await net.fetch(API_URL + path, {
       method,
       headers: {
-        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...(body === undefined ? {} : { 'content-type': bytes ? 'application/octet-stream' : 'application/json' }),
         ...(withToken && token ? { authorization: `Bearer ${token}` } : {})
       },
-      body: body === undefined ? undefined : JSON.stringify(body)
+      body: body === undefined ? undefined : bytes ? new Uint8Array(body as Buffer) : JSON.stringify(body)
     });
   } catch {
     return { ok: false, error: { code: 'network', message: 'Cannot reach Folio', status: 0 } };
   }
-  const data = res.status === 204 ? null : await res.json().catch(() => null);
+  const data = res.status === 204 ? null
+    : res.ok && res.headers.get('content-type') === 'application/octet-stream' ? Buffer.from(await res.arrayBuffer())
+    : await res.json().catch(() => null);
   if (!res.ok){
     if (res.status === 401 && withToken) await clearToken();
     return { ok: false, error: { code: data?.error?.code ?? 'internal', message: data?.error?.message ?? res.statusText, status: res.status } };
@@ -43,11 +47,11 @@ export async function logout(){
   return { ok: true as const, data: null };
 }
 
-// For the main process's own use (launching, proxy checks).
-export const api = <T = unknown>(method: Method, path: string, body?: unknown) => call<T>(method, path, body);
+// For the main process's own use (launching, locks, saved state, proxy checks).
+export const api = <T = unknown>(method: Method | 'PUT', path: string, body?: unknown) => call<T>(method, path, body);
 
-// Routes that return proxy passwords are for the main process only.
-const MAIN_ONLY = [/^\/profiles\/[^/]+\/launch$/, /^\/proxies\/[^/]+\/credentials$/];
+// Proxy passwords, saved sign-in state and the locks around it stay in the main process.
+const MAIN_ONLY = [/^\/profiles\/[^/]+\/launch$/, /^\/proxies\/[^/]+\/credentials$/, /^\/profiles\/[^/]+\/(data|lock|lock\/renew)$/];
 
 // What the renderer may call through the bridge.
 export function forRenderer(method: Method, path: string, body?: unknown){

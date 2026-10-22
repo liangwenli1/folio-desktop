@@ -3,7 +3,7 @@ import { folio, isApiError, type Profile, type Workspace } from './api';
 import { engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { ago, errorText, runTime, type Dict, type Lang } from './i18n';
-import { ProfileDetail } from './ProfileDetail';
+import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { Icon, percent, useNow, useToast } from './ui';
 
 export type GroupFilter = 'all' | 'none' | string;
@@ -86,6 +86,13 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     await folio.openProfile(p.id);
   }
   const stop = (p: Profile) => folio.stopProfile(p.id);
+  // Frees the profile from the other computer (its browser closes there) and opens it here.
+  async function takeover(p: Profile){
+    try {
+      await folio.api('POST', `/profiles/${p.id}/lock/takeover`);
+      await open(p);
+    } catch (e){ fail(e); }
+  }
 
   async function batch(action: BatchAction, extra: Parameters<WorkspaceData['batch']>[2], done: (n: number) => string){
     try { toast(done(await data.batch(action, ids, extra))); } catch (e){ fail(e); }
@@ -207,7 +214,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             ) : (
               <>
                 <b>{d.common.selected(ids.length)}</b>
-                <button type="button" className="bb" onClick={() => all.filter(p => sel.has(p.id) && !data.status[p.id]).forEach(p => void open(p))}>{P.bulk.open}</button>
+                <button type="button" className="bb" onClick={() => all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)).forEach(p => void open(p))}>{P.bulk.open}</button>
                 <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}>{P.bulk.stop}</button>
                 <select className="bb" aria-label={P.bulk.move} value="" onChange={e => {
                   const g = e.target.value === 'none' ? null : e.target.value;
@@ -275,6 +282,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           group={curProfile ? groupLabel(curProfile) : ''}
           onClose={() => setDrawer(false)} onOpen={() => curProfile && void open(curProfile)} onStop={() => curProfile && void stop(curProfile)}
           onEdit={() => curProfile && onEdit(curProfile.id)} onTrash={() => curProfile && void trash([curProfile.id])}
+          canTakeOver={ws.role !== 'member'} onTakeover={() => curProfile && void takeover(curProfile)}
           onFix={f => curProfile && void fix(curProfile, f)}
         />
       </aside>
@@ -295,13 +303,15 @@ function Row({ d, p, h, group, now, cur, checked, status, progress, onToggle, on
   const latency = { none: null, unchecked: <span className="lat">{P.unchecked}</span>, down: <span className="lat down">{P.noResponse}</span>,
     ok: <span className="lat ok">{P.ms(ms ?? 0)}</span>, slow: <span className="lat slow">{P.ms(ms ?? 0)}</span> }[h.proxy];
   const downloading = progress && !progress.finished && !progress.error;
+  const away = elsewhere(p);
   let act;
   if (status?.state === 'running') act = <>
     <span className="run"><span className="d" aria-hidden="true" /><span className="sr">{P.runningFor}</span><span>{runTime(now - (status.startedAt ?? now))}</span></span>
     <button type="button" className="btn btn-xs btn-line" aria-label={P.stopX(p.name)} onClick={onStop}>{P.stop}</button>
   </>;
-  else if (status?.state === 'starting') act = <span className="starting"><span className="spin" aria-hidden="true" />{P.starting}</span>;
+  else if (status) act = <span className="starting"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
   else if (downloading) act = <span className="starting"><span className="spin" aria-hidden="true" />{P.downloading(percent(progress))}</span>;
+  else if (away) act = <span className="away" title={away.email}>{P.inUseOn(away.deviceName ?? away.email)}</span>;
   else act = <button type="button" className="btn btn-xs btn-open" aria-label={P.openX(p.name)} onClick={onOpen}>{P.open}</button>;
 
   return (
@@ -320,7 +330,7 @@ function Row({ d, p, h, group, now, cur, checked, status, progress, onToggle, on
         <span className="l1">{d.os[p.os]}</span>
         <span className="l2">{h.mismatch ? <span className="flag warn">{P.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span>
       </td>
-      <td className="lastc"><span className="who">{status ? P.inUse : ago(p.lastOpenedAt, d, now)}</span></td>
+      <td className="lastc"><span className="who">{status || away ? P.inUse : ago(p.lastOpenedAt, d, now)}</span></td>
       <td className="act"><span className="actin">{act}</span></td>
     </tr>
   );
