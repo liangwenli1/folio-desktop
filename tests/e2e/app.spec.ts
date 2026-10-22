@@ -65,3 +65,27 @@ test('Chinese accounts get the Chinese workbench, and upgrading opens the site c
   await expect.poll(() => app.evaluate(() => (globalThis as { opened?: string[] }).opened)).toEqual([`${SITE}/zh/checkout/?ws=${workspaceId}`]);
   await app.close();
 });
+
+test('a newer version shows in the sidebar: restart to install on Windows, download from the site on macOS', async () => {
+  const { email } = await account();
+  const app = await launch(dataDir());
+  await app.evaluate(({ shell }) => {
+    const opened: string[] = [];
+    (globalThis as { opened?: string[] }).opened = opened;
+    shell.openExternal = async (url: string) => { opened.push(url); };
+  });
+  const win = await logIn(app, email);
+  await expect(win.getByTestId('plan-name')).toBeVisible();
+  // What the update check reports, sent the way the main process sends it.
+  const announce = (u: { version: string; installs: boolean }) => app.evaluate(({ BrowserWindow }, u) => BrowserWindow.getAllWindows()[0].webContents.send('app:update', u), u);
+
+  await announce({ version: '0.2.0', installs: true });
+  const notice = win.getByRole('status', { name: 'Folio 0.2.0 is ready to install.' });
+  await expect(notice.getByRole('button', { name: 'Restart to update' })).toBeVisible();
+  await expect(notice).toContainText('Open profiles are saved and closed first.');
+
+  await announce({ version: '0.2.1', installs: false });
+  await win.getByRole('status', { name: 'Folio 0.2.1 is out.' }).getByRole('button', { name: 'Download' }).click();
+  await expect.poll(() => app.evaluate(() => (globalThis as { opened?: string[] }).opened)).toEqual([`${SITE}/en/download/`]);
+  await app.close();
+});

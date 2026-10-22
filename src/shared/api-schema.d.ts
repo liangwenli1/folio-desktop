@@ -589,6 +589,7 @@ export interface paths {
                             trialDays: number;
                             refundDays: number;
                             maxProfiles: number;
+                            payments: boolean;
                             plans: {
                                 /** @enum {string} */
                                 id: "free" | "studio" | "company";

@@ -43,6 +43,10 @@ export const en = {
   user: { language: 'Language', engines: 'Browser engines', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out', startup: 'Start with this computer (minimized)' },
   tray: { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background so scheduled tasks run on time. Quit it from the tray icon.' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }) },
+  update: {
+    ready: (v: string) => `Folio ${v} is ready to install.`, restart: 'Restart to update', restartNote: 'Open profiles are saved and closed first. Or it installs the next time you quit.',
+    out: (v: string) => `Folio ${v} is out.`, download: 'Download'
+  },
   common: {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit',
     selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
@@ -462,6 +466,10 @@ export const zh: Dict = {
   user: { language: '语言', engines: '浏览器内核', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录', startup: '开机自动启动（最小化）' },
   tray: { open: '打开 Folio', quit: '退出 Folio', background: 'Folio 会留在后台，让定时任务按时运行。要退出请用托盘图标。' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} 掉线了` : `${names.length} 个环境掉线了`, body: `${task}：${names.join('、')}` }) },
+  update: {
+    ready: (v: string) => `Folio ${v} 已下载好。`, restart: '重启并更新', restartNote: '会先保存并关闭打开的环境；不重启的话，下次退出 Folio 时自动安装。',
+    out: (v: string) => `Folio ${v} 已发布。`, download: '去下载'
+  },
   common: {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑',
     selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,

@@ -135,6 +135,7 @@ html[lang="zh"] .grp-t{font-family:var(--f-body);letter-spacing:.08em;font-size:
 .meter{display:block;height:6px;border-radius:3px;background:var(--paper-2);overflow:hidden}
 .meter i{display:block;height:100%;background:var(--guilloche);border-radius:3px}
 .plan-actions{display:flex;justify-content:space-between;gap:10px;margin-top:2px}
+.update{flex:none;display:grid;justify-items:start;gap:6px;padding:12px;border:1px solid var(--stamp);border-radius:7px;background:var(--sel);font-size:12.5px}
 .me{display:flex;align-items:center;gap:10px;width:100%;padding:6px;border:0;border-radius:7px;background:transparent;text-align:left;cursor:pointer}
 .me:hover{background:color-mix(in srgb,var(--card) 70%,transparent)}
 .me-text{display:grid;min-width:0}

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { ProfileStatus } from '@shared/bridge';
+import type { ProfileStatus, Update } from '@shared/bridge';
 import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesDialog } from './Engines';
@@ -75,6 +75,8 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   const [invites, setInvites] = useState<MyInvitation[]>([]);
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const [focus, setFocus] = useState<Focus | null>(null);
+  const [update, setUpdate] = useState<Update | null>(null);
+  useEffect(() => { void folio.update().then(setUpdate); return folio.onUpdate(setUpdate); }, []);
   useEffect(() => { void folio.startup().then(setStartup); }, [userOpen]);
   // What the main process shows itself follows the workbench's language.
   useEffect(() => { void folio.setLabels(d.tray); }, [d]);
@@ -141,6 +143,16 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
         </nav>
 
         <Groups d={d} data={data} manager={manager} group={shown === 'profiles' ? group : null} onPick={g => go('profiles', g)} />
+
+        {update && (
+          <section className="update" role="status" aria-label={update.installs ? d.update.ready(update.version) : d.update.out(update.version)}>
+            <p><b>{update.installs ? d.update.ready(update.version) : d.update.out(update.version)}</b></p>
+            {update.installs ? <>
+              <button className="btn btn-xs btn-stamp" type="button" onClick={() => void folio.installUpdate()}>{d.update.restart}</button>
+              <p className="muted">{d.update.restartNote}</p>
+            </> : <button className="btn btn-xs btn-line" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
+          </section>
+        )}
 
         <section className="plan" aria-label={d.plans[s.plan]}>
           <p><b data-testid="plan-name">{d.plans[s.plan]}</b></p>

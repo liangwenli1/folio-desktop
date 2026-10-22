@@ -40,6 +40,9 @@ export interface ApiToken { id: string; name: string; workspaceId: string; creat
 export interface LocalApi { enabled: boolean; port: number; listening: boolean; error: string | null; tokens: ApiToken[] }
 // A task run under way on this computer, and the profiles a finished run found signed out.
 export interface ActiveRun { runId: string; taskId: string }
+// A newer Folio: `installs` (Windows) when it is downloaded and installs on restart; otherwise (macOS) it is out and
+// is downloaded from the site.
+export interface Update { version: string; installs: boolean }
 export interface SignedOut { taskId: string; runId: string; task: string; profiles: string[] }
 // Words the main process shows itself (the tray menu, the note on closing to the tray), in the workbench's language.
 export interface Labels { open: string; quit: string; background: string }
@@ -92,6 +95,10 @@ export interface FolioBridge {
   activeRuns(): Promise<ActiveRun[]>;
   onRuns(cb: (runs: ActiveRun[]) => void): () => void;
   onSignedOut(cb: (e: SignedOut) => void): () => void;
+  // A newer version of Folio, and restarting into it (Windows; open profiles are saved and closed first).
+  update(): Promise<Update | null>;
+  onUpdate(cb: (u: Update) => void): () => void;
+  installUpdate(): Promise<void>;
   // Starting Folio, minimized, when the computer starts (Windows and macOS only), so schedules run on time.
   startup(): Promise<{ supported: boolean; enabled: boolean }>;
   setStartup(on: boolean): Promise<void>;

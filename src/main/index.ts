@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, safeStorage, s
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import type { ExtensionSource, KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
-import { forRenderer, login, logout } from './api';
+import { SITE_URL, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
 import { generate } from './fingerprint';
@@ -21,8 +21,8 @@ import { createApiToken, loadLocalApi, localApi, revokeApiToken, setLocalApi } f
 import { fromStore } from './extensions';
 import { leftWindowSync, onWindowSync, setLeader, startWindowSync, stopWindowSync, syncGoto, windowSync } from './windowsync';
 import { tile } from './tile';
+import { installUpdate, onUpdate, startUpdates, update } from './update';
 
-const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
 const HEALTH_EVERY = 10 * 60_000;
 
@@ -209,6 +209,9 @@ ipcMain.handle('folio:watch', (_e, workspaceId: string | null) => {
 
 onStatus(s => { send('profile:status', s); if (s.state === 'stopped' || s.state === 'error') leftWindowSync(s.id); });
 onWindowSync(s => send('sync:state', s));
+onUpdate(u => send('app:update', u));
+ipcMain.handle('folio:update', () => update());
+ipcMain.handle('folio:installUpdate', async () => { await stopRuns(); await stopAll(); installUpdate(); });
 ipcMain.handle('folio:startWindowSync', (_e, ids: string[], leader?: string) => startWindowSync(Array.isArray(ids) ? ids.map(String) : [], leader ? String(leader) : undefined));
 ipcMain.handle('folio:stopWindowSync', () => stopWindowSync());
 ipcMain.handle('folio:setSyncLeader', (_e, id: string) => setLeader(String(id)));
@@ -297,6 +300,7 @@ app.whenReady().then(async () => {
   createWindow();
   if (getToken()) startScheduler();
   updateTray();
+  startUpdates();
   app.on('activate', showWindow);
 });
 
