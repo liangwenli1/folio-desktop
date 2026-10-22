@@ -23,6 +23,10 @@ const bridge: FolioBridge = {
   saveFile: (name, content) => ipcRenderer.invoke('folio:saveFile', name, content),
   exportCookies: (profiles, format) => ipcRenderer.invoke('folio:exportCookies', profiles, format),
   importCookies: (id, text) => unwrap(ipcRenderer.invoke('folio:importCookies', id, text)),
+  exportWorkspace: (workspaceId, passphrase) => unwrap(ipcRenderer.invoke('folio:exportWorkspace', workspaceId, passphrase)),
+  pickImport: () => ipcRenderer.invoke('folio:pickImport'),
+  unlockImport: (token, passphrase) => unwrap(ipcRenderer.invoke('folio:unlockImport', token, passphrase)),
+  runImport: (token, workspaceId) => unwrap(ipcRenderer.invoke('folio:runImport', token, workspaceId)),
   info: () => ipcRenderer.invoke('folio:info'),
   onFocus: cb => listen('app:focus', cb),
 

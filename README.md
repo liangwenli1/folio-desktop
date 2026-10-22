@@ -33,6 +33,8 @@ The renderer (`src/renderer/src`) has five working pages; the other sidebar entr
 
 Cookie files (`src/shared/cookies.ts`): import reads Cookie-Editor or EditThisCookie JSON, Playwright cookies or storage states, and Netscape cookies.txt; export writes Cookie-Editor JSON or cookies.txt. Exports go through the server (owners and admins, logged); a profile running on this computer saves its cookies first. Imports go into the saved state, and into the browser too when the profile runs here. The spreadsheet import takes a `cookies` column.
 
+Workspace files (`src/main/transfer.ts`): owners and admins export a workspace to a `.folio` file (the server's list plus every saved sign-in state, gzip-compressed, AES-256-GCM with a key made from the passphrase by scrypt) and import one into another workspace from the account menu. The passphrase stays on this computer.
+
 Profile folders live under `<userData>/profiles/<account id>/<profile id>/`. When the account is taken out of a workspace, the server ends its change stream with a `removed` event: running profiles of that workspace close without saving and their folders are deleted. Folders of workspaces the account left while this computer was off are removed the next time a workspace opens.
 
 `data.ts` holds the workspace's lists, refetched on change events; `checks.ts` decides each profile's stamp (ISOLATED, REVIEW, OFFLINE) and the fixes it offers. Edits carry the version they started from, so a save over someone else's change is refused once before it replaces it.

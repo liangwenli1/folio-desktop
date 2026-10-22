@@ -21,6 +21,7 @@ export interface ProfileStatus {
 }
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
+export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed'; ids?: string[] }
 
 export interface FolioBridge {
@@ -34,6 +35,12 @@ export interface FolioBridge {
   // Cookie files: export asks for a file (one profile) or a folder (several); import reads JSON or cookies.txt text.
   exportCookies(profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape'): Promise<{ saved: number; failed: { name: string; code: string }[]; path: string } | null>;
   importCookies(id: string, text: string): Promise<{ count: number }>;
+  // A whole workspace in a passphrase-protected .folio file. Import is three steps: pick the file, unlock it
+  // (to show what is inside), then bring it into a workspace.
+  exportWorkspace(workspaceId: string, passphrase: string): Promise<{ path: string; profiles: number } | null>;
+  pickImport(): Promise<{ token: string; name: string } | null>;
+  unlockImport(token: string, passphrase: string): Promise<ImportPreview>;
+  runImport(token: string, workspaceId: string): Promise<{ profiles: number; proxies: number; groups: number; signedIn: number }>;
   info(): Promise<AppInfo>;
   onFocus(cb: () => void): () => void;
 

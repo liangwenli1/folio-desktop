@@ -1765,6 +1765,8 @@ export interface paths {
                         timezoneOverride?: string | null;
                         localeOverride?: string | null;
                         notes?: string | null;
+                        /** @enum {string} */
+                        syncMode?: "cloud" | "local";
                     };
                 };
             };
@@ -1892,6 +1894,8 @@ export interface paths {
                             timezoneOverride?: string | null;
                             localeOverride?: string | null;
                             notes?: string | null;
+                            /** @enum {string} */
+                            syncMode?: "cloud" | "local";
                         }[];
                     };
                 };
@@ -3716,7 +3720,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -3773,6 +3777,184 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            groups: string[];
+                            proxies: {
+                                ref: string;
+                                name: string;
+                                /** @enum {string} */
+                                type: "http" | "https" | "socks5";
+                                host: string;
+                                port: number;
+                                username: string | null;
+                                password: string | null;
+                                backupRef: string | null;
+                            }[];
+                            profiles: {
+                                name: string;
+                                /** @default [] */
+                                tags: string[];
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                kernelVersion: string;
+                                /** @enum {string} */
+                                os: "windows" | "macos" | "linux";
+                                fingerprint: {
+                                    /** @enum {string} */
+                                    kind: "chromium";
+                                    seed: number;
+                                    hardwareConcurrency: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "firefox";
+                                    config: {
+                                        [key: string]: unknown;
+                                    };
+                                };
+                                timezoneOverride?: string | null;
+                                localeOverride?: string | null;
+                                notes?: string | null;
+                                /** @enum {string} */
+                                syncMode?: "cloud" | "local";
+                                ref: string;
+                                group: string | null;
+                                proxyRef: string | null;
+                                saved: boolean;
+                            }[];
+                            workspace: string;
+                            exportedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        groups: string[];
+                        proxies: {
+                            ref: string;
+                            name: string;
+                            /** @enum {string} */
+                            type: "http" | "https" | "socks5";
+                            host: string;
+                            port: number;
+                            username: string | null;
+                            password: string | null;
+                            backupRef: string | null;
+                        }[];
+                        profiles: {
+                            name: string;
+                            /** @default [] */
+                            tags?: string[];
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            kernelVersion: string;
+                            /** @enum {string} */
+                            os: "windows" | "macos" | "linux";
+                            fingerprint: {
+                                /** @enum {string} */
+                                kind: "chromium";
+                                seed: number;
+                                hardwareConcurrency: number;
+                            } | {
+                                /** @enum {string} */
+                                kind: "firefox";
+                                config: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                            timezoneOverride?: string | null;
+                            localeOverride?: string | null;
+                            notes?: string | null;
+                            /** @enum {string} */
+                            syncMode?: "cloud" | "local";
+                            ref: string;
+                            group: string | null;
+                            proxyRef: string | null;
+                            saved: boolean;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            profiles: {
+                                ref: string;
+                                id: string;
+                            }[];
+                            added: {
+                                profiles: number;
+                                proxies: number;
+                                groups: number;
+                            };
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

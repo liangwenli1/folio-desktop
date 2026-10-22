@@ -11,6 +11,9 @@ import { forget } from './account';
 import { addCookies, discard, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
 import { parseCookies, toJson, toNetscape, type Cookie } from '../shared/cookies';
 import { api } from './api';
+import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './transfer';
+import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { checkById, checkWorkspace } from './proxy-check';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
@@ -94,6 +97,46 @@ ipcMain.handle('folio:importCookies', async (_e, id: string, text: string) => {
   // A profile kept on this computer has no saved state: the running browser is where they go.
   if (!r.ok && !(running && r.error.code === 'local_only')) return r;
   return { ok: true, data: { count: cookies.length } };
+});
+
+// Workspace files. A picked file waits here, by token, until it is unlocked and imported.
+const failure = (code: string) => ({ ok: false, error: { code, message: code, status: 400 } });
+const picked = new Map<string, { file: Buffer; bundle?: Bundle }>();
+ipcMain.handle('folio:exportWorkspace', async (e, workspaceId: string, passphrase: string) => {
+  if (String(passphrase).length < 10) return failure('passphrase_short');
+  let bundle: Bundle;
+  try { bundle = await exportWorkspace(String(workspaceId)); } catch (err){ return failure((err as Error).message); }
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const name = `${bundle.workspace.replace(/[\\/:*?"<>|]+/g, '_')}-${bundle.exportedAt.slice(0, 10)}.folio`;
+  const r = await (win ? dialog.showSaveDialog(win, { defaultPath: join(app.getPath('downloads'), name) }) : dialog.showSaveDialog({ defaultPath: name }));
+  if (r.canceled || !r.filePath) return { ok: true, data: null };
+  await writeFile(r.filePath, await seal(bundle, String(passphrase)));
+  return { ok: true, data: { path: r.filePath, profiles: bundle.profiles.length } };
+});
+ipcMain.handle('folio:pickImport', async e => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const opts = { properties: ['openFile' as const], filters: [{ name: 'Folio', extensions: ['folio'] }] };
+  const r = await (win ? dialog.showOpenDialog(win, opts) : dialog.showOpenDialog(opts));
+  if (r.canceled || !r.filePaths[0]) return null;
+  const token = randomUUID();
+  picked.set(token, { file: await readFile(r.filePaths[0]) });
+  return { token, name: basename(r.filePaths[0]) };
+});
+ipcMain.handle('folio:unlockImport', async (_e, token: string, passphrase: string) => {
+  const p = picked.get(String(token));
+  if (!p) return failure('not_found');
+  try { p.bundle = await unseal(p.file, String(passphrase)); } catch (err){ return failure((err as Error).message); }
+  const b = p.bundle;
+  return { ok: true, data: { workspace: b.workspace, exportedAt: b.exportedAt, profiles: b.profiles.length, proxies: b.proxies.length, groups: b.groups.length, signedIn: Object.keys(b.states).length } };
+});
+ipcMain.handle('folio:runImport', async (_e, token: string, workspaceId: string) => {
+  const p = picked.get(String(token));
+  if (!p?.bundle) return failure('not_found');
+  try {
+    const result = await importWorkspace(String(workspaceId), p.bundle);
+    picked.delete(String(token));
+    return { ok: true, data: result };
+  } catch (err){ return failure((err as Error).message); }
 });
 
 ipcMain.handle('folio:info', () => ({ locale: app.getLocale(), version: app.getVersion(), siteUrl: SITE_URL, platform: process.platform }));

@@ -39,7 +39,7 @@ export const en = {
     scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
   },
-  user: { language: 'Language', engines: 'Browser engines', logout: 'Log out' },
+  user: { language: 'Language', engines: 'Browser engines', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out' },
   common: {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit',
     selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
@@ -200,7 +200,7 @@ export const en = {
   },
   activity: {
     title: 'Activity log', sub: (days: number) => `Kept for ${days} days on this plan`, person: 'Person', everyone: 'Everyone', kind: 'Showing',
-    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies', team: 'Team' },
+    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team' },
     export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
     today: 'Today', yesterday: 'Yesterday', on: (device: string) => `on ${device}`,
     actions: {
@@ -218,8 +218,20 @@ export const en = {
       'member.leave': () => 'left the team', 'invitation.withdraw': (_p, x) => `withdrew the invitation to ${x.email}`,
       'department.create': (_p, x) => `created the department ${x.name}`, 'department.update': (_p, x) => (x.from ? `renamed the department ${x.from} to ${x.name}` : `changed who is in ${x.name}`),
       'department.delete': (_p, x) => `deleted the department ${x.name}`,
-      'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} of ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`
+      'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} of ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`,
+      'workspace.export': (_p, x) => `exported all data (${profilesN(x.profiles)}, ${x.proxies} ${x.proxies === 1 ? 'proxy' : 'proxies'})`,
+      'workspace.import': (_p, x) => `imported ${profilesN(x.profiles)}, ${x.proxies} new ${x.proxies === 1 ? 'proxy' : 'proxies'} and ${x.groups} new ${x.groups === 1 ? 'group' : 'groups'}`
     } satisfies Record<ActivityAction, Said>
+  },
+  transfer: {
+    exportTitle: 'Export all data', exportLead: 'One file with every profile (fingerprints and settings), its sign-ins, the groups and the proxies with their passwords. Profiles in the Trash stay behind.',
+    passphrase: 'Passphrase', confirm: 'Passphrase again', passHelp: 'At least 10 characters. The file opens only with it, and it is not kept anywhere: if it is lost, so is the file.',
+    passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exporting: 'Exporting…', exported: (path: string) => `Saved to ${path}`,
+    importTitle: 'Import data', importLead: 'Brings a .folio file into this workspace: its profiles are added and numbered here, and identical proxies and same-named groups are reused.',
+    choose: 'Choose a .folio file…', unlock: 'Unlock', unlocking: 'Unlocking…',
+    preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; signedIn: number }) => `From ${p.workspace}: ${profilesN(p.profiles)} (${p.signedIn} with sign-ins), ${p.proxies} ${p.proxies === 1 ? 'proxy' : 'proxies'}, ${p.groups} ${p.groups === 1 ? 'group' : 'groups'}.`,
+    room: (free: number) => `The plan has room for ${profilesN(free)} more.`, import: 'Import', importing: 'Importing…',
+    imported: (r: { profiles: number; proxies: number; groups: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}`
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
@@ -249,7 +261,10 @@ export const en = {
     local_only: 'This profile keeps its sign-ins on the computer that uses it. Open it there to export or import cookies.',
     cookies_unreadable: 'No cookies found in that file. Use JSON (Cookie-Editor, EditThisCookie) or cookies.txt.',
     locked: 'This profile is open on another computer.',
-    not_found: 'Nothing has been saved for this profile yet.'
+    not_found: 'Nothing has been saved for this profile yet.',
+    wrong_passphrase: 'That passphrase does not open this file.',
+    not_folio: 'That is not a Folio export file.',
+    passphrase_short: 'Use a passphrase of at least 10 characters.'
   } as Record<string, string>
 };
 
@@ -278,7 +293,7 @@ export const zh: Dict = {
     scheduled: (plan: string, date: string) => `${date} 起改为${plan}`,
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
   },
-  user: { language: '语言', engines: '浏览器内核', logout: '退出登录' },
+  user: { language: '语言', engines: '浏览器内核', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录' },
   common: {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑',
     selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,
@@ -439,7 +454,7 @@ export const zh: Dict = {
   },
   activity: {
     title: '操作日志', sub: (days: number) => `当前套餐保留 ${days} 天`, person: '成员', everyone: '所有人', kind: '显示',
-    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie', team: '团队' },
+    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队' },
     export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '还没有记录。', someone: '有人', recent: '最近活动',
     today: '今天', yesterday: '昨天', on: (device: string) => `在 ${device} 上`,
     actions: {
@@ -457,8 +472,20 @@ export const zh: Dict = {
       'member.leave': () => '退出了团队', 'invitation.withdraw': (_p, x) => `撤回了给 ${x.email} 的邀请`,
       'department.create': (_p, x) => `创建了部门「${x.name}」`, 'department.update': (_p, x) => (x.from ? `把部门「${x.from}」改名为「${x.name}」` : `调整了「${x.name}」的成员`),
       'department.delete': (_p, x) => `删除了部门「${x.name}」`,
-      'cookies.export': (p, x) => `导出了 ${p} 的 ${x.count} 个 Cookie`, 'cookies.import': (p, x) => `向 ${p} 导入了 ${x.count} 个 Cookie`
+      'cookies.export': (p, x) => `导出了 ${p} 的 ${x.count} 个 Cookie`, 'cookies.import': (p, x) => `向 ${p} 导入了 ${x.count} 个 Cookie`,
+      'workspace.export': (_p, x) => `导出了全部数据（${x.profiles} 个环境、${x.proxies} 个代理）`,
+      'workspace.import': (_p, x) => `导入了 ${x.profiles} 个环境，新增 ${x.proxies} 个代理和 ${x.groups} 个分组`
     }
+  },
+  transfer: {
+    exportTitle: '导出全部数据', exportLead: '一个文件里包含所有环境（指纹和设置）、它们的登录状态、分组，以及带密码的代理。回收站里的环境不导出。',
+    passphrase: '口令', confirm: '再输一次口令', passHelp: '至少 10 位。文件只能用它打开，口令不会保存在任何地方：忘了口令，文件也就打不开了。',
+    passShort: '口令至少 10 位。', passMismatch: '两次输入的口令不一致。', export: '导出', exporting: '正在导出…', exported: (path: string) => `已保存到 ${path}`,
+    importTitle: '导入数据', importLead: '把 .folio 文件导入到当前团队：环境会新增并重新编号，相同的代理和同名分组会复用。',
+    choose: '选择 .folio 文件…', unlock: '解锁', unlocking: '正在解锁…',
+    preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; signedIn: number }) => `来自「${p.workspace}」：${p.profiles} 个环境（${p.signedIn} 个带登录状态）、${p.proxies} 个代理、${p.groups} 个分组。`,
+    room: (free: number) => `套餐还能放 ${free} 个环境。`, import: '导入', importing: '正在导入…',
+    imported: (r: { profiles: number; proxies: number; groups: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个带登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组`
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',
@@ -488,7 +515,10 @@ export const zh: Dict = {
     local_only: '这个环境的登录状态只存在使用它的电脑上，请在那台电脑上打开后再导出或导入 Cookie。',
     cookies_unreadable: '文件里没有找到 Cookie。请使用 JSON（Cookie-Editor、EditThisCookie）或 cookies.txt。',
     locked: '这个环境正在另一台电脑上使用。',
-    not_found: '这个环境还没有保存过登录状态。'
+    not_found: '这个环境还没有保存过登录状态。',
+    wrong_passphrase: '口令不对，打不开这个文件。',
+    not_folio: '这不是 Folio 导出的文件。',
+    passphrase_short: '口令至少 10 位。'
   }
 };
 

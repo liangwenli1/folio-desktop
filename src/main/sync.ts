@@ -32,10 +32,12 @@ function pack(state: StorageState){
     origins: [...state.origins].sort((a, b) => a.origin.localeCompare(b.origin))
   };
   const body = gzipSync(JSON.stringify(sorted));
-  // Local storage and IndexedDB together, as they travel.
-  const storageBytes = Buffer.byteLength(JSON.stringify(sorted.origins));
-  return { body, sha256: createHash('sha256').update(body).digest('hex'), query: `cookies=${state.cookies.length}&storageBytes=${storageBytes}&origins=${state.origins.length}` };
+  return { body, sha256: createHash('sha256').update(body).digest('hex'), query: counts(sorted) };
 }
+
+// What the server shows about a state: cookies, local storage and IndexedDB together as they travel, sites.
+export const counts = (state: StorageState) =>
+  `cookies=${state.cookies.length}&storageBytes=${Buffer.byteLength(JSON.stringify(state.origins))}&origins=${state.origins.length}`;
 
 export async function download(id: string){
   const r = await api<Buffer>('GET', `/profiles/${id}/data`);

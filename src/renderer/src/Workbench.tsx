@@ -11,6 +11,7 @@ import { ProfilesPage, type GroupFilter } from './Profiles';
 import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
 import { TeamPage } from './Team';
 import { ActivityPage } from './Activity';
+import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { Icon, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 
@@ -20,7 +21,7 @@ interface Props {
 }
 
 type Page = 'profiles' | 'proxies' | 'team' | 'activity' | 'trash';
-type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | null;
+type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 const SOON: { key: 'sync' | 'tasks' | 'api'; icon: IconName }[] = [
   { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }
 ];
@@ -153,6 +154,8 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
                 </div>
               </div>
               <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'engines' }); }}>{d.user.engines}</button>
+              {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}>{d.user.exportAll}</button>}
+              {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}>{d.user.importAll}</button>}
               <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}>{d.user.logout}</button>
             </div>
           )}
@@ -178,6 +181,8 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       {dialog?.kind === 'proxy' && (!dialog.id || editingProxy) && <ProxyForm d={d} wsId={ws.id} data={data} proxy={editingProxy} onClose={close} />}
       {dialog?.kind === 'proxy-import' && <ProxyImportDialog d={d} wsId={ws.id} data={data} onClose={close} />}
       {dialog?.kind === 'engines' && <EnginesDialog d={d} data={data} onClose={close} />}
+      {dialog?.kind === 'export-all' && <ExportDialog d={d} ws={ws} onClose={close} />}
+      {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
     </div>
   );
 }
