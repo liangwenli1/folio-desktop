@@ -4,7 +4,8 @@
 // runs, the lock is renewed and cookies are saved every few minutes. When the browser closes (however it
 // closes), its folder is read back with the engine offline, the state is uploaded and the lock released.
 import { app } from 'electron';
-import { mkdir, readdir, rm } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
+import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { chromium, type BrowserContext, type Page } from 'playwright-core';
 import { Camoufox } from 'camoufox';
@@ -15,7 +16,7 @@ import { startForwarder, type Forwarder } from './forwarder';
 import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
-import type { CheckResult, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
+import type { CheckResult, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 import type { Cookie } from '../shared/cookies';
 
 interface LaunchProfile {
@@ -35,6 +36,8 @@ interface Running {
   visited: Set<string>; timers: NodeJS.Timeout[]; done: Promise<void>;
   // Set when this computer may no longer save the profile: taken over elsewhere, or the account left the workspace.
   lost: null | 'lock_lost' | 'removed';
+  // Where scripts connect, when it was opened through the local API.
+  debug: Debugging | null;
 }
 const running = new Map<string, Running>();
 // End-to-end tests drive the launched browsers through this; it is not set in normal runs.
@@ -53,12 +56,12 @@ const testOnly = () => [
   ...(process.env.FOLIO_PROXY_LOOPBACK ? ['--proxy-bypass-list=<-loopback>'] : [])
 ];
 
-async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null){
+async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'chromium' }>;
   // Only our own switches: Playwright's defaults include --disable-extensions, --force-color-profile and others
   // that change behaviour a site can see (see docs/kernel-evaluation.md).
   const args = [
-    '--remote-debugging-pipe', `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
+    '--remote-debugging-pipe', ...(debug ? ['--remote-debugging-port=0'] : []), `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
     `--fingerprint=${fp.seed}`, `--fingerprint-platform=${p.os}`, '--fingerprint-brand=Chrome', `--fingerprint-hardware-concurrency=${fp.hardwareConcurrency}`,
     `--lang=${locale}`, `--accept-lang=${locale},${locale.split('-')[0]}`, `--timezone=${tz}`,
     `--proxy-server=http://127.0.0.1:${port}`, '--disable-non-proxied-udp',
@@ -70,7 +73,7 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
   });
 }
 
-async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, exitIp: string | null){
+async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, exitIp: string | null, bidiPort: number | null){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'firefox' }>;
   // Camoufox otherwise shows the host's time zone and the real public IP over WebRTC (P0 evaluation).
   const config: Record<string, unknown> = {
@@ -84,8 +87,29 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
     // Lets flow scripts that start with mw: see the page's own JavaScript; it does nothing until a script asks.
     i_know_what_im_doing: true, exclude_addons: ['UBO'], main_world_eval: true,
     proxy: { server: `http://127.0.0.1:${port}`, ...(process.env.FOLIO_PROXY_LOOPBACK ? {} : { bypass: '127.0.0.1,localhost' }) },
-    firefox_user_prefs: process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {}
+    firefox_user_prefs: process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {},
+    ...(bidiPort ? { args: [`--remote-debugging-port=${bidiPort}`] } : {})
   }) as Promise<BrowserContext>;
+}
+
+// A port nothing listens on right now, for Firefox's WebDriver BiDi server.
+function freePort(){
+  return new Promise<number>((resolve, reject) => {
+    const srv = createServer().once('error', reject).listen(0, '127.0.0.1', () => {
+      const { port } = srv.address() as { port: number };
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+// Chromium writes the debugging port it picked, and the browser's path, into the profile's folder.
+async function cdpAddress(dir: string): Promise<Debugging> {
+  for (let i = 0; i < 100; i++){
+    const [port, path] = (await readFile(join(dir, 'DevToolsActivePort'), 'utf8').catch(() => '')).trim().split('\n');
+    if (port && path) return { protocol: 'cdp', wsEndpoint: `ws://127.0.0.1:${port}${path}`, debuggerAddress: `127.0.0.1:${port}` };
+    await new Promise(r => setTimeout(r, 100));
+  }
+  throw new LaunchError('launch_failed');
 }
 
 // The engine on a profile's folder with no window and no network (a proxy nobody listens on, and every page
@@ -122,15 +146,16 @@ async function harvest(p: LaunchProfile, exe: string, dir: string, origins: stri
   } finally { await ctx.close(); }
 }
 
-// Resolves when the browser is up (null) or could not start (the reason).
-export async function open(id: string): Promise<string | null> {
+// Resolves when the browser is up (null) or could not start (the reason). Opened for the local API, it also
+// listens for scripts: CDP for Chromium, WebDriver BiDi for Firefox, on this computer only.
+export async function open(id: string, opts: { api?: boolean } = {}): Promise<string | null> {
   if (running.has(id)) return null;
   if (starting.has(id)) return 'starting';
   starting.add(id);
   notify({ id, state: 'starting' });
   let fwd: Forwarder | null = null, locked = false;
   try {
-    const lock = await api<{ data: unknown }>('POST', `/profiles/${id}/lock`);
+    const lock = await api<{ data: unknown }>('POST', `/profiles/${id}/lock`, opts.api ? { via: 'api' } : undefined);
     if (!lock.ok) throw new LaunchError(lock.error.code);
     locked = true;
     const r = await api<LaunchData>('GET', `/profiles/${id}/launch`);
@@ -177,9 +202,13 @@ export async function open(id: string): Promise<string | null> {
     }
 
     fwd = await startForwarder(line);
+    if (opts.api) await rm(join(dir, 'DevToolsActivePort'), { force: true });
+    const bidiPort = opts.api && profile.kernel === 'firefox' ? await freePort() : null;
     const ctx = profile.kernel === 'chromium'
-      ? await launchChromium(exe, dir, profile, fwd.port, tz, locale, geo)
-      : await launchFirefox(exe, dir, profile, fwd.port, tz, locale, geo, check?.ip ?? null);
+      ? await launchChromium(exe, dir, profile, fwd.port, tz, locale, geo, !!opts.api)
+      : await launchFirefox(exe, dir, profile, fwd.port, tz, locale, geo, check?.ip ?? null, bidiPort);
+    const debug: Debugging | null = !opts.api ? null
+      : bidiPort ? { protocol: 'webdriver-bidi', wsEndpoint: `ws://127.0.0.1:${bidiPort}/session` } : await cdpAddress(dir);
 
     const visited = new Set<string>();
     const track = (page: Page) => page.on('framenavigated', f => {
@@ -190,7 +219,7 @@ export async function open(id: string): Promise<string | null> {
     ctx.on('page', track);
     const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo };
     const entry: Running = {
-      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null,
+      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug,
       timers: [setInterval(() => void renew(id), RENEW_MS), setInterval(() => void autosave(id), AUTOSAVE_MS)],
       done: new Promise(resolve => ctx.on('close', () => { void finish(id).finally(resolve); }))
     };
@@ -259,6 +288,7 @@ async function finish(id: string){
 // Saves the running profile's cookies now (before exporting them), when it runs on this computer.
 export const saveNow = (id: string) => autosave(id);
 export const isRunning = (id: string) => running.has(id);
+export const debugOf = (id: string) => running.get(id)?.debug ?? null;
 // A new tab in the profile's browser, for a flow to run in.
 export async function newPage(id: string){
   const r = running.get(id);

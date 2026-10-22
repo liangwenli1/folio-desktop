@@ -24,6 +24,11 @@ export interface KernelState { kind: KernelKind; version: string; installed: boo
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs'; ids?: string[] }
+// Where a script connects to a profile opened through the local API.
+export interface Debugging { protocol: 'cdp' | 'webdriver-bidi'; wsEndpoint: string; debuggerAddress?: string }
+export interface ApiToken { id: string; name: string; workspaceId: string; createdAt: string; lastUsedAt: string | null }
+// The local API's settings on this computer; `error` is why it isn't listening (the port is taken).
+export interface LocalApi { enabled: boolean; port: number; listening: boolean; error: string | null; tokens: ApiToken[] }
 // A task run under way on this computer, and the profiles a finished run found signed out.
 export interface ActiveRun { runId: string; taskId: string }
 export interface SignedOut { taskId: string; runId: string; task: string; profiles: string[] }
@@ -82,6 +87,11 @@ export interface FolioBridge {
   startup(): Promise<{ supported: boolean; enabled: boolean }>;
   setStartup(on: boolean): Promise<void>;
   setLabels(labels: Labels): Promise<void>;
+  // The local API: turn it on or off, change its port, and make or revoke tokens (a new token is shown once).
+  localApi(): Promise<LocalApi>;
+  setLocalApi(change: { enabled?: boolean; port?: number }): Promise<LocalApi>;
+  createApiToken(name: string, workspaceId: string): Promise<{ token: string; api: LocalApi }>;
+  revokeApiToken(id: string): Promise<LocalApi>;
   showWindow(): Promise<void>;
   // Shows a screenshot a flow took (a full path, or one relative to the screenshots folder) in the file manager.
   showFile(path: string): Promise<void>;

@@ -212,7 +212,7 @@ export const en = {
       'profile.untag': (p, x) => `removed the tag “${x.tag}” from ${p}`, 'profile.set-proxy': (p, x) => (x.proxy ? `set the proxy of ${p} to ${x.proxy}` : `removed the proxy of ${p}`),
       'profile.assign': (p, x) => (x.to ? `assigned ${p} to ${x.to}` : `unassigned ${p}`), 'profile.set-department': (p, x) => (x.department ? `put ${p} in ${x.department}` : `took ${p} out of its department`),
       'profile.trash': p => `moved ${p} to the Trash`, 'profile.restore': p => `restored ${p}`, 'profile.purge': p => `deleted ${p} for good`,
-      'profile.open': p => `opened ${p}`, 'profile.close': p => `closed ${p}`, 'profile.takeover': (p, x) => `took over ${p} from ${x.from ?? 'another computer'}`,
+      'profile.open': (p, x) => (x.via === 'api' ? `opened ${p} through the API` : `opened ${p}`), 'profile.close': p => `closed ${p}`, 'profile.takeover': (p, x) => `took over ${p} from ${x.from ?? 'another computer'}`,
       'proxy.create': (_p, x) => `added the proxy ${x.name}`, 'proxy.import': (_p, x) => `imported ${x.added} ${x.added === 1 ? 'proxy' : 'proxies'}`,
       'proxy.update': (_p, x) => `changed the proxy ${x.name}`, 'proxy.delete': (_p, x) => `deleted the proxy ${x.name}`,
       'group.create': (_p, x) => `created the group ${x.name}`, 'group.rename': (_p, x) => `renamed the group ${x.from} to ${x.name}`, 'group.delete': (_p, x) => `deleted the group ${x.name}`,
@@ -307,7 +307,7 @@ export const en = {
     csv: { number: 'Number', profile: 'Profile', status: 'Result', attempts: 'Tries', problem: 'Problem' },
     item: { pending: 'Waiting', running: 'Running', ok: 'Done', failed: 'Failed', signed_out: 'Signed out', skipped: 'Skipped', canceled: 'Not run' },
     noLog: 'Nothing was logged.', attempt: (n: number) => `Try ${n}`, shotsWhere: (device: string) => (device ? `Screenshots are kept on ${device}.` : 'Screenshots are kept on the computer that ran it.'),
-    skip: { locked: 'Open on another computer.', not_found: 'The profile no longer exists.', in_trash: 'The profile is in the Trash.', forbidden: 'Not one of your profiles any more.' } as Record<string, string>,
+    skip: { locked: 'Open on another computer.', not_found: 'The profile no longer exists.', in_trash: 'The profile is in the Trash.', forbidden: 'Not one of your profiles any more.', scripted: 'A script was driving it through the local API.' } as Record<string, string>,
     form: {
       newTitle: 'New task', editTitle: 'Edit task', create: 'Create task', save: 'Save changes', name: 'Name', flow: 'Flow',
       profiles: (n: number) => `Profiles · ${n} selected`, search: 'Search profiles', all: 'Select all shown', none: 'No profiles match.',
@@ -323,6 +323,26 @@ export const en = {
       varsReady: (n: number, names: string) => `${names} for ${profilesN(n)}.`,
       varErrs: { header: 'the first row needs the profile column and at least one variable', variable: 'variable names use letters, digits and _', profile: 'not one of the profiles selected above', repeat: 'this profile is already in an earlier row' }
     }
+  },
+  apiPage: {
+    title: 'API & scripts', sub: 'Let scripts on this computer open profiles and drive them with Playwright, Puppeteer or Selenium.', reference: 'API reference',
+    server: 'Local API', enable: 'On', listening: 'Listening on', off: 'Off. Turn it on to let scripts on this computer use it.', copy: 'Copy', copied: 'Copied',
+    errors: { port_in_use: 'Another program uses this port. Pick another one.', listen_failed: 'The API couldn’t start on this port. Pick another one.' },
+    port: 'Port', limit: 'Up to 60 requests a minute (starting, stopping, looking things up). What scripts send to the browser itself isn’t counted. Company is unthrottled.',
+    unthrottled: 'Company plan: no limit on requests.',
+    security: 'The debugging address has no password: while a profile opened through the API is running, any program on this computer can control it. Profiles you open yourself have no debugging address.',
+    tokens: 'Tokens', tokensHelp: 'Scripts send one as Authorization: Bearer <token>. A token belongs to you and this workspace, works only on this computer, and can do what you can.',
+    newToken: 'Copy this token now; it isn’t shown again.', done: 'Done', tokenName: 'Name, e.g. order sync', createToken: 'Make a token', defaultName: 'Token',
+    made: (date: string) => `Made ${date}`, used: (date: string) => `last used ${date}`, unused: 'not used yet', revoke: 'Revoke', revokeX: (n: string) => `Revoke ${n}`, otherWorkspace: 'Another workspace',
+    examples: 'Examples', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox profiles' },
+    chromiumNote: 'Chromium profiles answer with a CDP address: Playwright, Puppeteer, Selenium (with chromedriver for Chromium 150) or any CDP client can take over.',
+    firefoxNote: 'Firefox profiles answer with a WebDriver BiDi address: Puppeteer or another WebDriver BiDi client can take over. Playwright and Selenium can’t attach to a running Firefox. While a script drives one, tasks skip it.',
+    endpoints: 'Endpoints',
+    routes: [
+      ['GET /api/v1/profiles', 'The profiles you can see, and whether they run'], ['POST /api/v1/profiles/{number}/start', 'Opens a profile and answers with its debugging address'],
+      ['GET /api/v1/profiles/{number}', 'Whether it runs, with its address when opened through the API'], ['POST /api/v1/profiles/{number}/stop', 'Closes it, saving its sign-ins'],
+      ['GET /api/v1/tasks', 'Your workspace’s tasks'], ['POST /api/v1/tasks/{id}/run', 'Runs a task on this computer'], ['GET /api/v1/runs/{id}', 'How a run is going, profile by profile']
+    ] as [string, string][]
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
@@ -564,7 +584,7 @@ export const zh: Dict = {
       'profile.untag': (p, x) => `去掉了 ${p} 的标签「${x.tag}」`, 'profile.set-proxy': (p, x) => (x.proxy ? `把 ${p} 的代理改成了 ${x.proxy}` : `去掉了 ${p} 的代理`),
       'profile.assign': (p, x) => (x.to ? `把 ${p} 分配给了 ${x.to}` : `取消了 ${p} 的负责人`), 'profile.set-department': (p, x) => (x.department ? `把 ${p} 划到了「${x.department}」` : `把 ${p} 移出了部门`),
       'profile.trash': p => `把 ${p} 移到了回收站`, 'profile.restore': p => `恢复了 ${p}`, 'profile.purge': p => `彻底删除了 ${p}`,
-      'profile.open': p => `打开了 ${p}`, 'profile.close': p => `关闭了 ${p}`, 'profile.takeover': (p, x) => `从 ${x.from ?? '另一台电脑'} 收回了 ${p}`,
+      'profile.open': (p, x) => (x.via === 'api' ? `通过 API 打开了 ${p}` : `打开了 ${p}`), 'profile.close': p => `关闭了 ${p}`, 'profile.takeover': (p, x) => `从 ${x.from ?? '另一台电脑'} 收回了 ${p}`,
       'proxy.create': (_p, x) => `添加了代理 ${x.name}`, 'proxy.import': (_p, x) => `导入了 ${x.added} 个代理`,
       'proxy.update': (_p, x) => `修改了代理 ${x.name}`, 'proxy.delete': (_p, x) => `删除了代理 ${x.name}`,
       'group.create': (_p, x) => `创建了分组「${x.name}」`, 'group.rename': (_p, x) => `把分组「${x.from}」改名为「${x.name}」`, 'group.delete': (_p, x) => `删除了分组「${x.name}」`,
@@ -659,7 +679,7 @@ export const zh: Dict = {
     csv: { number: '编号', profile: '环境', status: '结果', attempts: '尝试次数', problem: '问题' },
     item: { pending: '等待中', running: '运行中', ok: '成功', failed: '失败', signed_out: '已掉线', skipped: '跳过', canceled: '没跑' },
     noLog: '没有日志。', attempt: (n: number) => `第 ${n} 次尝试`, shotsWhere: (device: string) => (device ? `截图存在 ${device} 上。` : '截图存在运行它的电脑上。'),
-    skip: { locked: '正在另一台电脑上使用。', not_found: '这个环境已经不存在了。', in_trash: '这个环境在回收站里。', forbidden: '这个环境已经不归你了。' } as Record<string, string>,
+    skip: { locked: '正在另一台电脑上使用。', not_found: '这个环境已经不存在了。', in_trash: '这个环境在回收站里。', forbidden: '这个环境已经不归你了。', scripted: '当时正由脚本通过本机 API 控制。' } as Record<string, string>,
     form: {
       newTitle: '新建任务', editTitle: '编辑任务', create: '创建任务', save: '保存修改', name: '名称', flow: '流程',
       profiles: (n: number) => `环境 · 已选 ${n} 个`, search: '搜索环境', all: '全选筛出的', none: '没有匹配的环境。',
@@ -675,6 +695,26 @@ export const zh: Dict = {
       varsReady: (n: number, names: string) => `${n} 个环境的 ${names}。`,
       varErrs: { header: '第一行要有环境列和至少一个变量', variable: '变量名只能用字母、数字和下划线', profile: '不是上面选中的环境', repeat: '这个环境在前面的行里已经出现过' }
     }
+  },
+  apiPage: {
+    title: 'API 与脚本', sub: '让这台电脑上的脚本打开环境，并用 Playwright、Puppeteer 或 Selenium 接管。', reference: 'API 参考',
+    server: '本机 API', enable: '开启', listening: '正在监听', off: '已关闭。开启后，这台电脑上的脚本才能使用。', copy: '复制', copied: '已复制',
+    errors: { port_in_use: '这个端口被别的程序占用了，请换一个。', listen_failed: '在这个端口上启动失败，请换一个。' },
+    port: '端口', limit: '每分钟最多 60 次请求（打开、关闭、查询）。脚本直接发给浏览器的指令不计入。公司版不限速。',
+    unthrottled: '公司版：请求不限速。',
+    security: '调试地址没有密码：通过 API 打开的环境运行期间，这台电脑上的任何程序都能控制它。你自己手动打开的环境不开调试地址。',
+    tokens: '令牌', tokensHelp: '脚本在请求头里带上 Authorization: Bearer <令牌>。令牌属于你和这个团队，只在这台电脑上有效，权限和你相同。',
+    newToken: '请现在复制这个令牌，它不会再显示。', done: '好了', tokenName: '名称，比如订单同步', createToken: '生成令牌', defaultName: '令牌',
+    made: (date: string) => `${date} 生成`, used: (date: string) => `最后使用于 ${date}`, unused: '还没用过', revoke: '作废', revokeX: (n: string) => `作废 ${n}`, otherWorkspace: '另一个团队',
+    examples: '示例', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox 环境' },
+    chromiumNote: 'Chromium 环境返回 CDP 地址：Playwright、Puppeteer、Selenium（配合对应 Chromium 150 的 chromedriver）或任何支持 CDP 的工具都能接管。',
+    firefoxNote: 'Firefox 环境返回 WebDriver BiDi 地址：Puppeteer 或其他支持 WebDriver BiDi 的工具能接管。Playwright 和 Selenium 目前不能接管已在运行的 Firefox。脚本控制期间，任务会跳过它。',
+    endpoints: '接口',
+    routes: [
+      ['GET /api/v1/profiles', '你能看到的环境，以及是否在运行'], ['POST /api/v1/profiles/{编号}/start', '打开环境，返回调试地址'],
+      ['GET /api/v1/profiles/{编号}', '是否在运行；通过 API 打开的附带调试地址'], ['POST /api/v1/profiles/{编号}/stop', '关闭环境，照常保存登录状态'],
+      ['GET /api/v1/tasks', '团队的任务'], ['POST /api/v1/tasks/{id}/run', '在这台电脑上运行一个任务'], ['GET /api/v1/runs/{id}', '运行进度，按环境列出']
+    ] as [string, string][]
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',

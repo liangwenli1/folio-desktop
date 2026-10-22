@@ -2784,7 +2784,14 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        via?: "api";
+                    } | null;
+                };
+            };
             responses: {
                 /** @description Default Response */
                 200: {

@@ -49,6 +49,10 @@ const bridge: FolioBridge = {
   startup: () => ipcRenderer.invoke('folio:startup'),
   setStartup: on => ipcRenderer.invoke('folio:setStartup', on),
   setLabels: labels => ipcRenderer.invoke('folio:setLabels', labels),
+  localApi: () => ipcRenderer.invoke('folio:localApi'),
+  setLocalApi: change => ipcRenderer.invoke('folio:setLocalApi', change),
+  createApiToken: (name, workspaceId) => ipcRenderer.invoke('folio:createApiToken', name, workspaceId),
+  revokeApiToken: id => ipcRenderer.invoke('folio:revokeApiToken', id),
   showWindow: () => ipcRenderer.invoke('folio:showWindow'),
   showFile: path => ipcRenderer.invoke('folio:showFile', path),
 

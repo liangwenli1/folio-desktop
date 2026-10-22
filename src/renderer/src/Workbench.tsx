@@ -12,6 +12,7 @@ import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
 import { TeamPage } from './Team';
 import { FlowsPage } from './Flows';
 import { TasksPage, type Focus } from './Tasks';
+import { ApiPage } from './Api';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
@@ -22,9 +23,9 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'team' | 'flows' | 'tasks' | 'activity' | 'trash';
+type Page = 'profiles' | 'proxies' | 'team' | 'flows' | 'tasks' | 'api' | 'activity' | 'trash';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
-const soon = (d: Dict, key: 'sync' | 'api', icon: IconName) => (
+const soon = (d: Dict, key: 'sync', icon: IconName) => (
   <button key={key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={icon} />{d.nav[key]}<span className="soon">{d.nav.soon}</span></button>
 );
 
@@ -129,7 +130,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           {soon(d, 'sync', 'sync')}
           <NavItem icon="flows" label={d.nav.flows} count={data.flows.length || undefined} active={shown === 'flows'} onClick={() => go('flows')} />
           <NavItem icon="tasks" label={d.nav.tasks} count={data.active.length || data.tasks.length || undefined} active={shown === 'tasks'} onClick={() => go('tasks')} />
-          {soon(d, 'api', 'api')}
+          <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
           <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
           {manager && <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
@@ -188,6 +189,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
+      {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 

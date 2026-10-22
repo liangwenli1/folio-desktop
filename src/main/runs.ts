@@ -7,7 +7,7 @@ import { app, powerSaveBlocker } from 'electron';
 import { basename, isAbsolute, join, relative } from 'node:path';
 import { api } from './api';
 import { runFlow } from './flow';
-import { isRunning, newPage, open, stop } from './launcher';
+import { debugOf, isRunning, newPage, open, stop } from './launcher';
 import type { ApiResult, FlowError, FlowEvent, FlowLog, FlowResult, SignedOut, Step } from '../shared/bridge';
 
 export const screenshotsDir = () => join(app.getPath('userData'), 'screenshots');
@@ -105,7 +105,9 @@ async function runItem(runId: string, task: Started['task'], steps: Step[], item
   const log: (FlowLog & { attempt: number })[] = [], screenshots: string[] = [];
   let attempts = 0, result: FlowResult | null = null, error: FlowError | { code: string; message: string } | null = null, skipped: string | null = null;
 
-  while (attempts <= task.retries && !signal.aborted){
+  // A Firefox profile a script drives through the local API can't take a flow at the same time (see PLAN 6.9).
+  if (debugOf(id)?.protocol === 'webdriver-bidi') skipped = 'scripted';
+  while (!skipped && attempts <= task.retries && !signal.aborted){
     if (attempts && !(await pause(RETRY_PAUSE_MS, signal))) break;
     attempts++;
     const launchError = isRunning(id) ? null : await open(id);
