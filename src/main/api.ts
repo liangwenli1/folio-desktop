@@ -1,7 +1,10 @@
 // Calls folio-server on behalf of the renderer, adding the bearer token.
 // Uses Electron's net stack, so system proxy settings apply.
-import { net } from 'electron';
+import { app, net } from 'electron';
+import { randomUUID } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { hostname } from 'node:os';
+import { join } from 'node:path';
 import type { ApiResult, Method } from '../shared/bridge';
 import { clearToken, getToken, setToken } from './session';
 
@@ -37,8 +40,18 @@ async function call<T>(method: Method | 'PUT', path: string, body?: unknown, wit
   return { ok: true, data: data as T };
 }
 
+// This install's id, sent when logging in, so the server knows which computer a scheduled task runs on.
+function deviceId(){
+  const file = join(app.getPath('userData'), 'device.json');
+  try { return (JSON.parse(readFileSync(file, 'utf8')) as { id: string }).id; } catch {
+    const id = randomUUID();
+    writeFileSync(file, JSON.stringify({ id }));
+    return id;
+  }
+}
+
 export async function login(email: string, password: string){
-  const r = await call<{ user: unknown; token: string }>('POST', '/auth/login', { email, password, client: 'desktop', deviceName: hostname() }, false);
+  const r = await call<{ user: unknown; token: string }>('POST', '/auth/login', { email, password, client: 'desktop', deviceName: hostname(), deviceId: deviceId() }, false);
   if (!r.ok) return r;
   await setToken(r.data.token);
   return { ok: true as const, data: { user: r.data.user } };

@@ -58,6 +58,8 @@ test('a spreadsheet can bring cookies with each profile', async () => {
   const dialog = win.getByRole('dialog', { name: 'Import profiles' });
   await dialog.getByRole('textbox', { name: 'CSV' }).fill(`name,cookies\nWith-Cookies,"${cookies.replace(/"/g, '""')}"\nWithout,`);
   await dialog.getByRole('button', { name: 'Import 2 profiles' }).click();
+  // Profiles are created first and their cookies imported after; the notice comes when both are done.
+  await expect(win.getByRole('status').filter({ hasText: '2 profiles imported' })).toBeVisible();
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
   const list = (await (await acct.api.get(`/workspaces/${acct.workspaceId}/profiles`)).json()).profiles;
   expect(list.map((p: { name: string; data: { cookies: number } | null }) => [p.name, p.data?.cookies ?? 0])).toEqual([['With-Cookies', 2], ['Without', 0]]);

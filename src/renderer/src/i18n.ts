@@ -40,7 +40,9 @@ export const en = {
     scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
   },
-  user: { language: 'Language', engines: 'Browser engines', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out' },
+  user: { language: 'Language', engines: 'Browser engines', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out', startup: 'Start with this computer (minimized)' },
+  tray: { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background so scheduled tasks run on time. Quit it from the tray icon.' },
+  notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }) },
   common: {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit',
     selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
@@ -226,7 +228,7 @@ export const en = {
       'flow.delete': (_p, x) => `deleted the flow ${x.name}`,
       'task.create': (_p, x) => `created the task ${x.name}`, 'task.update': (_p, x) => (x.from ? `renamed the task ${x.from} to ${x.name}` : `changed the task ${x.name}`),
       'task.delete': (_p, x) => `deleted the task ${x.name}`, 'run.start': (_p, x) => `started ${x.name} on ${profilesN(x.profiles)}${x.trigger === 'rerun' ? ' (again)' : ''}`,
-      'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.skipped ? `, ${x.skipped} not run` : ''}`
+      'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.signedOut ? `, ${x.signedOut} signed out` : ''}${x.skipped ? `, ${x.skipped} not run` : ''}`
     } satisfies Record<ActivityAction, Said>
   },
   transfer: {
@@ -241,6 +243,7 @@ export const en = {
   },
   flows: {
     title: 'Flows', sub: (n: number) => (n === 1 ? '1 flow · shared with the team' : `${n} flows · shared with the team`), new: '+ New flow',
+    template: 'Sign-in check template', templateName: 'Sign-in check',
     cols: { name: 'Flow', steps: 'Steps', by: 'Created by', updated: 'Changed' },
     empty: 'No flows yet. A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
@@ -251,7 +254,7 @@ export const en = {
     stale: 'Someone saved this flow while you were editing. Save again to replace their version with yours.',
     issues: (n: number) => (n === 1 ? '1 step needs filling in before saving.' : `${n} steps need filling in before saving.`),
     steps: 'Steps', noSteps: 'Add the first step.', add: '+ Add step',
-    types: { open: 'Open URL', click: 'Click', type: 'Type', press: 'Press key', wait: 'Wait', scroll: 'Scroll', extract: 'Extract', set: 'Set variable', if: 'If', loop: 'Repeat', screenshot: 'Screenshot', script: 'Run script' } satisfies Record<Step['type'], string>,
+    types: { open: 'Open URL', click: 'Click', type: 'Type', press: 'Press key', wait: 'Wait', scroll: 'Scroll', extract: 'Extract', set: 'Set variable', if: 'If', loop: 'Repeat', screenshot: 'Screenshot', script: 'Run script', signedIn: 'Check signed in' } satisfies Record<Step['type'], string>,
     up: (p: string) => `Move step ${p} up`, down: (p: string) => `Move step ${p} down`, copyStep: (p: string) => `Duplicate step ${p}`, remove: (p: string) => `Remove step ${p}`,
     then: 'Then', else: 'Otherwise', each: 'Each time',
     issue: { url: 'Enter the address to open.', selector: 'Say which element.', key: 'Name the key.', variable: 'Variable names use letters, digits and _, and don’t start with a digit.', pixels: 'Enter how far to scroll.', times: 'Repeat at least once.', code: 'Write the script.', attribute: 'Name the attribute.' },
@@ -265,37 +268,44 @@ export const en = {
       scriptHint: 'Runs in the page; use return to hand back a value. On Firefox profiles the script can’t see the page’s own JavaScript unless it starts with mw:.',
       test: 'When', exists: 'An element is there', contains: 'An element’s text contains', equals: 'A variable equals',
       repeat: 'Repeat', repeatTimes: 'A number of times', repeatEach: 'For each matching element', times: 'Times',
-      eachHint: 'Inside, @item is the current element (@item >> a looks inside it) and {{loop.index}} counts from 1.', timesHint: 'Inside, {{loop.index}} counts from 1.'
+      eachHint: 'Inside, @item is the current element (@item >> a looks inside it) and {{loop.index}} counts from 1.', timesHint: 'Inside, {{loop.index}} counts from 1.',
+      signedBy: 'Signed in when', signedPresent: 'This element shows up', signedAbsent: 'This element doesn’t show up',
+      signedHint: 'For example an avatar or account menu that only signed-in visitors see, or a “Log in” button that only signed-out visitors see. A profile found signed out stops there and, in a task, you get a desktop notification.'
     },
     trial: {
       title: 'Trial run', lead: 'Runs the steps as they are now, saved or not, in a new tab of the profile. The browser stays open afterwards.',
       profile: 'On profile', noProfiles: 'No profiles yet', vars: 'Variables for this run (name=value, one per line)', run: 'Run', stop: 'Stop', log: 'Log',
       ms: (n: number) => (n < 1000 ? `${n} ms` : `${(n / 1000).toFixed(1)} s`), times: (n: number) => (n === 1 ? '1 time' : `${n} times`),
-      ok: 'Finished.', notOpened: (why: string) => `The profile didn’t open: ${why}`, failed: (why: string) => `Stopped at a failed step: ${why}`, shot: (name: string) => `Show ${name}`
+      ok: 'Finished.', signedOut: 'The check found this profile signed out.', notOpened: (why: string) => `The profile didn’t open: ${why}`, failed: (why: string) => `Stopped at a failed step: ${why}`, shot: (name: string) => `Show ${name}`
     },
     errors: {
       timeout: 'Timed out: the element didn’t show up, or the page didn’t finish loading.', navigation: 'The page couldn’t be opened.', script: 'The script failed.',
       variable: (name: string) => `{{${name}}} has no value.`, no_item: '@item only works inside “For each matching element”.',
       closed: 'The browser or tab was closed.', stopped: 'Stopped.', failed: 'The step failed.',
-      too_long: (min: string) => `Ran past the task’s limit of ${min} min.`
+      too_long: (min: string) => `Ran past the task’s limit of ${min} min.`, signed_out: 'Signed out.'
     }
   },
   tasks: {
     title: 'Scheduled tasks', sub: (n: number) => (n === 1 ? '1 task' : `${n} tasks`), new: '+ New task', needFlow: 'Make a flow first, on the Flows page.',
     empty: 'No tasks yet. A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
-    cols: { task: 'Task', profiles: 'Profiles', last: 'Last run', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
-    never: 'Not run yet', run: 'Run', runX: (n: string) => `Run ${n}`, stop: 'Stop', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
+    cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
+    never: 'Not run yet', manual: 'By hand', next: (at: string) => `Next: ${at}`, done: 'Its time has passed', on: (device: string) => `On ${device}`,
+    once: (at: string) => `Once, ${at}`, everyDay: 'Every day', weekdays: 'Weekdays', weekends: 'Weekends', dayNames: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    onlyOpen: 'Scheduled tasks run on their computer while Folio is open and logged in there; times missed are recorded, not run late.', enableStartup: 'Start Folio with this computer',
+    run: 'Run', runX: (n: string) => `Run ${n}`, stop: 'Stop', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     confirmDelete: (n: string) => `Delete “${n}” and its runs?`, deleted: (n: string) => `${n} deleted`, started: (n: string) => `${n} started on this computer`,
     saved: 'Task saved', stale: 'Someone changed this task in the meantime. Open it again and redo your change.',
-    status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted' },
+    status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted', missed: 'Missed', busy: 'Skipped' },
     progress: (done: number, all: number) => `${done} of ${all} done`, elsewhere: (where: string) => `on ${where}`,
-    counts: (c: { ok: number; failed: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} done`, c.failed && `${c.failed} failed`, c.skipped && `${c.skipped} skipped`, c.canceled && `${c.canceled} not run`].filter(Boolean).join(' · ') || 'Nothing ran',
+    counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} done`, c.signed_out && `${c.signed_out} signed out`, c.failed && `${c.failed} failed`, c.skipped && `${c.skipped} skipped`, c.canceled && `${c.canceled} not run`].filter(Boolean).join(' · ') || 'Nothing ran',
     back: '← Tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
-    runs: 'Runs', noRuns: 'No runs yet.', triggers: { manual: 'Manual', rerun: 'Rerun' }, result: 'Run results',
+    runs: 'Runs', noRuns: 'No runs yet.', triggers: { manual: 'Manual', rerun: 'Rerun', schedule: 'Scheduled' }, result: 'Run results',
+    missedNote: (at: string, device: string) => `Nothing ran at ${at}: Folio wasn’t open and logged in on ${device || 'its computer'}, or the computer was asleep.`,
+    busyNote: (at: string) => `Nothing ran at ${at}: the run before was still going.`, runNow: 'Run it now',
     startedBy: (who: string, device: string | null, when: string) => `${who}${device ? ` on ${device}` : ''}, ${when}`,
     rerun: (n: number) => `Run the ${n === 1 ? 'one' : n} that didn’t finish again`, export: 'Export CSV', exported: (path: string) => `Saved to ${path}`,
     csv: { number: 'Number', profile: 'Profile', status: 'Result', attempts: 'Tries', problem: 'Problem' },
-    item: { pending: 'Waiting', running: 'Running', ok: 'Done', failed: 'Failed', skipped: 'Skipped', canceled: 'Not run' },
+    item: { pending: 'Waiting', running: 'Running', ok: 'Done', failed: 'Failed', signed_out: 'Signed out', skipped: 'Skipped', canceled: 'Not run' },
     noLog: 'Nothing was logged.', attempt: (n: number) => `Try ${n}`, shotsWhere: (device: string) => (device ? `Screenshots are kept on ${device}.` : 'Screenshots are kept on the computer that ran it.'),
     skip: { locked: 'Open on another computer.', not_found: 'The profile no longer exists.', in_trash: 'The profile is in the Trash.', forbidden: 'Not one of your profiles any more.' } as Record<string, string>,
     form: {
@@ -304,6 +314,9 @@ export const en = {
       concurrency: 'At a time', retries: 'When one fails', retriesN: (n: number) => (n === 0 ? 'Don’t retry' : n === 1 ? 'Retry once' : `Retry up to ${n} times`),
       timeout: 'Time limit per profile', minutes: (n: number) => (n === 1 ? '1 minute' : `${n} minutes`),
       memory: 'Each open profile takes roughly 300–500 MB of memory; set how many run at a time to suit this computer.',
+      when: 'When it runs', kinds: { none: 'By hand', once: 'Once', daily: 'Daily' }, at: 'Date and time', time: 'Time', days: 'Days',
+      runsHere: 'It runs on this computer, at this computer’s time.', runsOn: (device: string, email: string) => `It runs on ${device} (${email}), at that computer’s time.`,
+      moveHere: 'Run it on this computer instead', scheduleHelp: 'Folio has to be open and logged in there; a time missed is recorded and can be run from its record.',
       vars: 'Variables per profile', varsHelp: 'Optional. A spreadsheet whose first column names the profile (name or number) and whose other columns are variables, used in the flow as {{column}}. Kept encrypted; only people who can edit the task see them.',
       varsStored: (n: number, names: string) => `Set for ${profilesN(n)}: ${names}`, varsCleared: 'They will be removed when you save.',
       varsReplace: 'Replace…', varsClear: 'Remove', varsKeep: 'Keep the current ones',
@@ -348,7 +361,9 @@ export const en = {
     flow_in_use: 'Tasks use this flow. Delete them, or have them use another flow, first.',
     task_running: 'This task is already running.',
     no_profiles: 'None of this task’s profiles can run (they are gone, in the Trash, or not yours).',
-    run_finished: 'This run has already finished.'
+    run_finished: 'This run has already finished.',
+    no_device: 'Log out and back in to this app once before scheduling tasks on this computer.',
+    already_run: 'This scheduled time has already run.'
   } as Record<string, string>
 };
 
@@ -377,7 +392,9 @@ export const zh: Dict = {
     scheduled: (plan: string, date: string) => `${date} 起改为${plan}`,
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
   },
-  user: { language: '语言', engines: '浏览器内核', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录' },
+  user: { language: '语言', engines: '浏览器内核', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录', startup: '开机自动启动（最小化）' },
+  tray: { open: '打开 Folio', quit: '退出 Folio', background: 'Folio 会留在后台，让定时任务按时运行。要退出请用托盘图标。' },
+  notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} 掉线了` : `${names.length} 个环境掉线了`, body: `${task}：${names.join('、')}` }) },
   common: {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑',
     selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,
@@ -563,7 +580,7 @@ export const zh: Dict = {
       'flow.delete': (_p, x) => `删除了流程 ${x.name}`,
       'task.create': (_p, x) => `新建了任务 ${x.name}`, 'task.update': (_p, x) => (x.from ? `把任务 ${x.from} 改名为 ${x.name}` : `修改了任务 ${x.name}`),
       'task.delete': (_p, x) => `删除了任务 ${x.name}`, 'run.start': (_p, x) => `${x.trigger === 'rerun' ? '重跑' : '运行'}了任务 ${x.name}，共 ${x.profiles} 个环境`,
-      'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '跑完了'}：${x.ok} 个成功，${x.failed} 个失败${x.skipped ? `，${x.skipped} 个没跑` : ''}`
+      'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '跑完了'}：${x.ok} 个成功，${x.failed} 个失败${x.signedOut ? `，${x.signedOut} 个掉线` : ''}${x.skipped ? `，${x.skipped} 个没跑` : ''}`
     }
   },
   transfer: {
@@ -578,6 +595,7 @@ export const zh: Dict = {
   },
   flows: {
     title: '流程', sub: (n: number) => `${n} 个流程 · 团队共享`, new: '+ 新建流程',
+    template: '登录检查模板', templateName: '登录检查',
     cols: { name: '流程', steps: '步骤', by: '创建人', updated: '修改时间' },
     empty: '还没有流程。流程是一串步骤（打开网页、点击、输入、提取……），可以在一个或多个环境上运行。',
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制一份再修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
@@ -588,7 +606,7 @@ export const zh: Dict = {
     stale: '你编辑期间，别人保存过这个流程。再点一次保存，会用你的版本覆盖对方的。',
     issues: (n: number) => `还有 ${n} 个步骤没填好，填好后才能保存。`,
     steps: '步骤', noSteps: '添加第一个步骤。', add: '+ 添加步骤',
-    types: { open: '打开网址', click: '点击', type: '输入', press: '按键', wait: '等待', scroll: '滚动', extract: '提取', set: '设置变量', if: '条件判断', loop: '循环', screenshot: '截图', script: '执行脚本' } satisfies Record<Step['type'], string>,
+    types: { open: '打开网址', click: '点击', type: '输入', press: '按键', wait: '等待', scroll: '滚动', extract: '提取', set: '设置变量', if: '条件判断', loop: '循环', screenshot: '截图', script: '执行脚本', signedIn: '确认已登录' } satisfies Record<Step['type'], string>,
     up: (p: string) => `第 ${p} 步上移`, down: (p: string) => `第 ${p} 步下移`, copyStep: (p: string) => `复制第 ${p} 步`, remove: (p: string) => `删除第 ${p} 步`,
     then: '满足时', else: '否则', each: '每一次',
     issue: { url: '填写要打开的网址。', selector: '指定是哪个元素。', key: '填写按键。', variable: '变量名只能用字母、数字和下划线，不能以数字开头。', pixels: '填写滚动的距离。', times: '至少重复一次。', code: '填写脚本。', attribute: '填写属性名。' },
@@ -602,37 +620,44 @@ export const zh: Dict = {
       scriptHint: '在网页里执行；用 return 返回结果。Firefox 环境里，脚本默认读不到网页自己的 JavaScript 变量，需要的话在开头加 mw:。',
       test: '条件', exists: '某个元素存在', contains: '某个元素的文字包含', equals: '某个变量等于',
       repeat: '重复', repeatTimes: '固定次数', repeatEach: '对每个匹配的元素', times: '次数',
-      eachHint: '里面的步骤可以用 @item 指代当前元素（@item >> a 表示在它里面找），{{loop.index}} 从 1 开始计数。', timesHint: '里面的步骤可以用 {{loop.index}}，从 1 开始计数。'
+      eachHint: '里面的步骤可以用 @item 指代当前元素（@item >> a 表示在它里面找），{{loop.index}} 从 1 开始计数。', timesHint: '里面的步骤可以用 {{loop.index}}，从 1 开始计数。',
+      signedBy: '算已登录的条件', signedPresent: '看到这个元素', signedAbsent: '看不到这个元素',
+      signedHint: '比如只有登录后才有的头像、账户菜单，或者只有没登录时才有的「登录」按钮。判断为掉线时，这个环境到此为止；在任务里运行时会发桌面通知。'
     },
     trial: {
       title: '试运行', lead: '用编辑器里当前的步骤（不必先保存），在环境的新标签页里跑一遍。跑完浏览器保持打开。',
       profile: '在哪个环境上跑', noProfiles: '还没有环境', vars: '这次运行用的变量（名称=值，每行一个）', run: '运行', stop: '停止', log: '日志',
       ms: (n: number) => (n < 1000 ? `${n} 毫秒` : `${(n / 1000).toFixed(1)} 秒`), times: (n: number) => `${n} 次`,
-      ok: '跑完了。', notOpened: (why: string) => `环境没有打开：${why}`, failed: (why: string) => `在出错的一步停下了：${why}`, shot: (name: string) => `查看 ${name}`
+      ok: '跑完了。', signedOut: '检查发现这个环境已经掉线了。', notOpened: (why: string) => `环境没有打开：${why}`, failed: (why: string) => `在出错的一步停下了：${why}`, shot: (name: string) => `查看 ${name}`
     },
     errors: {
       timeout: '超时：元素没有出现，或者网页没有加载完。', navigation: '网页打不开。', script: '脚本出错了。',
       variable: (name: string) => `{{${name}}} 没有值。`, no_item: '@item 只能用在「对每个匹配的元素」循环里。',
       closed: '浏览器或标签页被关掉了。', stopped: '已停止。', failed: '这一步失败了。',
-      too_long: (min: string) => `超过了任务设定的 ${min} 分钟。`
+      too_long: (min: string) => `超过了任务设定的 ${min} 分钟。`, signed_out: '已掉线。'
     }
   },
   tasks: {
     title: '定时任务', sub: (n: number) => `${n} 个任务`, new: '+ 新建任务', needFlow: '先在「流程」页建一个流程。',
     empty: '还没有任务。任务会把一个流程放到一组环境上运行，几个几个地跑，并保留每次运行的结果。',
-    cols: { task: '任务', profiles: '环境', last: '上次运行', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
-    never: '还没运行过', run: '运行', runX: (n: string) => `运行 ${n}`, stop: '停止', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
+    cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
+    never: '还没运行过', manual: '手动', next: (at: string) => `下次：${at}`, done: '时间已过', on: (device: string) => `在 ${device} 上运行`,
+    once: (at: string) => `一次：${at}`, everyDay: '每天', weekdays: '工作日', weekends: '周末', dayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+    onlyOpen: '定时任务在它所属的电脑上运行，前提是那台电脑上 Folio 开着并已登录；错过的时间会记下来，不会事后补跑。', enableStartup: '开机自动启动 Folio',
+    run: '运行', runX: (n: string) => `运行 ${n}`, stop: '停止', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     confirmDelete: (n: string) => `删除「${n}」及其运行记录？`, deleted: (n: string) => `已删除 ${n}`, started: (n: string) => `${n} 已在这台电脑上开始运行`,
     saved: '任务已保存', stale: '你编辑期间别人改过这个任务。请重新打开再改一次。',
-    status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断' },
+    status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断', missed: '错过', busy: '跳过' },
     progress: (done: number, all: number) => `已完成 ${done} / ${all}`, elsewhere: (where: string) => `在 ${where} 上`,
-    counts: (c: { ok: number; failed: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} 个成功`, c.failed && `${c.failed} 个失败`, c.skipped && `${c.skipped} 个跳过`, c.canceled && `${c.canceled} 个没跑`].filter(Boolean).join(' · ') || '一个也没跑',
+    counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} 个成功`, c.signed_out && `${c.signed_out} 个掉线`, c.failed && `${c.failed} 个失败`, c.skipped && `${c.skipped} 个跳过`, c.canceled && `${c.canceled} 个没跑`].filter(Boolean).join(' · ') || '一个也没跑',
     back: '← 任务', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
-    runs: '运行记录', noRuns: '还没有运行记录。', triggers: { manual: '手动', rerun: '重跑' }, result: '运行结果',
+    runs: '运行记录', noRuns: '还没有运行记录。', triggers: { manual: '手动', rerun: '重跑', schedule: '定时' }, result: '运行结果',
+    missedNote: (at: string, device: string) => `${at} 这次没有运行：${device || '它所属的电脑'}上 Folio 没开着或没登录，或者电脑在睡眠。`,
+    busyNote: (at: string) => `${at} 这次没有运行：上一轮还没跑完。`, runNow: '补跑',
     startedBy: (who: string, device: string | null, when: string) => `${who}${device ? `，在 ${device} 上` : ''}，${when}`,
     rerun: (n: number) => `重跑没成功的 ${n} 个`, export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`,
     csv: { number: '编号', profile: '环境', status: '结果', attempts: '尝试次数', problem: '问题' },
-    item: { pending: '等待中', running: '运行中', ok: '成功', failed: '失败', skipped: '跳过', canceled: '没跑' },
+    item: { pending: '等待中', running: '运行中', ok: '成功', failed: '失败', signed_out: '已掉线', skipped: '跳过', canceled: '没跑' },
     noLog: '没有日志。', attempt: (n: number) => `第 ${n} 次尝试`, shotsWhere: (device: string) => (device ? `截图存在 ${device} 上。` : '截图存在运行它的电脑上。'),
     skip: { locked: '正在另一台电脑上使用。', not_found: '这个环境已经不存在了。', in_trash: '这个环境在回收站里。', forbidden: '这个环境已经不归你了。' } as Record<string, string>,
     form: {
@@ -641,6 +666,9 @@ export const zh: Dict = {
       concurrency: '同时运行', retries: '失败时', retriesN: (n: number) => (n === 0 ? '不重试' : `最多重试 ${n} 次`),
       timeout: '每个环境最长', minutes: (n: number) => `${n} 分钟`,
       memory: '每个打开的环境大约占 300 到 500 MB 内存，同时运行几个请按电脑配置来设。',
+      when: '何时运行', kinds: { none: '手动', once: '一次', daily: '每天' }, at: '日期和时间', time: '时间', days: '星期',
+      runsHere: '在这台电脑上运行，按这台电脑的时间。', runsOn: (device: string, email: string) => `在 ${device}（${email}）上运行，按那台电脑的时间。`,
+      moveHere: '改到这台电脑上运行', scheduleHelp: '那台电脑上 Folio 要开着并已登录；错过的时间会记下来，可以从记录里补跑。',
       vars: '按环境设置的变量', varsHelp: '可不填。上传一个表格：第一列是环境（名称或编号），其余每列是一个变量，在流程里写成 {{列名}}。加密保存，只有能编辑这个任务的人看得到。',
       varsStored: (n: number, names: string) => `已为 ${n} 个环境设置：${names}`, varsCleared: '保存后会删除这些变量。',
       varsReplace: '重新导入…', varsClear: '删除', varsKeep: '保留现有的',
@@ -685,7 +713,9 @@ export const zh: Dict = {
     flow_in_use: '有任务在用这个流程，先删除这些任务或让它们改用别的流程。',
     task_running: '这个任务正在运行。',
     no_profiles: '这个任务的环境都不能运行（已删除、在回收站里，或者不归你）。',
-    run_finished: '这次运行已经结束了。'
+    run_finished: '这次运行已经结束了。',
+    no_device: '请先在这个工作台里退出并重新登录一次，再在这台电脑上设定时任务。',
+    already_run: '这个时间已经运行过了。'
   }
 };
 

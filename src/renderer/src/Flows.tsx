@@ -9,7 +9,7 @@ import { useToast } from './ui';
 
 type StepType = Step['type'];
 type Test = Extract<Step, { type: 'if' }>['test'];
-export const STEP_TYPES: StepType[] = ['open', 'click', 'type', 'press', 'wait', 'scroll', 'extract', 'set', 'if', 'loop', 'screenshot', 'script'];
+export const STEP_TYPES: StepType[] = ['open', 'click', 'type', 'press', 'wait', 'scroll', 'extract', 'set', 'if', 'loop', 'screenshot', 'script', 'signedIn'];
 const VAR = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
 
 const fresh = (type: StepType): Step => {
@@ -26,6 +26,7 @@ const fresh = (type: StepType): Step => {
     case 'loop': return { type, mode: 'times', times: 3, selector: null, steps: [] };
     case 'screenshot': return { type, selector: null };
     case 'script': return { type, code: 'return document.title;', variable: null };
+    case 'signedIn': return { type, url: '', mode: 'present', selector: '', seconds: 10 };
   }
 };
 
@@ -34,6 +35,7 @@ function issueOf(s: Step): Issue | null {
   const blank = (v: string | null) => !v?.trim();
   switch (s.type){
     case 'open': return blank(s.url) ? 'url' : null;
+    case 'signedIn': return blank(s.url) ? 'url' : blank(s.selector) ? 'selector' : null;
     case 'click': case 'type': return blank(s.selector) ? 'selector' : null;
     case 'press': return blank(s.key) ? 'key' : null;
     case 'wait': return s.until !== 'time' && blank(s.selector) ? 'selector' : null;
@@ -54,7 +56,7 @@ export const countSteps = (steps: Step[]): number => steps.reduce((n, s) => n + 
 export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId: string; data: WorkspaceData }){
   const F = d.flows;
   const toast = useToast();
-  const [open, setOpen] = useState<{ id: string | null } | null>(null);
+  const [open, setOpen] = useState<{ id: string | null; template?: boolean } | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const email = new Map(data.members.map(m => [m.userId, m.email]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
@@ -77,7 +79,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   if (open){
     const flow = open.id ? data.flows.find(f => f.id === open.id) ?? null : null;
     if (open.id && !flow) return <div className="page"><main className="main"><p className="boot">{d.loading}</p></main></div>;
-    return <FlowEditor key={open.id ?? 'new'} d={d} wsId={wsId} data={data} flow={flow} onClose={() => setOpen(null)} onCreated={id => setOpen({ id })} onDuplicate={duplicate} />;
+    return <FlowEditor key={open.id ?? 'new'} d={d} wsId={wsId} data={data} flow={flow} template={!!open.template} onClose={() => setOpen(null)} onCreated={id => setOpen({ id })} onDuplicate={duplicate} />;
   }
 
   return (
@@ -86,6 +88,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
         <header className="bar">
           <div className="ttl"><h1>{F.title}</h1><p className="sub">{F.sub(data.flows.length)}</p></div>
           <span className="sp" />
+          <button className="btn btn-ghost" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
           <button className="btn btn-stamp" type="button" onClick={() => setOpen({ id: null })}>{F.new}</button>
         </header>
         <div className="tw top-gap">
@@ -122,14 +125,15 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   );
 }
 
-function FlowEditor({ d, wsId, data, flow, onClose, onCreated, onDuplicate }: {
-  d: Dict; wsId: string; data: WorkspaceData; flow: Flow | null; onClose(): void; onCreated(id: string): void; onDuplicate(f: Flow): void;
+// `template`: a new flow that starts as a sign-in check, to fill in and save.
+function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDuplicate }: {
+  d: Dict; wsId: string; data: WorkspaceData; flow: Flow | null; template: boolean; onClose(): void; onCreated(id: string): void; onDuplicate(f: Flow): void;
 }){
   const F = d.flows;
   const toast = useToast();
   const readOnly = !!flow && !flow.canEdit;
   const [base, setBase] = useState(flow);
-  const [edit, setEdit] = useState({ name: flow?.name ?? F.untitled, steps: flow?.steps ?? [] });
+  const [edit, setEdit] = useState({ name: flow?.name ?? (template ? F.templateName : F.untitled), steps: flow?.steps ?? (template ? [fresh('signedIn')] : []) });
   const [stale, setStale] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -340,6 +344,13 @@ function StepFields({ d, s, onChange }: { d: Dict; s: Step; onChange(s: Step): v
         </>}
       </>;
     }
+    case 'signedIn': return <>
+      <Field label={F.url} wide><input className="mono-in" value={s.url} placeholder="https://" spellCheck={false} onChange={e => onChange({ ...s, url: e.target.value })} /></Field>
+      <Seg label={F.signedBy} value={s.mode} options={[['present', F.signedPresent], ['absent', F.signedAbsent]]} onChange={mode => onChange({ ...s, mode })} />
+      {sel(s.selector, v => onChange({ ...s, selector: v }), false)}
+      <Field label={F.limit}><input type="number" min={1} max={120} value={s.seconds} onChange={e => onChange({ ...s, seconds: num(e.target.value) ?? 10 })} /></Field>
+      <p className="hint wide">{F.signedHint}</p>
+    </>;
     case 'loop': return <>
       <Seg label={F.repeat} value={s.mode} options={[['times', F.repeatTimes], ['each', F.repeatEach]]}
         onChange={mode => onChange({ ...s, mode, times: mode === 'times' ? s.times ?? 3 : null, selector: mode === 'each' ? s.selector ?? '' : null })} />
@@ -409,7 +420,7 @@ function Trial({ d, profiles, steps, disabled }: { d: Dict; profiles: Profile[];
       )}
       {result && (
         <div className="trial-result" role="status">
-          <p className={result.ok ? 'ok' : 'err'}>{result.ok ? F.ok : result.launchError ? F.notOpened(d.launch[result.launchError] ?? d.launch.launch_failed) : F.failed(flowError(d, result.error!))}</p>
+          <p className={result.ok ? 'ok' : 'err'}>{result.ok ? F.ok : result.launchError ? F.notOpened(d.launch[result.launchError] ?? d.launch.launch_failed) : result.error!.code === 'signed_out' ? F.signedOut : F.failed(flowError(d, result.error!))}</p>
           {data.length > 0 && <dl className="fpgrid">{data.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
           {result.screenshots.map(s => <button key={s} type="button" className="linkish hint" onClick={() => void folio.showFile(s)}>{F.shot(s.split(/[\\/]/).pop()!)}</button>)}
         </div>

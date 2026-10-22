@@ -45,6 +45,11 @@ const bridge: FolioBridge = {
   stopRun: runId => ipcRenderer.invoke('folio:stopRun', runId),
   activeRuns: () => ipcRenderer.invoke('folio:activeRuns'),
   onRuns: cb => listen('runs:active', cb),
+  onSignedOut: cb => listen('runs:signed-out', cb),
+  startup: () => ipcRenderer.invoke('folio:startup'),
+  setStartup: on => ipcRenderer.invoke('folio:setStartup', on),
+  setLabels: labels => ipcRenderer.invoke('folio:setLabels', labels),
+  showWindow: () => ipcRenderer.invoke('folio:showWindow'),
   showFile: path => ipcRenderer.invoke('folio:showFile', path),
 
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),

@@ -3,12 +3,12 @@
 // A task run goes through its profiles a few at a time: each one opens the normal way (lock, sign-ins, proxy),
 // runs the flow in a new tab (again after a pause when it fails, as many times as the task allows), closes
 // (saving its sign-ins) unless it was already open, and its result goes to the server for the team to see.
-import { app } from 'electron';
+import { app, powerSaveBlocker } from 'electron';
 import { basename, isAbsolute, join, relative } from 'node:path';
 import { api } from './api';
 import { runFlow } from './flow';
 import { isRunning, newPage, open, stop } from './launcher';
-import type { ApiResult, FlowError, FlowEvent, FlowLog, FlowResult, Step } from '../shared/bridge';
+import type { ApiResult, FlowError, FlowEvent, FlowLog, FlowResult, SignedOut, Step } from '../shared/bridge';
 
 export const screenshotsDir = () => join(app.getPath('userData'), 'screenshots');
 // Screenshots are named relative to the screenshots folder in run records.
@@ -34,7 +34,7 @@ export async function tryFlow(profileId: string, steps: Step[], vars: Record<str
 }
 
 interface Started {
-  run: { id: string }; task: { concurrency: number; retries: number; timeoutMin: number };
+  run: { id: string; taskId: string }; task: { name: string; concurrency: number; retries: number; timeoutMin: number };
   steps: Step[]; items: { profileId: string; name: string; number: number; vars: Record<string, string> }[];
 }
 type Item = Started['items'][number];
@@ -47,11 +47,20 @@ const pad = (n: number) => String(n).padStart(4, '0');
 const active = new Map<string, { taskId: string; abort: AbortController; done: Promise<void> }>();
 let notify: (runs: { runId: string; taskId: string }[]) => void = () => {};
 export const onRuns = (fn: typeof notify) => { notify = fn; };
+// Profiles a run found signed out, for the desktop notification.
+let signedOut: (e: SignedOut) => void = () => {};
+export const onSignedOut = (fn: typeof signedOut) => { signedOut = fn; };
 export const activeRuns = () => [...active].map(([runId, a]) => ({ runId, taskId: a.taskId }));
-const changed = () => notify(activeRuns());
+// The computer stays awake while runs are under way.
+let blocker: number | null = null;
+const changed = () => {
+  if (active.size && blocker === null) blocker = powerSaveBlocker.start('prevent-app-suspension');
+  if (!active.size && blocker !== null){ powerSaveBlocker.stop(blocker); blocker = null; }
+  notify(activeRuns());
+};
 
-export async function runTask(taskId: string, trigger: 'manual' | 'rerun', profileIds?: string[]): Promise<ApiResult<{ runId: string }>> {
-  const r = await api<Started>('POST', `/tasks/${taskId}/runs`, { trigger, ...(profileIds ? { profileIds } : {}) });
+export async function runTask(taskId: string, trigger: 'manual' | 'rerun' | 'schedule', profileIds?: string[], scheduledFor?: string): Promise<ApiResult<{ runId: string }>> {
+  const r = await api<Started>('POST', `/tasks/${taskId}/runs`, { trigger, ...(profileIds ? { profileIds } : {}), ...(scheduledFor ? { scheduledFor } : {}) });
   if (!r.ok) return r;
   const abort = new AbortController();
   const done = execute(r.data, abort.signal).finally(() => { active.delete(r.data.run.id); changed(); });
@@ -71,11 +80,14 @@ export async function stopRuns(){
 // However it ends, the run is reported finished (profiles not reached show as not run).
 async function execute({ run, task, steps, items }: Started, signal: AbortSignal){
   const beat = setInterval(() => { void api('POST', `/runs/${run.id}/heartbeat`); }, HEARTBEAT_MS);
-  const queue = [...items];
+  const queue = [...items], out: string[] = [];
   try {
     await Promise.all(Array.from({ length: Math.min(task.concurrency, queue.length) }, async () => {
-      for (let item = queue.shift(); item && !signal.aborted; item = queue.shift()) await runItem(run.id, task, steps, item, signal);
+      for (let item = queue.shift(); item && !signal.aborted; item = queue.shift()){
+        if (await runItem(run.id, task, steps, item, signal) === 'signed_out') out.push(item.name);
+      }
     }));
+    if (out.length) signedOut({ taskId: run.taskId, runId: run.id, task: task.name, profiles: out });
   } catch (e){
     console.error('task run failed', e);
   } finally {
@@ -118,15 +130,17 @@ async function runItem(runId: string, task: Started['task'], steps: Step[], item
     await tab.page.close().catch(() => {});
     screenshots.push(...result.screenshots.map(f => `${runId}/${basename(f)}`));
     error = result.ok ? null : tooLong ? { code: 'too_long', message: String(task.timeoutMin) } : result.error!;
-    if (result.ok) break;
+    // Signed out is an answer, not a failure: trying again would find the same.
+    if (result.ok || error?.code === 'signed_out') break;
   }
   // Closing saves the sign-ins and releases the lock; a profile that was open before stays open.
   if (!wasOpen && isRunning(id)) await stop(id);
-  const status = skipped ? 'skipped' : result?.ok ? 'ok' : signal.aborted ? 'canceled' : 'failed';
+  const status = skipped ? 'skipped' : result?.ok ? 'ok' : error?.code === 'signed_out' ? 'signed_out' : signal.aborted ? 'canceled' : 'failed';
   await report({
-    status, attempts, error: skipped ? { code: skipped, message: '' } : status === 'failed' ? error : null,
+    status, attempts, error: skipped ? { code: skipped, message: '' } : status === 'failed' || status === 'signed_out' ? error : null,
     log: log.slice(-MAX_LOG), data: Object.fromEntries(Object.entries(result?.data ?? {}).map(([k, v]) => [k, v.slice(0, 10_000)])), screenshots
   });
+  return status;
 }
 
 // Resolves false when the run is stopped during the pause.

@@ -11,7 +11,7 @@ import { ProfilesPage, type GroupFilter } from './Profiles';
 import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
 import { TeamPage } from './Team';
 import { FlowsPage } from './Flows';
-import { TasksPage } from './Tasks';
+import { TasksPage, type Focus } from './Tasks';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
@@ -68,6 +68,16 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
 
   // Invitations to this account from other workspaces, in the workspace menu.
   const [invites, setInvites] = useState<MyInvitation[]>([]);
+  const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(null);
+  useEffect(() => { void folio.startup().then(setStartup); }, [userOpen]);
+  // What the main process shows itself follows the workbench's language.
+  useEffect(() => { void folio.setLabels(d.tray); }, [d]);
+  // A run found profiles signed out: a desktop notification that opens the run.
+  useEffect(() => folio.onSignedOut(e => {
+    const n = new Notification(d.notify.signedOut(e.task, e.profiles).title, { body: d.notify.signedOut(e.task, e.profiles).body });
+    n.onclick = () => { void folio.showWindow(); setPage('tasks'); setFocus({ taskId: e.taskId, runId: e.runId }); };
+  }), [d]);
   const loadInvites = () => folio.api<{ invitations: MyInvitation[] }>('GET', '/me/invitations').then(r => setInvites(r.invitations), () => {});
   useEffect(() => { void loadInvites(); }, [wsOpen]);
   async function answer(i: MyInvitation, accept: boolean){
@@ -157,6 +167,10 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
                 </div>
               </div>
               <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'engines' }); }}>{d.user.engines}</button>
+              {startup?.supported && (
+                <button className="menu-item check" type="button" role="menuitemcheckbox" aria-checked={startup.enabled}
+                  onClick={() => void folio.setStartup(!startup.enabled).then(() => folio.startup()).then(setStartup)}>{d.user.startup}</button>
+              )}
               {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}>{d.user.exportAll}</button>}
               {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}>{d.user.importAll}</button>}
               <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}>{d.user.logout}</button>
@@ -173,7 +187,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
-      {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} />}
+      {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 

@@ -461,3 +461,13 @@ html[lang="zh"] .menu-t{font-family:var(--f-body);letter-spacing:.06em;font-size
 .tw tr.log-row:hover td{background:var(--paper)}
 .run-log li.attempt{display:block;padding:5px 10px;background:var(--paper-2);font-family:var(--f-data);font-size:10.5px;letter-spacing:.06em;color:var(--ink-2)}
 .shots{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px}
+.page-note{margin:12px var(--gx) 0;flex:none}
+.sched{display:grid}
+.sched-daily{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sched-daily input{width:auto !important}
+.days{display:flex;flex-wrap:wrap;gap:4px}
+.day{height:30px;min-width:44px;padding:0 8px;border:1px solid var(--line-2);border-radius:5px;background:var(--paper);font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.day[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.menu-item.check::before{content:'';display:inline-block;width:12px;margin-right:6px;font-weight:700}
+.menu-item.check[aria-checked="true"]::before{content:'✓';color:var(--stamp)}
+.menu-item.check{display:block}

@@ -111,6 +111,16 @@ for (const kernel of ['chromium', 'firefox'] as const){
       expect(broken.result.error!.message).toContain('boom');
     }, 60_000);
 
+    it('checks sign-in by an element that shows up, or one that does not', async () => {
+      const check = (mode: 'present' | 'absent', selector: string) => run([{ type: 'signedIn', url: '{{base}}/account', mode, selector, seconds: 1 }]);
+      expect((await check('present', '#go')).result).toMatchObject({ ok: true });
+      expect((await check('present', '#avatar')).result.error).toEqual({ code: 'signed_out', message: '' });
+      expect((await check('absent', '#avatar')).result).toMatchObject({ ok: true });
+      const out = await check('absent', 'text=Sign in');
+      expect(out.result.error).toMatchObject({ code: 'signed_out' });
+      expect(out.log).toMatchObject([{ path: '1', type: 'signedIn', target: `${base}/account`, error: { code: 'signed_out' } }]);
+    }, 60_000);
+
     it('stops between steps and during waits', async () => {
       const abort = new AbortController();
       setTimeout(() => abort.abort(), 300);

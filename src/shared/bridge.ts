@@ -24,12 +24,15 @@ export interface KernelState { kind: KernelKind; version: string; installed: boo
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs'; ids?: string[] }
-// A task run under way on this computer.
+// A task run under way on this computer, and the profiles a finished run found signed out.
 export interface ActiveRun { runId: string; taskId: string }
+export interface SignedOut { taskId: string; runId: string; task: string; profiles: string[] }
+// Words the main process shows itself (the tray menu, the note on closing to the tray), in the workbench's language.
+export interface Labels { open: string; quit: string; background: string }
 
 export type Step = components['schemas']['Step'];
-// `too_long`: a task's profile ran past the task's time limit.
-export interface FlowError { code: 'timeout' | 'navigation' | 'script' | 'variable' | 'no_item' | 'closed' | 'stopped' | 'failed' | 'too_long'; message: string }
+// `too_long`: a task's profile ran past the task's time limit; `signed_out`: a sign-in check found it signed out.
+export interface FlowError { code: 'timeout' | 'navigation' | 'script' | 'variable' | 'no_item' | 'closed' | 'stopped' | 'failed' | 'too_long' | 'signed_out'; message: string }
 // One line of a run's log: the step's place in the flow ("3.1" is the first step inside step 3), what it acted
 // on, how long it took, and what it found (an extracted value, the branch taken, the loop's count).
 export interface FlowLog { path: string; type: Step['type']; target: string; ms: number | null; value?: string; error?: FlowError }
@@ -74,6 +77,12 @@ export interface FolioBridge {
   stopRun(runId: string): Promise<void>;
   activeRuns(): Promise<ActiveRun[]>;
   onRuns(cb: (runs: ActiveRun[]) => void): () => void;
+  onSignedOut(cb: (e: SignedOut) => void): () => void;
+  // Starting Folio, minimized, when the computer starts (Windows and macOS only), so schedules run on time.
+  startup(): Promise<{ supported: boolean; enabled: boolean }>;
+  setStartup(on: boolean): Promise<void>;
+  setLabels(labels: Labels): Promise<void>;
+  showWindow(): Promise<void>;
   // Shows a screenshot a flow took (a full path, or one relative to the screenshots folder) in the file manager.
   showFile(path: string): Promise<void>;
 

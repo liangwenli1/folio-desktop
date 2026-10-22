@@ -1,6 +1,6 @@
 # folio-desktop
 
-The Folio workbench: an Electron app where people log in with the account they created on the website and manage their browser profiles. Schedules, the local API and window sync come in later phases (see `../PLAN.md`).
+The Folio workbench: an Electron app where people log in with the account they created on the website and manage their browser profiles. The local API and window sync come in later phases (see `../PLAN.md`).
 
 ## Stack
 
@@ -30,6 +30,7 @@ The renderer (`src/renderer/src`) has seven working pages; the other sidebar ent
 - **Team** (`Team.tsx`): people and roles, invitations (emailed, with a link to copy), removing someone (their profiles go to a chosen person), leaving, and departments on Company. Invitations to the account show in the workspace menu.
 - **Flows** (`Flows.tsx`): the team's flows and the step editor (nested steps for conditions and loops, fields checked before saving), with a trial run on one profile: it opens the profile the normal way if needed, runs in a new tab and shows each step's log line as it happens. Steps run in `src/main/flow.ts`, which uses only Playwright's page API, so both engines run them the same way; Camoufox is started with `main_world_eval`, so scripts that start with `mw:` see the page's own JavaScript. Screenshots go to `<userData>/screenshots/`.
 - **Scheduled tasks** (`Tasks.tsx`): tasks (a flow, the profiles to run it on, how many at a time, retries, a time limit per profile, and per-profile variables from a spreadsheet), runs started from here, each run's results profile by profile with the step log of every try, rerunning what did not finish, and CSV export. Runs execute in `src/main/runs.ts`: profiles open the normal way (lock, sign-ins, proxy) and close afterwards, saving their sign-ins, unless they were already open; profiles open on another computer are skipped. Results go to the server as each profile finishes. Logging out or quitting stops runs first.
+- Schedules (`src/main/schedule.ts`): every 30 seconds, and when the computer wakes, the app checks this computer's scheduled tasks. A time noticed within two minutes runs; older ones (Folio closed, asleep, logged out) are recorded as missed, at most seven, and can be run from their record. While this computer has scheduled tasks, closing the window keeps Folio in the tray (menu bar on macOS), and runs keep the computer awake. On Windows and macOS the account menu can start Folio with the computer, minimized. A sign-in check (`signedIn` step) that finds a profile signed out stops there without retrying and shows a desktop notification that opens the run. `FOLIO_TEST_CLOCK_OFFSET_MS` moves the scheduler's clock in tests.
 - **Activity log** (`Activity.tsx`): who did what, on which computer, grouped by day and filtered by person or kind; Company exports it as CSV. Each profile's details show its last five entries.
 - **Trash** (`Trash.tsx`): restore (within the plan) and delete forever.
 

@@ -1,7 +1,7 @@
-import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, safeStorage, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import type { KernelKind, Method, Os, Step } from '../shared/bridge';
+import type { KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
 import { forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
@@ -15,7 +15,8 @@ import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './t
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { checkById, checkWorkspace } from './proxy-check';
-import { activeRuns, onRuns, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
+import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
+import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -26,15 +27,51 @@ const HEALTH_EVERY = 10 * 60_000;
 const BASIC_STORE = process.platform === 'linux' && process.env.FOLIO_PASSWORD_STORE === 'basic';
 if (BASIC_STORE) app.commandLine.appendSwitch('password-store', 'basic');
 if (process.env.FOLIO_USER_DATA) app.setPath('userData', process.env.FOLIO_USER_DATA);
+// One Folio per computer (per data folder): starting it again brings the running one forward.
+if (!app.requestSingleInstanceLock()) app.exit(0);
+app.on('second-instance', () => showWindow());
 
 const send = (channel: string, payload: unknown) => BrowserWindow.getAllWindows().forEach(w => w.webContents.send(channel, payload));
+
+// Started with the computer: no window until the person opens one from the tray.
+const startedHidden = process.argv.includes('--hidden') || (process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin);
+let labels: Labels = { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background for scheduled tasks.' };
+let tray: Tray | null = null, toldBackground = false;
+
+function showWindow(){
+  const win = BrowserWindow.getAllWindows()[0];
+  if (!win) return createWindow();
+  win.show();
+  win.focus();
+}
+
+// While this computer has scheduled tasks (or Folio started with the computer), it lives in the tray or menu bar.
+function updateTray(){
+  const want = hasScheduled() || startedHidden;
+  if (!want){ tray?.destroy(); tray = null; return; }
+  if (!tray){
+    tray = new Tray(join(import.meta.dirname, `../../resources/${process.platform === 'darwin' ? 'trayTemplate' : 'tray'}.png`));
+    tray.on('click', showWindow);
+  }
+  tray.setToolTip('Folio');
+  tray.setContextMenu(Menu.buildFromTemplate([{ label: labels.open, click: showWindow }, { type: 'separator' }, { label: labels.quit, click: () => app.quit() }]));
+}
+onScheduled(updateTray);
 
 function createWindow(){
   const win = new BrowserWindow({
     width: 1360, height: 860, minWidth: 980, minHeight: 640, show: false, title: 'Folio', backgroundColor: '#F1F3EF',
     webPreferences: { preload: join(import.meta.dirname, '../preload/index.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   });
-  win.once('ready-to-show', () => win.show());
+  win.once('ready-to-show', () => { if (!startedHidden) win.show(); });
+  // With scheduled tasks here, closing the window keeps Folio running so they still run; it says so once.
+  win.on('close', e => {
+    if (quitting || !hasScheduled()) return;
+    e.preventDefault();
+    win.hide();
+    updateTray();
+    if (!toldBackground && Notification.isSupported()){ toldBackground = true; new Notification({ title: 'Folio', body: labels.background }).show(); }
+  });
   // The renderer never navigates or opens windows; links to the site go to the default browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith(SITE_URL)) void shell.openExternal(url);
@@ -46,8 +83,13 @@ function createWindow(){
   else void win.loadFile(join(import.meta.dirname, '../renderer/index.html'));
 }
 
-ipcMain.handle('folio:login', (_e, email: string, password: string) => { forget(); return login(String(email), String(password)); });
-ipcMain.handle('folio:logout', async () => { watching(null); await stopRuns(); await stopAll(); forget(); return logout(); });
+ipcMain.handle('folio:login', async (_e, email: string, password: string) => {
+  forget();
+  const r = await login(String(email), String(password));
+  if (r.ok) startScheduler();
+  return r;
+});
+ipcMain.handle('folio:logout', async () => { watching(null); stopScheduler(); await stopRuns(); await stopAll(); forget(); return logout(); });
 ipcMain.handle('folio:hasSession', () => !!getToken());
 ipcMain.handle('folio:api', (_e, method: Method, path: string, body?: unknown) => forRenderer(method, String(path), body));
 ipcMain.handle('folio:openSite', async (_e, path: string) => {
@@ -149,6 +191,7 @@ function watching(workspaceId: string | null){
   watch(workspaceId, c => {
     send('app:change', c);
     if (c.kind === 'profiles') verify(c.ids);
+    if (c.kind === 'tasks') void tick();
     // This account was taken out of the workspace: the server has closed the stream.
     if (c.kind === 'removed' && workspaceId){ watching(null); void discard(workspaceId); }
   });
@@ -177,10 +220,18 @@ ipcMain.handle('folio:tryFlow', (_e, profileId: string, steps: Step[], vars: Rec
 ipcMain.handle('folio:stopFlow', (_e, token: string) => { trials.get(String(token))?.abort(); });
 ipcMain.handle('folio:showFile', (_e, path: string) => { const full = screenshotPath(String(path)); if (full) shell.showItemInFolder(full); });
 onRuns(runs => send('runs:active', runs));
+onSignedOut(e => send('runs:signed-out', e));
 ipcMain.handle('folio:runTask', (_e, taskId: string, trigger: 'manual' | 'rerun', profileIds?: string[]) =>
   runTask(String(taskId), trigger === 'rerun' ? 'rerun' : 'manual', Array.isArray(profileIds) ? profileIds.map(String) : undefined));
 ipcMain.handle('folio:stopRun', (_e, runId: string) => { stopRun(String(runId)); });
 ipcMain.handle('folio:activeRuns', () => activeRuns());
+ipcMain.handle('folio:showWindow', () => showWindow());
+ipcMain.handle('folio:setLabels', (_e, l: Labels) => { labels = { open: String(l.open), quit: String(l.quit), background: String(l.background) }; updateTray(); });
+const startupSupported = process.platform === 'win32' || process.platform === 'darwin';
+ipcMain.handle('folio:startup', () => ({ supported: startupSupported, enabled: startupSupported && app.getLoginItemSettings().openAtLogin }));
+ipcMain.handle('folio:setStartup', (_e, on: boolean) => {
+  if (startupSupported) app.setLoginItemSettings({ openAtLogin: !!on, args: ['--hidden'] });
+});
 
 ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os) => {
   const kernelVersion = latest(kind);
@@ -207,7 +258,9 @@ app.whenReady().then(async () => {
   if (BASIC_STORE) safeStorage.setUsePlainTextEncryption(true);
   await loadToken();
   createWindow();
-  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  if (getToken()) startScheduler();
+  updateTray();
+  app.on('activate', showWindow);
 });
 
 // Stop task runs and close every running profile before quitting, so no engine is left behind.

@@ -105,6 +105,15 @@ async function step(r: Run, s: Step, path: string, item: Locator | null){
         if (s.variable) r.vars[s.variable] = r.data[s.variable] = value;
         return value;
       }
+      case 'signedIn': {
+        await page.goto(fill(r, s.url));
+        const seen = await find(r, s.selector, item).waitFor({ state: 'visible', timeout: s.seconds * 1000 }).then(() => true, e => {
+          if (e instanceof errors.TimeoutError) return false;
+          throw e;
+        });
+        if (seen !== (s.mode === 'present')) throw new StepError('signed_out', '');
+        return 'yes';
+      }
       case 'if': {
         const yes = await test(r, s.test, item);
         line(target, yes ? 'then' : 'else');
@@ -163,7 +172,7 @@ export function fill(r: { vars: Record<string, string> }, text: string){
 function describe(r: Run, s: Step): string {
   const safe = (text: string) => { try { return fill(r, text); } catch { return text; } };
   switch (s.type){
-    case 'open': return safe(s.url);
+    case 'open': case 'signedIn': return safe(s.url);
     case 'click': case 'type': case 'extract': return safe(s.selector);
     case 'press': return s.key;
     case 'wait': return s.until === 'time' ? `${s.seconds}${s.maxSeconds && s.maxSeconds > s.seconds ? `–${s.maxSeconds}` : ''} s` : safe(s.selector ?? '');

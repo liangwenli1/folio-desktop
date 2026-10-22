@@ -88,6 +88,8 @@ export interface paths {
                          */
                         client?: "web" | "desktop";
                         deviceName?: string;
+                        /** Format: uuid */
+                        deviceId?: string;
                     };
                 };
             };
@@ -4156,6 +4158,12 @@ export interface paths {
                                 retries: number;
                                 timeoutMin: number;
                                 hasVariables: boolean;
+                                schedule: components["schemas"]["Schedule"] | null;
+                                runner: {
+                                    email: string | null;
+                                    deviceName: string | null;
+                                    self: boolean;
+                                } | null;
                                 createdBy: string | null;
                                 canEdit: boolean;
                                 version: number;
@@ -4165,12 +4173,13 @@ export interface paths {
                                     id: string;
                                     taskId: string;
                                     /** @enum {string} */
-                                    trigger: "manual" | "rerun";
+                                    trigger: "manual" | "rerun" | "schedule";
                                     /** @enum {string} */
-                                    status: "running" | "done" | "stopped" | "interrupted";
+                                    status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                                     flowVersion: number;
                                     startedBy: string | null;
                                     deviceName: string | null;
+                                    scheduledFor: string | null;
                                     startedAt: string;
                                     finishedAt: string | null;
                                     counts: {
@@ -4178,6 +4187,7 @@ export interface paths {
                                         running: number;
                                         ok: number;
                                         failed: number;
+                                        signed_out: number;
                                         skipped: number;
                                         canceled: number;
                                     };
@@ -4213,6 +4223,7 @@ export interface paths {
                         concurrency: number;
                         retries: number;
                         timeoutMin: number;
+                        schedule?: components["schemas"]["ScheduleInput"] | null;
                     };
                 };
             };
@@ -4233,6 +4244,12 @@ export interface paths {
                             retries: number;
                             timeoutMin: number;
                             hasVariables: boolean;
+                            schedule: components["schemas"]["Schedule"] | null;
+                            runner: {
+                                email: string | null;
+                                deviceName: string | null;
+                                self: boolean;
+                            } | null;
                             createdBy: string | null;
                             canEdit: boolean;
                             version: number;
@@ -4242,12 +4259,13 @@ export interface paths {
                                 id: string;
                                 taskId: string;
                                 /** @enum {string} */
-                                trigger: "manual" | "rerun";
+                                trigger: "manual" | "rerun" | "schedule";
                                 /** @enum {string} */
-                                status: "running" | "done" | "stopped" | "interrupted";
+                                status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                                 flowVersion: number;
                                 startedBy: string | null;
                                 deviceName: string | null;
+                                scheduledFor: string | null;
                                 startedAt: string;
                                 finishedAt: string | null;
                                 counts: {
@@ -4255,6 +4273,7 @@ export interface paths {
                                     running: number;
                                     ok: number;
                                     failed: number;
+                                    signed_out: number;
                                     skipped: number;
                                     canceled: number;
                                 };
@@ -4317,6 +4336,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         version: number;
+                        runHere?: boolean;
                         name?: string;
                         /** Format: uuid */
                         flowId?: string;
@@ -4329,6 +4349,7 @@ export interface paths {
                         concurrency?: number;
                         retries?: number;
                         timeoutMin?: number;
+                        schedule?: components["schemas"]["ScheduleInput"] | null;
                     };
                 };
             };
@@ -4349,6 +4370,12 @@ export interface paths {
                             retries: number;
                             timeoutMin: number;
                             hasVariables: boolean;
+                            schedule: components["schemas"]["Schedule"] | null;
+                            runner: {
+                                email: string | null;
+                                deviceName: string | null;
+                                self: boolean;
+                            } | null;
                             createdBy: string | null;
                             canEdit: boolean;
                             version: number;
@@ -4358,12 +4385,13 @@ export interface paths {
                                 id: string;
                                 taskId: string;
                                 /** @enum {string} */
-                                trigger: "manual" | "rerun";
+                                trigger: "manual" | "rerun" | "schedule";
                                 /** @enum {string} */
-                                status: "running" | "done" | "stopped" | "interrupted";
+                                status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                                 flowVersion: number;
                                 startedBy: string | null;
                                 deviceName: string | null;
+                                scheduledFor: string | null;
                                 startedAt: string;
                                 finishedAt: string | null;
                                 counts: {
@@ -4371,6 +4399,7 @@ export interface paths {
                                     running: number;
                                     ok: number;
                                     failed: number;
+                                    signed_out: number;
                                     skipped: number;
                                     canceled: number;
                                 };
@@ -4447,8 +4476,10 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        trigger: "manual" | "rerun";
+                        trigger: "manual" | "rerun" | "schedule";
                         profileIds?: string[];
+                        /** Format: date-time */
+                        scheduledFor?: string;
                     };
                 };
             };
@@ -4464,12 +4495,13 @@ export interface paths {
                                 id: string;
                                 taskId: string;
                                 /** @enum {string} */
-                                trigger: "manual" | "rerun";
+                                trigger: "manual" | "rerun" | "schedule";
                                 /** @enum {string} */
-                                status: "running" | "done" | "stopped" | "interrupted";
+                                status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                                 flowVersion: number;
                                 startedBy: string | null;
                                 deviceName: string | null;
+                                scheduledFor: string | null;
                                 startedAt: string;
                                 finishedAt: string | null;
                                 counts: {
@@ -4477,9 +4509,16 @@ export interface paths {
                                     running: number;
                                     ok: number;
                                     failed: number;
+                                    signed_out: number;
                                     skipped: number;
                                     canceled: number;
                                 };
+                            };
+                            task: {
+                                name: string;
+                                concurrency: number;
+                                retries: number;
+                                timeoutMin: number;
                             };
                             steps: components["schemas"]["Step"][];
                             items: {
@@ -4524,7 +4563,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        status: "running" | "ok" | "failed" | "skipped" | "canceled";
+                        status: "running" | "ok" | "failed" | "signed_out" | "skipped" | "canceled";
                         attempts: number;
                         error?: {
                             code: string;
@@ -4641,12 +4680,13 @@ export interface paths {
                             id: string;
                             taskId: string;
                             /** @enum {string} */
-                            trigger: "manual" | "rerun";
+                            trigger: "manual" | "rerun" | "schedule";
                             /** @enum {string} */
-                            status: "running" | "done" | "stopped" | "interrupted";
+                            status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                             flowVersion: number;
                             startedBy: string | null;
                             deviceName: string | null;
+                            scheduledFor: string | null;
                             startedAt: string;
                             finishedAt: string | null;
                             counts: {
@@ -4654,6 +4694,7 @@ export interface paths {
                                 running: number;
                                 ok: number;
                                 failed: number;
+                                signed_out: number;
                                 skipped: number;
                                 canceled: number;
                             };
@@ -4662,6 +4703,92 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tasks/{id}/missed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        slots: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            tasks: {
+                                id: string;
+                                workspaceId: string;
+                                name: string;
+                                schedule: components["schemas"]["Schedule"];
+                                since: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4701,12 +4828,13 @@ export interface paths {
                                 id: string;
                                 taskId: string;
                                 /** @enum {string} */
-                                trigger: "manual" | "rerun";
+                                trigger: "manual" | "rerun" | "schedule";
                                 /** @enum {string} */
-                                status: "running" | "done" | "stopped" | "interrupted";
+                                status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                                 flowVersion: number;
                                 startedBy: string | null;
                                 deviceName: string | null;
+                                scheduledFor: string | null;
                                 startedAt: string;
                                 finishedAt: string | null;
                                 counts: {
@@ -4714,6 +4842,7 @@ export interface paths {
                                     running: number;
                                     ok: number;
                                     failed: number;
+                                    signed_out: number;
                                     skipped: number;
                                     canceled: number;
                                 };
@@ -4760,12 +4889,13 @@ export interface paths {
                                 id: string;
                                 taskId: string;
                                 /** @enum {string} */
-                                trigger: "manual" | "rerun";
+                                trigger: "manual" | "rerun" | "schedule";
                                 /** @enum {string} */
-                                status: "running" | "done" | "stopped" | "interrupted";
+                                status: "running" | "done" | "stopped" | "interrupted" | "missed" | "busy";
                                 flowVersion: number;
                                 startedBy: string | null;
                                 deviceName: string | null;
+                                scheduledFor: string | null;
                                 startedAt: string;
                                 finishedAt: string | null;
                                 counts: {
@@ -4773,6 +4903,7 @@ export interface paths {
                                     running: number;
                                     ok: number;
                                     failed: number;
+                                    signed_out: number;
                                     skipped: number;
                                     canceled: number;
                                 };
@@ -4782,7 +4913,7 @@ export interface paths {
                                 profileName: string;
                                 profileNumber: number;
                                 /** @enum {string} */
-                                status: "pending" | "running" | "ok" | "failed" | "skipped" | "canceled";
+                                status: "pending" | "running" | "ok" | "failed" | "signed_out" | "skipped" | "canceled";
                                 attempts: number;
                                 startedAt: string | null;
                                 finishedAt: string | null;
@@ -4879,6 +5010,14 @@ export interface components {
             variable: string | null;
         } | {
             /** @enum {string} */
+            type: "signedIn";
+            url: string;
+            /** @enum {string} */
+            mode: "present" | "absent";
+            selector: string;
+            seconds: number;
+        } | {
+            /** @enum {string} */
             type: "if";
             test: {
                 /** @enum {string} */
@@ -4905,6 +5044,19 @@ export interface components {
             times: number | null;
             selector: string | null;
             steps: components["schemas"]["StepInput"][];
+        };
+        ScheduleInput: {
+            /** @enum {string} */
+            kind: "once";
+            /** Format: date-time */
+            at: string;
+            tz: string;
+        } | {
+            /** @enum {string} */
+            kind: "daily";
+            time: string;
+            days: number[];
+            tz: string;
         };
         Step: {
             /** @enum {string} */
@@ -4961,6 +5113,14 @@ export interface components {
             variable: string | null;
         } | {
             /** @enum {string} */
+            type: "signedIn";
+            url: string;
+            /** @enum {string} */
+            mode: "present" | "absent";
+            selector: string;
+            seconds: number;
+        } | {
+            /** @enum {string} */
             type: "if";
             test: {
                 /** @enum {string} */
@@ -4987,6 +5147,19 @@ export interface components {
             times: number | null;
             selector: string | null;
             steps: components["schemas"]["Step"][];
+        };
+        Schedule: {
+            /** @enum {string} */
+            kind: "once";
+            /** Format: date-time */
+            at: string;
+            tz: string;
+        } | {
+            /** @enum {string} */
+            kind: "daily";
+            time: string;
+            days: number[];
+            tz: string;
         };
     };
     responses: never;
