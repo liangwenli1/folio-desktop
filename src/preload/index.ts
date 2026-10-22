@@ -54,6 +54,8 @@ const bridge: FolioBridge = {
   createApiToken: (name, workspaceId) => ipcRenderer.invoke('folio:createApiToken', name, workspaceId),
   revokeApiToken: id => ipcRenderer.invoke('folio:revokeApiToken', id),
   showWindow: () => ipcRenderer.invoke('folio:showWindow'),
+  addExtension: (workspaceId, kernel, from) => unwrap(ipcRenderer.invoke('folio:addExtension', workspaceId, kernel, from)),
+  updateExtension: (id, kernel, from) => unwrap(ipcRenderer.invoke('folio:updateExtension', id, kernel, from)),
   showFile: path => ipcRenderer.invoke('folio:showFile', path),
 
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),

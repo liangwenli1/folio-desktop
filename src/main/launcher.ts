@@ -15,6 +15,7 @@ import { prepareFirefox } from './fingerprint';
 import { startForwarder, type Forwarder } from './forwarder';
 import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
+import { prepareExtensions, type Extension } from './extensions';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 import type { Cookie } from '../shared/cookies';
@@ -23,7 +24,7 @@ interface LaunchProfile {
   id: string; workspaceId: string; syncMode: 'cloud' | 'local'; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
   timezoneOverride: string | null; localeOverride: string | null;
 }
-interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null }
+interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null; extensions: Extension[] }
 
 class LaunchError extends Error { constructor(public code: string){ super(code); } }
 
@@ -56,7 +57,7 @@ const testOnly = () => [
   ...(process.env.FOLIO_PROXY_LOOPBACK ? ['--proxy-bypass-list=<-loopback>'] : [])
 ];
 
-async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean){
+async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean, extensions: string[]){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'chromium' }>;
   // Only our own switches: Playwright's defaults include --disable-extensions, --force-color-profile and others
   // that change behaviour a site can see (see docs/kernel-evaluation.md).
@@ -65,6 +66,7 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
     `--fingerprint=${fp.seed}`, `--fingerprint-platform=${p.os}`, '--fingerprint-brand=Chrome', `--fingerprint-hardware-concurrency=${fp.hardwareConcurrency}`,
     `--lang=${locale}`, `--accept-lang=${locale},${locale.split('-')[0]}`, `--timezone=${tz}`,
     `--proxy-server=http://127.0.0.1:${port}`, '--disable-non-proxied-udp',
+    ...(extensions.length ? [`--load-extension=${extensions.join(',')}`] : []),
     ...testOnly(), 'about:blank'
   ];
   return chromium.launchPersistentContext(dir, {
@@ -73,7 +75,8 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
   });
 }
 
-async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, exitIp: string | null, bidiPort: number | null){
+async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, exitIp: string | null, bidiPort: number | null,
+  extensions: { dirs: string[]; uuids: Record<string, string> }){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'firefox' }>;
   // Camoufox otherwise shows the host's time zone and the real public IP over WebRTC (P0 evaluation).
   const config: Record<string, unknown> = {
@@ -85,9 +88,12 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
   return Camoufox({
     executable_path: exe, persistent_context: true, user_data_dir: dir, headless: false, os: p.os, locale, config,
     // Lets flow scripts that start with mw: see the page's own JavaScript; it does nothing until a script asks.
-    i_know_what_im_doing: true, exclude_addons: ['UBO'], main_world_eval: true,
+    i_know_what_im_doing: true, exclude_addons: ['UBO'], main_world_eval: true, addons: extensions.dirs,
     proxy: { server: `http://127.0.0.1:${port}`, ...(process.env.FOLIO_PROXY_LOOPBACK ? {} : { bypass: '127.0.0.1,localhost' }) },
-    firefox_user_prefs: process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {},
+    firefox_user_prefs: {
+      ...(process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {}),
+      ...(extensions.dirs.length ? { 'extensions.webextensions.uuids': JSON.stringify(extensions.uuids) } : {})
+    },
     ...(bidiPort ? { args: [`--remote-debugging-port=${bidiPort}`] } : {})
   }) as Promise<BrowserContext>;
 }
@@ -160,7 +166,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
     locked = true;
     const r = await api<LaunchData>('GET', `/profiles/${id}/launch`);
     if (!r.ok) throw new LaunchError(r.error.code);
-    const { profile, proxy, backup } = r.data;
+    const { profile, proxy, backup, extensions } = r.data;
     const exe = await resolveKernel(profile.kernel, profile.kernelVersion);
     if (!exe) throw new LaunchError('kernel_missing');
 
@@ -201,12 +207,13 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
       }
     }
 
+    const ext = await prepareExtensions(profile, extensions, dir);
     fwd = await startForwarder(line);
     if (opts.api) await rm(join(dir, 'DevToolsActivePort'), { force: true });
     const bidiPort = opts.api && profile.kernel === 'firefox' ? await freePort() : null;
     const ctx = profile.kernel === 'chromium'
-      ? await launchChromium(exe, dir, profile, fwd.port, tz, locale, geo, !!opts.api)
-      : await launchFirefox(exe, dir, profile, fwd.port, tz, locale, geo, check?.ip ?? null, bidiPort);
+      ? await launchChromium(exe, dir, profile, fwd.port, tz, locale, geo, !!opts.api, ext.dirs)
+      : await launchFirefox(exe, dir, profile, fwd.port, tz, locale, geo, check?.ip ?? null, bidiPort, ext);
     const debug: Debugging | null = !opts.api ? null
       : bidiPort ? { protocol: 'webdriver-bidi', wsEndpoint: `ws://127.0.0.1:${bidiPort}/session` } : await cdpAddress(dir);
 
@@ -217,7 +224,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
     });
     ctx.pages().forEach(track);
     ctx.on('page', track);
-    const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo };
+    const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo, ...(ext.failed.length ? { extensionErrors: ext.failed } : {}) };
     const entry: Running = {
       ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug,
       timers: [setInterval(() => void renew(id), RENEW_MS), setInterval(() => void autosave(id), AUTOSAVE_MS)],

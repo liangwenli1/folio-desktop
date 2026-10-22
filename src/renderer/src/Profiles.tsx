@@ -265,6 +265,17 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                     <option value="none">{P.bulk.noDepartment}</option>
                   </select>
                 )}
+                {data.extensions.length > 0 && (
+                  <select className="bb" aria-label={P.bulk.extensions} value="" onChange={e => {
+                    const [how, id] = e.target.value.split(':');
+                    const x = data.extensions.find(v => v.id === id)!;
+                    void batch(how === 'add' ? 'add-extension' : 'remove-extension', { extensionId: id }, n => (how === 'add' ? P.done.extAdded(n, x.name, ids.length - n) : P.done.extRemoved(n, x.name)));
+                  }}>
+                    <option value="" disabled>{P.bulk.extensions}</option>
+                    <optgroup label={P.bulk.install}>{data.extensions.map(x => <option key={x.id} value={`add:${x.id}`}>{x.name} · {x.kernel === 'chromium' ? 'Chromium' : 'Firefox'}</option>)}</optgroup>
+                    <optgroup label={P.bulk.uninstall}>{data.extensions.map(x => <option key={x.id} value={`remove:${x.id}`}>{x.name} · {x.kernel === 'chromium' ? 'Chromium' : 'Firefox'}</option>)}</optgroup>
+                  </select>
+                )}
                 <button type="button" className="bb" onClick={() => setTagging(true)}>{P.bulk.tag}</button>
                 {manager && (
                   <select className="bb" aria-label={P.bulk.cookies} value="" onChange={e => void exportCookies(all.filter(p => sel.has(p.id)), e.target.value as 'json' | 'netscape')}>

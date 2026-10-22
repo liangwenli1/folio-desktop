@@ -23,7 +23,7 @@ export const en = {
     email: 'Email', password: 'Password', submit: 'Log in',
     noAccount: 'No account yet?', create: 'Create one on the website', forgot: 'Forgot your password?'
   },
-  nav: { profiles: 'Profiles', proxies: 'Proxies', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', soon: 'Soon', soonHint: 'Arrives in an upcoming update' },
+  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', soon: 'Soon', soonHint: 'Arrives in an upcoming update' },
   groups: {
     title: 'Groups', all: 'All profiles', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
     rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`
@@ -75,6 +75,7 @@ export const en = {
     bulk: {
       open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', department: 'Department…', noDepartment: 'No department',
       tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
+      extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall',
       confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
@@ -82,7 +83,9 @@ export const en = {
       tagged: (n: number, t: string) => `Tagged ${profilesN(n)} “${t}”`, untagged: (n: number, t: string) => `Removed “${t}” from ${profilesN(n)}`,
       proxySet: (n: number) => `Proxy changed on ${profilesN(n)}`, assigned: (n: number, who: string) => `${profilesN(n)} assigned to ${who}`,
       departmentSet: (n: number) => `Department changed on ${profilesN(n)}`, created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
-      stale: 'Someone changed this profile in the meantime. Try again.'
+      stale: 'Someone changed this profile in the meantime. Try again.',
+      extAdded: (n: number, x: string, skipped: number) => `${x} installed in ${profilesN(n)}${skipped ? `; ${skipped} skipped (other engine, or already there)` : ''}`,
+      extRemoved: (n: number, x: string) => `${x} uninstalled from ${profilesN(n)}`
     }
   },
   launch: {
@@ -142,6 +145,7 @@ export const en = {
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy', custom: 'Set by hand',
     tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: 'Not a time zone this computer knows.', langErr: 'Use a language tag like de-DE.',
     notes: 'Notes', engineVersion: 'Engine version', owner: 'Assigned to', department: 'Department', noDepartment: 'No department',
+    extensions: 'Extensions', noExtensions: (engine: string) => `The library has no ${engine} extensions yet.`,
     sync: 'Sign-ins', syncCloud: 'Save to Folio and follow the profile', syncLocal: 'Keep on the computer that uses it',
     syncHelp: 'Kept on one computer, sign-ins never leave it, and the profile opens signed out anywhere else.',
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.'
@@ -203,7 +207,7 @@ export const en = {
   },
   activity: {
     title: 'Activity log', sub: (days: number) => `Kept for ${days} days on this plan`, person: 'Person', everyone: 'Everyone', kind: 'Showing',
-    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', automation: 'Automation' },
+    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
     export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
     today: 'Today', yesterday: 'Yesterday', on: (device: string) => `on ${device}`,
     actions: {
@@ -228,7 +232,9 @@ export const en = {
       'flow.delete': (_p, x) => `deleted the flow ${x.name}`,
       'task.create': (_p, x) => `created the task ${x.name}`, 'task.update': (_p, x) => (x.from ? `renamed the task ${x.from} to ${x.name}` : `changed the task ${x.name}`),
       'task.delete': (_p, x) => `deleted the task ${x.name}`, 'run.start': (_p, x) => `started ${x.name} on ${profilesN(x.profiles)}${x.trigger === 'rerun' ? ' (again)' : ''}`,
-      'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.signedOut ? `, ${x.signedOut} signed out` : ''}${x.skipped ? `, ${x.skipped} not run` : ''}`
+      'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.signedOut ? `, ${x.signedOut} signed out` : ''}${x.skipped ? `, ${x.skipped} not run` : ''}`,
+      'extension.add': (_p, x) => `added the extension ${x.name} ${x.version}`, 'extension.update': (_p, x) => `updated the extension ${x.name} from ${x.from} to ${x.version}`,
+      'extension.delete': (_p, x) => `deleted the extension ${x.name}`, 'profile.add-extension': (p, x) => `installed ${x.extension} in ${p}`, 'profile.remove-extension': (p, x) => `uninstalled ${x.extension} from ${p}`
     } satisfies Record<ActivityAction, Said>
   },
   transfer: {
@@ -344,6 +350,22 @@ export const en = {
       ['GET /api/v1/tasks', 'Your workspace’s tasks'], ['POST /api/v1/tasks/{id}/run', 'Runs a task on this computer'], ['GET /api/v1/runs/{id}', 'How a run is going, profile by profile']
     ] as [string, string][]
   },
+  extensions: {
+    title: 'Extensions', sub: (n: number) => (n === 1 ? '1 extension · Chromium and Firefox kept apart' : `${n} extensions · Chromium and Firefox kept apart`), add: '+ Add extension',
+    memberNote: 'Owners and admins keep the library. You can install its extensions in your own profiles, from the profile form or the bulk actions.',
+    empty: 'No extensions yet. Add one from a file or its store, then install it in profiles.',
+    cols: { name: 'Extension', engine: 'Engine', version: 'Version', profiles: 'Profiles', updated: 'Changed' },
+    uploaded: 'Uploaded file', update: 'New version', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
+    confirmDelete: (n: string, count: number) => (count ? `Delete “${n}”? It comes off ${profilesN(count)}.` : `Delete “${n}”?`),
+    deleted: (n: string) => `${n} deleted`, added: (n: string) => `${n} added to the library`, updated: (n: string) => `${n} updated; profiles get it the next time they open`,
+    addTitle: 'Add an extension', updateTitle: (n: string) => `New version of ${n}`, from: 'From', fromFile: 'A file', fromStore: (k: string): string => (k === 'chromium' ? 'Chrome Web Store' : 'addons.mozilla.org'),
+    chooseFile: 'Choose a file…', fileHintChromium: 'A .crx or .zip with manifest.json at the top.', fileHintFirefox: 'An .xpi (or .zip) with manifest.json at the top.',
+    storeChromium: 'Link or extension id', storeFirefox: 'Link to the add-on (or its short name)',
+    idNote: 'Folio gives the extension a key of its own so it has the same id on every computer and its data can follow the profile. Its id differs from the store’s, which a few extensions that pair with a desktop program or a site rely on.',
+    uuidNote: 'Each profile gets its own internal address for the add-on, so sites can’t link profiles through it.',
+    addDo: 'Add', updateDo: 'Upload', uploading: 'Uploading…', fetching: 'Downloading from the store…',
+    failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
     proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
@@ -382,6 +404,12 @@ export const en = {
     task_running: 'This task is already running.',
     no_profiles: 'None of this task’s profiles can run (they are gone, in the Trash, or not yours).',
     run_finished: 'This run has already finished.',
+    extension_exists: 'This add-on is already in the library. Upload the new version to it instead.',
+    extension_mismatch: 'That package is a different add-on.',
+    extension_unreadable: 'That isn’t a readable extension package (crx, zip or xpi with manifest.json at the top).',
+    extension_kernel: 'That extension is made for the other engine.',
+    store_ref: 'That doesn’t look like a store link or id.',
+    store_failed: 'The store didn’t hand over the extension. Check the link, or download it and upload the file.',
     no_device: 'Log out and back in to this app once before scheduling tasks on this computer.',
     already_run: 'This scheduled time has already run.'
   } as Record<string, string>
@@ -395,7 +423,7 @@ export const zh: Dict = {
     email: '邮箱', password: '密码', submit: '登录',
     noAccount: '还没有账号？', create: '去官网注册', forgot: '忘记密码？'
   },
-  nav: { profiles: '环境', proxies: '代理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', soon: '即将推出', soonHint: '会在后续版本中推出' },
+  nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', soon: '即将推出', soonHint: '会在后续版本中推出' },
   groups: {
     title: '分组', all: '全部环境', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
     rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组里的环境会保留，变为未分组。`
@@ -447,6 +475,7 @@ export const zh: Dict = {
     bulk: {
       open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', assign: '分配给…', department: '部门…', noDepartment: '无部门',
       tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除', cookies: '导出 Cookie…',
+      extensions: '扩展…', install: '安装', uninstall: '卸载',
       confirm: (n: number) => `把 ${n} 个环境移到回收站？`, confirmNote: '运行中的会先停止，之后可以撤销。', doTrash: '移到回收站'
     },
     done: {
@@ -454,7 +483,9 @@ export const zh: Dict = {
       tagged: (n: number, t: string) => `已给 ${n} 个环境加上「${t}」`, untagged: (n: number, t: string) => `已从 ${n} 个环境去掉「${t}」`,
       proxySet: (n: number) => `已更换 ${n} 个环境的代理`, assigned: (n: number, who: string) => `已把 ${n} 个环境分配给 ${who}`,
       departmentSet: (n: number) => `已更换 ${n} 个环境的部门`, created: (x: string) => `「${x}」已创建`, saved: '已保存', failed: (name: string, why: string) => `${name}：${why}`,
-      stale: '这个环境刚被别人改过，请重试。'
+      stale: '这个环境刚被别人改过，请重试。',
+      extAdded: (n: number, x: string, skipped: number) => `已给 ${n} 个环境装上 ${x}${skipped ? `，跳过 ${skipped} 个（内核不同或已经装了）` : ''}`,
+      extRemoved: (n: number, x: string) => `已从 ${n} 个环境卸掉 ${x}`
     }
   },
   launch: {
@@ -514,6 +545,7 @@ export const zh: Dict = {
     create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理', custom: '手动设置',
     tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: '这台电脑不认识这个时区。', langErr: '请用 de-DE 这样的语言代码。',
     notes: '备注', engineVersion: '内核版本', owner: '负责人', department: '部门', noDepartment: '无部门',
+    extensions: '扩展', noExtensions: (engine: string) => `扩展库里还没有 ${engine} 的扩展。`,
     sync: '登录状态', syncCloud: '保存到 Folio，跟着环境走', syncLocal: '只存在使用它的电脑上',
     syncHelp: '只存本机时，登录状态不会离开那台电脑；在别的电脑上打开会是未登录状态。',
     stale: '你编辑期间别人改过这个环境。再次保存会覆盖他的修改，取消则保留他的修改。'
@@ -575,7 +607,7 @@ export const zh: Dict = {
   },
   activity: {
     title: '操作日志', sub: (days: number) => `当前套餐保留 ${days} 天`, person: '成员', everyone: '所有人', kind: '显示',
-    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', automation: '自动化' },
+    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
     export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '还没有记录。', someone: '有人', recent: '最近活动',
     today: '今天', yesterday: '昨天', on: (device: string) => `在 ${device} 上`,
     actions: {
@@ -600,7 +632,9 @@ export const zh: Dict = {
       'flow.delete': (_p, x) => `删除了流程 ${x.name}`,
       'task.create': (_p, x) => `新建了任务 ${x.name}`, 'task.update': (_p, x) => (x.from ? `把任务 ${x.from} 改名为 ${x.name}` : `修改了任务 ${x.name}`),
       'task.delete': (_p, x) => `删除了任务 ${x.name}`, 'run.start': (_p, x) => `${x.trigger === 'rerun' ? '重跑' : '运行'}了任务 ${x.name}，共 ${x.profiles} 个环境`,
-      'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '跑完了'}：${x.ok} 个成功，${x.failed} 个失败${x.signedOut ? `，${x.signedOut} 个掉线` : ''}${x.skipped ? `，${x.skipped} 个没跑` : ''}`
+      'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '跑完了'}：${x.ok} 个成功，${x.failed} 个失败${x.signedOut ? `，${x.signedOut} 个掉线` : ''}${x.skipped ? `，${x.skipped} 个没跑` : ''}`,
+      'extension.add': (_p, x) => `添加了扩展 ${x.name} ${x.version}`, 'extension.update': (_p, x) => `把扩展 ${x.name} 从 ${x.from} 更新到 ${x.version}`,
+      'extension.delete': (_p, x) => `删除了扩展 ${x.name}`, 'profile.add-extension': (p, x) => `给 ${p} 装上了 ${x.extension}`, 'profile.remove-extension': (p, x) => `从 ${p} 卸掉了 ${x.extension}`
     }
   },
   transfer: {
@@ -716,6 +750,22 @@ export const zh: Dict = {
       ['GET /api/v1/tasks', '团队的任务'], ['POST /api/v1/tasks/{id}/run', '在这台电脑上运行一个任务'], ['GET /api/v1/runs/{id}', '运行进度，按环境列出']
     ] as [string, string][]
   },
+  extensions: {
+    title: '扩展', sub: (n: number) => `${n} 个扩展 · Chromium 和 Firefox 分开管理`, add: '+ 添加扩展',
+    memberNote: '扩展库由所有者和管理员维护。你可以在环境编辑或批量操作里，给自己的环境装上库里的扩展。',
+    empty: '还没有扩展。从文件或商店添加一个，再装到环境里。',
+    cols: { name: '扩展', engine: '内核', version: '版本', profiles: '环境', updated: '修改时间' },
+    uploaded: '上传的文件', update: '新版本', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
+    confirmDelete: (n: string, count: number) => (count ? `删除「${n}」？会从 ${count} 个环境上卸掉。` : `删除「${n}」？`),
+    deleted: (n: string) => `已删除 ${n}`, added: (n: string) => `已把 ${n} 加入扩展库`, updated: (n: string) => `${n} 已更新，环境下次打开时用新版本`,
+    addTitle: '添加扩展', updateTitle: (n: string) => `${n} 的新版本`, from: '来源', fromFile: '文件', fromStore: (k: string) => (k === 'chromium' ? 'Chrome 应用商店' : 'addons.mozilla.org'),
+    chooseFile: '选择文件…', fileHintChromium: '.crx 或 .zip，顶层要有 manifest.json。', fileHintFirefox: '.xpi（或 .zip），顶层要有 manifest.json。',
+    storeChromium: '商店链接或扩展 ID', storeFirefox: '附加组件的链接（或它的短名称）',
+    idNote: 'Folio 会给扩展配一把自己的密钥，让它在每台电脑上的 ID 都一样，扩展里的数据才能跟着环境走。因此它的 ID 和商店里的不同，少数要和电脑上的程序或网站配对的扩展依赖原来的 ID。',
+    uuidNote: '每个环境给这个附加组件分配不同的内部地址，网站没法借它把不同环境关联起来。',
+    addDo: '添加', updateDo: '上传', uploading: '正在上传…', fetching: '正在从商店下载…',
+    failedCheck: (profile: string, names: string[]) => `${profile} 已打开，但 ${names.join('、')} 没有通过完整性校验，没有安装。`
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',
     proxy: '添加代理', proxyD: '常见格式直接粘贴即可。', profile: '新建环境', profileD: '选好系统，指纹会自动生成。',
@@ -754,6 +804,12 @@ export const zh: Dict = {
     task_running: '这个任务正在运行。',
     no_profiles: '这个任务的环境都不能运行（已删除、在回收站里，或者不归你）。',
     run_finished: '这次运行已经结束了。',
+    extension_exists: '扩展库里已经有这个附加组件了，请上传新版本到它上面。',
+    extension_mismatch: '这个包是另一个附加组件。',
+    extension_unreadable: '读不出这个扩展包（要求 crx、zip 或 xpi，顶层有 manifest.json）。',
+    extension_kernel: '这个扩展是给另一个内核用的。',
+    store_ref: '这看起来不是商店的链接或 ID。',
+    store_failed: '没能从商店拿到这个扩展。请检查链接，或者下载后上传文件。',
     no_device: '请先在这个工作台里退出并重新登录一次，再在这台电脑上设定时任务。',
     already_run: '这个时间已经运行过了。'
   }

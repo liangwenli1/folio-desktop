@@ -42,6 +42,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [langMode, setLangMode] = useState(profile?.localeOverride ? 'custom' : 'follow');
   const [notes, setNotes] = useState(profile?.notes ?? '');
   const [syncMode, setSyncMode] = useState(profile?.syncMode ?? 'cloud');
+  const [extensionIds, setExtensionIds] = useState<string[]>(profile?.extensionIds ?? []);
   const [kernelVersion, setKernelVersion] = useState(profile?.kernelVersion ?? '');
   const [fp, setFp] = useState<FpState>(profile ? { state: 'ready', fingerprint: profile.fingerprint, kernelVersion: profile.kernelVersion } : { state: 'loading' });
   const [regenerated, setRegenerated] = useState(false);
@@ -108,6 +109,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
       const common = {
         name: name.trim(), groupId: group, proxyId: proxyId || null,
         tags: [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10),
+        extensionIds: extensionIds.filter(id => usable.some(x => x.id === id)),
         ...(manager ? { ...(ownerId || profile ? { ownerId: ownerId || null } : {}), ...(data.departments.length ? { departmentId: departmentId || null } : {}) } : {})
       };
       if (profile && base){
@@ -127,6 +129,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
     } finally { setBusy(false); }
   }
 
+  // Extensions from the library made for this engine.
+  const usable = data.extensions.filter(x => x.kernel === kernel);
   const facts = fp.state === 'ready' ? fingerprintFacts(fp.fingerprint) : null;
   const proxyOptions = useMemo(() => data.proxies.map(p => {
     const where = p.lastCheck?.ok ? p.lastCheck.geo?.city ?? p.lastCheck.geo?.countryName : null;
@@ -197,6 +201,19 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
             </p>
           )}
         </div>
+
+        {data.extensions.length > 0 && (
+          <fieldset className="field ext-pick">
+            <legend className="label">{f.extensions}</legend>
+            {!usable.length && <p className="hint">{f.noExtensions(kernel === 'chromium' ? 'Chromium' : 'Firefox')}</p>}
+            {usable.map(x => (
+              <label key={x.id} className="check-row">
+                <input type="checkbox" checked={extensionIds.includes(x.id)} onChange={e => setExtensionIds(ids => e.target.checked ? [...ids, x.id] : ids.filter(i => i !== x.id))} />
+                <span>{x.name}</span><span className="mono muted">{x.version}</span>
+              </label>
+            ))}
+          </fieldset>
+        )}
 
         {manager && (
           <div className="row2">

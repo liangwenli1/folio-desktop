@@ -19,11 +19,14 @@ export interface CheckResult { ok: boolean; ms: number | null; ip: string | null
 export interface ProfileStatus {
   id: string; state: 'starting' | 'restoring' | 'running' | 'saving' | 'stopped' | 'error';
   error?: string; startedAt?: number; usedBackup?: boolean; exitIp?: string | null; exitGeo?: Geo | null;
+  // Extensions that failed their check (signature or hash) and were not installed, by name.
+  extensionErrors?: string[];
 }
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
-export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs'; ids?: string[] }
+export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
+export type ExtensionSource = { file: Uint8Array } | { store: string };
 // Where a script connects to a profile opened through the local API.
 export interface Debugging { protocol: 'cdp' | 'webdriver-bidi'; wsEndpoint: string; debuggerAddress?: string }
 export interface ApiToken { id: string; name: string; workspaceId: string; createdAt: string; lastUsedAt: string | null }
@@ -93,6 +96,10 @@ export interface FolioBridge {
   createApiToken(name: string, workspaceId: string): Promise<{ token: string; api: LocalApi }>;
   revokeApiToken(id: string): Promise<LocalApi>;
   showWindow(): Promise<void>;
+  // Adds an extension to the workspace's library, or a new version to one already there: from a file the person
+  // picked, or downloaded from the Chrome Web Store (id or link) or addons.mozilla.org (link or slug).
+  addExtension(workspaceId: string, kernel: KernelKind, from: ExtensionSource): Promise<{ id: string; name: string }>;
+  updateExtension(id: string, kernel: KernelKind, from: ExtensionSource): Promise<{ id: string; name: string }>;
   // Shows a screenshot a flow took (a full path, or one relative to the screenshots folder) in the file manager.
   showFile(path: string): Promise<void>;
 

@@ -3,11 +3,11 @@
 // downloads come from the main process.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus } from '@shared/bridge';
-import { folio, isApiError, type Department, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
+import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
-type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks';
-export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'trash' | 'restore' | 'purge';
-export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode'>>;
+type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
+export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'trash' | 'restore' | 'purge';
+export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
 export interface WorkspaceData {
@@ -15,14 +15,14 @@ export interface WorkspaceData {
   profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
   // The team: everyone in it, its departments, and (for owners and admins) invitations still open.
   members: Member[]; departments: Department[]; invitations: Invitation[];
-  flows: Flow[]; tasks: Task[];
+  flows: Flow[]; tasks: Task[]; extensions: Extension[];
   // Bumped when runs change anywhere (pages showing runs fetch them again); the runs under way on this computer.
   runsSeq: number; active: ActiveRun[];
   status: Record<string, ProfileStatus>; kernels: KernelState[]; progress: Record<string, KernelProgress>;
   refresh(...kinds: Kind[]): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
-  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null }): Promise<number>;
+  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string }): Promise<number>;
   // The id of the group with this name, created when there is none.
   ensureGroup(name: string): Promise<string>;
   // Checks proxies two at a time; `checking` holds the ones under way.
@@ -31,7 +31,7 @@ export interface WorkspaceData {
   install(kind: KernelKind, version: string): Promise<boolean>;
 }
 
-export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void }): WorkspaceData {
+export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void }): WorkspaceData {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [trash, setTrash] = useState<Profile[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -41,6 +41,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [extensions, setExtensions] = useState<Extension[]>([]);
   const [runsSeq, setRunsSeq] = useState(0);
   const [active, setActive] = useState<ActiveRun[]>([]);
   const [status, setStatus] = useState<Record<string, ProfileStatus>>({});
@@ -61,6 +62,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
       if (k === 'proxies') void run<{ proxies: Proxy[] }>(`${base}/proxies`, r => setProxies(r.proxies));
       if (k === 'flows') void run<{ flows: Flow[] }>(`${base}/flows`, r => setFlows(r.flows));
       if (k === 'tasks') void run<{ tasks: Task[] }>(`${base}/tasks`, r => setTasks(r.tasks));
+      if (k === 'extensions') void run<{ extensions: Extension[] }>(`${base}/extensions`, r => setExtensions(r.extensions));
       if (k === 'members'){
         void run<{ members: Member[] }>(`${base}/members`, r => setMembers(r.members));
         void run<{ departments: Department[] }>(`${base}/departments`, r => setDepartments(r.departments));
@@ -70,13 +72,13 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   }, [wsId, role]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]); setTasks([]);
-    refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks');
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]); setTasks([]); setExtensions([]);
+    refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks', 'extensions');
     void folio.watch(wsId);
     return folio.onChange(c => {
       if (c.kind === 'workspace') handlers.current.workspace();
       else if (c.kind === 'removed') handlers.current.removed();
-      else if (c.kind === 'profiles') refresh('profiles', 'trash', 'groups');
+      else if (c.kind === 'profiles') refresh('profiles', 'trash', 'groups', 'extensions');
       else if (c.kind === 'runs'){ setRunsSeq(n => n + 1); refresh('tasks'); }
       else refresh(c.kind);
     });
@@ -94,6 +96,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
         return next;
       });
       if (s.state === 'error') handlers.current.launchError(s);
+      if (s.extensionErrors?.length) handlers.current.extensionErrors(s);
     });
     const offKernel = folio.onKernelProgress(p => {
       const key = kernelKey(p.kind, p.version);
@@ -155,5 +158,5 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     void folio.installKernel(kind, version);
   }), []);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, runsSeq, active, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
+  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
 }

@@ -13,6 +13,7 @@ import { TeamPage } from './Team';
 import { FlowsPage } from './Flows';
 import { TasksPage, type Focus } from './Tasks';
 import { ApiPage } from './Api';
+import { ExtensionsPage } from './Extensions';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
@@ -23,7 +24,7 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'team' | 'flows' | 'tasks' | 'api' | 'activity' | 'trash';
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'flows' | 'tasks' | 'api' | 'activity' | 'trash';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 const soon = (d: Dict, key: 'sync', icon: IconName) => (
   <button key={key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={icon} />{d.nav[key]}<span className="soon">{d.nav.soon}</span></button>
@@ -57,6 +58,11 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       const why = d.launch[st.error ?? ''] ?? d.launch.launch_failed;
       toast(p ? d.profiles.done.failed(p.name, why) : why, st.error === 'kernel_missing' && p
         ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined);
+    },
+    // The profile opened, but some of its extensions failed their check and were left out.
+    extensionErrors(st: ProfileStatus){
+      const p = data.profiles?.find(x => x.id === st.id);
+      toast(d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []));
     }
   });
   const used = data.profiles?.length ?? ws.usage.profiles;
@@ -126,6 +132,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
         <nav className="nav" aria-label="Main">
           <NavItem icon="profiles" label={d.nav.profiles} count={used} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
           {manager && <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={shown === 'proxies'} onClick={() => go('proxies')} />}
+          <NavItem icon="extensions" label={d.nav.extensions} count={data.extensions.length || undefined} active={shown === 'extensions'} onClick={() => go('extensions')} />
           <NavItem icon="team" label={d.nav.team} count={data.members.length || undefined} active={shown === 'team'} onClick={() => go('team')} />
           {soon(d, 'sync', 'sync')}
           <NavItem icon="flows" label={d.nav.flows} count={data.flows.length || undefined} active={shown === 'flows'} onClick={() => go('flows')} />
@@ -187,6 +194,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       )}
       {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
+      {shown === 'extensions' && <ExtensionsPage d={d} ws={ws} data={data} />}
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}

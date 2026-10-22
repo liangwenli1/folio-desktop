@@ -1702,6 +1702,7 @@ export interface paths {
                                 version: number;
                                 /** @enum {string} */
                                 syncMode: "cloud" | "local";
+                                extensionIds: string[];
                                 data: {
                                     version: number;
                                     size: number;
@@ -1769,6 +1770,7 @@ export interface paths {
                         notes?: string | null;
                         /** @enum {string} */
                         syncMode?: "cloud" | "local";
+                        extensionIds?: string[];
                     };
                 };
             };
@@ -1817,6 +1819,7 @@ export interface paths {
                             version: number;
                             /** @enum {string} */
                             syncMode: "cloud" | "local";
+                            extensionIds: string[];
                             data: {
                                 version: number;
                                 size: number;
@@ -1898,6 +1901,7 @@ export interface paths {
                             notes?: string | null;
                             /** @enum {string} */
                             syncMode?: "cloud" | "local";
+                            extensionIds?: string[];
                         }[];
                     };
                 };
@@ -1948,6 +1952,7 @@ export interface paths {
                                 version: number;
                                 /** @enum {string} */
                                 syncMode: "cloud" | "local";
+                                extensionIds: string[];
                                 data: {
                                     version: number;
                                     size: number;
@@ -2031,6 +2036,7 @@ export interface paths {
                         notes?: string | null;
                         /** @enum {string} */
                         syncMode?: "cloud" | "local";
+                        extensionIds?: string[];
                     };
                 };
             };
@@ -2079,6 +2085,7 @@ export interface paths {
                             version: number;
                             /** @enum {string} */
                             syncMode: "cloud" | "local";
+                            extensionIds: string[];
                             data: {
                                 version: number;
                                 size: number;
@@ -2124,7 +2131,7 @@ export interface paths {
                     "application/json": {
                         ids: string[];
                         /** @enum {string} */
-                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "trash" | "restore" | "purge";
+                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "add-extension" | "remove-extension" | "trash" | "restore" | "purge";
                         /** Format: uuid */
                         groupId?: string | null;
                         tag?: string;
@@ -2134,6 +2141,8 @@ export interface paths {
                         ownerId?: string | null;
                         /** Format: uuid */
                         departmentId?: string | null;
+                        /** Format: uuid */
+                        extensionId?: string;
                     };
                 };
             };
@@ -2220,6 +2229,7 @@ export interface paths {
                                 version: number;
                                 /** @enum {string} */
                                 syncMode: "cloud" | "local";
+                                extensionIds: string[];
                                 data: {
                                     version: number;
                                     size: number;
@@ -2254,6 +2264,24 @@ export interface paths {
                                 username: string | null;
                                 password: string | null;
                             } | null;
+                            extensions: {
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                version: string;
+                                extId: string;
+                                publicKey: string | null;
+                                sha256: string;
+                                size: number;
+                                signature: string;
+                                /** @enum {string} */
+                                source: "upload" | "store";
+                                storeId: string | null;
+                                createdAt: string;
+                                updatedAt: string;
+                                profiles: number;
+                            }[];
                         };
                     };
                 };
@@ -3704,7 +3732,7 @@ export interface paths {
                 query?: {
                     profileId?: string;
                     actorId?: string;
-                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "automation";
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "extensions" | "automation";
                     before?: number;
                     limit?: number;
                 };
@@ -3729,7 +3757,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -3765,7 +3793,7 @@ export interface paths {
                 query?: {
                     profileId?: string;
                     actorId?: string;
-                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "automation";
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "extensions" | "automation";
                 };
                 header?: never;
                 path: {
@@ -3855,6 +3883,7 @@ export interface paths {
                                 notes?: string | null;
                                 /** @enum {string} */
                                 syncMode?: "cloud" | "local";
+                                extensionIds?: string[];
                                 ref: string;
                                 group: string | null;
                                 proxyRef: string | null;
@@ -3934,6 +3963,7 @@ export interface paths {
                             notes?: string | null;
                             /** @enum {string} */
                             syncMode?: "cloud" | "local";
+                            extensionIds?: string[];
                             ref: string;
                             group: string | null;
                             proxyRef: string | null;
@@ -4945,6 +4975,254 @@ export interface paths {
                                 };
                                 screenshots: string[];
                             }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/extensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            extensions: {
+                                id: string;
+                                name: string;
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                version: string;
+                                extId: string;
+                                publicKey: string | null;
+                                sha256: string;
+                                size: number;
+                                signature: string;
+                                /** @enum {string} */
+                                source: "upload" | "store";
+                                storeId: string | null;
+                                createdAt: string;
+                                updatedAt: string;
+                                profiles: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query: {
+                    source?: "upload" | "store";
+                    storeId?: string;
+                    kernel: "chromium" | "firefox";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            version: string;
+                            extId: string;
+                            publicKey: string | null;
+                            sha256: string;
+                            size: number;
+                            signature: string;
+                            /** @enum {string} */
+                            source: "upload" | "store";
+                            storeId: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            profiles: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/{id}/package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: {
+                    source?: "upload" | "store";
+                    storeId?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            version: string;
+                            extId: string;
+                            publicKey: string | null;
+                            sha256: string;
+                            size: number;
+                            signature: string;
+                            /** @enum {string} */
+                            source: "upload" | "store";
+                            storeId: string | null;
+                            createdAt: string;
+                            updatedAt: string;
+                            profiles: number;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/extensions/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            publicKey: string;
                         };
                     };
                 };

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, safeStorage, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import type { KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
+import type { ExtensionSource, KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
 import { forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
@@ -18,6 +18,7 @@ import { checkById, checkWorkspace } from './proxy-check';
 import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
 import { createApiToken, loadLocalApi, localApi, revokeApiToken, setLocalApi } from './local-api';
+import { fromStore } from './extensions';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -228,6 +229,24 @@ ipcMain.handle('folio:stopRun', (_e, runId: string) => { stopRun(String(runId));
 ipcMain.handle('folio:activeRuns', () => activeRuns());
 ipcMain.handle('folio:showWindow', () => showWindow());
 ipcMain.handle('folio:setLabels', (_e, l: Labels) => { labels = { open: String(l.open), quit: String(l.quit), background: String(l.background) }; updateTray(); });
+// Extension packages go up as bytes, straight from the picked file or from the store.
+async function extensionBytes(kernel: KernelKind, from: ExtensionSource){
+  if ('file' in from) return { bytes: Buffer.from(from.file), query: 'source=upload' };
+  const got = await fromStore(kernel, String(from.store));
+  return { bytes: got.bytes, query: `source=store&storeId=${encodeURIComponent(got.storeId)}` };
+}
+ipcMain.handle('folio:addExtension', async (_e, workspaceId: string, kernel: KernelKind, from: ExtensionSource) => {
+  try {
+    const { bytes, query } = await extensionBytes(kernel, from);
+    return await api('POST', `/workspaces/${String(workspaceId)}/extensions?kernel=${kernel === 'firefox' ? 'firefox' : 'chromium'}&${query}`, bytes);
+  } catch (err){ return failure((err as Error).message); }
+});
+ipcMain.handle('folio:updateExtension', async (_e, id: string, kernel: KernelKind, from: ExtensionSource) => {
+  try {
+    const { bytes, query } = await extensionBytes(kernel, from);
+    return await api('PUT', `/extensions/${String(id)}/package?${query}`, bytes);
+  } catch (err){ return failure((err as Error).message); }
+});
 ipcMain.handle('folio:localApi', () => localApi());
 ipcMain.handle('folio:setLocalApi', (_e, change: { enabled?: boolean; port?: number }) => setLocalApi({ enabled: change?.enabled, port: change?.port === undefined ? undefined : Number(change.port) }));
 ipcMain.handle('folio:createApiToken', (_e, name: string, workspaceId: string) => createApiToken(String(name), String(workspaceId)));
