@@ -301,8 +301,8 @@ async function finish(id: string){
 export const saveNow = (id: string) => autosave(id);
 export const isRunning = (id: string) => running.has(id);
 export const debugOf = (id: string) => running.get(id)?.debug ?? null;
-// The running browser, for window sync.
-export const browserOf = (id: string) => { const r = running.get(id); return r ? { ctx: r.ctx, kernel: r.profile.kernel } : null; };
+// The running browser and its folder, for window sync and tiling.
+export const browserOf = (id: string) => { const r = running.get(id); return r ? { ctx: r.ctx, kernel: r.profile.kernel, dir: r.dir } : null; };
 // A new tab in the profile's browser, for a flow to run in.
 export async function newPage(id: string){
   const r = running.get(id);

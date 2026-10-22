@@ -376,7 +376,14 @@ export const en = {
     running: 'Open', start: (n: number) => (n < 2 ? 'Pick at least two' : `Sync ${n} windows`), starting: 'Starting…',
     limits: 'Not repeated: file pickers, drag and drop, and the browser’s own menus. A window whose page differs (signed out, say) does what the leader did on its own page.',
     issues: { coords: 'Didn’t have the element the leader clicked, so the click went to the same place in its window.', failed: 'Something couldn’t be repeated here; look at this window.' },
-    upgrade: 'Window sync comes with the Studio and Company plans.'
+    upgrade: 'Window sync comes with the Studio and Company plans.',
+    tile: 'Tile windows', tiling: 'Arranging…',
+    tiled: (moved: number, total: number) => (moved === total ? `Arranged ${total} windows in a grid.` : `Arranged ${moved} of ${total} windows.`),
+    tileMissed: {
+      unsupported: 'Firefox windows can’t be moved on Linux.',
+      permission: 'To move Firefox windows, allow Folio in System Settings › Privacy & Security › Accessibility (and under Automation if macOS asks), then tile again.',
+      failed: 'The other windows couldn’t be moved.'
+    }
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
@@ -788,7 +795,14 @@ export const zh: Dict = {
     running: '已打开', start: (n: number) => (n < 2 ? '至少选两个' : `同步 ${n} 个窗口`), starting: '正在开始…',
     limits: '不同步：选择文件的对话框、拖放、浏览器自身的菜单。页面不一样的窗口（比如没登录）会在自己的页面上照做。',
     issues: { coords: '没有主控点的那个元素，点击落在它窗口里的同一位置。', failed: '有操作没能在这里照做，请看一下这个窗口。' },
-    upgrade: '窗口同步属于工作室版和公司版。'
+    upgrade: '窗口同步属于工作室版和公司版。',
+    tile: '一键平铺', tiling: '正在排列…',
+    tiled: (moved: number, total: number) => (moved === total ? `已把 ${total} 个窗口排成网格。` : `已排列 ${moved}/${total} 个窗口。`),
+    tileMissed: {
+      unsupported: 'Linux 上不能移动 Firefox 窗口。',
+      permission: '要移动 Firefox 窗口，请在「系统设置 › 隐私与安全性 › 辅助功能」里允许 Folio（系统询问时也在「自动化」里允许），然后再平铺一次。',
+      failed: '其余窗口没能移动。'
+    }
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',

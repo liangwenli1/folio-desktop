@@ -30,6 +30,9 @@ export type ExtensionSource = { file: Uint8Array } | { store: string };
 // The window sync under way: the leader and every window in it. `coords`: a follower didn't have the element the
 // leader clicked and got the click at the same place in its window; `failed`: something couldn't be repeated there.
 export interface WindowSync { leader: string; members: { id: string; issue: null | 'coords' | 'failed' }[] }
+// Tiling the synced windows: how many moved, and why the others didn't (`unsupported`: Firefox on Linux;
+// `permission`: macOS hasn't allowed Folio to move other apps' windows).
+export interface Tiled { moved: number; missed: number; why: null | 'unsupported' | 'permission' | 'failed' }
 // Where a script connects to a profile opened through the local API.
 export interface Debugging { protocol: 'cdp' | 'webdriver-bidi'; wsEndpoint: string; debuggerAddress?: string }
 export interface ApiToken { id: string; name: string; workspaceId: string; createdAt: string; lastUsedAt: string | null }
@@ -99,6 +102,8 @@ export interface FolioBridge {
   setSyncLeader(id: string): Promise<WindowSync | null>;
   syncGoto(url: string): Promise<void>;
   windowSync(): Promise<WindowSync | null>;
+  // Lays the synced windows out in a grid on the screen Folio is on, the leader top left.
+  tileWindows(): Promise<Tiled | null>;
   onWindowSync(cb: (s: WindowSync | null) => void): () => void;
   // The local API: turn it on or off, change its port, and make or revoke tokens (a new token is shown once).
   localApi(): Promise<LocalApi>;

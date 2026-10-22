@@ -53,6 +53,7 @@ const bridge: FolioBridge = {
   stopWindowSync: () => ipcRenderer.invoke('folio:stopWindowSync'),
   setSyncLeader: id => ipcRenderer.invoke('folio:setSyncLeader', id),
   syncGoto: url => ipcRenderer.invoke('folio:syncGoto', url),
+  tileWindows: () => ipcRenderer.invoke('folio:tileWindows'),
   windowSync: () => ipcRenderer.invoke('folio:windowSync'),
   onWindowSync: cb => listen('sync:state', cb),
   localApi: () => ipcRenderer.invoke('folio:localApi'),

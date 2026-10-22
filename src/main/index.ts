@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, safeStorage, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, safeStorage, screen, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import type { ExtensionSource, KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
@@ -20,6 +20,7 @@ import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from '
 import { createApiToken, loadLocalApi, localApi, revokeApiToken, setLocalApi } from './local-api';
 import { fromStore } from './extensions';
 import { leftWindowSync, onWindowSync, setLeader, startWindowSync, stopWindowSync, syncGoto, windowSync } from './windowsync';
+import { tile } from './tile';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -213,6 +214,10 @@ ipcMain.handle('folio:stopWindowSync', () => stopWindowSync());
 ipcMain.handle('folio:setSyncLeader', (_e, id: string) => setLeader(String(id)));
 ipcMain.handle('folio:syncGoto', (_e, url: string) => syncGoto(String(url)));
 ipcMain.handle('folio:windowSync', () => windowSync());
+ipcMain.handle('folio:tileWindows', e => {
+  const s = windowSync(), win = BrowserWindow.fromWebContents(e.sender);
+  return s && win ? tile(s.members.map(m => m.id), screen.getDisplayMatching(win.getBounds()).workArea) : null;
+});
 ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id)); });
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());

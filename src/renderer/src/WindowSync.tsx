@@ -15,6 +15,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
   const [leader, setLeader] = useState<string | null>(null);
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
+  const [tiled, setTiled] = useState<string | null>(null);
   const s = data.sync;
   const running = (id: string) => data.status[id]?.state === 'running';
   // Open ones first, the way they will most often be picked.
@@ -26,6 +27,12 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
     const r = await folio.startWindowSync(picked, lead);
     setBusy(false);
     toast(r ? d.profiles.done.syncing(name.get(r.leader) ?? '', r.members.length - 1) : d.profiles.done.syncFailed);
+  }
+  async function tile(){
+    setBusy(true);
+    const r = await folio.tileWindows();
+    setBusy(false);
+    setTiled(r && [W.tiled(r.moved, r.moved + r.missed), r.why && W.tileMissed[r.why]].filter(Boolean).join(' '));
   }
   const toggle = (id: string) => setPicked(p => (p.includes(id) ? p.filter(x => x !== id) : [...p, id]));
 
@@ -45,7 +52,10 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
           <section className="api-card sync-card" aria-label={W.current}>
             <div className="sec-row">
               <h2 className="sec-t">{W.current}</h2>
-              <button type="button" className="btn btn-xs btn-line" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
+              <span className="d-actions tight">
+                <button type="button" className="btn btn-xs btn-line" disabled={busy} onClick={() => void tile()}>{busy ? W.tiling : W.tile}</button>
+                <button type="button" className="btn btn-xs btn-line" onClick={() => { setTiled(null); void folio.stopWindowSync(); }}>{W.stop}</button>
+              </span>
             </div>
             <ul className="plain-list">
               {s.members.map(m => (
@@ -57,6 +67,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
                 </li>
               ))}
             </ul>
+            {tiled && <p className="hint" role="status">{tiled}</p>}
             <form className="sync-url wide" onSubmit={e => { e.preventDefault(); if (url.trim()) void folio.syncGoto(url.trim()); setUrl(''); }}>
               <input aria-label={W.address} placeholder={W.addressPh} value={url} onChange={e => setUrl(e.target.value)} spellCheck={false} />
               <button type="submit" className="btn btn-sm btn-line">{W.open}</button>

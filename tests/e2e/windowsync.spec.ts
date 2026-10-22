@@ -1,5 +1,6 @@
 // Window sync (P5 acceptance): what is done in the leader's window happens in the followers' windows, across
 // engines: clicks, typing (Chinese too), Enter, scrolling, opening an address, new tabs, working in another tab, closing it.
+// Tiling puts the Chromium windows in a grid (moving Firefox windows needs Windows or macOS).
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
@@ -53,6 +54,10 @@ const inLeader = (app: ElectronApplication, id: string, step: string, url = '') 
   if (step === 'close') await second.close();
   return ctx.pages().length;
 }, { id, step, url });
+// Where a profile's window is and how big it is, as its page sees it.
+const bounds = (app: ElectronApplication, id: string) => app.evaluate((_e, id) => (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages()[0]
+  .evaluate(() => [screenX, screenY, outerWidth, outerHeight]), id);
+const workArea = (app: ElectronApplication) => app.evaluate(({ screen }) => screen.getPrimaryDisplay().workArea);
 const tabs = (app: ElectronApplication, id: string) => app.evaluate((_e, id) => (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages().length, id);
 
 test('the leader’s clicks, typing, scrolling, addresses and tabs repeat in a Chromium and a Firefox follower', async () => {
@@ -113,6 +118,13 @@ test('the leader’s clicks, typing, scrolling, addresses and tabs repeat in a C
   expect(seen('ff')).toEqual(seen('lead'));
   expect(await win.evaluate(() => window.folio.windowSync())).toMatchObject({ members: [{ issue: null }, { issue: null }, { issue: null }] });
 
+  // Tiling: a 2×2 grid, the leader top left and the Chromium follower beside it; Firefox windows don't move on Linux.
+  const area = await workArea(app);
+  expect(await win.evaluate(() => window.folio.tileWindows())).toEqual({ moved: 2, missed: 1, why: 'unsupported' });
+  const [w, h] = [Math.floor(area.width / 2), Math.floor(area.height / 2)];
+  expect(await bounds(app, lead.id)).toEqual([area.x, area.y, w, h]);
+  expect(await bounds(app, cr.id)).toEqual([area.x + w, area.y, w, h]);
+
   // Closing the leader ends the sync.
   await win.evaluate(id => window.folio.stopProfile(id), lead.id);
   await expect.poll(() => win.evaluate(() => window.folio.windowSync())).toBeNull();
@@ -141,6 +153,13 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   const now = win.getByRole('region', { name: 'Syncing now' });
   await now.locator('[data-sync="Shop-A"]').getByRole('button', { name: 'Make leader' }).click();
   await expect(win.locator('.ttl .sub')).toHaveText('Shop-A leads and 1 window follows.');
+  // Tiling side by side, the new leader on the left.
+  await now.getByRole('button', { name: 'Tile windows' }).click();
+  await expect(now.getByRole('status')).toHaveText('Arranged 2 windows in a grid.');
+  const area = await workArea(app);
+  const s = (await win.evaluate(() => window.folio.windowSync()))!;
+  expect(await bounds(app, s.leader)).toEqual([area.x, area.y, Math.floor(area.width / 2), area.height]);
+  expect(await bounds(app, s.members[1].id)).toEqual([area.x + Math.floor(area.width / 2), area.y, Math.floor(area.width / 2), area.height]);
   await now.getByRole('button', { name: 'Stop sync' }).click();
   await expect(win.getByRole('region', { name: 'Pick the windows' })).toBeVisible();
   await app.close();
