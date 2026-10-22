@@ -61,5 +61,5 @@ FOLIO_API_URL=http://localhost:47110 FOLIO_SITE_URL=http://localhost:47120 npm r
 | `npm run build` | Builds main, preload and renderer into `out/` |
 | `npm run typecheck` | TypeScript check |
 | `npm test` | Unit tests (vitest) |
-| `npm run test:e2e` | Drives the built app with Playwright against a folio-server with `DEV_TOOLS=1 MOCK_PAYMENTS=1 DEV_PRIVATE_GEO=seattle`. On Linux run under `xvfb-run`. Tests that open real engines are skipped unless they are unpacked under `FOLIO_KERNELS_DIR`; without internet access, point `CAMOUFOX_FPGEN_DATA` at a copy of the Firefox identity model |
+| `npm run test:e2e` | Drives the built app with Playwright against a folio-server with `DEV_TOOLS=1 MOCK_PAYMENTS=1 DEV_PRIVATE_GEO=seattle` and the Mailpit inbox it sends to (`MAILPIT_URL`, default `http://folio-mailpit:8025`). On Linux run under `xvfb-run`. Tests that open real engines are skipped unless they are unpacked under `FOLIO_KERNELS_DIR`; without internet access, point `CAMOUFOX_FPGEN_DATA` at a copy of the Firefox identity model |
 | `npm run api:types` | Regenerates `src/shared/api-schema.d.ts` from the server's OpenAPI document |

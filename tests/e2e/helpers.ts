@@ -10,6 +10,17 @@ export const SITE = 'http://localhost:47120';
 export const PASSWORD = 'correct horse battery';
 let n = 0;
 
+// The server sends real mail; in tests it goes to the local Mailpit inbox.
+const MAILPIT = process.env.MAILPIT_URL ?? 'http://folio-mailpit:8025';
+export async function lastMail(email: string){
+  for (let i = 0; i < 50; i++){
+    const { messages } = await (await fetch(`${MAILPIT}/api/v1/search?limit=1&query=${encodeURIComponent(`to:${email}`)}`)).json() as { messages: { ID: string }[] };
+    if (messages.length) return await (await fetch(`${MAILPIT}/api/v1/message/${messages[0].ID}`)).json() as { Subject: string; Text: string; HTML: string };
+    await new Promise(r => setTimeout(r, 100));
+  }
+  throw new Error(`No email for ${email}`);
+}
+
 // Real browser engines, unpacked as <kind>-<version>/. Tests that open profiles are skipped without them.
 export const KERNELS = process.env.FOLIO_KERNELS_DIR ?? '/kernels';
 export const hasKernels = existsSync(KERNELS);
@@ -52,8 +63,7 @@ export async function account({ locale = 'en', buy }: { locale?: 'en' | 'zh'; bu
   const email = `desk${Date.now().toString(36)}${n++}@example.com`;
   const api = await request.newContext({ baseURL: API, extraHTTPHeaders: { origin: SITE } });
   await api.post('/auth/register', { data: { email, password: PASSWORD, locale } });
-  const { code } = await (await api.get(`/dev/mail?email=${encodeURIComponent(email)}`)).json();
-  await api.post('/auth/verify-email', { data: { code } });
+  await api.post('/auth/verify-email', { data: { code: (await lastMail(email)).Text.match(/\b\d{6}\b/)![0] } });
   const me = await (await api.get('/me')).json();
   const workspaceId = me.workspaces[0].id as string;
   if (buy){
