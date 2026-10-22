@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import type { ProfileStatus } from '@shared/bridge';
-import { folio, isApiError, type Me, type Workspace } from './api';
+import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesDialog } from './Engines';
 import { errorText, type Dict, type Lang } from './i18n';
@@ -9,6 +9,7 @@ import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
 import { ProfilesPage, type GroupFilter } from './Profiles';
 import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
+import { TeamPage } from './Team';
 import { TrashPage } from './Trash';
 import { Icon, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 
@@ -17,10 +18,10 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'trash';
+type Page = 'profiles' | 'proxies' | 'team' | 'trash';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | null;
-const SOON: { key: 'sync' | 'tasks' | 'api' | 'team' | 'activity'; icon: IconName }[] = [
-  { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }, { key: 'team', icon: 'team' }, { key: 'activity', icon: 'activity' }
+const SOON: { key: 'sync' | 'tasks' | 'api' | 'activity'; icon: IconName }[] = [
+  { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }, { key: 'activity', icon: 'activity' }
 ];
 
 export function Workbench(props: Props){
@@ -42,8 +43,10 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   const limit = s.entitlements.profiles;
   const initials = me.user.email.slice(0, 2).toUpperCase();
 
-  const data = useWorkspaceData(ws.id, {
+  const data = useWorkspaceData(ws.id, ws.role, {
     workspace: onWorkspace,
+    // Taken out of the workspace (or left it): the main process has closed its profiles; show another workspace.
+    removed(){ toast(d.team.removedYou(ws.name)); onWorkspace(); },
     launchError(st: ProfileStatus){
       const p = data.profiles?.find(x => x.id === st.id);
       const why = d.launch[st.error ?? ''] ?? d.launch.launch_failed;
@@ -56,6 +59,20 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
   const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); };
+  // Proxies and the Trash are for owners and admins.
+  const shown: Page = !manager && (page === 'proxies' || page === 'trash') ? 'profiles' : page;
+
+  // Invitations to this account from other workspaces, in the workspace menu.
+  const [invites, setInvites] = useState<MyInvitation[]>([]);
+  const loadInvites = () => folio.api<{ invitations: MyInvitation[] }>('GET', '/me/invitations').then(r => setInvites(r.invitations), () => {});
+  useEffect(() => { void loadInvites(); }, [wsOpen]);
+  async function answer(i: MyInvitation, accept: boolean){
+    try {
+      await folio.api('POST', `/invitations/${i.id}/${accept ? 'accept' : 'decline'}`);
+      setWsOpen(false);
+      if (accept){ go('profiles'); onSwitch(i.workspaceId); } else void loadInvites();
+    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal')); }
+  }
 
   return (
     <div className="app">
@@ -65,6 +82,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
         <div className="ws-wrap" ref={wsRef}>
           <button className="ws" type="button" aria-haspopup="listbox" aria-expanded={wsOpen} onClick={() => setWsOpen(o => !o)} title={d.ws.switch}>
             <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
+            {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
             <Icon name="chev" />
           </button>
           {wsOpen && (
@@ -76,20 +94,31 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
                   </button>
                 </li>
               ))}
+              {invites.length > 0 && <li className="menu-t" role="presentation">{d.team.invites}</li>}
+              {invites.map(i => (
+                <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
+                  <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', d.roles[i.role])}</small></span>
+                  <span className="invite-acts">
+                    <button type="button" className="btn btn-xs btn-stamp" onClick={() => void answer(i, true)}>{d.team.join}</button>
+                    <button type="button" className="btn btn-xs btn-ghost" onClick={() => void answer(i, false)}>{d.team.decline}</button>
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </div>
 
         <nav className="nav" aria-label="Main">
           <NavItem icon="profiles" label={d.nav.profiles} count={used} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
-          <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={page === 'proxies'} onClick={() => go('proxies')} />
+          {manager && <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={shown === 'proxies'} onClick={() => go('proxies')} />}
+          <NavItem icon="team" label={d.nav.team} count={data.members.length || undefined} active={shown === 'team'} onClick={() => go('team')} />
           {SOON.map(x => (
             <button key={x.key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={x.icon} />{d.nav[x.key]}<span className="soon">{d.nav.soon}</span></button>
           ))}
-          <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={page === 'trash'} onClick={() => go('trash')} />
+          {manager && <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
 
-        <Groups d={d} data={data} group={page === 'profiles' ? group : null} onPick={g => go('profiles', g)} />
+        <Groups d={d} data={data} manager={manager} group={shown === 'profiles' ? group : null} onPick={g => go('profiles', g)} />
 
         <section className="plan" aria-label={d.plans[s.plan]}>
           <p><b data-testid="plan-name">{d.plans[s.plan]}</b></p>
@@ -128,13 +157,14 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
         </div>
       </aside>
 
-      {page === 'profiles' && (
+      {shown === 'profiles' && (
         <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
           onEdit={id => setDialog({ kind: 'edit', id })} onAddProxy={() => setDialog({ kind: 'proxy' })} />
       )}
-      {page === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
-      {page === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
+      {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
+      {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
+      {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
         <ProfileForm d={d} wsId={ws.id} data={data} onClose={close} profile={editing}
@@ -158,7 +188,7 @@ function NavItem({ icon, label, count, active, onClick }: { icon: IconName; labe
 }
 
 // Groups in the sidebar: filter the profile list, add, rename and delete.
-function Groups({ d, data, group, onPick }: { d: Dict; data: WorkspaceData; group: GroupFilter | null; onPick(g: GroupFilter): void }){
+function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceData; manager: boolean; group: GroupFilter | null; onPick(g: GroupFilter): void }){
   const toast = useToast();
   const G = d.groups;
   const [adding, setAdding] = useState(false);
@@ -198,7 +228,7 @@ function Groups({ d, data, group, onPick }: { d: Dict; data: WorkspaceData; grou
     <div className="groups">
       <div className="grp-t-row">
         <p className="grp-t">{G.title}</p>
-        <button type="button" className="grp-add" aria-label={G.add} title={G.add} onClick={() => { setAdding(true); setRenaming(null); setName(''); }}>+</button>
+        {manager && <button type="button" className="grp-add" aria-label={G.add} title={G.add} onClick={() => { setAdding(true); setRenaming(null); setName(''); }}>+</button>}
       </div>
       <div className="nav">
         {data.groups.map(g => renaming === g.id ? <div key={g.id}>{form}</div> : (
@@ -206,7 +236,7 @@ function Groups({ d, data, group, onPick }: { d: Dict; data: WorkspaceData; grou
             <button type="button" className={`nav-i${group === g.id ? ' active' : ''}`} aria-current={group === g.id ? 'true' : undefined} onClick={() => onPick(g.id)}>
               <span className="sq" aria-hidden="true" />{g.name}<span className="cnt">{g.profiles}</span>
             </button>
-            <button type="button" className="grp-more" aria-label={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>
+            {manager && <button type="button" className="grp-more" aria-label={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>}
             {menu === g.id && (
               <div className="menu" role="menu">
                 <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setRenaming(g.id); setName(g.name); }}>{G.rename}</button>

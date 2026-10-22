@@ -58,16 +58,19 @@ export const en = {
     restoring: 'Restoring sign-ins…', saving: 'Saving sign-ins…', inUseOn: (where: string) => `In use on ${where}`,
     downloading: (pct: number) => `Downloading engine… ${pct}%`,
     noProxy: 'No proxy', unchecked: 'Not checked', noResponse: 'No response', ms: (n: number) => `${n} ms`, mismatch: '! Doesn’t match its proxy',
+    unassigned: 'Unassigned',
     emptyNone: 'No profiles yet.', emptyMatch: 'No profiles match.', emptyFor: (q: string) => `Nothing found for “${q}”.`,
     emptyHint: (n: number) => `Try another search, or clear the filters to see all ${n}.`, clearFilters: 'Clear filters',
     bulk: {
-      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete',
+      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', department: 'Department…', noDepartment: 'No department',
+      tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete',
       confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
       trashed: (n: number) => `${profilesN(n)} moved to Trash`, moved: (n: number, g: string) => `${profilesN(n)} moved to ${g}`,
       tagged: (n: number, t: string) => `Tagged ${profilesN(n)} “${t}”`, untagged: (n: number, t: string) => `Removed “${t}” from ${profilesN(n)}`,
-      proxySet: (n: number) => `Proxy changed on ${profilesN(n)}`, created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
+      proxySet: (n: number) => `Proxy changed on ${profilesN(n)}`, assigned: (n: number, who: string) => `${profilesN(n)} assigned to ${who}`,
+      departmentSet: (n: number) => `Department changed on ${profilesN(n)}`, created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
       stale: 'Someone changed this profile in the meantime. Try again.'
     }
   },
@@ -81,7 +84,8 @@ export const en = {
   } as Record<string, string>,
   detail: {
     profile: 'Profile', close: 'Close details', emptyTitle: 'No profile selected.', emptyBody: 'Pick one from the list to see its fingerprint and proxy check.',
-    meta: (group: string, date: string) => `${group} · Created ${date}`, openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
+    meta: (group: string, date: string) => `${group} · Created ${date}`, assignedTo: (who: string) => `Assigned to ${who}`,
+    openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
     card: 'FOLIO · BROWSER PROFILE', notChecked: 'Exit not checked yet', direct: 'Direct connection', directSub: 'Sites see this computer’s IP',
     fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
     hostTz: 'This computer’s', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `Fingerprint of ${n}`,
@@ -121,7 +125,7 @@ export const en = {
     firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy', custom: 'Set by hand',
     tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: 'Not a time zone this computer knows.', langErr: 'Use a language tag like de-DE.',
-    notes: 'Notes', engineVersion: 'Engine version',
+    notes: 'Notes', engineVersion: 'Engine version', owner: 'Assigned to', department: 'Department', noDepartment: 'No department',
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.'
   },
   importer: {
@@ -160,6 +164,25 @@ export const en = {
     title: 'Browser engines', lead: 'Each profile keeps the engine version it was made with, so it looks the same to sites until you choose to upgrade it.',
     installed: 'Downloaded', download: (size: string) => `Download · ${size}`, usedBy: profilesN, failed: 'The download failed.', recommended: 'Default for new profiles'
   },
+  team: {
+    title: 'Team', sub: (n: number, seats: number | null) => `${n === 1 ? '1 person' : `${n} people`}${seats === null ? '' : ` · ${seats} ${seats === 1 ? 'seat' : 'seats'} on the plan`}`,
+    invite: '+ Invite', you: 'you', remove: 'Remove', leave: 'Leave team', removeX: (e: string) => `Remove ${e}`, roleOf: (e: string) => `Role of ${e}`,
+    cols: { person: 'Person', role: 'Role', departments: 'Departments', profiles: 'Profiles', joined: 'Joined' },
+    roleHelp: { admin: 'Sees and manages every profile, proxy and person.', member: 'Sees and opens the profiles assigned to them; can create and edit, not delete.' },
+    pending: 'Invitations waiting', invitedBy: (who: string) => `Invited by ${who}`, expires: (date: string) => `expires ${date}`,
+    copyLink: 'Copy link', copied: 'Invitation link copied', resend: 'Send again', withdraw: 'Withdraw', withdrawn: 'Invitation withdrawn',
+    inviteTitle: 'Invite to the team', email: 'Email', emailErr: 'Enter an email address.', role: 'Role', departments: 'Departments',
+    send: 'Send invitation', sent: (e: string) => `Invitation sent to ${e}.`, notSent: 'The email couldn’t be sent. Copy the link and pass it on yourself.',
+    link: 'Invitation link', done: 'Done',
+    removeTitle: (e: string) => `Remove ${e}`, removeLead: 'Their profiles go to the person you choose. Anything they have open closes on their computer, and their copies there are deleted.',
+    heir: 'Give their profiles to', removeDo: 'Remove from team', removed: (e: string) => `${e} was removed`,
+    leaveTitle: (ws: string) => `Leave ${ws}?`, leaveLead: 'Your profiles there go to the owner, and you lose access to the workspace.', leaveDo: 'Leave',
+    removedYou: (ws: string) => `You’re no longer in ${ws}. Its profiles were closed and removed from this computer.`,
+    depts: 'Departments', deptAdd: '+ Department', deptName: 'Department name', deptNone: 'No departments yet.',
+    deptHelp: 'Members see the profiles of their departments as well as their own.', deptCompany: 'Departments come with the Company plan.',
+    deptMembers: 'Members', deptDelete: 'Delete', deptDeleteConfirm: (n: string) => `Delete “${n}”? Its profiles stay, without a department.`, deptProfiles: (n: number) => profilesN(n),
+    invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
     proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
@@ -175,8 +198,16 @@ export const en = {
     internal: 'Something went wrong on our side. Try again.',
     plan_limit: 'The plan has no room for more profiles. Move some to the Trash or add profiles to the plan.',
     group_exists: 'There’s already a group with that name.',
-    bad_reference: 'That group or proxy was just deleted. Pick another one.',
-    forbidden: 'You don’t have access to that.'
+    bad_reference: 'That group, proxy or person is no longer in the workspace. Pick another one.',
+    forbidden: 'Your role doesn’t allow that. Ask an owner or admin.',
+    seat_limit: 'The plan has no free seat. Upgrade it to invite more people.',
+    already_member: 'This person is already in the team.',
+    department_exists: 'There’s already a department with that name.',
+    plan_required: 'Departments come with the Company plan.',
+    owner: 'The owner stays in the team and keeps their role.',
+    wrong_account: 'This invitation is for a different email address.',
+    email_unverified: 'Confirm your email address on the Folio website first.',
+    invitation_expired: 'This invitation has expired. Ask for a new one.'
   } as Record<string, string>
 };
 
@@ -232,16 +263,19 @@ export const zh: Dict = {
     restoring: '正在恢复登录状态…', saving: '正在保存登录状态…', inUseOn: (where: string) => `${where} 正在使用`,
     downloading: (pct: number) => `下载内核… ${pct}%`,
     noProxy: '无代理', unchecked: '未检测', noResponse: '无响应', ms: (n: number) => `${n} ms`, mismatch: '! 与代理不一致',
+    unassigned: '未分配',
     emptyNone: '还没有环境。', emptyMatch: '没有符合条件的环境。', emptyFor: (q: string) => `没有找到「${q}」。`,
     emptyHint: (n: number) => `换个关键词，或清除筛选查看全部 ${n} 个。`, clearFilters: '清除筛选',
     bulk: {
-      open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除',
+      open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', assign: '分配给…', department: '部门…', noDepartment: '无部门',
+      tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除',
       confirm: (n: number) => `把 ${n} 个环境移到回收站？`, confirmNote: '运行中的会先停止，之后可以撤销。', doTrash: '移到回收站'
     },
     done: {
       trashed: (n: number) => `已把 ${n} 个环境移到回收站`, moved: (n: number, g: string) => `已把 ${n} 个环境移到「${g}」`,
       tagged: (n: number, t: string) => `已给 ${n} 个环境加上「${t}」`, untagged: (n: number, t: string) => `已从 ${n} 个环境去掉「${t}」`,
-      proxySet: (n: number) => `已更换 ${n} 个环境的代理`, created: (x: string) => `「${x}」已创建`, saved: '已保存', failed: (name: string, why: string) => `${name}：${why}`,
+      proxySet: (n: number) => `已更换 ${n} 个环境的代理`, assigned: (n: number, who: string) => `已把 ${n} 个环境分配给 ${who}`,
+      departmentSet: (n: number) => `已更换 ${n} 个环境的部门`, created: (x: string) => `「${x}」已创建`, saved: '已保存', failed: (name: string, why: string) => `${name}：${why}`,
       stale: '这个环境刚被别人改过，请重试。'
     }
   },
@@ -255,7 +289,8 @@ export const zh: Dict = {
   } as Record<string, string>,
   detail: {
     profile: '环境', close: '关闭详情', emptyTitle: '没有选中环境。', emptyBody: '从列表里选一个，查看它的指纹和代理检测结果。',
-    meta: (group: string, date: string) => `${group} · ${date} 创建`, openProfile: '打开环境', edit: '编辑', trash: '移到回收站',
+    meta: (group: string, date: string) => `${group} · ${date} 创建`, assignedTo: (who: string) => `负责人：${who}`,
+    openProfile: '打开环境', edit: '编辑', trash: '移到回收站',
     card: 'FOLIO · BROWSER PROFILE', notChecked: '还没检测出口', direct: '直连', directSub: '网站看到的是这台电脑的 IP',
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
     hostTz: '跟随本机', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `${n} 的指纹`,
@@ -295,7 +330,7 @@ export const zh: Dict = {
     firefoxMissing: '下载 Firefox 内核后才能生成这个指纹。', download: '下载', downloading: (pct: number) => `下载中… ${pct}%`,
     create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理', custom: '手动设置',
     tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: '这台电脑不认识这个时区。', langErr: '请用 de-DE 这样的语言代码。',
-    notes: '备注', engineVersion: '内核版本',
+    notes: '备注', engineVersion: '内核版本', owner: '负责人', department: '部门', noDepartment: '无部门',
     stale: '你编辑期间别人改过这个环境。再次保存会覆盖他的修改，取消则保留他的修改。'
   },
   importer: {
@@ -334,6 +369,25 @@ export const zh: Dict = {
     title: '浏览器内核', lead: '每个环境会固定使用创建时的内核版本，在你决定升级之前，网站看到的它始终一样。',
     installed: '已下载', download: (size: string) => `下载 · ${size}`, usedBy: (n: number) => `${n} 个环境在用`, failed: '下载失败。', recommended: '新环境默认使用'
   },
+  team: {
+    title: '团队', sub: (n: number, seats: number | null) => `${n} 人${seats === null ? '' : ` · 套餐含 ${seats} 个席位`}`,
+    invite: '+ 邀请', you: '你', remove: '移除', leave: '退出团队', removeX: (e: string) => `移除 ${e}`, roleOf: (e: string) => `${e} 的角色`,
+    cols: { person: '成员', role: '角色', departments: '部门', profiles: '环境', joined: '加入时间' },
+    roleHelp: { admin: '可以查看和管理所有环境、代理和成员。', member: '只看到并打开分配给自己的环境；可以新建和编辑，不能删除。' },
+    pending: '待接受的邀请', invitedBy: (who: string) => `${who} 邀请`, expires: (date: string) => `${date} 过期`,
+    copyLink: '复制链接', copied: '邀请链接已复制', resend: '重新发送', withdraw: '撤回', withdrawn: '邀请已撤回',
+    inviteTitle: '邀请加入团队', email: '邮箱', emailErr: '请填写邮箱地址。', role: '角色', departments: '部门',
+    send: '发送邀请', sent: (e: string) => `邀请已发送到 ${e}。`, notSent: '邮件没能发出，请复制链接自行发给对方。',
+    link: '邀请链接', done: '完成',
+    removeTitle: (e: string) => `移除 ${e}`, removeLead: '他名下的环境会交给你选定的人。他正在打开的环境会在他电脑上关闭，本机数据也会被删除。',
+    heir: '把他的环境交给', removeDo: '移出团队', removed: (e: string) => `已移除 ${e}`,
+    leaveTitle: (ws: string) => `退出「${ws}」？`, leaveLead: '你在这里的环境会交给所有者，你将无法再访问这个团队。', leaveDo: '退出',
+    removedYou: (ws: string) => `你已不在「${ws}」中，它的环境已在这台电脑上关闭并删除。`,
+    depts: '部门', deptAdd: '+ 部门', deptName: '部门名称', deptNone: '还没有部门。',
+    deptHelp: '成员除了自己的环境，还能看到所在部门的环境。', deptCompany: '部门功能属于公司版。',
+    deptMembers: '成员', deptDelete: '删除', deptDeleteConfirm: (n: string) => `删除「${n}」？它的环境会保留，变为无部门。`, deptProfiles: (n: number) => `${n} 个环境`,
+    invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请你成为${role}`
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',
     proxy: '添加代理', proxyD: '常见格式直接粘贴即可。', profile: '新建环境', profileD: '选好系统，指纹会自动生成。',
@@ -349,8 +403,16 @@ export const zh: Dict = {
     internal: '我们这边出了点问题，请重试。',
     plan_limit: '套餐额度已满。把一些环境移到回收站，或给套餐增加环境。',
     group_exists: '已经有同名的分组了。',
-    bad_reference: '这个分组或代理刚被删除了，请换一个。',
-    forbidden: '你没有权限访问这里。'
+    bad_reference: '这个分组、代理或成员已经不在团队里了，请换一个。',
+    forbidden: '你的角色没有这个权限，请联系所有者或管理员。',
+    seat_limit: '套餐没有空余席位了，升级后才能邀请更多人。',
+    already_member: '这个人已经在团队里了。',
+    department_exists: '已经有同名的部门了。',
+    plan_required: '部门功能属于公司版。',
+    owner: '所有者始终在团队中，角色不能更改。',
+    wrong_account: '这个邀请是发给另一个邮箱的。',
+    email_unverified: '请先在 Folio 官网验证邮箱。',
+    invitation_expired: '这个邀请已过期，请让对方重新邀请。'
   }
 };
 

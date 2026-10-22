@@ -29,6 +29,10 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [kernel, setKernel] = useState<KernelKind>(profile?.kernel ?? 'chromium');
   const [os, setOs] = useState<Os>(profile?.os ?? 'windows');
   const [proxyId, setProxyId] = useState(profile?.proxyId ?? '');
+  // Owners and admins choose who it is assigned to (new profiles default to whoever creates them) and its department.
+  const manager = data.role !== 'member';
+  const [ownerId, setOwnerId] = useState(profile ? profile.ownerId ?? '' : '');
+  const [departmentId, setDepartmentId] = useState(profile?.departmentId ?? '');
   const [paste, setPaste] = useState('');
   const [pxNote, setPxNote] = useState<PxNote>(null);
   const [tags, setTags] = useState(profile?.tags.join(', ') ?? '');
@@ -102,7 +106,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
       const group = groupId === NEW_GROUP ? (newGroup.trim() ? await data.ensureGroup(newGroup) : null) : groupId || null;
       const common = {
         name: name.trim(), groupId: group, proxyId: proxyId || null,
-        tags: [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10)
+        tags: [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10),
+        ...(manager ? { ...(ownerId || profile ? { ownerId: ownerId || null } : {}), ...(data.departments.length ? { departmentId: departmentId || null } : {}) } : {})
       };
       if (profile && base){
         const ok = await data.patch(base, {
@@ -177,7 +182,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
             <select id="pf-proxy" value={proxyId} onChange={e => pickProxy(e.target.value)}>
               <option value="">{f.noProxy}</option>
               {proxyOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-              <option value={PASTE}>{f.pasteProxy}</option>
+              {manager && <option value={PASTE}>{f.pasteProxy}</option>}
             </select>
             {proxyId && <button className="btn btn-line btn-sm" type="button" onClick={check} disabled={pxNote?.state === 'checking'}>{d.common.check}</button>}
           </div>
@@ -191,6 +196,28 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
             </p>
           )}
         </div>
+
+        {manager && (
+          <div className="row2">
+            <div className="field">
+              <label htmlFor="pf-owner">{f.owner}</label>
+              <select id="pf-owner" value={ownerId} onChange={e => setOwnerId(e.target.value)}>
+                {!edit && <option value="">{d.team.you}</option>}
+                {edit && <option value="">{d.profiles.unassigned}</option>}
+                {data.members.map(m => <option key={m.userId} value={m.userId}>{m.email}</option>)}
+              </select>
+            </div>
+            {data.departments.length > 0 && (
+              <div className="field">
+                <label htmlFor="pf-dept">{f.department}</label>
+                <select id="pf-dept" value={departmentId} onChange={e => setDepartmentId(e.target.value)}>
+                  <option value="">{f.noDepartment}</option>
+                  {data.departments.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
 
         {edit && (
           <>

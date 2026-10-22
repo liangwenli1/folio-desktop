@@ -16,5 +16,10 @@ export type Group = Ok<'/workspaces/{id}/groups', 'get'>['groups'][number];
 export type Proxy = Ok<'/workspaces/{id}/proxies', 'get'>['proxies'][number];
 export type ProxyImport = Ok<'/workspaces/{id}/proxies/import', 'post'>;
 export type Geo = NonNullable<NonNullable<Proxy['lastCheck']>['geo']>;
+export type Role = Workspace['role'];
+export type Member = Ok<'/workspaces/{id}/members', 'get'>['members'][number];
+export type Invitation = Ok<'/workspaces/{id}/invitations', 'get'>['invitations'][number];
+export type MyInvitation = Ok<'/me/invitations', 'get'>['invitations'][number];
+export type Department = Ok<'/workspaces/{id}/departments', 'get'>['departments'][number];
 
 export const isApiError = (e: unknown): e is ApiErrorBody => typeof e === 'object' && e !== null && 'code' in e && 'status' in e;

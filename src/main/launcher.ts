@@ -4,10 +4,11 @@
 // runs, the lock is renewed and cookies are saved every few minutes. When the browser closes (however it
 // closes), its folder is read back with the engine offline, the state is uploaded and the lock released.
 import { app } from 'electron';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium, type BrowserContext, type Page } from 'playwright-core';
 import { Camoufox } from 'camoufox';
+import { me } from './account';
 import { api } from './api';
 import { prepareFirefox } from './fingerprint';
 import { startForwarder, type Forwarder } from './forwarder';
@@ -17,7 +18,7 @@ import { addOrigins, download, readLocal, upload, writeLocal, type Local, type S
 import type { CheckResult, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 
 interface LaunchProfile {
-  id: string; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
+  id: string; workspaceId: string; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
   timezoneOverride: string | null; localeOverride: string | null;
 }
 interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null }
@@ -30,7 +31,9 @@ interface Running {
   ctx: BrowserContext; fwd: Forwarder; status: ProfileStatus; profile: LaunchProfile; exe: string; dir: string;
   // What this computer's folder matches, and the package downloaded at opening (its sites' storage).
   local: Local; saved: StorageState | null;
-  visited: Set<string>; timers: NodeJS.Timeout[]; lost: boolean; done: Promise<void>;
+  visited: Set<string>; timers: NodeJS.Timeout[]; done: Promise<void>;
+  // Set when this computer may no longer save the profile: taken over elsewhere, or the account left the workspace.
+  lost: null | 'lock_lost' | 'removed';
 }
 const running = new Map<string, Running>();
 // End-to-end tests drive the launched browsers through this; it is not set in normal runs.
@@ -41,6 +44,7 @@ export const onStatus = (fn: (s: ProfileStatus) => void) => { notify = fn; };
 export const statuses = () => [...running.values()].map(r => r.status);
 
 const report = (proxyId: string, r: CheckResult) => api('POST', `/proxies/${proxyId}/check`, r);
+const profilesOf = (userId: string) => join(app.getPath('userData'), 'profiles', userId);
 
 // Switches that only make sense on a Linux test machine without a GPU or user namespaces.
 const testOnly = () => [
@@ -146,9 +150,13 @@ export async function open(id: string){
     const tz = profile.timezoneOverride ?? geo?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
     const locale = profile.localeOverride ?? geo?.locale ?? 'en-US';
 
-    const dir = join(app.getPath('userData'), 'profiles', profile.id);
+    const who = await me();
+    if (!who) throw new LaunchError('unauthenticated');
+    const dir = join(profilesOf(who.id), profile.id);
     await mkdir(dir, { recursive: true });
-    const local = await readLocal(dir);
+    // Recorded right away, so the folder can be found if the account leaves the workspace.
+    const local = { ...(await readLocal(dir)), workspaceId: profile.workspaceId };
+    await writeLocal(dir, local);
     let saved: StorageState | null = null;
     // The server's package wins when it is not the one this folder already matches (it was used elsewhere).
     if (lock.data.data){
@@ -177,7 +185,7 @@ export async function open(id: string){
     ctx.on('page', track);
     const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo };
     const entry: Running = {
-      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: false,
+      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null,
       timers: [setInterval(() => void renew(id), RENEW_MS), setInterval(() => void autosave(id), AUTOSAVE_MS)],
       done: new Promise(resolve => ctx.on('close', () => { void finish(id).finally(resolve); }))
     };
@@ -198,7 +206,7 @@ async function renew(id: string){
   const r = running.get(id);
   if (!r || r.lost) return;
   const res = await api('POST', `/profiles/${id}/lock/renew`);
-  if (!res.ok && res.error.code === 'lock_lost'){ r.lost = true; await r.ctx.close().catch(() => {}); }
+  if (!res.ok && res.error.code === 'lock_lost'){ r.lost = 'lock_lost'; await r.ctx.close().catch(() => {}); }
 }
 // Checks the locks of running profiles now, rather than at the next renewal (called on change events).
 export const verify = (ids?: string[]) => (ids ?? [...running.keys()]).filter(id => running.has(id)).forEach(id => void renew(id));
@@ -209,7 +217,7 @@ async function autosave(id: string){
   if (!r || r.lost) return;
   try {
     const result = await upload(id, { cookies: await r.ctx.cookies(), origins: r.saved?.origins ?? [] }, r.local);
-    if (result === 'lost'){ r.lost = true; await r.ctx.close().catch(() => {}); }
+    if (result === 'lost'){ r.lost = 'lock_lost'; await r.ctx.close().catch(() => {}); }
     else await writeLocal(r.dir, r.local);
   } catch (e){ console.error('autosave failed', e); }
 }
@@ -219,7 +227,8 @@ async function finish(id: string){
   if (!r) return;
   r.timers.forEach(clearInterval);
   await r.fwd.close();
-  let error = r.lost ? 'lock_lost' : undefined;
+  // A profile of a workspace the account left just stops; its folder is deleted by discard().
+  let error = r.lost === 'lock_lost' ? 'lock_lost' : undefined;
   if (!r.lost){
     r.status = { id, state: 'saving' };
     notify(r.status);
@@ -248,4 +257,30 @@ export async function stop(id: string){
 
 export async function stopAll(){
   await Promise.all([...running.keys()].map(stop));
+}
+
+// The account was taken out of a workspace: its profiles close here without saving, and their folders go.
+export async function discard(workspaceId: string){
+  await Promise.all([...running.values()].filter(r => r.profile.workspaceId === workspaceId).map(async r => {
+    r.lost = 'removed';
+    await r.ctx.close().catch(() => {});
+    await r.done;
+  }));
+  const who = await me();
+  if (who) await removeFolders(who.id, ws => ws === workspaceId);
+}
+
+// Folders of workspaces the account is no longer in (it was removed while this computer was off).
+export async function prune(){
+  const who = await me(true);
+  if (who) await removeFolders(who.id, ws => !who.workspaceIds.includes(ws));
+}
+
+async function removeFolders(userId: string, match: (workspaceId: string) => boolean){
+  const root = profilesOf(userId);
+  for (const id of await readdir(root).catch(() => [] as string[])){
+    if (running.has(id) || starting.has(id)) continue;
+    const { workspaceId } = await readLocal(join(root, id));
+    if (workspaceId && match(workspaceId)) await rm(join(root, id), { recursive: true, force: true });
+  }
 }

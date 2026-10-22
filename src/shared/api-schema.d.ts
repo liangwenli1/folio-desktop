@@ -1664,10 +1664,12 @@ export interface paths {
                         "application/json": {
                             profiles: {
                                 id: string;
+                                workspaceId: string;
                                 number: number;
                                 name: string;
                                 groupId: string | null;
                                 ownerId: string | null;
+                                departmentId: string | null;
                                 tags: string[];
                                 /** @enum {string} */
                                 kernel: "chromium" | "firefox";
@@ -1735,6 +1737,10 @@ export interface paths {
                         groupId?: string | null;
                         /** @default [] */
                         tags?: string[];
+                        /** Format: uuid */
+                        ownerId?: string | null;
+                        /** Format: uuid */
+                        departmentId?: string | null;
                         /** @enum {string} */
                         kernel: "chromium" | "firefox";
                         kernelVersion: string;
@@ -1769,10 +1775,12 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: string;
+                            workspaceId: string;
                             number: number;
                             name: string;
                             groupId: string | null;
                             ownerId: string | null;
+                            departmentId: string | null;
                             tags: string[];
                             /** @enum {string} */
                             kernel: "chromium" | "firefox";
@@ -1854,6 +1862,10 @@ export interface paths {
                             groupId?: string | null;
                             /** @default [] */
                             tags?: string[];
+                            /** Format: uuid */
+                            ownerId?: string | null;
+                            /** Format: uuid */
+                            departmentId?: string | null;
                             /** @enum {string} */
                             kernel: "chromium" | "firefox";
                             kernelVersion: string;
@@ -1890,10 +1902,12 @@ export interface paths {
                         "application/json": {
                             profiles: {
                                 id: string;
+                                workspaceId: string;
                                 number: number;
                                 name: string;
                                 groupId: string | null;
                                 ownerId: string | null;
+                                departmentId: string | null;
                                 tags: string[];
                                 /** @enum {string} */
                                 kernel: "chromium" | "firefox";
@@ -1980,6 +1994,10 @@ export interface paths {
                         groupId?: string | null;
                         tags?: string[];
                         /** Format: uuid */
+                        ownerId?: string | null;
+                        /** Format: uuid */
+                        departmentId?: string | null;
+                        /** Format: uuid */
                         proxyId?: string | null;
                         kernelVersion?: string;
                         /** @enum {string} */
@@ -2011,10 +2029,12 @@ export interface paths {
                     content: {
                         "application/json": {
                             id: string;
+                            workspaceId: string;
                             number: number;
                             name: string;
                             groupId: string | null;
                             ownerId: string | null;
+                            departmentId: string | null;
                             tags: string[];
                             /** @enum {string} */
                             kernel: "chromium" | "firefox";
@@ -2088,12 +2108,16 @@ export interface paths {
                     "application/json": {
                         ids: string[];
                         /** @enum {string} */
-                        action: "move" | "tag" | "untag" | "set-proxy" | "trash" | "restore" | "purge";
+                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "trash" | "restore" | "purge";
                         /** Format: uuid */
                         groupId?: string | null;
                         tag?: string;
                         /** Format: uuid */
                         proxyId?: string | null;
+                        /** Format: uuid */
+                        ownerId?: string | null;
+                        /** Format: uuid */
+                        departmentId?: string | null;
                     };
                 };
             };
@@ -2144,10 +2168,12 @@ export interface paths {
                         "application/json": {
                             profile: {
                                 id: string;
+                                workspaceId: string;
                                 number: number;
                                 name: string;
                                 groupId: string | null;
                                 ownerId: string | null;
+                                departmentId: string | null;
                                 tags: string[];
                                 /** @enum {string} */
                                 kernel: "chromium" | "firefox";
@@ -2933,6 +2959,603 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            members: {
+                                userId: string;
+                                email: string;
+                                /** @enum {string} */
+                                role: "owner" | "admin" | "member";
+                                joinedAt: string;
+                                departmentIds: string[];
+                                profiles: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query: {
+                    transferTo: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        role: "admin" | "member";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/workspaces/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            invitations: {
+                                id: string;
+                                email: string;
+                                /** @enum {string} */
+                                role: "admin" | "member";
+                                departmentIds: string[];
+                                invitedBy: string | null;
+                                createdAt: string;
+                                expiresAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: email */
+                        email: string;
+                        /** @enum {string} */
+                        role: "admin" | "member";
+                        /** @default [] */
+                        departmentIds?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            invitation: {
+                                id: string;
+                                email: string;
+                                /** @enum {string} */
+                                role: "admin" | "member";
+                                departmentIds: string[];
+                                invitedBy: string | null;
+                                createdAt: string;
+                                expiresAt: string;
+                            };
+                            link: string;
+                            emailed: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/by-token/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            workspaceName: string;
+                            inviter: string | null;
+                            email: string;
+                            /** @enum {string} */
+                            role: "admin" | "member";
+                            expired: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            invitations: {
+                                id: string;
+                                workspaceId: string;
+                                workspaceName: string;
+                                inviter: string | null;
+                                /** @enum {string} */
+                                role: "admin" | "member";
+                                expiresAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            /** @enum {string} */
+                            role: "owner" | "admin" | "member";
+                            /** @enum {string} */
+                            plan: "free" | "studio" | "company";
+                            /** @enum {string} */
+                            status: "active" | "trialing";
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/invitations/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            departments: {
+                                id: string;
+                                name: string;
+                                memberIds: string[];
+                                profiles: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            name: string;
+                            memberIds: string[];
+                            profiles: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/departments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        memberIds?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
         trace?: never;
     };
 }

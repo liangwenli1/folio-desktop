@@ -48,6 +48,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const now = useNow(Object.values(data.status).some(s => s.state === 'running'));
   const running = all.filter(p => data.status[p.id]?.state === 'running').length;
   const limit = ws.subscription.entitlements.profiles;
+  const manager = data.role !== 'member';
+  const email = useMemo(() => new Map(data.members.map(m => [m.userId, m.email])), [data.members]);
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
 
   const list = useMemo(() => {
@@ -152,7 +154,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             <Icon name="search" /><span className="sr">{P.search}</span>
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
           </label>
-          <button className="btn btn-ghost" type="button" onClick={onImport}>{P.import}</button>
+          {manager && <button className="btn btn-ghost" type="button" onClick={onImport}>{P.import}</button>}
           <button className="btn btn-stamp" type="button" onClick={onNew}>{P.new}</button>
         </header>
 
@@ -232,8 +234,27 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                   {data.proxies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   <option value="none">{P.noProxy}</option>
                 </select>
+                {manager && (
+                  <select className="bb" aria-label={P.bulk.assign} value="" onChange={e => {
+                    const who = e.target.value === 'none' ? null : e.target.value;
+                    void batch('assign', { ownerId: who }, n => P.done.assigned(n, who ? email.get(who) ?? '' : P.unassigned));
+                  }}>
+                    <option value="" disabled>{P.bulk.assign}</option>
+                    {data.members.map(m => <option key={m.userId} value={m.userId}>{m.email}</option>)}
+                    <option value="none">{P.unassigned}</option>
+                  </select>
+                )}
+                {manager && data.departments.length > 0 && (
+                  <select className="bb" aria-label={P.bulk.department} value="" onChange={e => {
+                    void batch('set-department', { departmentId: e.target.value === 'none' ? null : e.target.value }, P.done.departmentSet);
+                  }}>
+                    <option value="" disabled>{P.bulk.department}</option>
+                    {data.departments.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+                    <option value="none">{P.bulk.noDepartment}</option>
+                  </select>
+                )}
                 <button type="button" className="bb" onClick={() => setTagging(true)}>{P.bulk.tag}</button>
-                <button type="button" className="bb danger" onClick={() => setConfirm(true)}>{P.bulk.trash}</button>
+                {manager && <button type="button" className="bb danger" onClick={() => setConfirm(true)}>{P.bulk.trash}</button>}
                 <span className="sp" />
                 <button type="button" className="bb plain" onClick={() => setSel(new Set())}>{d.common.clearSelection}</button>
               </>
@@ -280,9 +301,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           status={curProfile ? data.status[curProfile.id] : undefined}
           progress={curProfile ? data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)] : undefined}
           group={curProfile ? groupLabel(curProfile) : ''}
+          owner={curProfile?.ownerId ? email.get(curProfile.ownerId) ?? null : null}
           onClose={() => setDrawer(false)} onOpen={() => curProfile && void open(curProfile)} onStop={() => curProfile && void stop(curProfile)}
           onEdit={() => curProfile && onEdit(curProfile.id)} onTrash={() => curProfile && void trash([curProfile.id])}
-          canTakeOver={ws.role !== 'member'} onTakeover={() => curProfile && void takeover(curProfile)}
+          canTakeOver={manager} canTrash={manager} onTakeover={() => curProfile && void takeover(curProfile)}
           onFix={f => curProfile && void fix(curProfile, f)}
         />
       </aside>

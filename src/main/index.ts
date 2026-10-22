@@ -6,7 +6,8 @@ import { getToken, loadToken } from './session';
 import { watch } from './changes';
 import { generate } from './fingerprint';
 import { install, latest, list as listKernels, resolve as resolveKernel } from './kernels';
-import { onStatus, open, statuses, stop, stopAll, verify } from './launcher';
+import { forget } from './account';
+import { discard, onStatus, open, prune, statuses, stop, stopAll, verify } from './launcher';
 import { checkById, checkWorkspace } from './proxy-check';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
@@ -38,8 +39,8 @@ function createWindow(){
   else void win.loadFile(join(import.meta.dirname, '../renderer/index.html'));
 }
 
-ipcMain.handle('folio:login', (_e, email: string, password: string) => login(String(email), String(password)));
-ipcMain.handle('folio:logout', async () => { watching(null); await stopAll(); return logout(); });
+ipcMain.handle('folio:login', (_e, email: string, password: string) => { forget(); return login(String(email), String(password)); });
+ipcMain.handle('folio:logout', async () => { watching(null); await stopAll(); forget(); return logout(); });
 ipcMain.handle('folio:hasSession', () => !!getToken());
 ipcMain.handle('folio:api', (_e, method: Method, path: string, body?: unknown) => forRenderer(method, String(path), body));
 ipcMain.handle('folio:openSite', async (_e, path: string) => {
@@ -54,11 +55,16 @@ function watching(workspaceId: string | null){
   watch(workspaceId, c => {
     send('app:change', c);
     if (c.kind === 'profiles') verify(c.ids);
+    // This account was taken out of the workspace: the server has closed the stream.
+    if (c.kind === 'removed' && workspaceId){ watching(null); void discard(workspaceId); }
   });
   if (health) clearInterval(health);
   health = workspaceId ? setInterval(() => { void checkWorkspace(workspaceId); }, HEALTH_EVERY) : null;
 }
-ipcMain.handle('folio:watch', (_e, workspaceId: string | null) => { watching(typeof workspaceId === 'string' ? workspaceId : null); });
+ipcMain.handle('folio:watch', (_e, workspaceId: string | null) => {
+  watching(typeof workspaceId === 'string' ? workspaceId : null);
+  void prune();
+});
 
 onStatus(s => send('profile:status', s));
 ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id)); });

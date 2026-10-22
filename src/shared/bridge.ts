@@ -21,7 +21,7 @@ export interface ProfileStatus {
 }
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
-export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace'; ids?: string[] }
+export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed'; ids?: string[] }
 
 export interface FolioBridge {
   login(email: string, password: string): Promise<{ user: unknown }>;

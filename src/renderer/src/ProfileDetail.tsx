@@ -7,7 +7,9 @@ import { Icon, percent } from './ui';
 
 interface Props {
   d: Dict; lang: Lang; p: Profile | null; h: Health | null; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
-  busy: string | null; canTakeOver: boolean;
+  // The assigned person's email, when there is one.
+  owner: string | null;
+  busy: string | null; canTakeOver: boolean; canTrash: boolean;
   onClose(): void; onTakeover(): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
 }
 
@@ -55,7 +57,7 @@ function useGuilloche(dep: unknown){
   return ref;
 }
 
-export function ProfileDetail({ d, lang, p, h, status, progress, group, now, busy, canTakeOver, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, now, busy, canTakeOver, canTrash, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover }: Props){
   const canvas = useGuilloche(p?.id);
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
@@ -130,6 +132,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, now, bus
         <div className="d-top"><p className="sec-t">{d.detail.profile} <span className="mono">#{num}</span></p>{closeBtn}</div>
         <h2 data-testid="detail-name">{p.name}</h2>
         <p className="d-meta">{d.detail.meta(group, day(p.createdAt, lang))} · {engineName(p.kernel, p.kernelVersion)}</p>
+        <p className="d-meta" data-testid="assigned">{owner ? d.detail.assignedTo(owner) : d.profiles.unassigned}</p>
         {away && (
           <div className="away-note" data-testid="away">
             <p>{d.detail.away(away.deviceName ?? '—', away.email, new Date(away.since).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' }))}</p>
@@ -145,7 +148,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, now, bus
         <div className="d-actions">
           {primary}
           <button type="button" className="btn btn-ghost" onClick={onEdit}>{d.detail.edit}</button>
-          <button type="button" className="btn btn-ghost" onClick={onTrash}>{d.detail.trash}</button>
+          {canTrash && <button type="button" className="btn btn-ghost" onClick={onTrash}>{d.detail.trash}</button>}
         </div>
       </div>
       <article className="idcard" aria-label={d.detail.cardLabel(p.name)}>

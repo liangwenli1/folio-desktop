@@ -9,13 +9,13 @@ import type { BrowserContext } from 'playwright-core';
 import { api } from './api';
 
 export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>>;
-export interface Local { sha256: string | null; origins: string[] }
+export interface Local { sha256: string | null; origins: string[]; workspaceId: string | null }
 
 const FILE = '.folio-sync.json';
 const MAX_ORIGINS = 300;
 
 export async function readLocal(dir: string): Promise<Local> {
-  try { return JSON.parse(await readFile(join(dir, FILE), 'utf8')) as Local; } catch { return { sha256: null, origins: [] }; }
+  try { return JSON.parse(await readFile(join(dir, FILE), 'utf8')) as Local; } catch { return { sha256: null, origins: [], workspaceId: null }; }
 }
 export const writeLocal = (dir: string, l: Local) => writeFile(join(dir, FILE), JSON.stringify(l));
 
