@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
 import { writeFile } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import type { KernelKind, Method, Os } from '../shared/bridge';
 import { forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
@@ -8,7 +8,9 @@ import { watch } from './changes';
 import { generate } from './fingerprint';
 import { install, latest, list as listKernels, resolve as resolveKernel } from './kernels';
 import { forget } from './account';
-import { discard, onStatus, open, prune, statuses, stop, stopAll, verify } from './launcher';
+import { addCookies, discard, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
+import { parseCookies, toJson, toNetscape, type Cookie } from '../shared/cookies';
+import { api } from './api';
 import { checkById, checkWorkspace } from './proxy-check';
 
 const SITE_URL = process.env.FOLIO_SITE_URL ?? 'http://localhost:47120';
@@ -54,6 +56,46 @@ ipcMain.handle('folio:saveFile', async (e, name: string, content: string) => {
   await writeFile(r.filePath, String(content));
   return r.filePath;
 });
+// Exports go through the server (owners and admins only, and logged); a profile running here saves first.
+ipcMain.handle('folio:exportCookies', async (e, profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape') => {
+  const win = BrowserWindow.fromWebContents(e.sender) ?? undefined;
+  const ext = format === 'json' ? 'json' : 'txt';
+  const fileOf = (p: { name: string; number: number }) => `${p.name.replace(/[\\/:*?"<>|]+/g, '_')}-${String(p.number).padStart(4, '0')}.${ext}`;
+  let dir: string, single: string | null = null;
+  if (profiles.length === 1){
+    const r = await (win ? dialog.showSaveDialog(win, { defaultPath: join(app.getPath('downloads'), fileOf(profiles[0])) }) : dialog.showSaveDialog({ defaultPath: fileOf(profiles[0]) }));
+    if (r.canceled || !r.filePath) return null;
+    single = r.filePath; dir = dirname(r.filePath);
+  } else {
+    const r = await (win ? dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] }) : dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] }));
+    if (r.canceled || !r.filePaths[0]) return null;
+    dir = r.filePaths[0];
+  }
+  let saved = 0;
+  const failed: { name: string; code: string }[] = [];
+  for (const p of profiles){
+    if (isRunning(p.id)) await saveNow(p.id);
+    const r = await api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies`);
+    if (!r.ok){ failed.push({ name: p.name, code: r.error.code }); continue; }
+    await writeFile(single ?? join(dir, fileOf(p)), format === 'json' ? toJson(r.data.cookies) : toNetscape(r.data.cookies));
+    saved++;
+  }
+  return { saved, failed, path: single ?? dir };
+});
+
+// Imports go into the saved state on the server; a profile running here also gets them in its browser.
+ipcMain.handle('folio:importCookies', async (_e, id: string, text: string) => {
+  let cookies: Cookie[];
+  try { cookies = parseCookies(String(text)); } catch { cookies = []; }
+  if (!cookies.length) return { ok: false, error: { code: 'cookies_unreadable', message: 'No cookies found in this file', status: 400 } };
+  const running = isRunning(id);
+  if (running) await addCookies(id, cookies);
+  const r = await api('POST', `/profiles/${id}/cookies`, { cookies });
+  // A profile kept on this computer has no saved state: the running browser is where they go.
+  if (!r.ok && !(running && r.error.code === 'local_only')) return r;
+  return { ok: true, data: { count: cookies.length } };
+});
+
 ipcMain.handle('folio:info', () => ({ locale: app.getLocale(), version: app.getVersion(), siteUrl: SITE_URL, platform: process.platform }));
 
 // The open workspace: live changes, plus a proxy health check every ten minutes. A change to profiles may be a

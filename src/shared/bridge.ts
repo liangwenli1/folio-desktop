@@ -31,6 +31,9 @@ export interface FolioBridge {
   openSite(path: string): Promise<void>;
   // Asks where to save a file the app made (an export) and writes it; null when the person cancels.
   saveFile(defaultName: string, content: string): Promise<string | null>;
+  // Cookie files: export asks for a file (one profile) or a folder (several); import reads JSON or cookies.txt text.
+  exportCookies(profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape'): Promise<{ saved: number; failed: { name: string; code: string }[]; path: string } | null>;
+  importCookies(id: string, text: string): Promise<{ count: number }>;
   info(): Promise<AppInfo>;
   onFocus(cb: () => void): () => void;
 

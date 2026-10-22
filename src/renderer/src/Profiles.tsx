@@ -90,6 +90,16 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     await folio.openProfile(p.id);
   }
   const stop = (p: Profile) => folio.stopProfile(p.id);
+  async function exportCookies(list: Profile[], format: 'json' | 'netscape'){
+    const r = await folio.exportCookies(list.map(p => ({ id: p.id, name: p.name, number: p.number })), format);
+    if (!r) return;
+    if (r.saved) toast(d.detail.exported(r.saved, r.path));
+    r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code))));
+  }
+  async function importCookies(p: Profile, text: string){
+    try { toast(d.detail.imported((await folio.importCookies(p.id, text)).count)); } catch (e){ fail(e); }
+  }
+
   // Frees the profile from the other computer (its browser closes there) and opens it here.
   async function takeover(p: Profile){
     try {
@@ -256,6 +266,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                   </select>
                 )}
                 <button type="button" className="bb" onClick={() => setTagging(true)}>{P.bulk.tag}</button>
+                {manager && (
+                  <select className="bb" aria-label={P.bulk.cookies} value="" onChange={e => void exportCookies(all.filter(p => sel.has(p.id)), e.target.value as 'json' | 'netscape')}>
+                    <option value="" disabled>{P.bulk.cookies}</option>
+                    <option value="json">{d.detail.json}</option><option value="netscape">{d.detail.netscape}</option>
+                  </select>
+                )}
                 {manager && <button type="button" className="bb danger" onClick={() => setConfirm(true)}>{P.bulk.trash}</button>}
                 <span className="sp" />
                 <button type="button" className="bb plain" onClick={() => setSel(new Set())}>{d.common.clearSelection}</button>
@@ -307,7 +323,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           activity={recent.entries ?? []}
           onClose={() => setDrawer(false)} onOpen={() => curProfile && void open(curProfile)} onStop={() => curProfile && void stop(curProfile)}
           onEdit={() => curProfile && onEdit(curProfile.id)} onTrash={() => curProfile && void trash([curProfile.id])}
-          canTakeOver={manager} canTrash={manager} onTakeover={() => curProfile && void takeover(curProfile)}
+          canTakeOver={manager} canTrash={manager} canExport={manager} onTakeover={() => curProfile && void takeover(curProfile)}
+          onExport={format => curProfile && void exportCookies([curProfile], format)} onImport={text => curProfile && void importCookies(curProfile, text)}
           onFix={f => curProfile && void fix(curProfile, f)}
         />
       </aside>

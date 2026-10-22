@@ -71,7 +71,7 @@ export const en = {
     emptyHint: (n: number) => `Try another search, or clear the filters to see all ${n}.`, clearFilters: 'Clear filters',
     bulk: {
       open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', department: 'Department…', noDepartment: 'No department',
-      tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete',
+      tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
       confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
@@ -98,6 +98,11 @@ export const en = {
     fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
     hostTz: 'This computer’s', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `Fingerprint of ${n}`,
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', warn: 'Warning', bad: 'Problem' },
+    storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
+    notSaved: 'Nothing saved yet. Sign-ins are saved when the browser closes.', localOnly: 'Kept on the computer that uses it; Folio holds no copy.',
+    exportCookies: 'Export cookies', importCookies: 'Import cookies', json: 'JSON', netscape: 'cookies.txt',
+    exported: (n: number, path: string) => `${profilesN(n)} exported to ${path}`, imported: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} imported`,
+    exportFailed: (name: string, why: string) => `${name}: ${why}`,
     inUse: 'In use elsewhere', away: (device: string, email: string, since: string) => `Open on ${device} (${email}) since ${since}.`,
     takeover: 'Take over', takeoverNote: 'Their browser closes. Changes made there in the last few minutes are lost.', takeoverDo: 'Take over and open'
   },
@@ -134,16 +139,18 @@ export const en = {
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy', custom: 'Set by hand',
     tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: 'Not a time zone this computer knows.', langErr: 'Use a language tag like de-DE.',
     notes: 'Notes', engineVersion: 'Engine version', owner: 'Assigned to', department: 'Department', noDepartment: 'No department',
+    sync: 'Sign-ins', syncCloud: 'Save to Folio and follow the profile', syncLocal: 'Keep on the computer that uses it',
+    syncHelp: 'Kept on one computer, sign-ins never leave it, and the profile opens signed out anywhere else.',
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.'
   },
   importer: {
     title: 'Import profiles', lead: 'One profile per row with a header row. Save Excel sheets as CSV first; up to 500 rows at a time.',
-    columns: 'Columns: name (required), group, tags (separated by |), os (windows, macos, linux), engine (chromium, firefox), proxy, timezone, language, notes.',
+    columns: 'Columns: name (required), group, tags (separated by |), os (windows, macos, linux), engine (chromium, firefox), proxy, timezone, language, notes, cookies (JSON or cookies.txt text).',
     example: 'Insert an example', file: 'Choose a file…', pasteLabel: 'CSV', ready: (n: number) => `${profilesN(n)} ready to import.`,
     problems: 'Fix these rows first:', row: (n: number) => `Row ${n}`, header: 'The first row needs a “name” column.',
-    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags of 24 characters', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', header: '' } satisfies Record<Problem | 'proxy', string>,
+    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags of 24 characters', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', cookies: 'no cookies could be read', header: '' } satisfies Record<Problem | 'proxy', string>,
     tooMany: 'Up to 500 rows at a time.', room: (free: number) => `The plan has room for ${profilesN(free)} more.`, firefox: 'Some rows use Firefox: download its engine first.',
-    submit: (n: number) => `Import ${profilesN(n)}`, steps: { proxies: 'Adding proxies…', groups: 'Creating groups…', fingerprints: (i: number, n: number) => `Making fingerprints… ${i} / ${n}`, saving: 'Saving…' },
+    submit: (n: number) => `Import ${profilesN(n)}`, steps: { proxies: 'Adding proxies…', groups: 'Creating groups…', fingerprints: (i: number, n: number) => `Making fingerprints… ${i} / ${n}`, saving: 'Saving…', cookies: (i: number, n: number) => `Importing cookies… ${i} / ${n}` },
     done: (n: number) => `${profilesN(n)} imported`
   },
   proxies: {
@@ -193,7 +200,7 @@ export const en = {
   },
   activity: {
     title: 'Activity log', sub: (days: number) => `Kept for ${days} days on this plan`, person: 'Person', everyone: 'Everyone', kind: 'Showing',
-    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', team: 'Team' },
+    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies', team: 'Team' },
     export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
     today: 'Today', yesterday: 'Yesterday', on: (device: string) => `on ${device}`,
     actions: {
@@ -210,7 +217,8 @@ export const en = {
       'member.role': (_p, x) => `made ${x.email} ${enRoles[x.role]}`, 'member.remove': (_p, x) => `removed ${x.email}; their profiles went to ${x.to}`,
       'member.leave': () => 'left the team', 'invitation.withdraw': (_p, x) => `withdrew the invitation to ${x.email}`,
       'department.create': (_p, x) => `created the department ${x.name}`, 'department.update': (_p, x) => (x.from ? `renamed the department ${x.from} to ${x.name}` : `changed who is in ${x.name}`),
-      'department.delete': (_p, x) => `deleted the department ${x.name}`
+      'department.delete': (_p, x) => `deleted the department ${x.name}`,
+      'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} of ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`
     } satisfies Record<ActivityAction, Said>
   },
   onboarding: {
@@ -237,7 +245,11 @@ export const en = {
     owner: 'The owner stays in the team and keeps their role.',
     wrong_account: 'This invitation is for a different email address.',
     email_unverified: 'Confirm your email address on the Folio website first.',
-    invitation_expired: 'This invitation has expired. Ask for a new one.'
+    invitation_expired: 'This invitation has expired. Ask for a new one.',
+    local_only: 'This profile keeps its sign-ins on the computer that uses it. Open it there to export or import cookies.',
+    cookies_unreadable: 'No cookies found in that file. Use JSON (Cookie-Editor, EditThisCookie) or cookies.txt.',
+    locked: 'This profile is open on another computer.',
+    not_found: 'Nothing has been saved for this profile yet.'
   } as Record<string, string>
 };
 
@@ -298,7 +310,7 @@ export const zh: Dict = {
     emptyHint: (n: number) => `换个关键词，或清除筛选查看全部 ${n} 个。`, clearFilters: '清除筛选',
     bulk: {
       open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', assign: '分配给…', department: '部门…', noDepartment: '无部门',
-      tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除',
+      tag: '标签', tagPh: '标签名', addTag: '加标签', removeTag: '去掉标签', trash: '删除', cookies: '导出 Cookie…',
       confirm: (n: number) => `把 ${n} 个环境移到回收站？`, confirmNote: '运行中的会先停止，之后可以撤销。', doTrash: '移到回收站'
     },
     done: {
@@ -325,6 +337,11 @@ export const zh: Dict = {
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
     hostTz: '跟随本机', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `${n} 的指纹`,
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', warn: '警告', bad: '问题' },
+    storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
+    notSaved: '还没有保存过。浏览器关闭时会保存登录状态。', localOnly: '只存在使用它的那台电脑上，Folio 不保留副本。',
+    exportCookies: '导出 Cookie', importCookies: '导入 Cookie', json: 'JSON', netscape: 'cookies.txt',
+    exported: (n: number, path: string) => `已导出 ${n} 个环境到 ${path}`, imported: (n: number) => `已导入 ${n} 个 Cookie`,
+    exportFailed: (name: string, why: string) => `${name}：${why}`,
     inUse: '正在别处使用', away: (device: string, email: string, since: string) => `${since} 起在 ${device}（${email}）上打开。`,
     takeover: '收回', takeoverNote: '对方的浏览器会被关闭，最近几分钟内在那边的改动会丢失。', takeoverDo: '收回并打开'
   },
@@ -361,16 +378,18 @@ export const zh: Dict = {
     create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理', custom: '手动设置',
     tzPh: 'Europe/Berlin', langPh: 'de-DE', tzErr: '这台电脑不认识这个时区。', langErr: '请用 de-DE 这样的语言代码。',
     notes: '备注', engineVersion: '内核版本', owner: '负责人', department: '部门', noDepartment: '无部门',
+    sync: '登录状态', syncCloud: '保存到 Folio，跟着环境走', syncLocal: '只存在使用它的电脑上',
+    syncHelp: '只存本机时，登录状态不会离开那台电脑；在别的电脑上打开会是未登录状态。',
     stale: '你编辑期间别人改过这个环境。再次保存会覆盖他的修改，取消则保留他的修改。'
   },
   importer: {
     title: '导入环境', lead: '每行一个环境，第一行是表头。Excel 表格请先另存为 CSV；每次最多 500 行。',
-    columns: '列：name 或 名称（必填）、group 分组、tags 标签（用 | 分隔）、os 系统（windows、macos、linux）、engine 内核（chromium、firefox）、proxy 代理、timezone 时区、language 语言、notes 备注。',
+    columns: '列：name 或 名称（必填）、group 分组、tags 标签（用 | 分隔）、os 系统（windows、macos、linux）、engine 内核（chromium、firefox）、proxy 代理、timezone 时区、language 语言、notes 备注、cookies（JSON 或 cookies.txt 文本）。',
     example: '填入示例', file: '选择文件…', pasteLabel: 'CSV', ready: (n: number) => `${n} 个环境可以导入。`,
     problems: '请先修正这些行：', row: (n: number) => `第 ${n} 行`, header: '第一行需要有「name」或「名称」列。',
-    errs: { name: '名称为空或太长', os: '无法识别的系统', engine: '无法识别的内核', tags: '最多 10 个标签，每个不超过 24 个字', timezone: '无法识别的时区', language: '不是有效的语言代码', proxy: '代理地址无法识别', header: '' },
+    errs: { name: '名称为空或太长', os: '无法识别的系统', engine: '无法识别的内核', tags: '最多 10 个标签，每个不超过 24 个字', timezone: '无法识别的时区', language: '不是有效的语言代码', proxy: '代理地址无法识别', cookies: '读不出 Cookie', header: '' },
     tooMany: '每次最多 500 行。', room: (free: number) => `套餐还能放 ${free} 个环境。`, firefox: '有的行用了 Firefox，请先下载 Firefox 内核。',
-    submit: (n: number) => `导入 ${n} 个环境`, steps: { proxies: '正在添加代理…', groups: '正在创建分组…', fingerprints: (i: number, n: number) => `正在生成指纹… ${i} / ${n}`, saving: '正在保存…' },
+    submit: (n: number) => `导入 ${n} 个环境`, steps: { proxies: '正在添加代理…', groups: '正在创建分组…', fingerprints: (i: number, n: number) => `正在生成指纹… ${i} / ${n}`, saving: '正在保存…', cookies: (i: number, n: number) => `正在导入 Cookie… ${i} / ${n}` },
     done: (n: number) => `已导入 ${n} 个环境`
   },
   proxies: {
@@ -420,7 +439,7 @@ export const zh: Dict = {
   },
   activity: {
     title: '操作日志', sub: (days: number) => `当前套餐保留 ${days} 天`, person: '成员', everyone: '所有人', kind: '显示',
-    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', team: '团队' },
+    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie', team: '团队' },
     export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '还没有记录。', someone: '有人', recent: '最近活动',
     today: '今天', yesterday: '昨天', on: (device: string) => `在 ${device} 上`,
     actions: {
@@ -437,7 +456,8 @@ export const zh: Dict = {
       'member.role': (_p, x) => `把 ${x.email} 设为${zhRoles[x.role]}`, 'member.remove': (_p, x) => `移除了 ${x.email}，其环境交给了 ${x.to}`,
       'member.leave': () => '退出了团队', 'invitation.withdraw': (_p, x) => `撤回了给 ${x.email} 的邀请`,
       'department.create': (_p, x) => `创建了部门「${x.name}」`, 'department.update': (_p, x) => (x.from ? `把部门「${x.from}」改名为「${x.name}」` : `调整了「${x.name}」的成员`),
-      'department.delete': (_p, x) => `删除了部门「${x.name}」`
+      'department.delete': (_p, x) => `删除了部门「${x.name}」`,
+      'cookies.export': (p, x) => `导出了 ${p} 的 ${x.count} 个 Cookie`, 'cookies.import': (p, x) => `向 ${p} 导入了 ${x.count} 个 Cookie`
     }
   },
   onboarding: {
@@ -464,7 +484,11 @@ export const zh: Dict = {
     owner: '所有者始终在团队中，角色不能更改。',
     wrong_account: '这个邀请是发给另一个邮箱的。',
     email_unverified: '请先在 Folio 官网验证邮箱。',
-    invitation_expired: '这个邀请已过期，请让对方重新邀请。'
+    invitation_expired: '这个邀请已过期，请让对方重新邀请。',
+    local_only: '这个环境的登录状态只存在使用它的电脑上，请在那台电脑上打开后再导出或导入 Cookie。',
+    cookies_unreadable: '文件里没有找到 Cookie。请使用 JSON（Cookie-Editor、EditThisCookie）或 cookies.txt。',
+    locked: '这个环境正在另一台电脑上使用。',
+    not_found: '这个环境还没有保存过登录状态。'
   }
 };
 

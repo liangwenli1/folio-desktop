@@ -7,7 +7,7 @@ import { folio, isApiError, type Department, type Group, type Invitation, type M
 
 type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'trash' | 'restore' | 'purge';
-export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes'>>;
+export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
 export interface WorkspaceData {

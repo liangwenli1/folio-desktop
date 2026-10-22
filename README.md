@@ -17,7 +17,7 @@ Electron, React, Vite (electron-vite), TypeScript. Both browser engines are driv
 5. `forwarder.ts` starts a local HTTP proxy that forwards to the upstream (HTTP, HTTPS or SOCKS5, with a password if there is one), because neither engine accepts proxy passwords itself.
 6. Sign-in state (`sync.ts`): when the server's package is not the one this computer's profile folder already matches, the engine is started offline (no window, a proxy nobody listens on, every page answered locally) to write it into the folder.
 7. Chromium (fingerprint-chromium) starts with only Folio's own switches; Firefox (Camoufox) gets the stored config. Camoufox also needs a 1.5 MB model on first use (`fingerprint.ts`).
-8. While the browser runs, the lock is renewed every 30 seconds and cookies are uploaded every 5 minutes. Browsers exit with their last window, so when it closes, however it closes, the engine is started offline again to read cookies, local storage and IndexedDB of every site the profile has used, the package is uploaded and the lock released. A profile taken over from another computer closes without uploading.
+8. While the browser runs, the lock is renewed every 30 seconds and cookies are uploaded every 5 minutes. Profiles kept on one computer (`syncMode: 'local'`) skip the download and the uploads. Browsers exit with their last window, so when it closes, however it closes, the engine is started offline again to read cookies, local storage and IndexedDB of every site the profile has used, the package is uploaded and the lock released. A profile taken over from another computer closes without uploading.
 
 Live changes from other devices come over SSE (`changes.ts`).
 
@@ -30,6 +30,8 @@ The renderer (`src/renderer/src`) has five working pages; the other sidebar entr
 - **Team** (`Team.tsx`): people and roles, invitations (emailed, with a link to copy), removing someone (their profiles go to a chosen person), leaving, and departments on Company. Invitations to the account show in the workspace menu.
 - **Activity log** (`Activity.tsx`): who did what, on which computer, grouped by day and filtered by person or kind; Company exports it as CSV. Each profile's details show its last five entries.
 - **Trash** (`Trash.tsx`): restore (within the plan) and delete forever.
+
+Cookie files (`src/shared/cookies.ts`): import reads Cookie-Editor or EditThisCookie JSON, Playwright cookies or storage states, and Netscape cookies.txt; export writes Cookie-Editor JSON or cookies.txt. Exports go through the server (owners and admins, logged); a profile running on this computer saves its cookies first. Imports go into the saved state, and into the browser too when the profile runs here. The spreadsheet import takes a `cookies` column.
 
 Profile folders live under `<userData>/profiles/<account id>/<profile id>/`. When the account is taken out of a workspace, the server ends its change stream with a `removed` event: running profiles of that workspace close without saving and their folders are deleted. Folders of workspaces the account left while this computer was off are removed the next time a workspace opens.
 

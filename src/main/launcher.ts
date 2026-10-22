@@ -16,9 +16,10 @@ import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
+import type { Cookie } from '../shared/cookies';
 
 interface LaunchProfile {
-  id: string; workspaceId: string; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
+  id: string; workspaceId: string; syncMode: 'cloud' | 'local'; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
   timezoneOverride: string | null; localeOverride: string | null;
 }
 interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null }
@@ -159,7 +160,8 @@ export async function open(id: string){
     await writeLocal(dir, local);
     let saved: StorageState | null = null;
     // The server's package wins when it is not the one this folder already matches (it was used elsewhere).
-    if (lock.data.data){
+    // Profiles kept on one computer have none.
+    if (lock.data.data && profile.syncMode === 'cloud'){
       const pkg = await download(id);
       saved = pkg.state;
       if (pkg.sha256 !== local.sha256){
@@ -214,7 +216,7 @@ export const verify = (ids?: string[]) => (ids ?? [...running.keys()]).filter(id
 // Cookies only: reading other sites' storage would need the engine to load them while the user works.
 async function autosave(id: string){
   const r = running.get(id);
-  if (!r || r.lost) return;
+  if (!r || r.lost || r.profile.syncMode === 'local') return;
   try {
     const result = await upload(id, { cookies: await r.ctx.cookies(), origins: r.saved?.origins ?? [] }, r.local);
     if (result === 'lost'){ r.lost = 'lock_lost'; await r.ctx.close().catch(() => {}); }
@@ -229,7 +231,8 @@ async function finish(id: string){
   await r.fwd.close();
   // A profile of a workspace the account left just stops; its folder is deleted by discard().
   let error = r.lost === 'lock_lost' ? 'lock_lost' : undefined;
-  if (!r.lost){
+  if (!r.lost && r.profile.syncMode === 'local') await api('DELETE', `/profiles/${id}/lock`);
+  else if (!r.lost){
     r.status = { id, state: 'saving' };
     notify(r.status);
     try {
@@ -245,6 +248,14 @@ async function finish(id: string){
   }
   running.delete(id);
   notify(error ? { id, state: 'error', error } : { id, state: 'stopped' });
+}
+
+// Saves the running profile's cookies now (before exporting them), when it runs on this computer.
+export const saveNow = (id: string) => autosave(id);
+export const isRunning = (id: string) => running.has(id);
+// Adds imported cookies to the browser, when the profile runs on this computer.
+export async function addCookies(id: string, cookies: Cookie[]){
+  await running.get(id)?.ctx.addCookies(cookies);
 }
 
 // Resolves once the state is saved and the lock released.

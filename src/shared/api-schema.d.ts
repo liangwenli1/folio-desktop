@@ -1698,6 +1698,8 @@ export interface paths {
                                 updatedAt: string;
                                 deletedAt: string | null;
                                 version: number;
+                                /** @enum {string} */
+                                syncMode: "cloud" | "local";
                                 data: {
                                     version: number;
                                     size: number;
@@ -1809,6 +1811,8 @@ export interface paths {
                             updatedAt: string;
                             deletedAt: string | null;
                             version: number;
+                            /** @enum {string} */
+                            syncMode: "cloud" | "local";
                             data: {
                                 version: number;
                                 size: number;
@@ -1936,6 +1940,8 @@ export interface paths {
                                 updatedAt: string;
                                 deletedAt: string | null;
                                 version: number;
+                                /** @enum {string} */
+                                syncMode: "cloud" | "local";
                                 data: {
                                     version: number;
                                     size: number;
@@ -2017,6 +2023,8 @@ export interface paths {
                         timezoneOverride?: string | null;
                         localeOverride?: string | null;
                         notes?: string | null;
+                        /** @enum {string} */
+                        syncMode?: "cloud" | "local";
                     };
                 };
             };
@@ -2063,6 +2071,8 @@ export interface paths {
                             updatedAt: string;
                             deletedAt: string | null;
                             version: number;
+                            /** @enum {string} */
+                            syncMode: "cloud" | "local";
                             data: {
                                 version: number;
                                 size: number;
@@ -2202,6 +2212,8 @@ export interface paths {
                                 updatedAt: string;
                                 deletedAt: string | null;
                                 version: number;
+                                /** @enum {string} */
+                                syncMode: "cloud" | "local";
                                 data: {
                                     version: number;
                                     size: number;
@@ -2961,6 +2973,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/profiles/{id}/cookies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            cookies: {
+                                name: string;
+                                value: string;
+                                domain: string;
+                                /** @default / */
+                                path: string;
+                                /** @default -1 */
+                                expires: number;
+                                /** @default false */
+                                httpOnly: boolean;
+                                /** @default false */
+                                secure: boolean;
+                                /**
+                                 * @default Lax
+                                 * @enum {string}
+                                 */
+                                sameSite: "Strict" | "Lax" | "None";
+                            }[];
+                            savedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        cookies: {
+                            name: string;
+                            value: string;
+                            domain: string;
+                            /** @default / */
+                            path?: string;
+                            /** @default -1 */
+                            expires?: number;
+                            /** @default false */
+                            httpOnly?: boolean;
+                            /** @default false */
+                            secure?: boolean;
+                            /**
+                             * @default Lax
+                             * @enum {string}
+                             */
+                            sameSite?: "Strict" | "Lax" | "None";
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            version: number;
+                            size: number;
+                            cookies: number;
+                            storageBytes: number;
+                            origins: number;
+                            savedAt: string;
+                            deviceName: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{id}/members": {
         parameters: {
             query?: never;
@@ -3570,7 +3691,7 @@ export interface paths {
                 query?: {
                     profileId?: string;
                     actorId?: string;
-                    kind?: "open" | "profiles" | "trash" | "proxies" | "team";
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team";
                     before?: number;
                     limit?: number;
                 };
@@ -3595,7 +3716,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -3631,7 +3752,7 @@ export interface paths {
                 query?: {
                     profileId?: string;
                     actorId?: string;
-                    kind?: "open" | "profiles" | "trash" | "proxies" | "team";
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team";
                 };
                 header?: never;
                 path: {

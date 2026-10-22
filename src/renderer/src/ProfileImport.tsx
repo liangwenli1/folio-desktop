@@ -61,7 +61,13 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
         });
       }
       setStep(I.steps.saving);
-      await folio.api('POST', `/workspaces/${ws.id}/profiles/bulk`, { profiles });
+      const created = (await folio.api<{ profiles: { id: string }[] }>('POST', `/workspaces/${ws.id}/profiles/bulk`, { profiles })).profiles;
+      // Created in the order sent, so row i is profile i.
+      for (const [i, r] of rows.entries()){
+        if (!r.cookies) continue;
+        setStep(I.steps.cookies(i + 1, rows.length));
+        await folio.importCookies(created[i].id, r.cookies);
+      }
       data.refresh('profiles', 'groups');
       toast(I.done(profiles.length));
       onClose();

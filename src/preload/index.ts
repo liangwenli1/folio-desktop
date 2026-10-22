@@ -21,6 +21,8 @@ const bridge: FolioBridge = {
   api: (method, path, body) => unwrap(ipcRenderer.invoke('folio:api', method, path, body)),
   openSite: path => ipcRenderer.invoke('folio:openSite', path),
   saveFile: (name, content) => ipcRenderer.invoke('folio:saveFile', name, content),
+  exportCookies: (profiles, format) => ipcRenderer.invoke('folio:exportCookies', profiles, format),
+  importCookies: (id, text) => unwrap(ipcRenderer.invoke('folio:importCookies', id, text)),
   info: () => ipcRenderer.invoke('folio:info'),
   onFocus: cb => listen('app:focus', cb),
 

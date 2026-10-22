@@ -41,6 +41,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [lang, setLang] = useState(profile?.localeOverride ?? '');
   const [langMode, setLangMode] = useState(profile?.localeOverride ? 'custom' : 'follow');
   const [notes, setNotes] = useState(profile?.notes ?? '');
+  const [syncMode, setSyncMode] = useState(profile?.syncMode ?? 'cloud');
   const [kernelVersion, setKernelVersion] = useState(profile?.kernelVersion ?? '');
   const [fp, setFp] = useState<FpState>(profile ? { state: 'ready', fingerprint: profile.fingerprint, kernelVersion: profile.kernelVersion } : { state: 'loading' });
   const [regenerated, setRegenerated] = useState(false);
@@ -111,7 +112,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
       };
       if (profile && base){
         const ok = await data.patch(base, {
-          ...common, notes: notes.trim() || null, kernelVersion, ...(regenerated ? { fingerprint: fp.fingerprint } : {}),
+          ...common, notes: notes.trim() || null, kernelVersion, syncMode, ...(regenerated ? { fingerprint: fp.fingerprint } : {}),
           timezoneOverride: tzMode === 'custom' ? tz.trim() : null, localeOverride: langMode === 'custom' ? lang.trim() : null
         });
         if (!ok){ setBase(profile); setError(f.stale); return; }
@@ -250,6 +251,13 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 {!versions.some(k => k.version === kernelVersion) && <option value={kernelVersion}>{kernelVersion}</option>}
                 {versions.map(k => <option key={k.version} value={k.version}>{`${kernel === 'chromium' ? 'Chromium' : 'Firefox'} ${k.version}`}</option>)}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="pf-sync">{f.sync}</label>
+              <select id="pf-sync" value={syncMode} onChange={e => setSyncMode(e.target.value as 'cloud' | 'local')}>
+                <option value="cloud">{f.syncCloud}</option><option value="local">{f.syncLocal}</option>
+              </select>
+              <p className="hint">{f.syncHelp}</p>
             </div>
             <div className="field">
               <label htmlFor="pf-notes">{f.notes}</label>

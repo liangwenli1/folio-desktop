@@ -10,8 +10,8 @@ interface Props {
   d: Dict; lang: Lang; p: Profile | null; h: Health | null; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
   // The assigned person's email, when there is one.
   owner: string | null; activity: ActivityEntry[];
-  busy: string | null; canTakeOver: boolean; canTrash: boolean;
-  onClose(): void; onTakeover(): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
+  busy: string | null; canTakeOver: boolean; canTrash: boolean; canExport: boolean;
+  onClose(): void; onTakeover(): void; onExport(format: 'json' | 'netscape'): void; onImport(text: string): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
 }
 
 // Open on another computer (this computer's own runs show up as a status instead).
@@ -19,6 +19,7 @@ export const elsewhere = (p: Profile) => (p.lock && !p.lock.self ? p.lock : null
 export const busyLabel = (d: Dict, state: string) => (state === 'restoring' ? d.profiles.restoring : state === 'saving' ? d.profiles.saving : d.profiles.starting);
 
 const IC = { ok: '✓', warn: '!', bad: '×' };
+const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 const two = (n: number) => String(n).padStart(2, '0');
 const pad32 = (s: string) => `${s}${'<'.repeat(32)}`.slice(0, 32);
 const ascii = (s: string) => s.normalize('NFD').toUpperCase().replace(/[^A-Z]/g, '');
@@ -58,7 +59,7 @@ function useGuilloche(dep: unknown){
   return ref;
 }
 
-export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, activity, now, busy, canTakeOver, canTrash, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
   const canvas = useGuilloche(p?.id);
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
@@ -172,6 +173,32 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
       <section aria-label={d.detail.checksTitle}>
         <h3 className="sec-t">{d.detail.checksTitle}</h3>
         <div className="check">{h.checks.map(row)}</div>
+      </section>
+      <section aria-label={d.detail.storage} data-testid="storage">
+        <h3 className="sec-t">{d.detail.storage}</h3>
+        {p.syncMode === 'local' ? <p className="hint">{d.detail.localOnly}</p> : p.data ? <>
+          <div className="store">
+            <div><b>{p.data.cookies}</b><span>{d.detail.cookies}</span></div>
+            <div><b>{size(p.data.storageBytes)}</b><span>{d.detail.siteData}</span></div>
+            <div><b>{p.data.origins}</b><span>{d.detail.sites}</span></div>
+          </div>
+          <p className="hint">{d.detail.savedOn(`${dayLabel(p.data.savedAt, d, lang)} ${time(p.data.savedAt, lang)}`, p.data.deviceName)}</p>
+        </> : <p className="hint">{d.detail.notSaved}</p>}
+        <div className="d-actions tight">
+          {canExport && p.data && p.syncMode === 'cloud' && <>
+            <span className="hint">{d.detail.exportCookies}</span>
+            <button type="button" className="btn btn-xs btn-line" onClick={() => onExport('json')}>{d.detail.json}</button>
+            <button type="button" className="btn btn-xs btn-line" onClick={() => onExport('netscape')}>{d.detail.netscape}</button>
+            <span className="sp" />
+          </>}
+          <label className="btn btn-xs btn-ghost file-btn">{d.detail.importCookies}
+            <input type="file" accept=".json,.txt,text/plain,application/json" onChange={async e => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) onImport(await file.text());
+            }} />
+          </label>
+        </div>
       </section>
       {activity.length > 0 && (
         <section aria-label={d.activity.recent}>
