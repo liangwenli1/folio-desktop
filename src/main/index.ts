@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, safeStorage, shell } from 'electron';
-import { join } from 'node:path';
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
+import { writeFile } from 'node:fs/promises';
+import { basename, join } from 'node:path';
 import type { KernelKind, Method, Os } from '../shared/bridge';
 import { forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
@@ -45,6 +46,13 @@ ipcMain.handle('folio:hasSession', () => !!getToken());
 ipcMain.handle('folio:api', (_e, method: Method, path: string, body?: unknown) => forRenderer(method, String(path), body));
 ipcMain.handle('folio:openSite', async (_e, path: string) => {
   if (typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')) await shell.openExternal(SITE_URL + path);
+});
+ipcMain.handle('folio:saveFile', async (e, name: string, content: string) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const r = await (win ? dialog.showSaveDialog(win, { defaultPath: join(app.getPath('downloads'), basename(String(name))) }) : dialog.showSaveDialog({ defaultPath: String(name) }));
+  if (r.canceled || !r.filePath) return null;
+  await writeFile(r.filePath, String(content));
+  return r.filePath;
 });
 ipcMain.handle('folio:info', () => ({ locale: app.getLocale(), version: app.getVersion(), siteUrl: SITE_URL, platform: process.platform }));
 

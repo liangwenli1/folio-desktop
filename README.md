@@ -23,11 +23,12 @@ Live changes from other devices come over SSE (`changes.ts`).
 
 ## Workbench screens
 
-The renderer (`src/renderer/src`) has four working pages; the other sidebar entries arrive in later phases. What a person sees depends on their role: members get their own profiles (and, on Company, their departments'), no proxy library, no Trash, and cannot delete or assign.
+The renderer (`src/renderer/src`) has five working pages; the other sidebar entries arrive in later phases. What a person sees depends on their role: members get their own profiles (and, on Company, their departments'), no proxy library, no Trash, and cannot delete or assign.
 
 - **Profiles** (`Profiles.tsx`): summary strip, search, filters, sort, bulk actions (open, stop, move, tag, proxy, Trash with undo), the getting-started steps, and the detail drawer (`ProfileDetail.tsx`) with the passport card and consistency check. `ProfileForm.tsx` creates and edits profiles; `ProfileImport.tsx` imports a spreadsheet (`csv.ts`).
 - **Proxies** (`Proxies.tsx`): the proxy library with add, edit, paste import, checks and backup lines.
 - **Team** (`Team.tsx`): people and roles, invitations (emailed, with a link to copy), removing someone (their profiles go to a chosen person), leaving, and departments on Company. Invitations to the account show in the workspace menu.
+- **Activity log** (`Activity.tsx`): who did what, on which computer, grouped by day and filtered by person or kind; Company exports it as CSV. Each profile's details show its last five entries.
 - **Trash** (`Trash.tsx`): restore (within the plan) and delete forever.
 
 Profile folders live under `<userData>/profiles/<account id>/<profile id>/`. When the account is taken out of a workspace, the server ends its change stream with a `removed` event: running profiles of that workspace close without saving and their folders are deleted. Folders of workspaces the account left while this computer was off are removed the next time a workspace opens.

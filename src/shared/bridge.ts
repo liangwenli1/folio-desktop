@@ -29,6 +29,8 @@ export interface FolioBridge {
   hasSession(): Promise<boolean>;
   api<T>(method: Method, path: string, body?: unknown): Promise<T>;
   openSite(path: string): Promise<void>;
+  // Asks where to save a file the app made (an export) and writes it; null when the person cancels.
+  saveFile(defaultName: string, content: string): Promise<string | null>;
   info(): Promise<AppInfo>;
   onFocus(cb: () => void): () => void;
 

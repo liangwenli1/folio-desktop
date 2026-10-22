@@ -366,3 +366,15 @@ html[lang="zh"] .menu-t{font-family:var(--f-body);letter-spacing:.06em;font-size
 .invite-item{display:grid;gap:6px;padding:8px 10px;border-radius:6px;background:var(--hover)}
 .invite-item > span:first-child{display:grid}
 .invite-acts{display:flex;gap:6px}
+
+/* activity */
+.log{display:grid;gap:18px;padding:16px var(--gx) 24px}
+.log > .btn{justify-self:start}
+.log section{display:grid;gap:8px}
+.log-list{display:grid;margin:0;padding:0;list-style:none;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.log-list li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13px}
+.log-list li:last-child{border-bottom:0}
+.log-list time{font-family:var(--f-data);font-size:11px;line-height:1.9;color:var(--ink-2)}
+.acts{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.acts li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;font-size:12.5px}
+.acts time{font-family:var(--f-data);font-size:10.5px;line-height:1.9;color:var(--ink-2);white-space:nowrap}

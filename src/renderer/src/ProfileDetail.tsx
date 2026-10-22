@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
-import type { Profile } from './api';
+import type { ActivityEntry, Profile } from './api';
+import { dayLabel, describe, time } from './Activity';
 import { engineName, fingerprintFacts, type Check, type Fix, type Health } from './checks';
 import { day, runTime, type Dict, type Lang } from './i18n';
 import { Icon, percent } from './ui';
@@ -8,7 +9,7 @@ import { Icon, percent } from './ui';
 interface Props {
   d: Dict; lang: Lang; p: Profile | null; h: Health | null; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
   // The assigned person's email, when there is one.
-  owner: string | null;
+  owner: string | null; activity: ActivityEntry[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean;
   onClose(): void; onTakeover(): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
 }
@@ -57,7 +58,7 @@ function useGuilloche(dep: unknown){
   return ref;
 }
 
-export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, now, busy, canTakeOver, canTrash, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, activity, now, busy, canTakeOver, canTrash, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover }: Props){
   const canvas = useGuilloche(p?.id);
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
@@ -172,6 +173,14 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, n
         <h3 className="sec-t">{d.detail.checksTitle}</h3>
         <div className="check">{h.checks.map(row)}</div>
       </section>
+      {activity.length > 0 && (
+        <section aria-label={d.activity.recent}>
+          <h3 className="sec-t">{d.activity.recent}</h3>
+          <ol className="acts" data-testid="recent">
+            {activity.map(e => <li key={e.seq}><time>{dayLabel(e.at, d, lang)} {time(e.at, lang)}</time><span>{describe(d, e)}</span></li>)}
+          </ol>
+        </section>
+      )}
       {p.notes && <section aria-label={d.detail.notes}><h3 className="sec-t">{d.detail.notes}</h3><p className="notes">{p.notes}</p></section>}
     </>
   );

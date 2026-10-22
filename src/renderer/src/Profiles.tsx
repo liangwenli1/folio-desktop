@@ -4,6 +4,7 @@ import { engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { ago, errorText, runTime, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
+import { useActivity } from './Activity';
 import { Icon, percent, useNow, useToast } from './ui';
 
 export type GroupFilter = 'all' | 'none' | string;
@@ -78,6 +79,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const ids = [...sel].filter(id => all.some(p => p.id === id));
   const shownSel = list.filter(p => sel.has(p.id)).length;
   const curProfile = all.find(p => p.id === cur) ?? null;
+  const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 5, !!cur);
   const filtered = group !== 'all' || status !== 'all' || !!q;
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
@@ -302,6 +304,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           progress={curProfile ? data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)] : undefined}
           group={curProfile ? groupLabel(curProfile) : ''}
           owner={curProfile?.ownerId ? email.get(curProfile.ownerId) ?? null : null}
+          activity={recent.entries ?? []}
           onClose={() => setDrawer(false)} onOpen={() => curProfile && void open(curProfile)} onStop={() => curProfile && void stop(curProfile)}
           onEdit={() => curProfile && onEdit(curProfile.id)} onTrash={() => curProfile && void trash([curProfile.id])}
           canTakeOver={manager} canTrash={manager} onTakeover={() => curProfile && void takeover(curProfile)}

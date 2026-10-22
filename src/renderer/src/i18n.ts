@@ -1,12 +1,20 @@
 import type { Problem } from './csv';
 import type { CheckId } from './checks';
+import type { ActivityAction } from './api';
 
 export type Lang = 'en' | 'zh';
 type CheckText = { t: (x: CheckVars) => string; d: (x: CheckVars) => string };
+// Activity entries: who did it comes first; `p` is the profile ("Shop-07 #0007"), `x` the entry's details.
+type Said = (p: string, x: Record<string, any>) => string;
 export interface CheckVars { ms: number; host: string; city: string; tz: string; set: string; setLang: string; lang: string; country: string; version: string; latest: string; size: string; kernel: string }
 
 const profilesN = (n: number) => (n === 1 ? '1 profile' : `${n} profiles`);
 const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
+
+const enFields: Record<string, string> = { name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'owner', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
+const enRoles: Record<string, string> = { admin: 'an admin', member: 'a member', owner: 'the owner' };
+const zhFields: Record<string, string> = { name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
+const zhRoles: Record<string, string> = { admin: '管理员', member: '成员', owner: '所有者' };
 
 export const en = {
   login: {
@@ -182,6 +190,28 @@ export const en = {
     deptHelp: 'Members see the profiles of their departments as well as their own.', deptCompany: 'Departments come with the Company plan.',
     deptMembers: 'Members', deptDelete: 'Delete', deptDeleteConfirm: (n: string) => `Delete “${n}”? Its profiles stay, without a department.`, deptProfiles: (n: number) => profilesN(n),
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
+  },
+  activity: {
+    title: 'Activity log', sub: (days: number) => `Kept for ${days} days on this plan`, person: 'Person', everyone: 'Everyone', kind: 'Showing',
+    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', team: 'Team' },
+    export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
+    today: 'Today', yesterday: 'Yesterday', on: (device: string) => `on ${device}`,
+    actions: {
+      'profile.create': p => `created ${p}`, 'profile.update': (p, x) => `changed the ${x.fields?.map((f: string) => enFields[f] ?? f).join(', ')} of ${p}`,
+      'profile.move': (p, x) => (x.group ? `moved ${p} to ${x.group}` : `took ${p} out of its group`), 'profile.tag': (p, x) => `tagged ${p} “${x.tag}”`,
+      'profile.untag': (p, x) => `removed the tag “${x.tag}” from ${p}`, 'profile.set-proxy': (p, x) => (x.proxy ? `set the proxy of ${p} to ${x.proxy}` : `removed the proxy of ${p}`),
+      'profile.assign': (p, x) => (x.to ? `assigned ${p} to ${x.to}` : `unassigned ${p}`), 'profile.set-department': (p, x) => (x.department ? `put ${p} in ${x.department}` : `took ${p} out of its department`),
+      'profile.trash': p => `moved ${p} to the Trash`, 'profile.restore': p => `restored ${p}`, 'profile.purge': p => `deleted ${p} for good`,
+      'profile.open': p => `opened ${p}`, 'profile.close': p => `closed ${p}`, 'profile.takeover': (p, x) => `took over ${p} from ${x.from ?? 'another computer'}`,
+      'proxy.create': (_p, x) => `added the proxy ${x.name}`, 'proxy.import': (_p, x) => `imported ${x.added} ${x.added === 1 ? 'proxy' : 'proxies'}`,
+      'proxy.update': (_p, x) => `changed the proxy ${x.name}`, 'proxy.delete': (_p, x) => `deleted the proxy ${x.name}`,
+      'group.create': (_p, x) => `created the group ${x.name}`, 'group.rename': (_p, x) => `renamed the group ${x.from} to ${x.name}`, 'group.delete': (_p, x) => `deleted the group ${x.name}`,
+      'member.invite': (_p, x) => `invited ${x.email} as ${enRoles[x.role]}`, 'member.join': (_p, x) => `joined as ${enRoles[x.role]}`,
+      'member.role': (_p, x) => `made ${x.email} ${enRoles[x.role]}`, 'member.remove': (_p, x) => `removed ${x.email}; their profiles went to ${x.to}`,
+      'member.leave': () => 'left the team', 'invitation.withdraw': (_p, x) => `withdrew the invitation to ${x.email}`,
+      'department.create': (_p, x) => `created the department ${x.name}`, 'department.update': (_p, x) => (x.from ? `renamed the department ${x.from} to ${x.name}` : `changed who is in ${x.name}`),
+      'department.delete': (_p, x) => `deleted the department ${x.name}`
+    } satisfies Record<ActivityAction, Said>
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
@@ -387,6 +417,28 @@ export const zh: Dict = {
     deptHelp: '成员除了自己的环境，还能看到所在部门的环境。', deptCompany: '部门功能属于公司版。',
     deptMembers: '成员', deptDelete: '删除', deptDeleteConfirm: (n: string) => `删除「${n}」？它的环境会保留，变为无部门。`, deptProfiles: (n: number) => `${n} 个环境`,
     invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请你成为${role}`
+  },
+  activity: {
+    title: '操作日志', sub: (days: number) => `当前套餐保留 ${days} 天`, person: '成员', everyone: '所有人', kind: '显示',
+    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', team: '团队' },
+    export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '还没有记录。', someone: '有人', recent: '最近活动',
+    today: '今天', yesterday: '昨天', on: (device: string) => `在 ${device} 上`,
+    actions: {
+      'profile.create': p => `创建了 ${p}`, 'profile.update': (p, x) => `修改了 ${p} 的${x.fields?.map((f: string) => zhFields[f] ?? f).join('、')}`,
+      'profile.move': (p, x) => (x.group ? `把 ${p} 移到了「${x.group}」` : `把 ${p} 移出了分组`), 'profile.tag': (p, x) => `给 ${p} 加了标签「${x.tag}」`,
+      'profile.untag': (p, x) => `去掉了 ${p} 的标签「${x.tag}」`, 'profile.set-proxy': (p, x) => (x.proxy ? `把 ${p} 的代理改成了 ${x.proxy}` : `去掉了 ${p} 的代理`),
+      'profile.assign': (p, x) => (x.to ? `把 ${p} 分配给了 ${x.to}` : `取消了 ${p} 的负责人`), 'profile.set-department': (p, x) => (x.department ? `把 ${p} 划到了「${x.department}」` : `把 ${p} 移出了部门`),
+      'profile.trash': p => `把 ${p} 移到了回收站`, 'profile.restore': p => `恢复了 ${p}`, 'profile.purge': p => `彻底删除了 ${p}`,
+      'profile.open': p => `打开了 ${p}`, 'profile.close': p => `关闭了 ${p}`, 'profile.takeover': (p, x) => `从 ${x.from ?? '另一台电脑'} 收回了 ${p}`,
+      'proxy.create': (_p, x) => `添加了代理 ${x.name}`, 'proxy.import': (_p, x) => `导入了 ${x.added} 个代理`,
+      'proxy.update': (_p, x) => `修改了代理 ${x.name}`, 'proxy.delete': (_p, x) => `删除了代理 ${x.name}`,
+      'group.create': (_p, x) => `创建了分组「${x.name}」`, 'group.rename': (_p, x) => `把分组「${x.from}」改名为「${x.name}」`, 'group.delete': (_p, x) => `删除了分组「${x.name}」`,
+      'member.invite': (_p, x) => `邀请 ${x.email} 成为${zhRoles[x.role]}`, 'member.join': (_p, x) => `以${zhRoles[x.role]}身份加入`,
+      'member.role': (_p, x) => `把 ${x.email} 设为${zhRoles[x.role]}`, 'member.remove': (_p, x) => `移除了 ${x.email}，其环境交给了 ${x.to}`,
+      'member.leave': () => '退出了团队', 'invitation.withdraw': (_p, x) => `撤回了给 ${x.email} 的邀请`,
+      'department.create': (_p, x) => `创建了部门「${x.name}」`, 'department.update': (_p, x) => (x.from ? `把部门「${x.from}」改名为「${x.name}」` : `调整了「${x.name}」的成员`),
+      'department.delete': (_p, x) => `删除了部门「${x.name}」`
+    }
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟配好第一个环境', hide: '隐藏',

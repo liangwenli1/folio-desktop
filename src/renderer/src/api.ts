@@ -21,5 +21,7 @@ export type Member = Ok<'/workspaces/{id}/members', 'get'>['members'][number];
 export type Invitation = Ok<'/workspaces/{id}/invitations', 'get'>['invitations'][number];
 export type MyInvitation = Ok<'/me/invitations', 'get'>['invitations'][number];
 export type Department = Ok<'/workspaces/{id}/departments', 'get'>['departments'][number];
+export type ActivityEntry = Ok<'/workspaces/{id}/activity', 'get'>['entries'][number];
+export type ActivityAction = ActivityEntry['action'];
 
 export const isApiError = (e: unknown): e is ApiErrorBody => typeof e === 'object' && e !== null && 'code' in e && 'status' in e;

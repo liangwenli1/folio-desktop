@@ -3558,6 +3558,106 @@ export interface paths {
         };
         trace?: never;
     };
+    "/workspaces/{id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    profileId?: string;
+                    actorId?: string;
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "team";
+                    before?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            entries: {
+                                seq: number;
+                                at: string;
+                                actor: string | null;
+                                deviceName: string | null;
+                                /** @enum {string} */
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete";
+                                profile: {
+                                    id: string | null;
+                                    name: string;
+                                    number: number;
+                                } | null;
+                                detail: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                            retentionDays: number;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/activity.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    profileId?: string;
+                    actorId?: string;
+                    kind?: "open" | "profiles" | "trash" | "proxies" | "team";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

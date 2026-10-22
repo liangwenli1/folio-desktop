@@ -10,6 +10,7 @@ import { ProfileImportDialog } from './ProfileImport';
 import { ProfilesPage, type GroupFilter } from './Profiles';
 import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
 import { TeamPage } from './Team';
+import { ActivityPage } from './Activity';
 import { TrashPage } from './Trash';
 import { Icon, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 
@@ -18,10 +19,10 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'team' | 'trash';
+type Page = 'profiles' | 'proxies' | 'team' | 'activity' | 'trash';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | null;
-const SOON: { key: 'sync' | 'tasks' | 'api' | 'activity'; icon: IconName }[] = [
-  { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }, { key: 'activity', icon: 'activity' }
+const SOON: { key: 'sync' | 'tasks' | 'api'; icon: IconName }[] = [
+  { key: 'sync', icon: 'sync' }, { key: 'tasks', icon: 'tasks' }, { key: 'api', icon: 'api' }
 ];
 
 export function Workbench(props: Props){
@@ -115,6 +116,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           {SOON.map(x => (
             <button key={x.key} className="nav-i" type="button" disabled title={d.nav.soonHint}><Icon name={x.icon} />{d.nav[x.key]}<span className="soon">{d.nav.soon}</span></button>
           ))}
+          <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
           {manager && <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
 
@@ -164,6 +166,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       )}
       {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
+      {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (

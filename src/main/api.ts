@@ -7,7 +7,8 @@ import { clearToken, getToken, setToken } from './session';
 
 export const API_URL = process.env.FOLIO_API_URL ?? 'http://localhost:47110';
 
-// JSON both ways, except saved sign-in state, which travels as bytes (a Buffer body, an octet-stream answer).
+// JSON both ways, except saved sign-in state, which travels as bytes (a Buffer body, an octet-stream answer), and
+// exports, which come back as text (CSV).
 async function call<T>(method: Method | 'PUT', path: string, body?: unknown, withToken = true): Promise<ApiResult<T>> {
   const token = getToken();
   const bytes = Buffer.isBuffer(body);
@@ -24,8 +25,10 @@ async function call<T>(method: Method | 'PUT', path: string, body?: unknown, wit
   } catch {
     return { ok: false, error: { code: 'network', message: 'Cannot reach Folio', status: 0 } };
   }
+  const type = res.headers.get('content-type') ?? '';
   const data = res.status === 204 ? null
-    : res.ok && res.headers.get('content-type') === 'application/octet-stream' ? Buffer.from(await res.arrayBuffer())
+    : res.ok && type === 'application/octet-stream' ? Buffer.from(await res.arrayBuffer())
+    : res.ok && type.startsWith('text/') ? await res.text()
     : await res.json().catch(() => null);
   if (!res.ok){
     if (res.status === 401 && withToken) await clearToken();
