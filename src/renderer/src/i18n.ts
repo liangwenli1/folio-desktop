@@ -104,7 +104,7 @@ export const en = {
     fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
     hostTz: 'This computer’s', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `Fingerprint of ${n}`,
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', warn: 'Warning', bad: 'Problem' },
-    storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
+    storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', extensions: 'Extensions', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
     notSaved: 'Nothing saved yet. Sign-ins are saved when the browser closes.', localOnly: 'Kept on the computer that uses it; Folio holds no copy.',
     exportCookies: 'Export cookies', importCookies: 'Import cookies', json: 'JSON', netscape: 'cookies.txt',
     exported: (n: number, path: string) => `${profilesN(n)} exported to ${path}`, imported: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} imported`,
@@ -243,9 +243,9 @@ export const en = {
     passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exporting: 'Exporting…', exported: (path: string) => `Saved to ${path}`,
     importTitle: 'Import data', importLead: 'Brings a .folio file into this workspace: its profiles are added and numbered here, and identical proxies and same-named groups are reused.',
     choose: 'Choose a .folio file…', unlock: 'Unlock', unlocking: 'Unlocking…',
-    preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; signedIn: number }) => `From ${p.workspace}: ${profilesN(p.profiles)} (${p.signedIn} with sign-ins), ${p.proxies} ${p.proxies === 1 ? 'proxy' : 'proxies'}, ${p.groups} ${p.groups === 1 ? 'group' : 'groups'}.`,
+    preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `From ${p.workspace}: ${profilesN(p.profiles)} (${p.signedIn} with sign-ins), ${p.proxies} ${p.proxies === 1 ? 'proxy' : 'proxies'}, ${p.groups} ${p.groups === 1 ? 'group' : 'groups'}${p.extensions ? `, ${p.extensions} ${p.extensions === 1 ? 'extension' : 'extensions'}` : ''}.`,
     room: (free: number) => `The plan has room for ${profilesN(free)} more.`, import: 'Import', importing: 'Importing…',
-    imported: (r: { profiles: number; proxies: number; groups: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}`
+    imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}`
   },
   flows: {
     title: 'Flows', sub: (n: number) => (n === 1 ? '1 flow · shared with the team' : `${n} flows · shared with the team`), new: '+ New flow',
@@ -504,7 +504,7 @@ export const zh: Dict = {
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
     hostTz: '跟随本机', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `${n} 的指纹`,
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', warn: '警告', bad: '问题' },
-    storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
+    storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', extensions: '扩展', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
     notSaved: '还没有保存过。浏览器关闭时会保存登录状态。', localOnly: '只存在使用它的那台电脑上，Folio 不保留副本。',
     exportCookies: '导出 Cookie', importCookies: '导入 Cookie', json: 'JSON', netscape: 'cookies.txt',
     exported: (n: number, path: string) => `已导出 ${n} 个环境到 ${path}`, imported: (n: number) => `已导入 ${n} 个 Cookie`,
@@ -643,9 +643,9 @@ export const zh: Dict = {
     passShort: '口令至少 10 位。', passMismatch: '两次输入的口令不一致。', export: '导出', exporting: '正在导出…', exported: (path: string) => `已保存到 ${path}`,
     importTitle: '导入数据', importLead: '把 .folio 文件导入到当前团队：环境会新增并重新编号，相同的代理和同名分组会复用。',
     choose: '选择 .folio 文件…', unlock: '解锁', unlocking: '正在解锁…',
-    preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; signedIn: number }) => `来自「${p.workspace}」：${p.profiles} 个环境（${p.signedIn} 个带登录状态）、${p.proxies} 个代理、${p.groups} 个分组。`,
+    preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `来自「${p.workspace}」：${p.profiles} 个环境（${p.signedIn} 个带登录状态）、${p.proxies} 个代理、${p.groups} 个分组${p.extensions ? `、${p.extensions} 个扩展` : ''}。`,
     room: (free: number) => `套餐还能放 ${free} 个环境。`, import: '导入', importing: '正在导入…',
-    imported: (r: { profiles: number; proxies: number; groups: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个带登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组`
+    imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个带登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组${r.extensions ? `、${r.extensions} 个扩展` : ''}`
   },
   flows: {
     title: '流程', sub: (n: number) => `${n} 个流程 · 团队共享`, new: '+ 新建流程',

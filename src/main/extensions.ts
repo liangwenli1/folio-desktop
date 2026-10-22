@@ -5,8 +5,8 @@
 // Chromium manifest, the add-on id and a per-profile internal UUID for Firefox.
 import { app, net } from 'electron';
 import { createHash, createPublicKey, verify, type KeyObject } from 'node:crypto';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { dirname, join, normalize } from 'node:path';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, join, normalize, relative } from 'node:path';
 import { strFromU8, strToU8, unzipSync } from 'fflate';
 import { api } from './api';
 
@@ -60,18 +60,98 @@ async function unpack(e: Extension, bytes: Buffer, target: string){
   await writeFile(join(target, 'manifest.json'), strToU8(JSON.stringify(manifest, null, 2)));
 }
 
+// Firefox UUIDs a profile's folder already uses (restored with the extension's data), by add-on id.
+const uuidsFile = (profileDir: string) => join(profileDir, '.folio-extensions', 'uuids.json');
+const readUuids = async (profileDir: string) => JSON.parse(await readFile(uuidsFile(profileDir), 'utf8').catch(() => '{}')) as Record<string, string>;
+async function saveUuids(profileDir: string, uuids: Record<string, string>){
+  await mkdir(dirname(uuidsFile(profileDir)), { recursive: true });
+  await writeFile(uuidsFile(profileDir), JSON.stringify(uuids));
+}
+
 // The folders to load for a profile, the names of extensions that failed their check, and (Firefox) the UUIDs.
 export async function prepareExtensions(profile: { id: string; kernel: 'chromium' | 'firefox' }, list: Extension[], profileDir: string){
   const dirs: string[] = [], failed: string[] = [], uuids: Record<string, string> = {};
+  const known = await readUuids(profileDir);
   for (const e of list.filter(x => x.kernel === profile.kernel)){
     const bytes = await verifiedPackage(e).catch(() => null);
     if (!bytes){ failed.push(e.name); continue; }
     const target = join(profileDir, '.folio-extensions', e.id);
     await unpack(e, bytes, target);
     dirs.push(target);
-    if (e.kernel === 'firefox') uuids[e.extId] = firefoxUuid(profile.id, e.extId);
+    if (e.kernel === 'firefox') uuids[e.extId] = known[e.extId] ?? firefoxUuid(profile.id, e.extId);
+  }
+  if (Object.keys(uuids).length){
+    await saveUuids(profileDir, { ...known, ...uuids });
+    await pinFirefoxUuids(profileDir, uuids);
   }
   return { dirs, failed, uuids };
+}
+
+// Firefox keeps each add-on's UUID in the profile's prefs.js, and that value wins over the one passed at launch.
+// A launch without the add-on (reading sign-ins offline) drops it from there, so it is written back before
+// every launch; the other add-ons' UUIDs stay as they are.
+const UUID_PREF = /^user_pref\("extensions\.webextensions\.uuids", (".*")\);$/m;
+async function pinFirefoxUuids(profileDir: string, uuids: Record<string, string>){
+  const file = join(profileDir, 'prefs.js');
+  const prefs = await readFile(file, 'utf8').catch(() => null);
+  if (prefs === null) return;
+  const found = prefs.match(UUID_PREF);
+  const current = found ? JSON.parse(JSON.parse(found[1]) as string) as Record<string, string> : {};
+  const line = `user_pref("extensions.webextensions.uuids", ${JSON.stringify(JSON.stringify({ ...current, ...uuids }))});`;
+  await writeFile(file, found ? prefs.replace(UUID_PREF, line) : `${prefs}${prefs.endsWith('\n') ? '' : '\n'}${line}\n`);
+}
+
+// An extension's own data (storage.local, its IndexedDB), as files of the profile's folder, base64, by path.
+export interface ExtensionData { uuid?: string; files: Record<string, string> }
+
+// Where each extension keeps its data inside the profile's folder: by extension id for Chromium, by the add-on's
+// UUID in this profile for Firefox.
+async function dataFolders(profileDir: string, e: Extension, uuid: string | undefined){
+  if (e.kernel === 'chromium'){
+    return ['Local Extension Settings', 'Sync Extension Settings'].map(d => `Default/${d}/${e.extId}`)
+      .concat(['leveldb', 'blob'].map(x => `Default/IndexedDB/chrome-extension_${e.extId}_0.indexeddb.${x}`));
+  }
+  const names = await readdir(join(profileDir, 'storage', 'default')).catch(() => [] as string[]);
+  return uuid ? names.filter(n => n.startsWith(`moz-extension+++${uuid}`)).map(n => `storage/default/${n}`) : [];
+}
+async function filesUnder(root: string, at: string, out: Record<string, string>){
+  for (const entry of await readdir(join(root, at), { withFileTypes: true }).catch(() => [])){
+    const path = `${at}/${entry.name}`;
+    if (entry.isDirectory()) await filesUnder(root, path, out);
+    else if (entry.isFile()) out[path] = (await readFile(join(root, path))).toString('base64');
+  }
+}
+
+// Read after the browser has closed, for the saved state.
+export async function collectExtensionData(profileDir: string, list: Extension[]){
+  const uuids = await readUuids(profileDir), out: Record<string, ExtensionData> = {};
+  for (const e of list){
+    const uuid = e.kernel === 'firefox' ? uuids[e.extId] : undefined;
+    const files: Record<string, string> = {};
+    for (const folder of await dataFolders(profileDir, e, uuid)) await filesUnder(profileDir, folder, files);
+    if (Object.keys(files).length) out[e.id] = { ...(uuid ? { uuid } : {}), files: Object.fromEntries(Object.entries(files).sort(([a], [b]) => a.localeCompare(b))) };
+  }
+  return out;
+}
+
+// Written before the browser starts, when the saved state is newer than this computer's folder. A Firefox
+// add-on keeps the UUID its data was saved under, so the data still belongs to it.
+export async function writeExtensionData(profileDir: string, list: Extension[], data: Record<string, ExtensionData> | undefined){
+  if (!data) return;
+  const uuids = await readUuids(profileDir);
+  for (const e of list){
+    const d = data[e.id];
+    if (!d) continue;
+    if (d.uuid) uuids[e.extId] = d.uuid;
+    for (const folder of await dataFolders(profileDir, e, d.uuid)) await rm(join(profileDir, folder), { recursive: true, force: true });
+    for (const [path, b64] of Object.entries(d.files)){
+      const safe = normalize(path);
+      if (safe.startsWith('..') || relative(profileDir, join(profileDir, safe)).startsWith('..')) continue;
+      await mkdir(dirname(join(profileDir, safe)), { recursive: true });
+      await writeFile(join(profileDir, safe), Buffer.from(b64, 'base64'));
+    }
+  }
+  await saveUuids(profileDir, uuids);
 }
 
 // Chrome Web Store (by id or link) and addons.mozilla.org (by link or slug). Tests point these at a local server.

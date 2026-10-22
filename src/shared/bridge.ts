@@ -24,7 +24,7 @@ export interface ProfileStatus {
 }
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
-export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; signedIn: number }
+export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
 export type ExtensionSource = { file: Uint8Array } | { store: string };
 // Where a script connects to a profile opened through the local API.
@@ -64,7 +64,7 @@ export interface FolioBridge {
   exportWorkspace(workspaceId: string, passphrase: string): Promise<{ path: string; profiles: number } | null>;
   pickImport(): Promise<{ token: string; name: string } | null>;
   unlockImport(token: string, passphrase: string): Promise<ImportPreview>;
-  runImport(token: string, workspaceId: string): Promise<{ profiles: number; proxies: number; groups: number; signedIn: number }>;
+  runImport(token: string, workspaceId: string): Promise<{ profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }>;
   info(): Promise<AppInfo>;
   onFocus(cb: () => void): () => void;
 

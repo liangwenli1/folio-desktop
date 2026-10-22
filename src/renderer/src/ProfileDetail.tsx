@@ -181,6 +181,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
             <div><b>{p.data.cookies}</b><span>{d.detail.cookies}</span></div>
             <div><b>{size(p.data.storageBytes)}</b><span>{d.detail.siteData}</span></div>
             <div><b>{p.data.origins}</b><span>{d.detail.sites}</span></div>
+            <div><b>{p.extensionIds.length}</b><span>{d.detail.extensions}</span></div>
           </div>
           <p className="hint">{d.detail.savedOn(`${dayLabel(p.data.savedAt, d, lang)} ${time(p.data.savedAt, lang)}`, p.data.deviceName)}</p>
         </> : <p className="hint">{d.detail.notSaved}</p>}

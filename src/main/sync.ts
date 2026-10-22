@@ -7,8 +7,10 @@ import { join } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import type { BrowserContext } from 'playwright-core';
 import { api } from './api';
+import type { ExtensionData } from './extensions';
 
-export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>>;
+// Playwright's storage state, plus the data folders of the profile's extensions, by library extension id.
+export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>> & { extensions?: Record<string, ExtensionData> };
 export interface Local { sha256: string | null; origins: string[]; workspaceId: string | null }
 
 const FILE = '.folio-sync.json';
@@ -29,7 +31,8 @@ export function addOrigins(list: string[], more: Iterable<string>){
 function pack(state: StorageState){
   const sorted: StorageState = {
     cookies: [...state.cookies].sort((a, b) => `${a.domain}${a.path}${a.name}`.localeCompare(`${b.domain}${b.path}${b.name}`)),
-    origins: [...state.origins].sort((a, b) => a.origin.localeCompare(b.origin))
+    origins: [...state.origins].sort((a, b) => a.origin.localeCompare(b.origin)),
+    ...(state.extensions && Object.keys(state.extensions).length ? { extensions: Object.fromEntries(Object.entries(state.extensions).sort(([a], [b]) => a.localeCompare(b))) } : {})
   };
   const body = gzipSync(JSON.stringify(sorted));
   return { body, sha256: createHash('sha256').update(body).digest('hex'), query: counts(sorted) };

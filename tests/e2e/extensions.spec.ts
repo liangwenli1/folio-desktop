@@ -122,3 +122,70 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await other.close();
   await stores.close();
 });
+
+// An extension that keeps a value in storage.local and in its own IndexedDB: a page opened with ?set=… stores it,
+// and every page shows what the extension finds.
+function keeper(kernel: 'chromium' | 'firefox'){
+  const api = kernel === 'chromium' ? 'chrome' : 'browser';
+  const bg = `
+    const db = () => new Promise((ok, no) => { const r = indexedDB.open('keeper', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+    const get = async () => { const d = await db(); return new Promise(ok => { const q = d.transaction('kv').objectStore('kv').get('v'); q.onsuccess = () => ok(q.result ?? null); }); };
+    const put = async v => { const d = await db(); return new Promise(ok => { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, 'v'); t.oncomplete = () => ok(); }); };
+    ${api}.runtime.onMessage.addListener((m, _s, reply) => { (async () => {
+      if (m.set){ await ${api}.storage.local.set({ v: m.set }); await put(m.set); }
+      reply({ local: (await ${api}.storage.local.get('v')).v ?? null, db: await get() });
+    })(); return true; });`;
+  const content = `${api}.runtime.sendMessage({ set: new URL(location.href).searchParams.get('set') }, r => { document.documentElement.dataset.helper = JSON.stringify(r); });`;
+  const manifest = kernel === 'chromium'
+    ? { manifest_version: 3, name: 'Keeper', version: '1.0', permissions: ['storage'], background: { service_worker: 'bg.js' }, content_scripts: [{ matches: ['<all_urls>'], js: ['c.js'] }] }
+    : { manifest_version: 2, name: 'Keeper', version: '1.0', permissions: ['storage'], browser_specific_settings: { gecko: { id: 'keeper@folio.test' } }, background: { scripts: ['bg.js'] }, content_scripts: [{ matches: ['<all_urls>'], js: ['c.js'] }] };
+  return zip({ 'manifest.json': JSON.stringify(manifest), 'bg.js': bg, 'c.js': content });
+}
+// Waits for the extension to answer on the page.
+const kept = (app: ElectronApplication, id: string, url: string) => app.evaluate(async (_e, { id, url }) => {
+  const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
+  const page = r.ctx.pages()[0] ?? await r.ctx.newPage();
+  await page.goto(url);
+  for (let i = 0; i < 60; i++){
+    const v = await page.evaluate(() => document.documentElement.dataset.helper ?? null);
+    if (v) return JSON.parse(v);
+    await page.waitForTimeout(250);
+  }
+  return null;
+}, { id, url });
+
+for (const kernel of ['chromium', 'firefox'] as const){
+  test(`${kernel}: an extension’s own data follows the profile to the next computer`, async () => {
+    test.skip(!hasKernels, 'browser engines are not unpacked here');
+    const stores = await startStores();
+    const acct = await account({ buy: { plan: 'studio', period: 'monthly' } });
+    const base = `/workspaces/${acct.workspaceId}`;
+    const ext = await (await acct.api.post(`${base}/extensions?kernel=${kernel}`, { headers: { 'content-type': 'application/octet-stream' }, data: keeper(kernel) })).json();
+    const a = await launch(dataDir(), ENGINE_ENV);
+    const winA = await logIn(a, acct.email);
+    await expect(winA.getByTestId('plan-name')).toBeVisible();
+    const body = kernel === 'chromium' ? chromiumProfile('Wallet-01') : { name: 'Wallet-01', kernel, os: 'linux', ...(await winA.evaluate(() => window.folio.newFingerprint('firefox', 'linux'))) };
+    const p = await (await acct.api.post(`${base}/profiles`, { data: { ...body, extensionIds: [ext.id] } })).json();
+
+    expect(await opened(winA, p.id)).toMatchObject({ state: 'running' });
+    expect(await kept(a, p.id, `${stores.page}?set=alpha-1`)).toEqual({ local: 'alpha-1', db: 'alpha-1' });
+    await stop(winA, p.id);
+    // Reopened on the same computer: still there.
+    expect(await opened(winA, p.id)).toMatchObject({ state: 'running' });
+    expect(await kept(a, p.id, stores.page)).toEqual({ local: 'alpha-1', db: 'alpha-1' });
+    await stop(winA, p.id);
+    await winA.getByRole('button', { name: 'Wallet-01', exact: true }).click();
+    await expect(winA.getByTestId('storage').locator('.store')).toContainText('1Extensions');
+    await a.close();
+
+    // Another computer: restored with the sign-ins.
+    const b = await launch(dataDir(), ENGINE_ENV);
+    const winB = await logIn(b, acct.email);
+    await expect(winB.getByTestId('plan-name')).toBeVisible();
+    expect(await opened(winB, p.id)).toMatchObject({ state: 'running' });
+    expect(await kept(b, p.id, stores.page)).toEqual({ local: 'alpha-1', db: 'alpha-1' });
+    await stop(winB, p.id);
+    await b.close();
+    await stores.close();
+  });
+}

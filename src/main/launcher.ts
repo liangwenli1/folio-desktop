@@ -15,7 +15,7 @@ import { prepareFirefox } from './fingerprint';
 import { startForwarder, type Forwarder } from './forwarder';
 import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
-import { prepareExtensions, type Extension } from './extensions';
+import { collectExtensionData, prepareExtensions, writeExtensionData, type Extension } from './extensions';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 import type { Cookie } from '../shared/cookies';
@@ -39,6 +39,8 @@ interface Running {
   lost: null | 'lock_lost' | 'removed';
   // Where scripts connect, when it was opened through the local API.
   debug: Debugging | null;
+  // The extensions it opened with, whose data is saved with its sign-ins.
+  extensions: Extension[];
 }
 const running = new Map<string, Running>();
 // End-to-end tests drive the launched browsers through this; it is not set in normal runs.
@@ -139,7 +141,7 @@ async function offline(p: LaunchProfile, exe: string, dir: string){
 
 async function restore(p: LaunchProfile, exe: string, dir: string, state: StorageState){
   const ctx = await offline(p, exe, dir);
-  try { await ctx.setStorageState(state); } finally { await ctx.close(); }
+  try { await ctx.setStorageState({ cookies: state.cookies, origins: state.origins }); } finally { await ctx.close(); }
 }
 
 // Visiting each known site is how the engine is asked for that site's storage.
@@ -201,6 +203,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
       if (pkg.sha256 !== local.sha256){
         notify({ id, state: 'restoring' });
         await restore(profile, exe, dir, pkg.state);
+        await writeExtensionData(dir, extensions, pkg.state.extensions);
         local.sha256 = pkg.sha256;
         local.origins = addOrigins(local.origins, pkg.state.origins.map(o => o.origin));
         await writeLocal(dir, local);
@@ -226,7 +229,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
     ctx.on('page', track);
     const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo, ...(ext.failed.length ? { extensionErrors: ext.failed } : {}) };
     const entry: Running = {
-      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug,
+      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug, extensions,
       timers: [setInterval(() => void renew(id), RENEW_MS), setInterval(() => void autosave(id), AUTOSAVE_MS)],
       done: new Promise(resolve => ctx.on('close', () => { void finish(id).finally(resolve); }))
     };
@@ -260,7 +263,7 @@ async function autosave(id: string){
   const r = running.get(id);
   if (!r || r.lost || r.profile.syncMode === 'local') return;
   try {
-    const result = await upload(id, { cookies: await r.ctx.cookies(), origins: r.saved?.origins ?? [] }, r.local);
+    const result = await upload(id, { cookies: await r.ctx.cookies(), origins: r.saved?.origins ?? [], extensions: r.saved?.extensions }, r.local);
     if (result === 'lost'){ r.lost = 'lock_lost'; await r.ctx.close().catch(() => {}); }
     else await writeLocal(r.dir, r.local);
   } catch (e){ console.error('autosave failed', e); }
@@ -279,7 +282,9 @@ async function finish(id: string){
     notify(r.status);
     try {
       r.local.origins = addOrigins(r.local.origins, r.visited);
-      const state = await harvest(r.profile, r.exe, r.dir, r.local.origins);
+      // Extension data is read straight from the folder, before the engine starts again without its extensions.
+      const extensions = await collectExtensionData(r.dir, r.extensions);
+      const state = { ...(await harvest(r.profile, r.exe, r.dir, r.local.origins)), extensions };
       if (await upload(id, state, r.local) === 'lost') error = 'lock_lost';
       await writeLocal(r.dir, r.local);
     } catch (e){

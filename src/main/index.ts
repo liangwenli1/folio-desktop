@@ -172,7 +172,7 @@ ipcMain.handle('folio:unlockImport', async (_e, token: string, passphrase: strin
   if (!p) return failure('not_found');
   try { p.bundle = await unseal(p.file, String(passphrase)); } catch (err){ return failure((err as Error).message); }
   const b = p.bundle;
-  return { ok: true, data: { workspace: b.workspace, exportedAt: b.exportedAt, profiles: b.profiles.length, proxies: b.proxies.length, groups: b.groups.length, signedIn: Object.keys(b.states).length } };
+  return { ok: true, data: { workspace: b.workspace, exportedAt: b.exportedAt, profiles: b.profiles.length, proxies: b.proxies.length, groups: b.groups.length, extensions: b.extensions?.length ?? 0, signedIn: Object.keys(b.states).length } };
 });
 ipcMain.handle('folio:runImport', async (_e, token: string, workspaceId: string) => {
   const p = picked.get(String(token));

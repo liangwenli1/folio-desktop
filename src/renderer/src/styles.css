@@ -382,7 +382,7 @@ html[lang="zh"] .menu-t{font-family:var(--f-body);letter-spacing:.06em;font-size
 .acts time{font-family:var(--f-data);font-size:10.5px;line-height:1.9;color:var(--ink-2);white-space:nowrap}
 
 /* sign-ins */
-.store{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.store{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:8px;background:var(--card)}
 .store div{display:grid;gap:1px;padding:10px 12px}
 .store div + div{border-left:1px solid var(--line)}
 .store b{font-family:var(--f-data);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}

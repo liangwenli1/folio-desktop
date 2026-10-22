@@ -3883,11 +3883,21 @@ export interface paths {
                                 notes?: string | null;
                                 /** @enum {string} */
                                 syncMode?: "cloud" | "local";
-                                extensionIds?: string[];
                                 ref: string;
                                 group: string | null;
                                 proxyRef: string | null;
+                                /** @default [] */
+                                extensionRefs: string[];
                                 saved: boolean;
+                            }[];
+                            /** @default [] */
+                            extensions: {
+                                ref: string;
+                                /** @enum {string} */
+                                kernel: "chromium" | "firefox";
+                                extId: string;
+                                publicKey: string | null;
+                                package: string;
                             }[];
                             workspace: string;
                             exportedAt: string;
@@ -3963,11 +3973,21 @@ export interface paths {
                             notes?: string | null;
                             /** @enum {string} */
                             syncMode?: "cloud" | "local";
-                            extensionIds?: string[];
                             ref: string;
                             group: string | null;
                             proxyRef: string | null;
+                            /** @default [] */
+                            extensionRefs?: string[];
                             saved: boolean;
+                        }[];
+                        /** @default [] */
+                        extensions?: {
+                            ref: string;
+                            /** @enum {string} */
+                            kernel: "chromium" | "firefox";
+                            extId: string;
+                            publicKey: string | null;
+                            package: string;
                         }[];
                     };
                 };
@@ -3988,6 +4008,7 @@ export interface paths {
                                 profiles: number;
                                 proxies: number;
                                 groups: number;
+                                extensions: number;
                             };
                         };
                     };

@@ -1,4 +1,4 @@
-// A whole workspace in one .folio file: the server's list of profiles, groups and proxies plus each profile's
+// A whole workspace in one .folio file: the server's list of profiles, groups, proxies and extensions plus each profile's
 // saved sign-in state, gzip-compressed and encrypted with a key made from a passphrase (scrypt, AES-256-GCM).
 // The passphrase never leaves this computer.
 import { createCipheriv, createDecipheriv, randomBytes, scrypt as scryptCb, type ScryptOptions } from 'node:crypto';
@@ -13,6 +13,8 @@ const scrypt = (pass: string, salt: Buffer) => new Promise<Buffer>((ok, fail) =>
 interface Listed { ref: string; saved: boolean }
 export interface Bundle {
   workspace: string; exportedAt: string; groups: string[]; proxies: unknown[]; profiles: Listed[];
+  // The library extensions the profiles use, with their packages (older files have none).
+  extensions?: unknown[];
   // Each saved profile's sign-in state as the server holds it (gzip-compressed JSON), base64, by ref.
   states: Record<string, string>;
 }
@@ -46,8 +48,8 @@ export async function exportWorkspace(workspaceId: string){
 }
 
 export async function importWorkspace(workspaceId: string, b: Bundle){
-  const r = await api<{ profiles: { ref: string; id: string }[]; added: { profiles: number; proxies: number; groups: number } }>(
-    'POST', `/workspaces/${workspaceId}/import`, { groups: b.groups, proxies: b.proxies, profiles: b.profiles });
+  const r = await api<{ profiles: { ref: string; id: string }[]; added: { profiles: number; proxies: number; groups: number; extensions: number } }>(
+    'POST', `/workspaces/${workspaceId}/import`, { groups: b.groups, proxies: b.proxies, profiles: b.profiles, extensions: b.extensions ?? [] });
   if (!r.ok) throw new Error(r.error.code);
   let signedIn = 0;
   for (const { ref, id } of r.data.profiles){
