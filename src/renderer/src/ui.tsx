@@ -17,6 +17,13 @@ const PATHS = {
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
+// The Folio mark: a guilloche rosette in a ring, in the stamp colour (via .seal).
+export const Mark = () => (
+  <svg className="seal" viewBox="0 0 64 64" fill="none" stroke="currentColor" aria-hidden="true">
+    <circle cx="32" cy="32" r="28.5" strokeWidth="3.6" />
+    {[0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5].map(a => <ellipse key={a} cx="32" cy="32" rx="22" ry="9.5" strokeWidth="2" transform={`rotate(${a} 32 32)`} />)}
+  </svg>
+);
 
 export function useOutsideClose(open: boolean, close: () => void){
   const ref = useRef<HTMLDivElement>(null);

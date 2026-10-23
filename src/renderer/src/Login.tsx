@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { folio, isApiError } from './api';
 import type { Dict } from './i18n';
+import { Mark } from './ui';
 
 export function Login({ d, onDone }: { d: Dict; onDone: () => void }){
   const [email, setEmail] = useState('');
@@ -23,7 +24,7 @@ export function Login({ d, onDone }: { d: Dict; onDone: () => void }){
 
   return (
     <main className="login">
-      <div className="login-brand"><span className="seal" aria-hidden="true">F</span><span className="brand-word">Folio</span></div>
+      <div className="login-brand"><Mark /><span className="brand-word">Folio</span></div>
       <form className="login-card" onSubmit={submit} noValidate>
         <h1>{d.login.title}</h1>
         <p className="muted">{d.login.lead}</p>

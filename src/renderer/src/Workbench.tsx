@@ -18,7 +18,7 @@ import { WindowSyncPage } from './WindowSync';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
-import { Icon, Toasts, useOutsideClose, useToast, type IconName } from './ui';
+import { Icon, Mark, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 
 interface Props {
   d: Dict; lang: Lang; me: Me; ws: Workspace;
@@ -98,7 +98,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   return (
     <div className="app">
       <aside className="side" aria-label={d.ws.current}>
-        <div className="brand"><span className="seal" aria-hidden="true">F</span><span className="brand-word">Folio</span></div>
+        <div className="brand"><Mark /><span className="brand-word">Folio</span></div>
 
         <div className="ws-wrap" ref={wsRef}>
           <button className="ws" type="button" aria-haspopup="listbox" aria-expanded={wsOpen} onClick={() => setWsOpen(o => !o)} title={d.ws.switch}>
