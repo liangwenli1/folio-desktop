@@ -180,7 +180,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
                 <span>{d.user.language}</span>
                 <div className="seg">
                   {(['en', 'zh'] as const).map(l => (
-                    <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{l === 'en' ? 'EN' : '中文'}</button>
+                    <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{l === 'en' ? 'English' : '简体中文'}</button>
                   ))}
                 </div>
               </div>
