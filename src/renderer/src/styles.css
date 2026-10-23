@@ -101,9 +101,10 @@ input[type="checkbox"],input[type="radio"]{width:16px;height:16px;margin:0;verti
 .menu li[role="option"] button:hover,.menu-item:hover{background:var(--hover)}
 .menu li[aria-selected="true"] button span{color:var(--stamp);font-weight:600}
 .menu small{color:var(--ink-2);font-size:12px}
-.menu-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px;font-size:13px;color:var(--ink-2)}
-.menu .seg{padding:2px;border-radius:6px;background:var(--paper)}
-.menu .seg button{padding:3px 9px;border-radius:4px;font-size:12px}
+/* The language row: the label above two equal buttons, so the language names never wrap. */
+.menu-row{display:grid;gap:6px;padding:6px 10px;font-size:13px;color:var(--ink-2)}
+.menu .seg{display:flex;padding:2px;border-radius:6px;background:var(--paper)}
+.menu .seg button{flex:1;padding:4px 9px;border-radius:4px;font-size:12px;white-space:nowrap}
 .nav{display:grid;gap:1px}
 .nav-i{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border:0;border-radius:6px;background:transparent;color:var(--ink-2);text-align:left;font-size:13.5px;cursor:pointer}
 .nav-i:hover:not(:disabled){background:color-mix(in srgb,var(--card) 70%,transparent);color:var(--ink)}
@@ -470,9 +471,10 @@ html[lang="zh"] .menu-t{font-family:var(--f-body);letter-spacing:.06em;font-size
 .days{display:flex;flex-wrap:wrap;gap:4px}
 .day{height:30px;min-width:44px;padding:0 8px;border:1px solid var(--line-2);border-radius:5px;background:var(--paper);font-size:12.5px;color:var(--ink-2);cursor:pointer}
 .day[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
-.menu-item.check::before{content:'';display:inline-block;width:12px;margin-right:6px;font-weight:700}
-.menu-item.check[aria-checked="true"]::before{content:'✓';color:var(--stamp)}
-.menu-item.check{display:block}
+/* A menu item that is on or off: the tick in its own column, so a wrapped label lines up. */
+.menu-check{grid-template-columns:16px 1fr;align-items:start}
+.menu-check::before{content:'';font-weight:700}
+.menu-check[aria-checked="true"]::before{content:'✓';color:var(--stamp)}
 
 /* API & scripts */
 .api-page{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:16px var(--gx) 28px;align-items:start}

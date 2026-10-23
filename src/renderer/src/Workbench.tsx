@@ -186,7 +186,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
               </div>
               <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'engines' }); }}>{d.user.engines}</button>
               {startup?.supported && (
-                <button className="menu-item check" type="button" role="menuitemcheckbox" aria-checked={startup.enabled}
+                <button className="menu-item menu-check" type="button" role="menuitemcheckbox" aria-checked={startup.enabled}
                   onClick={() => void folio.setStartup(!startup.enabled).then(() => folio.startup()).then(setStartup)}>{d.user.startup}</button>
               )}
               {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}>{d.user.exportAll}</button>}
