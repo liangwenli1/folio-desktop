@@ -32,7 +32,8 @@ export function App(){
   }, []);
 
   useEffect(() => {
-    folio.info().then(i => setLang(i.locale.startsWith('zh') ? 'zh' : 'en'));
+    // The platform decides whether the window has a title bar of its own (styles.css, --tb).
+    folio.info().then(i => { setLang(i.locale.startsWith('zh') ? 'zh' : 'en'); document.documentElement.dataset.platform = i.platform; });
     folio.hasSession().then(has => (has ? load() : setPhase('login')));
   }, [load]);
 

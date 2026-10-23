@@ -5,11 +5,31 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { useToast } from './ui';
+import { Icon, useOutsideClose, useToast } from './ui';
+import { SelectField } from './Select';
 
 type StepType = Step['type'];
 type Test = Extract<Step, { type: 'if' }>['test'];
-export const STEP_TYPES: StepType[] = ['open', 'click', 'type', 'press', 'wait', 'scroll', 'extract', 'set', 'if', 'loop', 'screenshot', 'script', 'signedIn'];
+// The add-step menu, by kind of step.
+const STEP_GROUPS: [keyof Dict['flows']['groups'], StepType[]][] = [
+  ['page', ['open', 'click', 'type', 'press', 'scroll', 'wait']], ['data', ['extract', 'set', 'screenshot', 'signedIn']], ['logic', ['if', 'loop']], ['other', ['script']]
+];
+const STEP_ICONS: Record<StepType, string> = {
+  open: 'M6.5 9.5 9.5 6.5M7 4.5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1M9 11.5l-1 1A2.5 2.5 0 0 1 4.5 9l1-1',
+  click: 'M4 3l7.5 3.2-3.1 1.2-1.2 3.1zM8.4 7.4 12 11',
+  type: 'M2 4.5h12v7H2zM4.5 7h.01M7 7h.01M9.5 7h.01M12 7h.01M5 9.5h6',
+  press: 'M3.5 3.5h9v9h-9zM6 9.5l2-3.5 2 3.5',
+  wait: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 5v3l2 1.5',
+  scroll: 'M8 2.5v11M5.5 5 8 2.5 10.5 5M5.5 11 8 13.5 10.5 11',
+  extract: 'M3 3.5h10M3 6.5h6M3 9.5h4M10.5 8v5M8.5 11l2 2 2-2',
+  set: 'M3 5l3.5 6M6.5 5 3 11M9 7h4M9 9.5h4',
+  if: 'M4 2.5v11M4 6c0 2 1.5 3 4 3h3.5M10 7.5 11.5 9 10 10.5',
+  loop: 'M3 8a5 5 0 0 1 8.5-3.5M13 8a5 5 0 0 1-8.5 3.5M11.5 2.5v2h-2M4.5 13.5v-2h2',
+  screenshot: 'M2.5 5h2.5l1-1.5h4l1 1.5h2.5v7.5h-11zM8 10.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  script: 'M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4',
+  signedIn: 'M7.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM1.5 13c.5-2.3 2-3.5 3.5-3.5s3 1.2 3.5 3.5M9.5 9l1.5 1.5 3-3'
+};
+const StepIcon = ({ t }: { t: StepType }) => <span className="step-ic" aria-hidden="true"><svg className="i" viewBox="0 0 16 16"><path d={STEP_ICONS[t]} /></svg></span>;
 const VAR = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
 
 const fresh = (type: StepType): Step => {
@@ -88,8 +108,8 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
         <header className="bar">
           <div className="ttl"><h1>{F.title}</h1><p className="sub">{F.sub(data.flows.length)}</p></div>
           <span className="sp" />
-          <button className="btn btn-ghost" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
-          <button className="btn btn-stamp" type="button" onClick={() => setOpen({ id: null })}>{F.new}</button>
+          <button className="btn btn-secondary" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
+          <button className="btn btn-primary" type="button" onClick={() => setOpen({ id: null })}><Icon name="plus" />{F.new}</button>
         </header>
         <div className="tw top-gap">
           <table>
@@ -107,12 +127,12 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
                   <td className="act"><span className="actin">
                     {confirm === f.id ? <>
                       <span className="hint">{users(f.id) ? F.inUse(users(f.id)) : F.confirmDelete(f.name)}</span>
-                      <button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                      {!users(f.id) && <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(f)}>{F.delete}</button>}
+                      <button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                      {!users(f.id) && <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(f)}>{F.delete}</button>}
                     </> : <>
-                      <button type="button" className="btn btn-xs btn-line" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button>
-                      <button type="button" className="btn btn-xs btn-ghost" onClick={() => void duplicate(f)}>{F.duplicate}</button>
-                      {f.canEdit && <button type="button" className="btn btn-xs btn-ghost" aria-label={F.deleteX(f.name)} onClick={() => setConfirm(f.id)}>{F.delete}</button>}
+                      <button type="button" className="btn btn-xs btn-secondary" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button>
+                      <button type="button" className="btn btn-xs btn-text" onClick={() => void duplicate(f)}>{F.duplicate}</button>
+                      {f.canEdit && <button type="button" className="btn btn-xs btn-danger" aria-label={F.deleteX(f.name)} onClick={() => setConfirm(f.id)}>{F.delete}</button>}
                     </>}
                   </span></td>
                 </tr>
@@ -173,21 +193,21 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
     <div className="page">
       <main className="main flow-main">
         <header className="bar">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => (dirty && !readOnly ? setLeaving(true) : onClose())}>{F.back}</button>
+          <button type="button" className="btn btn-text btn-sm" onClick={() => (dirty && !readOnly ? setLeaving(true) : onClose())}>{F.back}</button>
           <label className="flow-name">
             <span className="sr">{F.name}</span>
             <input value={edit.name} maxLength={80} readOnly={readOnly} aria-label={F.name} aria-invalid={!edit.name.trim()} onChange={e => setEdit(x => ({ ...x, name: e.target.value }))} />
           </label>
           <span className="sp" />
           {readOnly
-            ? <button type="button" className="btn btn-line" onClick={() => flow && onDuplicate(flow)}>{F.duplicateToEdit}</button>
-            : <button type="button" className="btn btn-stamp" disabled={!dirty || !!issues || !edit.name.trim() || saving} onClick={() => void save()}>{saving ? F.saving : F.save}</button>}
+            ? <button type="button" className="btn btn-secondary" onClick={() => flow && onDuplicate(flow)}>{F.duplicateToEdit}</button>
+            : <button type="button" className="btn btn-primary" disabled={!dirty || !!issues || !edit.name.trim() || saving} title={issues ? F.issues(issues) : !edit.name.trim() ? F.nameNeeded : undefined} onClick={() => void save()}>{saving ? F.saving : F.save}</button>}
         </header>
         {leaving && (
           <div className="away-note flow-note" role="alertdialog" aria-label={F.leave}>
             <span>{F.leave}</span>
-            <div className="d-actions"><button type="button" className="btn btn-xs btn-ghost" onClick={() => setLeaving(false)}>{F.keepEditing}</button>
-              <button type="button" className="btn btn-xs btn-stamp" onClick={onClose}>{F.discard}</button></div>
+            <div className="d-actions"><button type="button" className="btn btn-xs btn-secondary" onClick={() => setLeaving(false)}>{F.keepEditing}</button>
+              <button type="button" className="btn btn-xs btn-danger solid" onClick={onClose}>{F.discard}</button></div>
           </div>
         )}
         {readOnly && <p className="hint flow-note">{F.readOnly}</p>}
@@ -195,8 +215,14 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
         {!readOnly && issues > 0 && <p className="hint flow-note">{F.issues(issues)}</p>}
         <div className="flow-edit">
           <section className="flow-steps" aria-label={F.steps}>
+            {!edit.steps.length && (readOnly ? <p className="hint">{F.noSteps}</p> : (
+              <div className="flow-empty">
+                <h3>{F.start.title}</h3>
+                <p className="hint">{F.start.body}</p>
+                <button type="button" className="btn btn-sm btn-secondary" onClick={() => setEdit(x => ({ ...x, steps: [fresh('signedIn')] }))}>{F.start.template}</button>
+              </div>
+            ))}
             <StepList d={d} steps={edit.steps} prefix="" depth={1} readOnly={readOnly} onChange={steps => setEdit(x => ({ ...x, steps }))} />
-            {!edit.steps.length && <p className="hint">{F.noSteps}</p>}
           </section>
           <Trial d={d} profiles={data.profiles ?? []} steps={edit.steps} disabled={!!issues} />
         </div>
@@ -207,7 +233,6 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
 
 function StepList({ d, steps, prefix, depth, readOnly, onChange }: { d: Dict; steps: Step[]; prefix: string; depth: number; readOnly: boolean; onChange(s: Step[]): void }){
   const F = d.flows;
-  const [adding, setAdding] = useState(false);
   const set = (i: number, s: Step) => onChange(steps.map((x, k) => (k === i ? s : x)));
   const move = (i: number, by: number) => { const n = [...steps]; [n[i], n[i + by]] = [n[i + by], n[i]]; onChange(n); };
   return (
@@ -218,7 +243,7 @@ function StepList({ d, steps, prefix, depth, readOnly, onChange }: { d: Dict; st
           return (
             <li key={i} className={`step${issue && !readOnly ? ' bad' : ''}`} data-step={path} aria-label={`${path} ${F.types[s.type]}`}>
               <div className="step-h">
-                <span className="step-n mono">{path}</span><b>{F.types[s.type]}</b>
+                <span className="step-n mono">{path}</span><StepIcon t={s.type} /><b>{F.types[s.type]}</b>
                 <span className="sp" />
                 {!readOnly && <>
                   <button type="button" className="icon-btn sm" aria-label={F.up(path)} disabled={i === 0} onClick={() => move(i, -1)}>↑</button>
@@ -240,14 +265,36 @@ function StepList({ d, steps, prefix, depth, readOnly, onChange }: { d: Dict; st
           );
         })}
       </ol>
-      {!readOnly && (adding ? (
-        <div className="add-step" role="group" aria-label={F.add}>
-          {STEP_TYPES.filter(t => depth < 4 || (t !== 'if' && t !== 'loop')).map(t => (
-            <button key={t} type="button" className="btn btn-xs btn-line" onClick={() => { onChange([...steps, fresh(t)]); setAdding(false); }}>{F.types[t]}</button>
-          ))}
-          <button type="button" className="btn btn-xs btn-ghost" onClick={() => setAdding(false)}>{d.common.cancel}</button>
+      {!readOnly && <AddStep d={d} depth={depth} onAdd={t => onChange([...steps, fresh(t)])} />}
+    </div>
+  );
+}
+
+// "Add step": a menu of the step types by kind, each with what it does. Steps nest four levels deep at most.
+function AddStep({ d, depth, onAdd }: { d: Dict; depth: number; onAdd(t: StepType): void }){
+  const F = d.flows;
+  const [open, setOpen] = useState(false);
+  const ref = useOutsideClose(open, () => setOpen(false));
+  return (
+    <div className="add-step" ref={ref}>
+      <button type="button" className="btn btn-xs btn-secondary" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="plus" />{F.add}</button>
+      {open && (
+        <div className="menu step-menu" role="menu" aria-label={F.add}>
+          {STEP_GROUPS.map(([g, types]) => {
+            const shown = types.filter(t => depth < 4 || (t !== 'if' && t !== 'loop'));
+            return shown.length > 0 && (
+              <div key={g} role="group" aria-label={F.groups[g]}>
+                <p className="menu-t">{F.groups[g]}</p>
+                {shown.map(t => (
+                  <button key={t} type="button" role="menuitem" className="menu-item step-item" aria-label={F.types[t]} onClick={() => { setOpen(false); onAdd(t); }}>
+                    <StepIcon t={t} /><span><b>{F.types[t]}</b><small>{F.about[t]}</small></span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </div>
-      ) : <button type="button" className="btn btn-xs btn-ghost add-btn" onClick={() => setAdding(true)}>{F.add}</button>)}
+      )}
     </div>
   );
 }
@@ -327,14 +374,11 @@ function StepFields({ d, s, onChange }: { d: Dict; s: Step; onChange(s: Step): v
       const t = s.test;
       const setTest = (test: Test) => onChange({ ...s, test });
       return <>
-        <Field label={F.test}>
-          <select value={t.kind} onChange={e => {
-            const kind = e.target.value as Test['kind'];
+        <SelectField label={F.test} value={t.kind} options={[{ value: 'exists', label: F.exists }, { value: 'contains', label: F.contains }, { value: 'equals', label: F.equals }]}
+          onChange={v => {
+            const kind = v as Test['kind'];
             setTest(kind === 'equals' ? { kind, variable: 'name', value: '' } : kind === 'contains' ? { kind, selector: 'selector' in t ? t.selector : '', text: '' } : { kind, selector: 'selector' in t ? t.selector : '' });
-          }}>
-            <option value="exists">{F.exists}</option><option value="contains">{F.contains}</option><option value="equals">{F.equals}</option>
-          </select>
-        </Field>
+          }} />
         {t.kind === 'equals' ? <>
           {variable(t.variable, v => setTest({ ...t, variable: v }))}
           <Field label={F.value}><input value={t.value} onChange={e => setTest({ ...t, value: e.target.value })} /></Field>
@@ -394,16 +438,12 @@ function Trial({ d, profiles, steps, disabled }: { d: Dict; profiles: Profile[];
     <aside className="trial" aria-label={F.title}>
       <h2 className="sec-t">{F.title}</h2>
       <p className="hint">{F.lead}</p>
-      <Field label={F.profile}>
-        <select value={profile?.id ?? ''} onChange={e => setProfileId(e.target.value)} disabled={!!token}>
-          {!profiles.length && <option value="">{F.noProfiles}</option>}
-          {profiles.map(p => <option key={p.id} value={p.id}>{p.name} · #{String(p.number).padStart(4, '0')}</option>)}
-        </select>
-      </Field>
+      <SelectField label={F.profile} value={profile?.id ?? ''} onChange={setProfileId} disabled={!!token || !profiles.length} placeholder={F.noProfiles} searchPh={d.form.searchPh}
+        options={profiles.map(p => ({ value: p.id, label: p.name, hint: `#${String(p.number).padStart(4, '0')}` }))} />
       <Field label={F.vars}><textarea className="mono-in" rows={2} value={varsText} placeholder="email=me@example.com" spellCheck={false} onChange={e => setVarsText(e.target.value)} /></Field>
       {token
-        ? <button type="button" className="btn btn-line" onClick={() => void folio.stopFlow(token)}><span className="spin" aria-hidden="true" />{F.stop}</button>
-        : <button type="button" className="btn btn-stamp" disabled={!profile || !steps.length || disabled} onClick={() => void start()}>{F.run}</button>}
+        ? <button type="button" className="btn btn-secondary" onClick={() => void folio.stopFlow(token)}><span className="spin" aria-hidden="true" />{F.stop}</button>
+        : <button type="button" className="btn btn-primary" disabled={!profile || !steps.length || disabled} onClick={() => void start()}>{F.run}</button>}
       {(log.length > 0 || result) && (
         <ol className="run-log" aria-label={F.log}>
           {log.map((l, i) => (

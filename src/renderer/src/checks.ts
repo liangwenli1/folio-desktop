@@ -6,6 +6,8 @@ import type { Geo, Profile, Proxy } from './api';
 
 export const SLOW_MS = 800;
 export type Level = 'ok' | 'warn' | 'bad';
+// `todo`: something to do on this computer (a download) that is not a problem with the profile.
+export type CheckLevel = Level | 'todo';
 export type ProxyState = 'none' | 'unchecked' | 'ok' | 'slow' | 'down';
 export type Fix =
   | { kind: 'check'; proxyId: string } | { kind: 'backup'; proxyId: string } | { kind: 'choose-proxy' }
@@ -13,9 +15,9 @@ export type Fix =
   | { kind: 'download'; version: string } | { kind: 'use-engine'; version: string };
 export type CheckId =
   | 'proxy-ok' | 'proxy-slow' | 'proxy-down' | 'proxy-backup' | 'proxy-none' | 'proxy-unchecked'
-  | 'tz-ok' | 'tz-host' | 'tz-mismatch' | 'lang-ok' | 'lang-mismatch' | 'geo' | 'rtc'
+  | 'tz-ok' | 'tz-host' | 'tz-pending' | 'tz-mismatch' | 'lang-ok' | 'lang-mismatch' | 'geo' | 'rtc'
   | 'engine-ok' | 'engine-older' | 'engine-missing' | 'engine-unavailable';
-export interface Check { id: CheckId; level: Level; fix?: Fix }
+export interface Check { id: CheckId; level: CheckLevel; fix?: Fix }
 
 export interface Health {
   checks: Check[]; level: Level; proxy: ProxyState; mismatch: boolean;
@@ -50,8 +52,11 @@ export function health(p: Profile, proxies: Map<string, Proxy>, kernels: KernelS
   else if (state === 'slow') checks.push({ id: 'proxy-slow', level: 'warn', fix: backupUp ? { kind: 'backup', proxyId: backup!.id } : { kind: 'check', proxyId: px.id } });
   else checks.push({ id: 'proxy-ok', level: 'ok' });
 
+  // With a proxy whose exit isn't known (not checked, or down), the time zone falls back to this computer's for now.
   const tzMismatch = !!(geo && p.timezoneOverride && p.timezoneOverride !== geo.timezone);
-  checks.push(tzMismatch ? { id: 'tz-mismatch', level: 'warn', fix: { kind: 'follow-tz' } } : { id: geo || p.timezoneOverride ? 'tz-ok' : 'tz-host', level: 'ok' });
+  if (tzMismatch) checks.push({ id: 'tz-mismatch', level: 'warn', fix: { kind: 'follow-tz' } });
+  else if (geo || p.timezoneOverride) checks.push({ id: 'tz-ok', level: 'ok' });
+  else checks.push(px ? { id: 'tz-pending', level: 'warn' } : { id: 'tz-host', level: 'ok' });
   const region = p.localeOverride?.split('-')[1]?.toUpperCase();
   const langMismatch = !!(geo && region && region !== geo.country);
   if (langMismatch) checks.push({ id: 'lang-mismatch', level: 'warn', fix: { kind: 'follow-lang' } });
@@ -63,7 +68,7 @@ export function health(p: Profile, proxies: Map<string, Proxy>, kernels: KernelS
   if (versions.length){
     const mine = versions.find(k => k.version === p.kernelVersion), latest = versions[0];
     if (!mine) checks.push({ id: 'engine-unavailable', level: 'warn', fix: { kind: 'use-engine', version: latest.version } });
-    else if (!mine.installed) checks.push({ id: 'engine-missing', level: 'ok', fix: { kind: 'download', version: mine.version } });
+    else if (!mine.installed) checks.push({ id: 'engine-missing', level: 'todo', fix: { kind: 'download', version: mine.version } });
     else if (latest.version !== mine.version) checks.push({ id: 'engine-older', level: 'ok', fix: { kind: 'use-engine', version: latest.version } });
     else checks.push({ id: 'engine-ok', level: 'ok' });
   }

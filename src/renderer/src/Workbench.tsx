@@ -120,8 +120,8 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
                 <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
                   <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', d.roles[i.role])}</small></span>
                   <span className="invite-acts">
-                    <button type="button" className="btn btn-xs btn-stamp" onClick={() => void answer(i, true)}>{d.team.join}</button>
-                    <button type="button" className="btn btn-xs btn-ghost" onClick={() => void answer(i, false)}>{d.team.decline}</button>
+                    <button type="button" className="btn btn-xs btn-primary" onClick={() => void answer(i, true)}>{d.team.join}</button>
+                    <button type="button" className="btn btn-xs btn-text" onClick={() => void answer(i, false)}>{d.team.decline}</button>
                   </span>
                 </li>
               ))}
@@ -148,9 +148,9 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           <section className="update" role="status" aria-label={update.installs ? d.update.ready(update.version) : d.update.out(update.version)}>
             <p><b>{update.installs ? d.update.ready(update.version) : d.update.out(update.version)}</b></p>
             {update.installs ? <>
-              <button className="btn btn-xs btn-stamp" type="button" onClick={() => void folio.installUpdate()}>{d.update.restart}</button>
+              <button className="btn btn-xs btn-primary" type="button" onClick={() => void folio.installUpdate()}>{d.update.restart}</button>
               <p className="muted">{d.update.restartNote}</p>
-            </> : <button className="btn btn-xs btn-line" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
+            </> : <button className="btn btn-xs btn-secondary" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
           </section>
         )}
 
@@ -294,8 +294,8 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
             {confirm === g.id && (
               <div className="grp-confirm" role="alertdialog" aria-label={G.deleteConfirm(g.name)}>
                 <p>{G.deleteConfirm(g.name)}</p>
-                <div><button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                  <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(g.id)}>{G.delete}</button></div>
+                <div><button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                  <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(g.id)}>{G.delete}</button></div>
               </div>
             )}
           </div>

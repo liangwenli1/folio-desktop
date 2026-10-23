@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import type { ActivityEntry, Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
-import { engineName, fingerprintFacts, type Check, type Fix, type Health } from './checks';
+import { engineName, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import { day, runTime, type Dict, type Lang } from './i18n';
-import { Icon, percent } from './ui';
+import { Icon, percent, type IconName } from './ui';
 
 interface Props {
-  d: Dict; lang: Lang; p: Profile | null; h: Health | null; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
+  d: Dict; lang: Lang; p: Profile; h: Health; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
   // The assigned person's email, when there is one.
   owner: string | null; activity: ActivityEntry[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean; canExport: boolean;
@@ -18,7 +18,7 @@ interface Props {
 export const elsewhere = (p: Profile) => (p.lock && !p.lock.self ? p.lock : null);
 export const busyLabel = (d: Dict, state: string) => (state === 'restoring' ? d.profiles.restoring : state === 'saving' ? d.profiles.saving : d.profiles.starting);
 
-const IC = { ok: '✓', warn: '!', bad: '×' };
+const IC: Record<CheckLevel, IconName> = { ok: 'check', todo: 'download', warn: 'alert', bad: 'x' };
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 const two = (n: number) => String(n).padStart(2, '0');
 const pad32 = (s: string) => `${s}${'<'.repeat(32)}`.slice(0, 32);
@@ -63,15 +63,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
   const canvas = useGuilloche(p?.id);
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
-  const closeBtn = <button type="button" className="icon-btn only-drawer" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>;
-  if (!p || !h){
-    return (
-      <>
-        <div className="d-top"><p className="sec-t">{d.detail.profile}</p>{closeBtn}</div>
-        <div className="d-empty"><p><b>{d.detail.emptyTitle}</b></p><p>{d.detail.emptyBody}</p></div>
-      </>
-    );
-  }
+  const closeBtn = <button type="button" className="icon-btn" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>;
   const num = String(p.number).padStart(4, '0');
   const away = elsewhere(p);
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
@@ -102,24 +94,24 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
   const mrz2 = pad32(`${p.os.slice(0, 3).toUpperCase()}<${p.kernel === 'chromium' ? 'CHR' : 'FFX'}${p.kernelVersion.split('.')[0]}<<${(facts.seed ?? facts.screen?.replace(' × ', 'X') ?? '').toUpperCase()}`);
 
   let primary;
-  if (status?.state === 'running') primary = <button type="button" className="btn btn-line" onClick={onStop}>{d.profiles.stop} <span className="mono">{runTime(now - (status.startedAt ?? now))}</span></button>;
-  else if (status) primary = <button type="button" className="btn btn-line" disabled><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</button>;
-  else if (progress && !progress.finished && !progress.error) primary = <button type="button" className="btn btn-line" disabled><span className="spin" aria-hidden="true" />{d.profiles.downloading(percent(progress))}</button>;
+  if (status?.state === 'running') primary = <button type="button" className="btn btn-secondary" onClick={onStop}>{d.profiles.stop} <span className="mono">{runTime(now - (status.startedAt ?? now))}</span></button>;
+  else if (status) primary = <button type="button" className="btn btn-secondary" disabled><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</button>;
+  else if (progress && !progress.finished && !progress.error) primary = <button type="button" className="btn btn-secondary" disabled><span className="spin" aria-hidden="true" />{d.profiles.downloading(percent(progress))}</button>;
   else if (away) primary = canTakeOver
-    ? <button type="button" className="btn btn-line" onClick={() => setConfirmTakeover(true)}>{d.detail.takeover}</button>
-    : <button type="button" className="btn btn-line" disabled>{d.detail.inUse}</button>;
-  else primary = <button type="button" className="btn btn-stamp" onClick={onOpen}>{d.detail.openProfile}</button>;
+    ? <button type="button" className="btn btn-secondary" onClick={() => setConfirmTakeover(true)}>{d.detail.takeover}</button>
+    : <button type="button" className="btn btn-secondary" disabled>{d.detail.inUse}</button>;
+  else primary = <button type="button" className="btn btn-primary" onClick={onOpen}><Icon name="play" />{d.detail.openProfile}</button>;
 
   const row = (c: Check) => {
     const text = d.checks[c.id];
     return (
       <div key={c.id} className={`ck ${c.level}`} data-check={c.id}>
-        <span className="ic" aria-hidden="true">{IC[c.level]}</span>
+        <span className="ic" aria-hidden="true"><Icon name={IC[c.level]} /></span>
         <div>
           <p className="ck-t"><span className="sr">{d.detail.status[c.level]}: </span>{text.t(vars)}</p>
           {text.d(vars) && <p className="ck-d">{text.d(vars)}</p>}
           {c.fix && (
-            <button type="button" className="btn btn-xs btn-line" disabled={busy === fixKey(c.fix)} onClick={() => onFix(c.fix!)}>
+            <button type="button" className="btn btn-xs btn-secondary" disabled={busy === fixKey(c.fix)} onClick={() => onFix(c.fix!)}>
               {busy === fixKey(c.fix) && <span className="spin" aria-hidden="true" />}{fixLabel(c.fix)}
             </button>
           )}
@@ -141,33 +133,36 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
             {confirmTakeover && <>
               <p className="muted">{d.detail.takeoverNote}</p>
               <div className="d-actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmTakeover(false)}>{d.common.cancel}</button>
-                <button type="button" className="btn btn-stamp btn-sm" onClick={() => { setConfirmTakeover(false); onTakeover(); }}>{d.detail.takeoverDo}</button>
+                <button type="button" className="btn btn-text btn-sm" onClick={() => setConfirmTakeover(false)}>{d.common.cancel}</button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={() => { setConfirmTakeover(false); onTakeover(); }}>{d.detail.takeoverDo}</button>
               </div>
             </>}
           </div>
         )}
         <div className="d-actions">
           {primary}
-          <button type="button" className="btn btn-ghost" onClick={onEdit}>{d.detail.edit}</button>
-          {canTrash && <button type="button" className="btn btn-ghost" onClick={onTrash}>{d.detail.trash}</button>}
+          <button type="button" className="btn btn-secondary" onClick={onEdit}>{d.detail.edit}</button>
+          <span className="sp" />
+          {canTrash && <button type="button" className="btn btn-danger" onClick={onTrash}>{d.detail.trash}</button>}
         </div>
       </div>
       <article className="idcard" aria-label={d.detail.cardLabel(p.name)}>
         <canvas className="gl" ref={canvas} aria-hidden="true" />
         <header className="id-head"><span>{d.detail.card}</span><span>No. <b>{num}</b></span></header>
         <div className="id-city">
-          {geo
-            ? <><span className="city">{geo.city ?? geo.countryName}</span><span className="region">{[geo.region, geo.countryName].filter(Boolean).join(', ')}</span></>
-            : <><span className="city">{px ? d.detail.notChecked : d.detail.direct}</span>{!px && <span className="region">{d.detail.directSub}</span>}</>}
+          <div>
+            {geo
+              ? <><span className="city">{geo.city ?? geo.countryName}</span><span className="region">{[geo.region, geo.countryName].filter(Boolean).join(', ')}</span></>
+              : <><span className="city">{px ? (h.proxy === 'down' ? d.detail.noExit : d.detail.notChecked) : d.detail.direct}</span>{!px && <span className="region">{d.detail.directSub}</span>}</>}
+          </div>
+          <div className={`stamp ${h.level}`} data-testid="stamp" aria-hidden="true">
+            <span className="s-top">FOLIO</span><span className="s-main">{d.detail.stamps[h.level]}</span><span className="s-date">{stampDate}</span>
+          </div>
         </div>
         <dl className="id-fields">
           {fields.map(([k, v, cls]) => <div key={k} className={cls}><dt>{k}</dt><dd>{v}</dd></div>)}
         </dl>
         <div className="mrz" aria-hidden="true"><span>{mrz1}</span><span>{mrz2}</span></div>
-        <div className={`stamp ${h.level}`} data-testid="stamp" aria-hidden="true">
-          <span className="s-top">FOLIO</span><span className="s-main">{d.detail.stamps[h.level]}</span><span className="s-date">{stampDate}</span>
-        </div>
       </article>
       {geo && <p className="attrib">{d.common.attribution}</p>}
       <section aria-label={d.detail.checksTitle}>
@@ -188,11 +183,11 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
         <div className="d-actions tight">
           {canExport && p.data && p.syncMode === 'cloud' && <>
             <span className="hint">{d.detail.exportCookies}</span>
-            <button type="button" className="btn btn-xs btn-line" onClick={() => onExport('json')}>{d.detail.json}</button>
-            <button type="button" className="btn btn-xs btn-line" onClick={() => onExport('netscape')}>{d.detail.netscape}</button>
+            <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('json')}>{d.detail.json}</button>
+            <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('netscape')}>{d.detail.netscape}</button>
             <span className="sp" />
           </>}
-          <label className="btn btn-xs btn-ghost file-btn">{d.detail.importCookies}
+          <label className="btn btn-xs btn-secondary file-btn">{d.detail.importCookies}
             <input type="file" accept=".json,.txt,text/plain,application/json" onChange={async e => {
               const file = e.target.files?.[0];
               e.target.value = '';

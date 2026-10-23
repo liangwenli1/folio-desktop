@@ -27,8 +27,8 @@ export function ExportDialog({ d, ws, onClose }: { d: Dict; ws: Workspace; onClo
   }
   return (
     <Modal title={T.exportTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="submit" form="export-form" disabled={busy}>{busy ? T.exporting : T.export}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="submit" form="export-form" disabled={busy}>{busy ? T.exporting : T.export}</button>
     </>}>
       <form className="m-body" id="export-form" onSubmit={submit} noValidate>
         <p className="muted">{T.exportLead}</p>
@@ -70,16 +70,16 @@ export function ImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Workspace;
 
   return (
     <Modal title={T.importTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
       {preview
-        ? <button className="btn btn-stamp" type="button" disabled={busy || preview.profiles > room} onClick={() => void start()}>{busy ? T.importing : T.import}</button>
-        : <button className="btn btn-stamp" type="submit" form="import-form" disabled={busy || !file || !pass}>{busy ? T.unlocking : T.unlock}</button>}
+        ? <button className="btn btn-primary" type="button" disabled={busy || preview.profiles > room} onClick={() => void start()}>{busy ? T.importing : T.import}</button>
+        : <button className="btn btn-primary" type="submit" form="import-form" disabled={busy || !file || !pass}>{busy ? T.unlocking : T.unlock}</button>}
     </>}>
       <form className="m-body" id="import-form" onSubmit={unlock} noValidate>
         <p className="muted">{T.importLead}</p>
         {error && <p className="notice error" role="alert">{error}</p>}
         <div className="file-row">
-          <button className="btn btn-line btn-sm" type="button" onClick={() => void folio.pickImport().then(f => { if (f){ setFile(f); setPreview(null); } })}>{T.choose}</button>
+          <button className="btn btn-secondary btn-sm" type="button" onClick={() => void folio.pickImport().then(f => { if (f){ setFile(f); setPreview(null); } })}>{T.choose}</button>
           {file && <span className="hint mono">{file.name}</span>}
         </div>
         {file && !preview && (

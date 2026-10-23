@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, safeStorage, screen, shell, Tray } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, screen, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import type { ExtensionSource, KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
@@ -62,9 +62,17 @@ function updateTray(){
 }
 onScheduled(updateTray);
 
+// The title bar takes the app's colours: Windows keeps its own minimize, maximize and close buttons over a strip the
+// workbench draws (36 px, see --tb in styles.css), macOS keeps its traffic lights. Linux keeps the system frame.
+const TITLE_BAR = 36;
+const overlay = () => ({ color: '#00000000', symbolColor: nativeTheme.shouldUseDarkColors ? '#E4E9E3' : '#13212F', height: TITLE_BAR });
+const frame = process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: overlay() }
+  : process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 11 } } : {};
+nativeTheme.on('updated', () => { if (process.platform === 'win32') BrowserWindow.getAllWindows().forEach(w => w.setTitleBarOverlay(overlay())); });
+
 function createWindow(){
   const win = new BrowserWindow({
-    width: 1360, height: 860, minWidth: 980, minHeight: 640, show: false, title: 'Folio', backgroundColor: '#F1F3EF',
+    width: 1360, height: 860, minWidth: 980, minHeight: 640, show: false, title: 'Folio', backgroundColor: nativeTheme.shouldUseDarkColors ? '#0C1620' : '#F2F4F0', ...frame,
     webPreferences: { preload: join(import.meta.dirname, '../preload/index.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   });
   win.once('ready-to-show', () => { if (!startedHidden) win.show(); });

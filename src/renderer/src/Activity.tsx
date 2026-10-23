@@ -4,6 +4,7 @@ import { folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
 import { useToast } from './ui';
+import { Select } from './Select';
 
 type Kind = 'all' | keyof Dict['activity']['kinds'];
 const PAGE = 50;
@@ -61,22 +62,17 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
 
   return (
     <div className="page">
-      <main className="main scroll">
+      <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{A.title}</h1><p className="sub">{days ? A.sub(days) : ''}</p></div>
           <span className="sp" />
-          <label className="sort">{A.person}
-            <select value={person} onChange={e => setPerson(e.target.value)}>
-              <option value="">{A.everyone}</option>
-              {data.members.map(m => <option key={m.userId} value={m.userId}>{m.email}</option>)}
-            </select>
-          </label>
-          <label className="sort">{A.kind}
-            <select value={kind} onChange={e => setKind(e.target.value as Kind)}>
-              {(Object.keys(A.kinds) as Kind[]).map(k => <option key={k} value={k}>{A.kinds[k as keyof typeof A.kinds]}</option>)}
-            </select>
-          </label>
-          {canExport && <button className="btn btn-ghost" type="button" onClick={() => void exportCsv()}>{A.export}</button>}
+          <span className="sort"><span id="act-person">{A.person}</span>
+            <Select variant="sm" labelledBy="act-person" value={person} onChange={setPerson} options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
+          </span>
+          <span className="sort"><span id="act-kind">{A.kind}</span>
+            <Select variant="sm" labelledBy="act-kind" value={kind} onChange={v => setKind(v as Kind)} options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} />
+          </span>
+          {canExport && <button className="btn btn-secondary" type="button" onClick={() => void exportCsv()}>{A.export}</button>}
         </header>
         <div className="log">
           {entries === null && <p className="hint">{d.loading}</p>}
@@ -94,7 +90,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
               </ol>
             </section>
           ))}
-          {more && <button className="btn btn-line btn-sm" type="button" onClick={() => void older()}>{A.more}</button>}
+          {more && <button className="btn btn-secondary btn-sm" type="button" onClick={() => void older()}>{A.more}</button>}
         </div>
       </main>
     </div>

@@ -38,23 +38,27 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
 
   return (
     <div className="page">
-      <main className="main scroll">
+      <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{W.title}</h1><p className="sub">{s ? W.summary(name.get(s.leader) ?? '', s.members.length - 1) : W.sub}</p></div>
         </header>
         {ws.subscription.plan === 'free' ? (
-          <section className="api-card sync-card upsell">
-            <h2 className="sec-t">{W.title}</h2>
-            <p>{W.upgrade}</p>
-            {ws.role !== 'member' && <button type="button" className="btn btn-stamp" onClick={() => folio.openSite(`/${lang}/checkout/?ws=${ws.id}`)}>{d.plan.upgrade}</button>}
+          <section className="api-card sync-card upsell" aria-label={W.title}>
+            <h2>{W.upsell.title}</h2>
+            <p className="hint">{W.upsell.lead}</p>
+            <ul>{W.upsell.points.map(x => <li key={x}>{x}</li>)}</ul>
+            <p className="hint">{W.upgrade}</p>
+            {ws.role !== 'member'
+              ? <button type="button" className="btn btn-primary" onClick={() => folio.openSite(`/${lang}/checkout/?ws=${ws.id}`)}>{d.plan.upgrade}</button>
+              : <p className="hint">{W.upsell.ask}</p>}
           </section>
         ) : s ? (
           <section className="api-card sync-card" aria-label={W.current}>
             <div className="sec-row">
               <h2 className="sec-t">{W.current}</h2>
               <span className="d-actions tight">
-                <button type="button" className="btn btn-xs btn-line" disabled={busy} onClick={() => void tile()}>{busy ? W.tiling : W.tile}</button>
-                <button type="button" className="btn btn-xs btn-line" onClick={() => { setTiled(null); void folio.stopWindowSync(); }}>{W.stop}</button>
+                <button type="button" className="btn btn-xs btn-secondary" disabled={busy} onClick={() => void tile()}>{busy ? W.tiling : W.tile}</button>
+                <button type="button" className="btn btn-xs btn-secondary" onClick={() => { setTiled(null); void folio.stopWindowSync(); }}>{W.stop}</button>
               </span>
             </div>
             <ul className="plain-list">
@@ -63,14 +67,14 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
                   <span><b>{name.get(m.id)}</b> <span className="synctag">{m.id === s.leader ? W.leaderTag : W.followerTag}</span>
                     {m.issue && <><br /><span className="hint warn-text">{W.issues[m.issue]}</span></>}</span>
                   <span className="sp" />
-                  {m.id !== s.leader && <button type="button" className="btn btn-xs btn-ghost" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
+                  {m.id !== s.leader && <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
                 </li>
               ))}
             </ul>
             {tiled && <p className="hint" role="status">{tiled}</p>}
             <form className="sync-url wide" onSubmit={e => { e.preventDefault(); if (url.trim()) void folio.syncGoto(url.trim()); setUrl(''); }}>
               <input aria-label={W.address} placeholder={W.addressPh} value={url} onChange={e => setUrl(e.target.value)} spellCheck={false} />
-              <button type="submit" className="btn btn-sm btn-line">{W.open}</button>
+              <button type="submit" className="btn btn-sm btn-secondary">{W.open}</button>
             </form>
             <p className="hint">{W.limits}</p>
           </section>
@@ -90,7 +94,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
                 </li>
               ))}
             </ul>
-            <div className="d-actions"><button type="button" className="btn btn-stamp" disabled={picked.length < 2 || busy} onClick={() => void start()}>{busy ? W.starting : W.start(picked.length)}</button></div>
+            <div className="d-actions"><button type="button" className="btn btn-primary" disabled={picked.length < 2 || busy} onClick={() => void start()}>{busy ? W.starting : W.start(picked.length)}</button></div>
             <p className="hint">{W.limits}</p>
           </section>
         )}

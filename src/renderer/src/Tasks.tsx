@@ -8,7 +8,8 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Modal, useToast } from './ui';
+import { Icon, Modal, useToast } from './ui';
+import { Select, SelectField } from './Select';
 
 type Counts = Run['counts'];
 const finished = (c: Counts) => c.ok + c.failed + c.signed_out + c.skipped + c.canceled;
@@ -67,7 +68,7 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
           <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.sub(data.tasks.length)}</p></div>
           <span className="sp" />
           {!data.flows.length && <span className="hint">{T.needFlow}</span>}
-          <button className="btn btn-stamp" type="button" disabled={!data.flows.length} onClick={() => setForm({})}>{T.new}</button>
+          <button className="btn btn-primary" type="button" disabled={!data.flows.length} title={data.flows.length ? undefined : T.needFlow} onClick={() => setForm({})}><Icon name="plus" />{T.new}</button>
         </header>
         {scheduledHere && (
           <p className="hint page-note">{T.onlyOpen}{' '}
@@ -93,14 +94,14 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
                     <td className="act"><span className="actin">
                       {confirm === t.id ? <>
                         <span className="hint">{T.confirmDelete(t.name)}</span>
-                        <button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                        <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(t)}>{T.delete}</button>
+                        <button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                        <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(t)}>{T.delete}</button>
                       </> : <>
                         {here
-                          ? <button type="button" className="btn btn-xs btn-line" onClick={() => void folio.stopRun(here.runId)}>{T.stop}</button>
-                          : <button type="button" className="btn btn-xs btn-open" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} aria-label={T.runX(t.name)} onClick={() => void start(t)}>{T.run}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-xs btn-ghost" onClick={() => setForm({ task: t })}>{d.common.edit}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-xs btn-ghost" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t.id)}>{T.delete}</button>}
+                          ? <button type="button" className="btn btn-xs btn-secondary" onClick={() => void folio.stopRun(here.runId)}>{T.stop}</button>
+                          : <button type="button" className="btn btn-xs btn-secondary" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} title={!t.profileIds.length ? T.noProfilesHere : t.lastRun?.status === 'running' ? T.runningElsewhere : undefined} aria-label={T.runX(t.name)} onClick={() => void start(t)}><Icon name="play" />{T.run}</button>}
+                        {t.canEdit && <button type="button" className="btn btn-xs btn-text" onClick={() => setForm({ task: t })}>{d.common.edit}</button>}
+                        {t.canEdit && <button type="button" className="btn btn-xs btn-danger" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t.id)}>{T.delete}</button>}
                       </>}
                     </span></td>
                   </tr>
@@ -192,14 +193,14 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
     <div className="page">
       <main className="main">
         <header className="bar">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>{T.back}</button>
+          <button type="button" className="btn btn-text btn-sm" onClick={onBack}>{T.back}</button>
           <div className="ttl"><h1>{task.name}</h1>
             <p className="sub">{T.about(flowName, task.profileIds.length, task.concurrency, task.retries)}{task.schedule ? ` · ${describe(d, lang, task.schedule)}` : ''}</p></div>
           <span className="sp" />
-          {task.canEdit && <button type="button" className="btn btn-ghost" onClick={onEdit}>{d.common.edit}</button>}
+          {task.canEdit && <button type="button" className="btn btn-secondary" onClick={onEdit}>{d.common.edit}</button>}
           {here
-            ? <button type="button" className="btn btn-line" onClick={() => void folio.stopRun(here.runId)}>{T.stop}</button>
-            : <button type="button" className="btn btn-stamp" disabled={!idle} onClick={() => void run()}>{T.run}</button>}
+            ? <button type="button" className="btn btn-secondary" onClick={() => void folio.stopRun(here.runId)}>{T.stop}</button>
+            : <button type="button" className="btn btn-primary" disabled={!idle} title={idle ? undefined : !task.profileIds.length ? T.noProfilesHere : T.runningElsewhere} onClick={() => void run()}><Icon name="play" />{T.run}</button>}
         </header>
         <div className="task-detail">
           <section className="runs" aria-label={T.runs}>
@@ -221,7 +222,7 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
             {detail && (detail.run.status === 'missed' || detail.run.status === 'busy') && (
               <div className="away-note">
                 <span>{detail.run.status === 'missed' ? T.missedNote(when(detail.run.scheduledFor!, lang), detail.run.deviceName ?? '') : T.busyNote(when(detail.run.scheduledFor!, lang))}</span>
-                {idle && <div className="d-actions"><button type="button" className="btn btn-xs btn-stamp" onClick={() => void run()}>{T.runNow}</button></div>}
+                {idle && <div className="d-actions"><button type="button" className="btn btn-xs btn-primary" onClick={() => void run()}>{T.runNow}</button></div>}
               </div>
             )}
             {detail && detail.run.status !== 'missed' && detail.run.status !== 'busy' && <>
@@ -229,8 +230,8 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
                 <div className="run-sum"><RunLine d={d} lang={lang} run={detail.run} here={data.active.some(a => a.runId === detail.run.id)} />
                   <span className="hint">{T.startedBy(detail.run.startedBy ?? '—', detail.run.deviceName, ago(detail.run.startedAt, d))}</span></div>
                 <span className="sp" />
-                {detail.run.status !== 'running' && again.length > 0 && idle && <button type="button" className="btn btn-xs btn-line" onClick={() => void run('rerun', again)}>{T.rerun(again.length)}</button>}
-                <button type="button" className="btn btn-xs btn-ghost" disabled={!detail.items.length} onClick={() => void exportCsv()}>{T.export}</button>
+                {detail.run.status !== 'running' && again.length > 0 && idle && <button type="button" className="btn btn-xs btn-secondary" onClick={() => void run('rerun', again)}>{T.rerun(again.length)}</button>}
+                <button type="button" className="btn btn-xs btn-text" disabled={!detail.items.length} onClick={() => void exportCsv()}>{T.export}</button>
               </div>
               <div className="tw flow">
                 <table>
@@ -354,27 +355,20 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
 
   return (
     <Modal title={task ? T.editTitle : T.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="button" disabled={blocked} onClick={() => void save()}>{task ? T.save : T.create}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="button" disabled={blocked} onClick={() => void save()}>{task ? T.save : T.create}</button>
     </>}>
       <div className="m-body">
         <div className="row2">
           <label className="field"><span>{T.name}</span><input value={name} maxLength={80} onChange={e => setName(e.target.value)} autoFocus /></label>
-          <label className="field"><span>{T.flow}</span>
-            <select value={flowId} onChange={e => setFlowId(e.target.value)}>{data.flows.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-          </label>
+          <SelectField label={T.flow} value={flowId} onChange={setFlowId} options={data.flows.map(f => ({ value: f.id, label: f.name }))} searchPh={d.form.searchPh} />
         </div>
         <ProfilePicker d={d} profiles={profiles} data={data} value={ids} onChange={setIds} />
         <div className="row3">
-          <label className="field"><span>{T.concurrency}</span>
-            <select value={concurrency} onChange={e => setConcurrency(Number(e.target.value))}>{Array.from({ length: 10 }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select>
-          </label>
-          <label className="field"><span>{T.retries}</span>
-            <select value={retries} onChange={e => setRetries(Number(e.target.value))}>{[0, 1, 2, 3].map(n => <option key={n} value={n}>{T.retriesN(n)}</option>)}</select>
-          </label>
-          <label className="field"><span>{T.timeout}</span>
-            <select value={timeoutMin} onChange={e => setTimeoutMin(Number(e.target.value))}>{[1, 2, 3, 5, 10, 15, 30, 60].map(n => <option key={n} value={n}>{T.minutes(n)}</option>)}</select>
-          </label>
+          <SelectField label={T.concurrency} value={String(concurrency)} onChange={v => setConcurrency(Number(v))} search={false}
+            options={Array.from({ length: 10 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))} />
+          <SelectField label={T.retries} value={String(retries)} onChange={v => setRetries(Number(v))} options={[0, 1, 2, 3].map(n => ({ value: String(n), label: T.retriesN(n) }))} />
+          <SelectField label={T.timeout} value={String(timeoutMin)} onChange={v => setTimeoutMin(Number(v))} options={[1, 2, 3, 5, 10, 15, 30, 60].map(n => ({ value: String(n), label: T.minutes(n) }))} />
         </div>
         <p className="hint">{T.memory}</p>
 
@@ -403,13 +397,13 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
             <div className="vars-kept">
               <span>{vars.mode === 'clear' ? T.varsCleared : stored ? T.varsStored(stored.count, stored.names.join(', ')) : d.loading}</span>
               <span className="sp" />
-              <button type="button" className="btn btn-xs btn-line" onClick={() => setVars({ mode: 'replace', text: '' })}>{T.varsReplace}</button>
-              {vars.mode === 'keep' && <button type="button" className="btn btn-xs btn-ghost" onClick={() => setVars({ mode: 'clear', text: '' })}>{T.varsClear}</button>}
+              <button type="button" className="btn btn-xs btn-secondary" onClick={() => setVars({ mode: 'replace', text: '' })}>{T.varsReplace}</button>
+              {vars.mode === 'keep' && <button type="button" className="btn btn-xs btn-secondary" onClick={() => setVars({ mode: 'clear', text: '' })}>{T.varsClear}</button>}
             </div>
           ) : <>
             <div className="file-row">
-              <label className="btn btn-line btn-sm file-btn">{d.importer.file}<input type="file" accept=".csv,.tsv,.txt,text/csv" onChange={pick} /></label>
-              {task?.hasVariables && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setVars({ mode: 'keep', text: '' })}>{T.varsKeep}</button>}
+              <label className="btn btn-secondary btn-sm file-btn">{d.importer.file}<input type="file" accept=".csv,.tsv,.txt,text/csv" onChange={pick} /></label>
+              {task?.hasVariables && <button type="button" className="btn btn-secondary btn-sm" onClick={() => setVars({ mode: 'keep', text: '' })}>{T.varsKeep}</button>}
             </div>
             <textarea className="mono-in" rows={3} aria-label={T.vars} value={vars.text} placeholder={'profile,email,password\nShop-01,ada@example.com,…'} spellCheck={false} onChange={e => setVars({ mode: 'replace', text: e.target.value })} />
             {parsed && (parsed.errors.length
@@ -435,9 +429,7 @@ function ProfilePicker({ d, profiles, data, value, onChange }: { d: Dict; profil
       <span className="label">{T.profiles(value.size)}</span>
       <div className="picker-bar">
         <input type="search" aria-label={T.search} placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} />
-        {data.groups.length > 0 && <select aria-label={d.form.group} value={group} onChange={e => setGroup(e.target.value)}>
-          <option value="">{d.groups.all}</option>{data.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-        </select>}
+        {data.groups.length > 0 && <Select variant="sm" label={d.form.group} value={group} onChange={setGroup} options={[{ value: '', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name }))]} />}
         <label className="check-row"><input type="checkbox" checked={all} disabled={!shown.length}
           onChange={() => { const n = new Set(value); shown.forEach(p => (all ? n.delete(p.id) : n.add(p.id))); onChange(n); }} />{T.all}</label>
       </div>

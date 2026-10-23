@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { API, ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { account, API, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
 
 test.setTimeout(300_000);
 const zip = (files: Record<string, string>) => Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)]))));
@@ -57,13 +57,13 @@ test('extensions from a store or a file reach the profiles of their engine, and 
 
   // Chromium from the Chrome Web Store, Firefox from a file.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Extensions' }).click();
-  await win.getByRole('button', { name: '+ Add extension' }).click();
+  await win.getByRole('button', { name: 'Add extension' }).click();
   let dialog = win.getByRole('dialog', { name: 'Add an extension' });
   await dialog.getByRole('button', { name: 'Chrome Web Store' }).click();
   await dialog.getByLabel('Link or extension id').fill('https://chromewebstore.google.com/detail/shop-helper/abcdefghijklmnopabcdefghijklmnop');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper added to the library' })).toBeVisible();
-  await win.getByRole('button', { name: '+ Add extension' }).click();
+  await win.getByRole('button', { name: 'Add extension' }).click();
   dialog = win.getByRole('dialog', { name: 'Add an extension' });
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
   await dialog.getByLabel('Choose a file…').setInputFiles({ name: 'helper.xpi', mimeType: 'application/x-xpinstall', buffer: firefox('1.0') });
@@ -90,7 +90,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await expect(form).toHaveCount(0);
   await win.getByRole('button', { name: 'Close details' }).click();
   await win.getByLabel('Select all shown').check();
-  await win.getByTestId('bulk').getByLabel('Extensions…').selectOption({ label: 'Shop Helper FF · Firefox' });
+  await choose(win.getByTestId('bulk').getByLabel('Extensions…'), 'Shop Helper FF · Firefox');
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper FF installed in 1 profile; 1 skipped' })).toBeVisible();
 
   expect(await opened(win, cr.id)).toMatchObject({ state: 'running' });

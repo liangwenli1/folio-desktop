@@ -2,7 +2,7 @@
 // bulk actions with the Trash, imports, and the one-click fixes of the consistency check.
 import { expect, test, type Page } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, inBrowser, launch, logIn, startProbe } from './helpers';
+import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, inBrowser, launch, logIn, startProbe } from './helpers';
 
 test.setTimeout(120_000);
 const STUDIO = { plan: 'studio', period: 'monthly' };
@@ -32,7 +32,7 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await steps.getByRole('button', { name: 'Create a profile' }).click();
   const form = win.getByRole('dialog', { name: 'New profile' });
   await form.getByLabel('Name', { exact: true }).fill('US-Store-01');
-  await form.getByLabel('Proxy').selectOption({ index: 1 });
+  await choose(form.getByLabel('Proxy'), { index: 1 });
   await expect(form.getByTestId('fingerprint')).toContainText('Chromium 150');
   await form.getByRole('button', { name: 'Create profile' }).click();
 
@@ -99,7 +99,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
   await win.getByRole('checkbox', { name: 'Select P-2' }).check();
   const bulk = win.getByTestId('bulk');
-  await bulk.getByRole('combobox', { name: 'Move to group…' }).selectOption({ label: 'US stores' });
+  await choose(bulk.getByRole('combobox', { name: 'Move to group…' }), 'US stores');
   await expect(row(win, 'P-1')).toContainText('US stores');
   await expect(row(win, 'P-2')).toContainText('US stores');
   await bulk.getByRole('button', { name: 'Tag' }).click();

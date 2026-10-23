@@ -6,7 +6,7 @@ import type { KernelKind } from '@shared/bridge';
 import { folio, isApiError, type Extension, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Modal, useToast } from './ui';
+import { Icon, Modal, useToast } from './ui';
 
 const engine = (k: KernelKind) => (k === 'chromium' ? 'Chromium' : 'Firefox');
 
@@ -29,7 +29,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
         <header className="bar">
           <div className="ttl"><h1>{X.title}</h1><p className="sub">{X.sub(data.extensions.length)}</p></div>
           <span className="sp" />
-          {manager && <button className="btn btn-stamp" type="button" onClick={() => setDialog({})}>{X.add}</button>}
+          {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({})}><Icon name="plus" />{X.add}</button>}
         </header>
         {!manager && <p className="hint page-note">{X.memberNote}</p>}
         <div className="tw top-gap">
@@ -47,11 +47,11 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
                   {manager && <td className="act"><span className="actin">
                     {confirm === e.id ? <>
                       <span className="hint">{X.confirmDelete(e.name, e.profiles)}</span>
-                      <button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                      <button type="button" className="btn btn-xs btn-stamp" onClick={() => void remove(e)}>{X.delete}</button>
+                      <button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                      <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(e)}>{X.delete}</button>
                     </> : <>
-                      <button type="button" className="btn btn-xs btn-line" onClick={() => setDialog({ ext: e })}>{X.update}</button>
-                      <button type="button" className="btn btn-xs btn-ghost" aria-label={X.deleteX(e.name)} onClick={() => setConfirm(e.id)}>{X.delete}</button>
+                      <button type="button" className="btn btn-xs btn-secondary" onClick={() => setDialog({ ext: e })}>{X.update}</button>
+                      <button type="button" className="btn btn-xs btn-danger" aria-label={X.deleteX(e.name)} onClick={() => setConfirm(e.id)}>{X.delete}</button>
                     </>}
                   </span></td>}
                 </tr>
@@ -92,8 +92,8 @@ function ExtensionDialog({ d, ws, data, ext, onClose }: { d: Dict; ws: Workspace
 
   return (
     <Modal title={ext ? X.updateTitle(ext.name) : X.addTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? (how === 'store' ? X.fetching : X.uploading) : ext ? X.updateDo : X.addDo}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? (how === 'store' ? X.fetching : X.uploading) : ext ? X.updateDo : X.addDo}</button>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -113,7 +113,7 @@ function ExtensionDialog({ d, ws, data, ext, onClose }: { d: Dict; ws: Workspace
         {how === 'file' ? (
           <div className="field">
             <div className="file-row">
-              <label className="btn btn-line btn-sm file-btn">{X.chooseFile}<input type="file" aria-label={X.chooseFile} accept={kernel === 'chromium' ? '.crx,.zip' : '.xpi,.zip'} onChange={pick} /></label>
+              <label className="btn btn-secondary btn-sm file-btn">{X.chooseFile}<input type="file" aria-label={X.chooseFile} accept={kernel === 'chromium' ? '.crx,.zip' : '.xpi,.zip'} onChange={pick} /></label>
               {file && <span className="hint mono">{file.name}</span>}
             </div>
             <p className="hint">{kernel === 'chromium' ? X.fileHintChromium : X.fileHintFirefox}</p>

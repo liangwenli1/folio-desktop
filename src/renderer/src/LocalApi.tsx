@@ -4,7 +4,7 @@ import type { LocalApi } from '@shared/bridge';
 import { folio, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, type Dict, type Lang } from './i18n';
-import { useToast } from './ui';
+import { Switch, useToast } from './ui';
 
 type Example = 'playwright' | 'puppeteer' | 'selenium' | 'firefox';
 
@@ -78,17 +78,17 @@ await page.goto('https://example.com');`
 
   return (
     <div className="page">
-      <main className="main scroll">
+      <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.sub}</p></div>
           <span className="sp" />
-          <button type="button" className="btn btn-ghost" onClick={() => folio.openSite(`/${lang}/docs/api/`)}>{A.reference}</button>
+          <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/docs/api/`)}>{A.reference}</button>
         </header>
         {state && <div className="api-page">
           <section className="api-card" aria-label={A.server}>
             <div className="sec-row">
               <h2 className="sec-t">{A.server}</h2>
-              <label className="check-row switch"><input type="checkbox" checked={state.enabled} onChange={e => void change({ enabled: e.target.checked })} />{A.enable}</label>
+              <Switch label={A.enable} checked={state.enabled} onChange={on => void change({ enabled: on })} />
             </div>
             <p className="api-status" role="status">
               <span className={`d ${state.listening ? 'good' : state.error ? 'bad' : ''}`} aria-hidden="true" />
@@ -97,7 +97,7 @@ await page.goto('https://example.com');`
             </p>
             <form className="api-port" onSubmit={e => { e.preventDefault(); void change({ port: Number(port) }); }}>
               <label className="field"><span>{A.port}</span><input type="number" min={1024} max={65535} value={port} onChange={e => setPort(e.target.value)} /></label>
-              <button type="submit" className="btn btn-line btn-sm" disabled={Number(port) === state.port}>{d.common.save}</button>
+              <button type="submit" className="btn btn-secondary btn-sm" disabled={Number(port) === state.port}>{d.common.save}</button>
             </form>
             <p className="hint">{company ? A.unthrottled : A.limit}</p>
             <p className="hint">{A.security}</p>
@@ -110,8 +110,8 @@ await page.goto('https://example.com');`
               <div className="token-new" role="status">
                 <span>{A.newToken}</span>
                 <code className="mono">{fresh}</code>
-                <span className="actin"><button type="button" className="btn btn-xs btn-stamp" onClick={() => copy(fresh)}>{A.copy}</button>
-                  <button type="button" className="btn btn-xs btn-ghost" onClick={() => setFresh(null)}>{A.done}</button></span>
+                <span className="actin"><button type="button" className="btn btn-xs btn-primary" onClick={() => copy(fresh)}>{A.copy}</button>
+                  <button type="button" className="btn btn-xs btn-text" onClick={() => setFresh(null)}>{A.done}</button></span>
               </div>
             )}
             <ul className="plain-list">
@@ -120,13 +120,13 @@ await page.goto('https://example.com');`
                   <span><b>{t.name}</b>{t.workspaceId !== ws.id && <span className="tag">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}<br />
                     <span className="hint">{A.made(day(t.createdAt, lang))} · {t.lastUsedAt ? A.used(day(t.lastUsedAt, lang)) : A.unused}</span></span>
                   <span className="sp" />
-                  <button type="button" className="btn btn-xs btn-ghost" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>
+                  <button type="button" className="btn btn-xs btn-danger" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>
                 </li>
               ))}
             </ul>
             <form className="token-form" onSubmit={e => void create(e)}>
               <input aria-label={A.tokenName} placeholder={A.tokenName} value={name} maxLength={60} onChange={e => setName(e.target.value)} />
-              <button type="submit" className="btn btn-line btn-sm">{A.createToken}</button>
+              <button type="submit" className="btn btn-secondary btn-sm">{A.createToken}</button>
             </form>
           </section>
 
@@ -140,7 +140,7 @@ await page.goto('https://example.com');`
             <p className="hint">{example === 'firefox' ? A.firefoxNote : A.chromiumNote}</p>
             <div className="code-wrap">
               <pre className="code"><code>{code[example]}</code></pre>
-              <button type="button" className="btn btn-xs btn-line copy" onClick={() => copy(code[example])}>{A.copy}</button>
+              <button type="button" className="btn btn-xs btn-secondary copy" onClick={() => copy(code[example])}>{A.copy}</button>
             </div>
           </section>
 

@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logIn } from './helpers';
+import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, launch, logIn } from './helpers';
 
 test.setTimeout(420_000);
 const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
@@ -57,13 +57,13 @@ test('a flow runs on 10 profiles 3 at a time, failures are retried, and the resu
 
   // The task, made in the workbench: every profile, three at a time, one retry, a code per profile.
   await nav(win, 'Scheduled tasks').click();
-  await win.getByRole('button', { name: '+ New task' }).click();
+  await win.getByRole('button', { name: 'New task' }).click();
   const form = win.getByRole('dialog', { name: 'New task' });
   await form.getByLabel('Name').fill('Daily visit');
   await form.getByLabel('Select all shown').check();
   await expect(form.getByText('Profiles · 10 selected')).toBeVisible();
-  await form.getByLabel('At a time').selectOption('3');
-  await form.getByLabel('When one fails').selectOption({ label: 'Retry once' });
+  await choose(form.getByLabel('At a time'), '3');
+  await choose(form.getByLabel('When one fails'), 'Retry once');
   await form.getByRole('textbox', { name: 'Variables per profile' }).fill(['profile,code', ...Array.from({ length: 10 }, (_, i) => `#${i + 1},c${i + 1}`)].join('\n'));
   await expect(form.getByRole('status')).toHaveText('code for 10 profiles.');
   await form.getByRole('button', { name: 'Create task' }).click();

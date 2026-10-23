@@ -37,7 +37,7 @@ export function Login({ d, onDone }: { d: Dict; onDone: () => void }){
           <span>{d.login.password}</span>
           <input id="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
         </label>
-        <button className="btn btn-stamp full" type="submit" disabled={busy}>{d.login.submit}</button>
+        <button className="btn btn-primary full" type="submit" disabled={busy}>{d.login.submit}</button>
         <button className="linkish" type="button" onClick={() => folio.openSite(`${site}/forgot/`)}>{d.login.forgot}</button>
       </form>
       <p className="muted">{d.login.noAccount} <button className="linkish" type="button" onClick={() => folio.openSite(`${site}/signup/`)}>{d.login.create}</button></p>

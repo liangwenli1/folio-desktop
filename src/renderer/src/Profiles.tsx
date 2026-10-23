@@ -6,6 +6,7 @@ import { ago, errorText, runTime, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { useActivity } from './Activity';
 import { Icon, percent, useNow, useToast } from './ui';
+import { Select } from './Select';
 
 export type GroupFilter = 'all' | 'none' | string;
 type Status = 'all' | 'running' | 'issues';
@@ -78,8 +79,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
   const ids = [...sel].filter(id => all.some(p => p.id === id));
   const shownSel = list.filter(p => sel.has(p.id)).length;
-  const curProfile = all.find(p => p.id === cur) ?? null;
-  const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 5, !!cur);
+  // The detail column (or drawer) shows only while a profile is picked.
+  const curProfile = (drawer && all.find(p => p.id === cur)) || null;
+  const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 5, !!curProfile);
   const filtered = group !== 'all' || status !== 'all' || !!q;
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
@@ -161,7 +163,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const hideOnboarding = () => { setOnboardingHidden(true); try { localStorage.setItem(ONBOARDING_KEY(ws.id), 'hidden'); } catch { /* per-session only */ } };
 
   return (
-    <div className={`page with-detail${drawer ? ' detail-open' : ''}`}>
+    <div className="page with-detail">
       <main className="main">
         <header className="bar">
           <div className="ttl">
@@ -172,8 +174,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             <Icon name="search" /><span className="sr">{P.search}</span>
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
           </label>
-          {manager && <button className="btn btn-ghost" type="button" onClick={onImport}>{P.import}</button>}
-          <button className="btn btn-stamp" type="button" onClick={onNew}>{P.new}</button>
+          {manager && <button className="btn btn-secondary" type="button" onClick={onImport}>{P.import}</button>}
+          <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
         </header>
 
         {showOnboarding && <Onboarding d={d} data={data} onAddProxy={onAddProxy} onNew={onNew} onOpen={open} onHide={hideOnboarding} />}
@@ -207,11 +209,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
               {P.groupChip(group === 'none' ? d.groups.none : groupName.get(group) ?? '')} <span aria-hidden="true">×</span>
             </button>
           )}
-          <label className="sort">{P.sort}
-            <select value={sort} onChange={e => setSort(e.target.value as Sort)}>
-              {(['recent', 'name', 'latency'] as const).map(s => <option key={s} value={s}>{P.sorts[s]}</option>)}
-            </select>
-          </label>
+          <span className="sort"><span id="pf-sort">{P.sort}</span>
+            <Select variant="sm" labelledBy="pf-sort" value={sort} onChange={v => setSort(v as Sort)} options={(['recent', 'name', 'latency'] as const).map(s => ({ value: s, label: P.sorts[s] }))} />
+          </span>
         </div>
 
         {data.sync && <SyncBar d={d} data={data} names={new Map(all.map(p => [p.id, p.name]))} />}
@@ -237,59 +237,37 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                 <b>{d.common.selected(ids.length)}</b>
                 <button type="button" className="bb" onClick={() => all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)).forEach(p => void open(p))}>{P.bulk.open}</button>
                 <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}>{P.bulk.stop}</button>
-                <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={syncAllowed ? undefined : d.windowSync.upgrade} onClick={() => void startSync()}>{P.bulk.sync}</button>
-                <select className="bb" aria-label={P.bulk.move} value="" onChange={e => {
-                  const g = e.target.value === 'none' ? null : e.target.value;
-                  void batch('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none));
-                }}>
-                  <option value="" disabled>{P.bulk.move}</option>
-                  {data.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  <option value="none">{d.groups.none}</option>
-                </select>
-                <select className="bb" aria-label={P.bulk.proxy} value="" onChange={e => {
-                  const px = e.target.value === 'none' ? null : e.target.value;
-                  void batch('set-proxy', { proxyId: px }, P.done.proxySet);
-                }}>
-                  <option value="" disabled>{P.bulk.proxy}</option>
-                  {data.proxies.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  <option value="none">{P.noProxy}</option>
-                </select>
+                <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={!syncAllowed ? d.windowSync.upgrade : ids.length < 2 ? P.bulk.syncTwo : undefined} onClick={() => void startSync()}>{P.bulk.sync}</button>
+                <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" searchPh={d.form.searchPh}
+                  options={[...data.groups.map(g => ({ value: g.id, label: g.name })), { value: 'none', label: d.groups.none }]}
+                  onChange={v => { const g = v === 'none' ? null : v; void batch('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none)); }} />
+                <Select variant="bar" action label={P.bulk.proxy} placeholder={P.bulk.proxy} value="" searchPh={d.form.searchPh}
+                  options={[...data.proxies.map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined })), { value: 'none', label: P.noProxy }]}
+                  onChange={v => void batch('set-proxy', { proxyId: v === 'none' ? null : v }, P.done.proxySet)} />
                 {manager && (
-                  <select className="bb" aria-label={P.bulk.assign} value="" onChange={e => {
-                    const who = e.target.value === 'none' ? null : e.target.value;
-                    void batch('assign', { ownerId: who }, n => P.done.assigned(n, who ? email.get(who) ?? '' : P.unassigned));
-                  }}>
-                    <option value="" disabled>{P.bulk.assign}</option>
-                    {data.members.map(m => <option key={m.userId} value={m.userId}>{m.email}</option>)}
-                    <option value="none">{P.unassigned}</option>
-                  </select>
+                  <Select variant="bar" action label={P.bulk.assign} placeholder={P.bulk.assign} value="" searchPh={d.form.searchPh}
+                    options={[...data.members.map(m => ({ value: m.userId, label: m.email })), { value: 'none', label: P.unassigned }]}
+                    onChange={v => { const who = v === 'none' ? null : v; void batch('assign', { ownerId: who }, n => P.done.assigned(n, who ? email.get(who) ?? '' : P.unassigned)); }} />
                 )}
                 {manager && data.departments.length > 0 && (
-                  <select className="bb" aria-label={P.bulk.department} value="" onChange={e => {
-                    void batch('set-department', { departmentId: e.target.value === 'none' ? null : e.target.value }, P.done.departmentSet);
-                  }}>
-                    <option value="" disabled>{P.bulk.department}</option>
-                    {data.departments.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                    <option value="none">{P.bulk.noDepartment}</option>
-                  </select>
+                  <Select variant="bar" action label={P.bulk.department} placeholder={P.bulk.department} value=""
+                    options={[...data.departments.map(x => ({ value: x.id, label: x.name })), { value: 'none', label: P.bulk.noDepartment }]}
+                    onChange={v => void batch('set-department', { departmentId: v === 'none' ? null : v }, P.done.departmentSet)} />
                 )}
                 {data.extensions.length > 0 && (
-                  <select className="bb" aria-label={P.bulk.extensions} value="" onChange={e => {
-                    const [how, id] = e.target.value.split(':');
-                    const x = data.extensions.find(v => v.id === id)!;
-                    void batch(how === 'add' ? 'add-extension' : 'remove-extension', { extensionId: id }, n => (how === 'add' ? P.done.extAdded(n, x.name, ids.length - n) : P.done.extRemoved(n, x.name)));
-                  }}>
-                    <option value="" disabled>{P.bulk.extensions}</option>
-                    <optgroup label={P.bulk.install}>{data.extensions.map(x => <option key={x.id} value={`add:${x.id}`}>{x.name} · {x.kernel === 'chromium' ? 'Chromium' : 'Firefox'}</option>)}</optgroup>
-                    <optgroup label={P.bulk.uninstall}>{data.extensions.map(x => <option key={x.id} value={`remove:${x.id}`}>{x.name} · {x.kernel === 'chromium' ? 'Chromium' : 'Firefox'}</option>)}</optgroup>
-                  </select>
+                  <Select variant="bar" action label={P.bulk.extensions} placeholder={P.bulk.extensions} value="" searchPh={d.form.searchPh}
+                    options={(['add', 'remove'] as const).flatMap(how => data.extensions.map(x => ({ value: `${how}:${x.id}`, label: `${x.name} · ${x.kernel === 'chromium' ? 'Chromium' : 'Firefox'}`, group: how === 'add' ? P.bulk.install : P.bulk.uninstall })))}
+                    onChange={v => {
+                      const [how, id] = v.split(':');
+                      const x = data.extensions.find(e => e.id === id)!;
+                      void batch(how === 'add' ? 'add-extension' : 'remove-extension', { extensionId: id }, n => (how === 'add' ? P.done.extAdded(n, x.name, ids.length - n) : P.done.extRemoved(n, x.name)));
+                    }} />
                 )}
                 <button type="button" className="bb" onClick={() => setTagging(true)}>{P.bulk.tag}</button>
                 {manager && (
-                  <select className="bb" aria-label={P.bulk.cookies} value="" onChange={e => void exportCookies(all.filter(p => sel.has(p.id)), e.target.value as 'json' | 'netscape')}>
-                    <option value="" disabled>{P.bulk.cookies}</option>
-                    <option value="json">{d.detail.json}</option><option value="netscape">{d.detail.netscape}</option>
-                  </select>
+                  <Select variant="bar" action label={P.bulk.cookies} placeholder={P.bulk.cookies} value=""
+                    options={[{ value: 'json', label: d.detail.json }, { value: 'netscape', label: d.detail.netscape }]}
+                    onChange={v => void exportCookies(all.filter(p => sel.has(p.id)), v as 'json' | 'netscape')} />
                 )}
                 {manager && <button type="button" className="bb danger" onClick={() => setConfirm(true)}>{P.bulk.trash}</button>}
                 <span className="sp" />
@@ -317,15 +295,15 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                 <tr className="empty"><td colSpan={6}>
                   {all.length
                     ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
-                      <button type="button" className="btn btn-line btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); }}>{P.clearFilters}</button></>
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); }}>{P.clearFilters}</button></>
                     : <p><b>{P.emptyNone}</b></p>}
                 </td></tr>
               )}
               {list.map(p => (
-                <Row key={p.id} d={d} p={p} h={healthOf.get(p.id)!} group={groupLabel(p)} now={now} cur={p.id === cur} checked={sel.has(p.id)}
+                <Row key={p.id} d={d} p={p} h={healthOf.get(p.id)!} group={groupLabel(p)} now={now} cur={p.id === curProfile?.id} checked={sel.has(p.id)}
                   sync={data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null}
-                  status={data.status[p.id]} progress={data.progress[kernelKey(p.kernel, p.kernelVersion)]}
-                  onToggle={() => toggle(p.id)} onView={() => view(p.id)} onOpen={() => void open(p)} onStop={() => void stop(p)} />
+                  status={data.status[p.id]} progress={data.progress[kernelKey(p.kernel, p.kernelVersion)]} checking={!!p.proxyId && data.checking.has(p.proxyId)}
+                  onToggle={() => toggle(p.id)} onView={() => view(p.id)} onOpen={() => void open(p)} onStop={() => void stop(p)} onCheck={() => p.proxyId && void data.check([p.proxyId])} />
               ))}
             </tbody>
           </table>
@@ -333,49 +311,56 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
         {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
       </main>
 
-      <aside className="detail" aria-label={d.detail.profile}>
-        <ProfileDetail
-          d={d} lang={lang} p={curProfile} h={curProfile ? healthOf.get(curProfile.id)! : null} now={now} busy={busyFix}
-          status={curProfile ? data.status[curProfile.id] : undefined}
-          progress={curProfile ? data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)] : undefined}
-          group={curProfile ? groupLabel(curProfile) : ''}
-          owner={curProfile?.ownerId ? email.get(curProfile.ownerId) ?? null : null}
-          activity={recent.entries ?? []}
-          onClose={() => setDrawer(false)} onOpen={() => curProfile && void open(curProfile)} onStop={() => curProfile && void stop(curProfile)}
-          onEdit={() => curProfile && onEdit(curProfile.id)} onTrash={() => curProfile && void trash([curProfile.id])}
-          canTakeOver={manager} canTrash={manager} canExport={manager} onTakeover={() => curProfile && void takeover(curProfile)}
-          onExport={format => curProfile && void exportCookies([curProfile], format)} onImport={text => curProfile && void importCookies(curProfile, text)}
-          onFix={f => curProfile && void fix(curProfile, f)}
-        />
-      </aside>
-      {drawer && <div className="scrim drawer-scrim" onClick={() => setDrawer(false)} />}
+      {curProfile && <>
+        <aside className="detail" aria-label={d.detail.profile}>
+          <ProfileDetail
+            d={d} lang={lang} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
+            status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
+            group={groupLabel(curProfile)} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
+            activity={recent.entries ?? []}
+            onClose={() => setDrawer(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
+            onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
+            canTakeOver={manager} canTrash={manager} canExport={manager} onTakeover={() => void takeover(curProfile)}
+            onExport={format => void exportCookies([curProfile], format)} onImport={text => void importCookies(curProfile, text)}
+            onFix={f => void fix(curProfile, f)}
+          />
+        </aside>
+        <div className="scrim drawer-scrim" onClick={() => setDrawer(false)} />
+      </>}
     </div>
   );
 }
 
 interface RowProps {
   d: Dict; p: Profile; h: Health; group: string; now: number; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null;
-  status?: WorkspaceData['status'][string]; progress?: WorkspaceData['progress'][string];
-  onToggle(): void; onView(): void; onOpen(): void; onStop(): void;
+  status?: WorkspaceData['status'][string]; progress?: WorkspaceData['progress'][string]; checking: boolean;
+  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void;
 }
 
-function Row({ d, p, h, group, now, cur, checked, sync, status, progress, onToggle, onView, onOpen, onStop }: RowProps){
+// The status column: what the profile is doing, and the one thing to do about it.
+function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checking, onToggle, onView, onOpen, onStop, onCheck }: RowProps){
   const P = d.profiles;
   const geo = h.geo, ms = h.px?.lastCheck?.ms;
   const latency = { none: null, unchecked: <span className="lat">{P.unchecked}</span>, down: <span className="lat down">{P.noResponse}</span>,
     ok: <span className="lat ok">{P.ms(ms ?? 0)}</span>, slow: <span className="lat slow">{P.ms(ms ?? 0)}</span> }[h.proxy];
   const downloading = progress && !progress.finished && !progress.error;
   const away = elsewhere(p);
-  let act;
-  if (status?.state === 'running') act = <>
-    <span className="run"><span className="d" aria-hidden="true" /><span className="sr">{P.runningFor}</span><span>{runTime(now - (status.startedAt ?? now))}</span></span>
-    {sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}
-    <button type="button" className="btn btn-xs btn-line" aria-label={P.stopX(p.name)} onClick={onStop}>{P.stop}</button>
-  </>;
-  else if (status) act = <span className="starting"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
-  else if (downloading) act = <span className="starting"><span className="spin" aria-hidden="true" />{P.downloading(percent(progress))}</span>;
-  else if (away) act = <span className="away" title={away.email}>{P.inUseOn(away.deviceName ?? away.email)}</span>;
-  else act = <button type="button" className="btn btn-xs btn-open" aria-label={P.openX(p.name)} onClick={onOpen}>{P.open}</button>;
+  let st, act = null;
+  if (status?.state === 'running'){
+    st = <span className="st run"><span className="d" aria-hidden="true" />{P.st.running} · <span className="mono">{runTime(now - (status.startedAt ?? now))}</span></span>;
+    act = <button type="button" className="btn btn-xs btn-secondary" aria-label={P.stopX(p.name)} onClick={onStop}>{P.stop}</button>;
+  }
+  else if (status) st = <span className="st boot"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
+  else if (downloading) st = <span className="st boot"><span className="spin" aria-hidden="true" />{P.downloading(percent(progress))}</span>;
+  else if (away) st = <span className="st away" title={away.email}><span className="d" aria-hidden="true" />{P.inUseOn(away.deviceName ?? away.email)}</span>;
+  else if (h.checks[0]?.id === 'proxy-down'){
+    st = <span className="st bad"><span className="d" aria-hidden="true" />{P.st.proxyDown}</span>;
+    act = <button type="button" className="btn btn-xs btn-secondary" disabled={checking} onClick={onCheck}>{checking && <span className="spin" aria-hidden="true" />}{P.checkProxy}</button>;
+  }
+  else {
+    st = <span className="st idle"><span className="d" aria-hidden="true" />{P.st.idle}</span>;
+    act = <button type="button" className="btn btn-xs btn-secondary" aria-label={P.openX(p.name)} onClick={onOpen}><Icon name="play" />{P.open}</button>;
+  }
 
   return (
     <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a')) onView(); }}>
@@ -390,11 +375,13 @@ function Row({ d, p, h, group, now, cur, checked, sync, status, progress, onTogg
         {h.px && <span className="l2">{latency} · {h.px.type.toUpperCase()}</span>}
       </td>
       <td className="fpc">
-        <span className="l1">{d.os[p.os]}</span>
-        <span className="l2">{h.mismatch ? <span className="flag warn">{P.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span>
+        <span className="os-cell"><Icon name={p.os} /><span>
+          <span className="l1">{d.os[p.os]}</span>
+          <span className="l2">{h.mismatch ? <span className="flag warn">{P.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span>
+        </span></span>
       </td>
       <td className="lastc"><span className="who">{status || away ? P.inUse : ago(p.lastOpenedAt, d, now)}</span></td>
-      <td className="act"><span className="actin">{act}</span></td>
+      <td className="act"><span className="actin">{st}{sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}{act}</span></td>
     </tr>
   );
 }
@@ -417,7 +404,7 @@ function Onboarding({ d, data, onAddProxy, onNew, onOpen, onHide }: { d: Dict; d
           <li key={s.key} className={s.done ? 'done' : s === next ? 'next' : ''} data-step={s.key}>
             <span className="num" aria-hidden="true">{s.done ? '✓' : i + 1}</span>
             <div><b>{s.title}</b><p className="muted">{s.done ? O.done : s.body}</p></div>
-            {s === next && s.action && <button type="button" className="btn btn-stamp btn-sm" onClick={s.action}>{s.title}</button>}
+            {s === next && s.action && <button type="button" className="btn btn-primary btn-sm" onClick={s.action}>{s.title}</button>}
           </li>
         ))}
       </ol>
@@ -436,9 +423,9 @@ function SyncBar({ d, data, names }: { d: Dict; data: WorkspaceData; names: Map<
       <span><b>{W.on}</b> {W.summary(names.get(s.leader) ?? '', s.members.length - 1)}</span>
       <form className="sync-url" onSubmit={e => { e.preventDefault(); if (url.trim()) void folio.syncGoto(url.trim()); setUrl(''); }}>
         <input aria-label={W.address} placeholder={W.addressPh} value={url} onChange={e => setUrl(e.target.value)} spellCheck={false} />
-        <button type="submit" className="btn btn-xs btn-line">{W.open}</button>
+        <button type="submit" className="btn btn-xs btn-secondary">{W.open}</button>
       </form>
-      <button type="button" className="btn btn-xs btn-line" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
+      <button type="button" className="btn btn-xs btn-secondary" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
     </div>
   );
 }

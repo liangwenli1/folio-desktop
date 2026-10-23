@@ -6,6 +6,7 @@ import { proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { Icon, Modal, useToast } from './ui';
+import { SelectField } from './Select';
 
 type ProxyType = Proxy['type'];
 const TYPES: ProxyType[] = ['http', 'https', 'socks5'];
@@ -54,9 +55,9 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
             <Icon name="search" /><span className="sr">{X.search}</span>
             <input type="search" placeholder={X.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
           </label>
-          <button className="btn btn-ghost" type="button" disabled={!data.proxies.length || data.checking.size > 0} onClick={() => void check(data.proxies.map(p => p.id))}>{X.checkAll}</button>
-          <button className="btn btn-ghost" type="button" onClick={onImport}>{X.import}</button>
-          <button className="btn btn-stamp" type="button" onClick={onAdd}>{X.add}</button>
+          <button className="btn btn-secondary" type="button" disabled={!data.proxies.length || data.checking.size > 0} title={data.checking.size ? d.common.checking : undefined} onClick={() => void check(data.proxies.map(p => p.id))}>{X.checkAll}</button>
+          <button className="btn btn-secondary" type="button" onClick={onImport}>{X.import}</button>
+          <button className="btn btn-primary" type="button" onClick={onAdd}><Icon name="plus" />{X.add}</button>
         </header>
 
         {ids.length > 0 && (
@@ -107,7 +108,7 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
                       <span className="l2 mono">{c?.ok ? c.ip : ''}</span>
                     </td>
                     <td data-testid="proxy-check">
-                      {busy ? <span className="starting"><span className="spin" aria-hidden="true" />{d.common.checking}</span> : <>
+                      {busy ? <span className="st boot"><span className="spin" aria-hidden="true" />{d.common.checking}</span> : <>
                         <span className="l1">{!c ? <span className="lat">{X.never}</span> : c.ok
                           ? <span className={`lat ${s}`}>{d.profiles.ms(c.ms ?? 0)}</span> : <span className="lat down">{X.noResponse(c.error ?? '')}</span>}</span>
                         {c && <span className="l2">{ago(c.checkedAt, d)}</span>}
@@ -116,8 +117,8 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
                     <td className="num">{p.profiles}</td>
                     <td>{p.backupId ? byId.get(p.backupId)?.name ?? X.none : X.none}</td>
                     <td className="act"><span className="actin">
-                      <button type="button" className="btn btn-xs btn-line" aria-label={X.checkX(p.name)} disabled={busy} onClick={() => void data.check([p.id])}>{d.common.check}</button>
-                      <button type="button" className="btn btn-xs btn-ghost" aria-label={X.editX(p.name)} onClick={() => onEdit(p.id)}>{d.common.edit}</button>
+                      <button type="button" className="btn btn-xs btn-secondary" aria-label={X.checkX(p.name)} disabled={busy} onClick={() => void data.check([p.id])}>{d.common.check}</button>
+                      <button type="button" className="btn btn-xs btn-text" aria-label={X.editX(p.name)} onClick={() => onEdit(p.id)}>{d.common.edit}</button>
                     </span></td>
                   </tr>
                 );
@@ -173,8 +174,8 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
 
   return (
     <Modal title={proxy ? X.formEdit : X.formAdd} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="submit" form="proxy-form" disabled={busy}>{d.common.save}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="submit" form="proxy-form" disabled={busy}>{d.common.save}</button>
     </>}>
       <form className="m-body" id="proxy-form" onSubmit={submit} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -216,14 +217,8 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
             )}
           </div>
         </div>
-        <div className="field">
-          <label htmlFor="px-backup">{X.backup}</label>
-          <select id="px-backup" value={backupId} onChange={e => setBackupId(e.target.value)}>
-            <option value="">{X.backupNone}</option>
-            {data.proxies.filter(p => p.id !== proxy?.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <p className="hint">{X.backupHint}</p>
-        </div>
+        <SelectField label={X.backup} value={backupId} onChange={setBackupId} hint={X.backupHint} searchPh={d.form.searchPh}
+          options={[{ value: '', label: X.backupNone }, ...data.proxies.filter(p => p.id !== proxy?.id).map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined }))]} />
       </form>
     </Modal>
   );
@@ -255,8 +250,8 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
 
   return (
     <Modal title={X.importTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.close}</button>
-      <button className="btn btn-stamp" type="submit" form="proxy-import" disabled={busy || !text.trim()}>{X.importBtn}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.close}</button>
+      <button className="btn btn-primary" type="submit" form="proxy-import" disabled={busy || !text.trim()}>{X.importBtn}</button>
     </>}>
       <form className="m-body" id="proxy-import" onSubmit={submit} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -265,12 +260,7 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
           <pre className="formats">{'socks5://user:pass@host:port\nuser:pass@host:port\nhost:port:user:pass\nhost:port'}</pre>
           <textarea id="pi-text" className="mono-in" rows={8} value={text} onChange={e => setText(e.target.value)} spellCheck={false} autoFocus />
         </div>
-        <div className="field">
-          <label htmlFor="pi-type">{X.defaultType}</label>
-          <select id="pi-type" value={type} onChange={e => setType(e.target.value as ProxyType)}>
-            {TYPES.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
-          </select>
-        </div>
+        <SelectField label={X.defaultType} value={type} onChange={v => setType(v as ProxyType)} options={TYPES.map(t => ({ value: t, label: t.toUpperCase() }))} />
         {result && (
           <div className="import-result" role="status">
             <p><b>{X.imported(result.added, known)}</b></p>

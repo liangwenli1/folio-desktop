@@ -13,7 +13,16 @@ const PATHS = {
   extensions: 'M3 5.5h3V4a1.5 1.5 0 0 1 3 0v1.5h3v3h-1.5a1.5 1.5 0 0 0 0 3H12v3H3v-3h1.5a1.5 1.5 0 0 0 0-3H3z',
   team: 'M8.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM1.5 13c.5-2.5 2.3-3.8 4.5-3.8s4 1.3 4.5 3.8M10.5 3.3a2.3 2.3 0 0 1 0 4.4M12 9.6c1.3.5 2.2 1.6 2.5 3.4',
   activity: 'M1.5 8h3l2-4.5 3 9 2-4.5h3',
-  trash: 'M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5'
+  trash: 'M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5',
+  check: 'M3.5 8.5 6.5 11.5l6-7',
+  alert: 'M8 4.5v4.5M8 11.5v.01',
+  download: 'M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10',
+  plus: 'M8 3.5v9M3.5 8h9',
+  play: 'M5.5 3.8v8.4L12 8z',
+  // Systems, as plain glyphs: a tiled window, the command key, a terminal.
+  windows: 'M2.5 2.5h5v5h-5zM8.5 2.5h5v5h-5zM2.5 8.5h5v5h-5zM8.5 8.5h5v5h-5z',
+  macos: 'M6 6V4.75A1.75 1.75 0 1 0 4.25 6.5H6m0-.5v4m0 0v1.25a1.75 1.75 0 1 1-1.75-1.75H6m4-4V4.75a1.75 1.75 0 1 1 1.75 1.75H10m0-.5v4m0 0v1.25a1.75 1.75 0 1 0 1.75-1.75H10M6 6h4M6 10h4',
+  linux: 'M2.5 3.5h11v9h-11zM5 6.5l2 1.5-2 1.5M8.5 10H11'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -27,6 +36,16 @@ export const Mark = () => (
     </g>
   </svg>
 );
+
+// An on/off setting. The checkbox covers the whole control, so clicking anywhere on it toggles.
+export function Switch({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange(on: boolean): void }){
+  return (
+    <label className="switch">
+      <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} />
+      <span className="track" aria-hidden="true" />{label}
+    </label>
+  );
+}
 
 export function useOutsideClose(open: boolean, close: () => void){
   const ref = useRef<HTMLDivElement>(null);

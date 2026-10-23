@@ -9,7 +9,7 @@ export function EnginesDialog({ d, data, onClose }: { d: Dict; data: WorkspaceDa
   const used = new Map<string, number>();
   for (const p of data.profiles ?? []) used.set(kernelKey(p.kernel, p.kernelVersion), (used.get(kernelKey(p.kernel, p.kernelVersion)) ?? 0) + 1);
   return (
-    <Modal title={E.title} closeLabel={d.common.close} onClose={onClose} foot={<button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.close}</button>}>
+    <Modal title={E.title} closeLabel={d.common.close} onClose={onClose} foot={<button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.close}</button>}>
       <div className="m-body">
         <p className="muted">{E.lead}</p>
         <ul className="engines">
@@ -27,7 +27,7 @@ export function EnginesDialog({ d, data, onClose }: { d: Dict; data: WorkspaceDa
                 </div>
                 {k.installed
                   ? <span className="pill-ok">{E.installed}</span>
-                  : !downloading && <button className="btn btn-line btn-sm" type="button" onClick={() => void data.install(k.kind, k.version)}>{E.download(k.sizeHint)}</button>}
+                  : !downloading && <button className="btn btn-secondary btn-sm" type="button" onClick={() => void data.install(k.kind, k.version)}>{E.download(k.sizeHint)}</button>}
               </li>
             );
           })}

@@ -3,7 +3,8 @@ import { useState, type FormEvent } from 'react';
 import { folio, isApiError, type Department, type Member, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
-import { Modal, useToast } from './ui';
+import { Icon, Modal, useToast } from './ui';
+import { Select, SelectField } from './Select';
 
 type Dialog = { kind: 'invite' } | { kind: 'remove'; member: Member } | { kind: 'leave' } | { kind: 'dept'; dept?: Department } | null;
 interface Props { d: Dict; lang: Lang; ws: Workspace; meId: string; data: WorkspaceData; onLeft(): void }
@@ -37,11 +38,11 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
 
   return (
     <div className="page">
-      <main className="main scroll">
+      <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.sub(data.members.length, ws.subscription.entitlements.members)}</p></div>
           <span className="sp" />
-          {manager && <button className="btn btn-stamp" type="button" onClick={() => setDialog({ kind: 'invite' })}>{T.invite}</button>}
+          {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
         </header>
 
         <div className="tw top-gap flow">
@@ -61,17 +62,16 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                     <td><span className="l1"><b>{m.email}</b>{self && <span className="tag">{T.you}</span>}</span></td>
                     <td>
                       {manager && m.role !== 'owner' && !self
-                        ? <select className="cell-select" aria-label={T.roleOf(m.email)} value={m.role} onChange={e => void setRole(m, e.target.value as 'admin' | 'member')}>
-                          <option value="admin">{d.roles.admin}</option><option value="member">{d.roles.member}</option>
-                        </select>
+                        ? <Select variant="cell" label={T.roleOf(m.email)} value={m.role} onChange={v => void setRole(m, v as 'admin' | 'member')}
+                          options={[{ value: 'admin', label: d.roles.admin }, { value: 'member', label: d.roles.member }]} />
                         : d.roles[m.role]}
                     </td>
                     {(company || data.departments.length > 0) && <td>{m.departmentIds.map(id => <span key={id} className="tag first">{deptName.get(id)}</span>)}</td>}
                     <td className="num">{m.profiles}</td>
                     <td>{day(m.joinedAt, lang)}</td>
                     <td className="act"><span className="actin">
-                      {manager && m.role !== 'owner' && !self && <button type="button" className="btn btn-xs btn-ghost" aria-label={T.removeX(m.email)} onClick={() => setDialog({ kind: 'remove', member: m })}>{T.remove}</button>}
-                      {self && m.role !== 'owner' && <button type="button" className="btn btn-xs btn-ghost" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
+                      {manager && m.role !== 'owner' && !self && <button type="button" className="btn btn-xs btn-danger" aria-label={T.removeX(m.email)} onClick={() => setDialog({ kind: 'remove', member: m })}>{T.remove}</button>}
+                      {self && m.role !== 'owner' && <button type="button" className="btn btn-xs btn-danger" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
                     </span></td>
                   </tr>
                 );
@@ -88,8 +88,8 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                 <li key={i.id} data-invitation={i.email}>
                   <span><b>{i.email}</b> · {d.roles[i.role]}<br /><span className="hint">{[i.invitedBy && T.invitedBy(i.invitedBy), T.expires(day(i.expiresAt, lang))].filter(Boolean).join(' · ')}</span></span>
                   <span className="sp" />
-                  <button type="button" className="btn btn-xs btn-line" onClick={() => void resend(i.email, i.role, i.departmentIds)}>{T.resend}</button>
-                  <button type="button" className="btn btn-xs btn-ghost" onClick={() => void withdraw(i.id)}>{T.withdraw}</button>
+                  <button type="button" className="btn btn-xs btn-secondary" onClick={() => void resend(i.email, i.role, i.departmentIds)}>{T.resend}</button>
+                  <button type="button" className="btn btn-xs btn-text" onClick={() => void withdraw(i.id)}>{T.withdraw}</button>
                 </li>
               ))}
             </ul>
@@ -100,7 +100,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
           <section className="team-sec" aria-label={T.depts}>
             <div className="sec-row">
               <h2 className="sec-t">{T.depts}</h2>
-              {manager && company && <button type="button" className="btn btn-xs btn-line" onClick={() => setDialog({ kind: 'dept' })}>{T.deptAdd}</button>}
+              {manager && company && <button type="button" className="btn btn-xs btn-secondary" onClick={() => setDialog({ kind: 'dept' })}><Icon name="plus" />{T.deptAdd}</button>}
             </div>
             <p className="hint">{company ? T.deptHelp : T.deptCompany}</p>
             {!data.departments.length && <p className="hint">{T.deptNone}</p>}
@@ -109,7 +109,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                 <li key={x.id} data-department={x.name}>
                   <span><b>{x.name}</b> · {T.deptProfiles(x.profiles)}<br /><span className="hint">{x.memberIds.map(id => email.get(id)).filter(Boolean).join(', ') || '—'}</span></span>
                   <span className="sp" />
-                  {manager && company && <button type="button" className="btn btn-xs btn-line" onClick={() => setDialog({ kind: 'dept', dept: x })}>{d.common.edit}</button>}
+                  {manager && company && <button type="button" className="btn btn-xs btn-text" onClick={() => setDialog({ kind: 'dept', dept: x })}>{d.common.edit}</button>}
                 </li>
               ))}
             </ul>
@@ -121,8 +121,8 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
       {dialog?.kind === 'remove' && <RemoveDialog d={d} ws={ws} data={data} member={dialog.member} meId={meId} onClose={close} />}
       {dialog?.kind === 'leave' && (
         <Modal title={T.leaveTitle(ws.name)} closeLabel={d.common.close} onClose={close} foot={<>
-          <button className="btn btn-ghost" type="button" onClick={close}>{d.common.cancel}</button>
-          <button className="btn btn-stamp" type="button" onClick={() => void folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</button>
+          <button className="btn btn-secondary" type="button" onClick={close}>{d.common.cancel}</button>
+          <button className="btn btn-danger solid" type="button" onClick={() => void folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</button>
         </>}>
           <div className="m-body"><p>{T.leaveLead}</p></div>
         </Modal>
@@ -155,10 +155,10 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
 
   return (
     <Modal title={T.inviteTitle} closeLabel={d.common.close} onClose={onClose} foot={result
-      ? <button className="btn btn-stamp" type="button" onClick={onClose}>{T.done}</button>
+      ? <button className="btn btn-primary" type="button" onClick={onClose}>{T.done}</button>
       : <>
-        <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-        <button className="btn btn-stamp" type="submit" form="invite-form" disabled={busy}>{T.send}</button>
+        <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+        <button className="btn btn-primary" type="submit" form="invite-form" disabled={busy}>{T.send}</button>
       </>}>
       {result ? (
         <div className="m-body" role="status">
@@ -167,7 +167,7 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
             <label htmlFor="inv-link">{T.link}</label>
             <div className="pxcheck">
               <input id="inv-link" className="mono-in" readOnly value={result.link} onFocus={e => e.target.select()} />
-              <button className="btn btn-line btn-sm" type="button" onClick={() => void navigator.clipboard.writeText(result.link).then(() => toast(T.copied))}>{T.copyLink}</button>
+              <button className="btn btn-secondary btn-sm" type="button" onClick={() => void navigator.clipboard.writeText(result.link).then(() => toast(T.copied))}>{T.copyLink}</button>
             </div>
           </div>
         </div>
@@ -219,18 +219,13 @@ function RemoveDialog({ d, ws, data, member, meId, onClose }: { d: Dict; ws: Wor
   }
   return (
     <Modal title={T.removeTitle(member.email)} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="button" disabled={!heir} onClick={() => void remove()}>{T.removeDo}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-danger solid" type="button" disabled={!heir} onClick={() => void remove()}>{T.removeDo}</button>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
         <p>{T.removeLead}</p>
-        <div className="field">
-          <label htmlFor="rm-heir">{T.heir}</label>
-          <select id="rm-heir" value={heir} onChange={e => setHeir(e.target.value)}>
-            {others.map(m => <option key={m.userId} value={m.userId}>{m.email}</option>)}
-          </select>
-        </div>
+        <SelectField label={T.heir} value={heir} onChange={setHeir} options={others.map(m => ({ value: m.userId, label: m.email }))} searchPh={d.form.searchPh} />
       </div>
     </Modal>
   );
@@ -254,17 +249,17 @@ function DepartmentDialog({ d, ws, data, dept, onClose }: { d: Dict; ws: Workspa
     });
   }
   return (
-    <Modal title={dept ? dept.name : T.deptAdd.replace('+ ', '')} closeLabel={d.common.close} onClose={onClose} foot={confirm
+    <Modal title={dept ? dept.name : T.deptAdd} closeLabel={d.common.close} onClose={onClose} foot={confirm
       ? <>
         <span className="hint sp">{T.deptDeleteConfirm(dept!.name)}</span>
-        <button className="btn btn-ghost" type="button" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
-        <button className="btn btn-stamp" type="button" onClick={() => void run(() => folio.api('DELETE', `/departments/${dept!.id}`))}>{T.deptDelete}</button>
+        <button className="btn btn-secondary" type="button" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
+        <button className="btn btn-danger solid" type="button" onClick={() => void run(() => folio.api('DELETE', `/departments/${dept!.id}`))}>{T.deptDelete}</button>
       </>
       : <>
-        {dept && <button className="btn btn-ghost" type="button" onClick={() => setConfirm(true)}>{T.deptDelete}</button>}
+        {dept && <button className="btn btn-danger" type="button" onClick={() => setConfirm(true)}>{T.deptDelete}</button>}
         <span className="sp" />
-        <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-        <button className="btn btn-stamp" type="submit" form="dept-form">{d.common.save}</button>
+        <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+        <button className="btn btn-primary" type="submit" form="dept-form">{d.common.save}</button>
       </>}>
       <form className="m-body" id="dept-form" onSubmit={save} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}

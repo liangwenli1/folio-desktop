@@ -108,8 +108,6 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
       setProgress(m => ({ ...m, [key]: p }));
       if (p.finished || p.error){
         void folio.kernels().then(setKernels);
-    void folio.activeRuns().then(setActive);
-    const offRuns = folio.onRuns(setActive);
         waiting.current.get(key)?.(!!p.finished);
         waiting.current.delete(key);
       }

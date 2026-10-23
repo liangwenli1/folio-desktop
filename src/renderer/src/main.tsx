@@ -4,7 +4,7 @@ import '@fontsource-variable/manrope/wght.css';
 import '@fontsource/schibsted-grotesk/400.css';
 import '@fontsource/schibsted-grotesk/500.css';
 import '@fontsource/schibsted-grotesk/600.css';
-import '@fontsource/martian-mono/400.css';
+import '@fontsource-variable/jetbrains-mono/wght.css';
 import './styles.css';
 import { App } from './App';
 

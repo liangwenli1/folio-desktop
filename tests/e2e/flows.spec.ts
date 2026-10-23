@@ -9,8 +9,8 @@ const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Ma
 const step = (win: Page, path: string) => win.locator(`li[data-step="${path}"]`);
 
 async function addStep(win: Page, type: string, scope = win.getByRole('region', { name: 'Steps' })){
-  await scope.getByRole('button', { name: '+ Add step' }).last().click();
-  await scope.getByRole('group', { name: '+ Add step' }).getByRole('button', { name: type, exact: true }).click();
+  await scope.getByRole('button', { name: 'Add step' }).last().click();
+  await scope.getByRole('menu', { name: 'Add step' }).getByRole('menuitem', { name: type, exact: true }).click();
 }
 
 // A sign-in page: typing a name and pressing the button greets that name.
@@ -29,7 +29,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
   const win = await logIn(app, owner.email);
   await nav(win, 'Flows').click();
   await expect(win.getByText('No flows yet.')).toBeVisible();
-  await win.getByRole('button', { name: '+ New flow' }).click();
+  await win.getByRole('button', { name: 'New flow' }).click();
   await win.getByLabel('Flow name').fill('Morning check');
 
   await addStep(win, 'Open URL');

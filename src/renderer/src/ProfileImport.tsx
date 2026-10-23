@@ -78,16 +78,16 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
 
   return (
     <Modal title={I.title} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="button" disabled={blocked} onClick={() => void submit()}>{step ?? I.submit(rows.length)}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="button" disabled={blocked} onClick={() => void submit()}>{step ?? I.submit(rows.length)}</button>
     </>}>
       <div className="m-body">
         <p className="muted">{I.lead}</p>
         <p className="hint">{I.columns}</p>
         {error && <p className="notice error" role="alert">{error}</p>}
         <div className="file-row">
-          <label className="btn btn-line btn-sm file-btn">{I.file}<input type="file" accept=".csv,.tsv,.txt,text/csv" onChange={pick} /></label>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setText(TEMPLATE)}>{I.example}</button>
+          <label className="btn btn-secondary btn-sm file-btn">{I.file}<input type="file" accept=".csv,.tsv,.txt,text/csv" onChange={pick} /></label>
+          <button className="btn btn-secondary btn-sm" type="button" onClick={() => setText(TEMPLATE)}>{I.example}</button>
         </div>
         <div className="field">
           <label htmlFor="ci-text">{I.pasteLabel}</label>

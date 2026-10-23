@@ -49,6 +49,7 @@ describe('health', () => {
     const offline = health(profile(), map(proxy('main', down)), kernels);
     expect(offline.level).toBe('bad');
     expect(offline.checks[0]).toEqual({ id: 'proxy-down', level: 'bad', fix: { kind: 'check', proxyId: 'main' } });
+    expect(offline.checks[1]).toEqual({ id: 'tz-pending', level: 'warn' });
 
     const covered = health(profile(), map(proxy('main', down, 'spare'), proxy('spare', { ms: 210 })), kernels);
     expect(covered.level).toBe('warn');
@@ -58,7 +59,7 @@ describe('health', () => {
   });
 
   it('asks for a proxy check or a proxy, and follows this computer without one', () => {
-    expect(ids(health(profile(), map(proxy('main', null)), kernels))).toEqual(['warn:proxy-unchecked', 'ok:tz-host', 'ok:engine-ok']);
+    expect(ids(health(profile(), map(proxy('main', null)), kernels))).toEqual(['warn:proxy-unchecked', 'warn:tz-pending', 'ok:engine-ok']);
     expect(ids(health(profile({ proxyId: null }), map(), kernels))).toEqual(['warn:proxy-none', 'ok:tz-host', 'ok:engine-ok']);
   });
 
@@ -69,7 +70,8 @@ describe('health', () => {
     expect(older.checks.at(-1)).toEqual({ id: 'engine-older', level: 'ok', fix: { kind: 'use-engine', version: '151.0.1' } });
 
     const missing = health(profile(), map(proxy('main', {})), [{ ...kernels[0], installed: false }]);
-    expect(missing.checks.at(-1)).toEqual({ id: 'engine-missing', level: 'ok', fix: { kind: 'download', version: '150.0.7871.186' } });
+    expect(missing.level).toBe('ok');
+    expect(missing.checks.at(-1)).toEqual({ id: 'engine-missing', level: 'todo', fix: { kind: 'download', version: '150.0.7871.186' } });
 
     const mac: KernelState[] = [{ kind: 'chromium', version: '148.0.7778.215', installed: true, sizeHint: '150 MB' }];
     const unavailable = health(profile(), map(proxy('main', {})), mac);

@@ -35,7 +35,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
         <header className="bar">
           <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.sub(list.length)}</p></div>
           <span className="sp" />
-          <button className="btn btn-ghost" type="button" disabled={!list.length} onClick={() => setConfirm(list.map(p => p.id))}>{T.purgeAll}</button>
+          <button className="btn btn-danger" type="button" disabled={!list.length} onClick={() => setConfirm(list.map(p => p.id))}>{T.purgeAll}</button>
         </header>
 
         {(confirm || ids.length > 0) && (
@@ -82,8 +82,8 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
                   <td><span className="l1">{d.os[p.os]}</span><span className="l2">{engineName(p.kernel, p.kernelVersion)}</span></td>
                   <td>{ago(p.deletedAt, d)}</td>
                   <td className="act"><span className="actin">
-                    <button type="button" className="btn btn-xs btn-line" onClick={() => void run('restore', [p.id])}>{T.restore}</button>
-                    <button type="button" className="btn btn-xs btn-ghost" onClick={() => setConfirm([p.id])}>{T.purge}</button>
+                    <button type="button" className="btn btn-xs btn-secondary" onClick={() => void run('restore', [p.id])}>{T.restore}</button>
+                    <button type="button" className="btn btn-xs btn-danger" onClick={() => setConfirm([p.id])}>{T.purge}</button>
                   </span></td>
                 </tr>
               ))}

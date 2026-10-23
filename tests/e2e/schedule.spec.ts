@@ -41,7 +41,7 @@ test('a daily task runs on time on its computer; times missed while Folio was cl
   let app = await launch(dir, ENGINE_ENV);
   let win = await logIn(app, acct.email);
   await nav(win, 'Scheduled tasks').click();
-  await win.getByRole('button', { name: '+ New task' }).click();
+  await win.getByRole('button', { name: 'New task' }).click();
   const form = win.getByRole('dialog', { name: 'New task' });
   await form.getByLabel('Name').fill('Daily look');
   await form.getByLabel('Select all shown').check();

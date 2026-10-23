@@ -3,7 +3,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { _electron as electron, expect, request, type ElectronApplication, type Page } from '@playwright/test';
+import { _electron as electron, expect, request, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 
 export const API = process.env.API_URL ?? 'http://localhost:47110';
 export const SITE = 'http://localhost:47120';
@@ -106,4 +106,12 @@ export async function opened(win: Page, id: string){
   }, id);
   await expect.poll(async () => (await lastStatus(win, id))?.state, { timeout: 120_000 }).toMatch(/running|error/);
   return (await lastStatus(win, id))!;
+}
+
+// Picks an option in one of the app's dropdowns (they are not native selects): by its name (the first one with it,
+// as a native select would), or by position.
+export async function choose(combo: Locator, option: string | { index: number }){
+  await combo.click();
+  const list = combo.page().getByRole('listbox');
+  await (typeof option === 'string' ? list.getByRole('option', { name: option, exact: true }).first() : list.getByRole('option').nth(option.index)).click();
 }

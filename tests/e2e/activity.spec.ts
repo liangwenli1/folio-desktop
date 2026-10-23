@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { account, chromiumProfile, dataDir, launch, logIn } from './helpers';
+import { account, choose, chromiumProfile, dataDir, launch, logIn } from './helpers';
 
 test('the activity log says who did what, and each profile shows its recent entries', async () => {
   const acct = await account();
@@ -26,9 +26,9 @@ test('the activity log says who did what, and each profile shows its recent entr
   await expect(items).toHaveCount(3);
   await expect(items.first()).toContainText('changed the name of Shop Berlin');
   await expect(items.last()).toContainText(`${acct.email} created the group EU stores`);
-  await win.getByRole('combobox', { name: 'Showing' }).selectOption({ label: 'Profile changes' });
+  await choose(win.getByRole('combobox', { name: 'Showing' }), 'Profile changes');
   await expect(items).toHaveCount(2);
-  await win.getByRole('combobox', { name: 'Showing' }).selectOption({ label: 'Team' });
+  await choose(win.getByRole('combobox', { name: 'Showing' }), 'Team');
   await expect(win.getByText('Nothing here yet.')).toBeVisible();
   await expect(win.getByRole('button', { name: 'Export CSV' })).toHaveCount(0);
   await app.close();

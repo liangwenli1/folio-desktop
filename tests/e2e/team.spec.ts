@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
 
 test.setTimeout(240_000);
 const STUDIO = { plan: 'studio', period: 'monthly' };
@@ -10,7 +10,7 @@ const nav = (win: Page, name: RegExp) => win.getByRole('navigation', { name: 'Ma
 
 async function invite(owner: Page, email: string, role: 'Member' | 'Admin' = 'Member'){
   await nav(owner, /^Team/).click();
-  await owner.getByRole('button', { name: '+ Invite' }).click();
+  await owner.getByRole('button', { name: 'Invite' }).click();
   const dialog = owner.getByRole('dialog', { name: 'Invite to the team' });
   await dialog.getByLabel('Email').fill(email);
   await dialog.getByRole('radio', { name: new RegExp(`^${role}`) }).check();
@@ -45,7 +45,7 @@ test('a member removed from the team loses the profile they have open, and its c
   // The owner assigns the profile to the member, who now sees and opens it.
   await nav(winO, /^Profiles/).click();
   await winO.getByRole('checkbox', { name: 'Select Shop-07' }).check();
-  await winO.getByTestId('bulk').getByRole('combobox', { name: 'Assign to…' }).selectOption({ label: member.email });
+  await choose(winO.getByTestId('bulk').getByRole('combobox', { name: 'Assign to…' }), member.email);
   await expect(winM.locator('tr[data-id]', { hasText: 'Shop-07' })).toBeVisible({ timeout: 5000 });
   expect(await opened(winM, p.id)).toMatchObject({ state: 'running' });
   const folder = join(memberData, 'profiles', memberId, p.id);
@@ -82,7 +82,7 @@ test('members work with their own profiles only, and can leave', async () => {
   await expect(nav(winM, /^Proxies/)).toHaveCount(0);
   await expect(nav(winM, /^Trash/)).toHaveCount(0);
   await expect(winM.getByRole('button', { name: 'Import', exact: true })).toHaveCount(0);
-  await winM.getByRole('button', { name: '+ New profile' }).click();
+  await winM.getByRole('button', { name: 'New profile' }).click();
   const form = winM.getByRole('dialog', { name: 'New profile' });
   await form.getByLabel('Name', { exact: true }).fill('Member-1');
   await expect(form.getByRole('option', { name: 'Paste a new proxy…' })).toHaveCount(0);
@@ -101,7 +101,7 @@ test('members work with their own profiles only, and can leave', async () => {
   // Leaving hands the profile to the owner and takes the workspace out of the member's workbench.
   await nav(winM, /^Team/).click();
   await expect(winM.locator('[data-member]')).toHaveCount(2);
-  await expect(winM.getByRole('button', { name: '+ Invite' })).toHaveCount(0);
+  await expect(winM.getByRole('button', { name: 'Invite' })).toHaveCount(0);
   await winM.getByRole('button', { name: 'Leave team' }).click();
   await winM.getByRole('dialog', { name: 'Leave Larkspur Trading?' }).getByRole('button', { name: 'Leave' }).click();
   await expect(winM.getByTestId('ws-name')).not.toHaveText('Larkspur Trading');

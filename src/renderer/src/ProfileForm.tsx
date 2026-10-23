@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { CheckResult, Fingerprint, KernelKind, Os } from '@shared/bridge';
 import { folio, isApiError, type Profile, type ProxyImport } from './api';
-import { fingerprintFacts } from './checks';
+import { fingerprintFacts, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
 import { Modal, percent } from './ui';
+import { Select, SelectField, type Opt } from './Select';
 
 interface Props { d: Dict; wsId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
 
 const NEW_GROUP = '__new', PASTE = '__paste';
 const ZONES = Intl.supportedValuesOf('timeZone');
-const validTz = (tz: string) => { try { new Intl.DateTimeFormat('en', { timeZone: tz }); return true; } catch { return false; } };
 const LANG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
 type PxNote = { state: 'checking' | 'ok' | 'down' | 'bad' | 'added'; text: string } | null;
@@ -36,8 +36,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [paste, setPaste] = useState('');
   const [pxNote, setPxNote] = useState<PxNote>(null);
   const [tags, setTags] = useState(profile?.tags.join(', ') ?? '');
+  // '' follows the proxy.
   const [tz, setTz] = useState(profile?.timezoneOverride ?? '');
-  const [tzMode, setTzMode] = useState(profile?.timezoneOverride ? 'custom' : 'follow');
   const [lang, setLang] = useState(profile?.localeOverride ?? '');
   const [langMode, setLangMode] = useState(profile?.localeOverride ? 'custom' : 'follow');
   const [notes, setNotes] = useState(profile?.notes ?? '');
@@ -95,13 +95,12 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   }
 
   const nameErr = tried && !name.trim() ? f.nameErr : null;
-  const tzErr = tried && tzMode === 'custom' && !validTz(tz.trim()) ? f.tzErr : null;
   const langErr = tried && langMode === 'custom' && !LANG.test(lang.trim()) ? f.langErr : null;
 
   async function submit(e: FormEvent){
     e.preventDefault();
     setTried(true);
-    if (!name.trim() || (tzMode === 'custom' && !validTz(tz.trim())) || (langMode === 'custom' && !LANG.test(lang.trim()))) return;
+    if (!name.trim() || (langMode === 'custom' && !LANG.test(lang.trim()))) return;
     if (fp.state !== 'ready' || proxyId === PASTE) return;
     setBusy(true); setError(null);
     try {
@@ -115,7 +114,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
       if (profile && base){
         const ok = await data.patch(base, {
           ...common, notes: notes.trim() || null, kernelVersion, syncMode, ...(regenerated ? { fingerprint: fp.fingerprint } : {}),
-          timezoneOverride: tzMode === 'custom' ? tz.trim() : null, localeOverride: langMode === 'custom' ? lang.trim() : null
+          timezoneOverride: tz || null, localeOverride: langMode === 'custom' ? lang.trim() : null
         });
         if (!ok){ setBase(profile); setError(f.stale); return; }
         onDone(profile);
@@ -132,15 +131,27 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   // Extensions from the library made for this engine.
   const usable = data.extensions.filter(x => x.kernel === kernel);
   const facts = fp.state === 'ready' ? fingerprintFacts(fp.fingerprint) : null;
-  const proxyOptions = useMemo(() => data.proxies.map(p => {
-    const where = p.lastCheck?.ok ? p.lastCheck.geo?.city ?? p.lastCheck.geo?.countryName : null;
-    return { id: p.id, label: [p.name, where].filter(Boolean).join(' · ') };
-  }), [data.proxies]);
+  // Each proxy with how its last check went and where it exits.
+  const proxyOptions = useMemo<Opt[]>(() => [
+    { value: '', label: f.noProxy },
+    ...data.proxies.map(p => {
+      const st = proxyState(p), c = p.lastCheck;
+      return {
+        value: p.id, label: p.name, dot: st === 'ok' ? 'good' as const : st === 'slow' ? 'warn' as const : st === 'down' ? 'bad' as const : 'idle' as const,
+        hint: st === 'down' ? d.profiles.noResponse : st === 'unchecked' ? d.profiles.unchecked : [c?.geo?.city ?? c?.geo?.countryName, d.profiles.ms(c?.ms ?? 0)].filter(Boolean).join(' · ')
+      };
+    }),
+    ...(manager ? [{ value: PASTE, label: f.pasteProxy }] : [])
+  ], [data.proxies, manager, d, f]);
+  const zoneOptions = useMemo<Opt[]>(() => {
+    const kept = profile?.timezoneOverride;
+    return [{ value: '', label: f.follow }, ...(kept && !ZONES.includes(kept) ? [kept] : []).concat(ZONES).map(z => ({ value: z, label: z }))];
+  }, [f, profile?.timezoneOverride]);
 
   return (
     <Modal title={edit ? f.editTitle : f.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-ghost" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-stamp" type="submit" form="profile-form" disabled={busy || fp.state !== 'ready'}>{edit ? f.save : f.create}</button>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="submit" form="profile-form" disabled={busy || fp.state !== 'ready'}>{edit ? f.save : f.create}</button>
     </>}>
       <form className="m-body" id="profile-form" onSubmit={submit} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -151,12 +162,9 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
             {nameErr && <p className="err">{nameErr}</p>}
           </div>
           <div className="field">
-            <label htmlFor="pf-group">{f.group}</label>
-            <select id="pf-group" value={groupId} onChange={e => setGroupId(e.target.value)}>
-              <option value="">{f.noGroup}</option>
-              {data.groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-              <option value={NEW_GROUP}>{f.newGroup}</option>
-            </select>
+            <span className="label" id="pf-group">{f.group}</span>
+            <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} searchPh={f.searchPh}
+              options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name })), { value: NEW_GROUP, label: f.newGroup }]} />
             {groupId === NEW_GROUP && <input aria-label={f.newGroupPh} placeholder={f.newGroupPh} value={newGroup} onChange={e => setNewGroup(e.target.value)} maxLength={80} />}
           </div>
         </div>
@@ -172,24 +180,15 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               </div>
               <p className="hint">{kernel === 'chromium' ? f.recommended : f.firefoxNote}</p>
             </div>
-            <div className="field">
-              <label htmlFor="pf-os">{f.os}</label>
-              <select id="pf-os" value={os} onChange={e => setOs(e.target.value as Os)}>
-                {(['windows', 'macos', 'linux'] as const).map(o => <option key={o} value={o}>{d.os[o]}</option>)}
-              </select>
-            </div>
+            <SelectField label={f.os} value={os} onChange={v => setOs(v as Os)} options={(['windows', 'macos', 'linux'] as const).map(o => ({ value: o, label: d.os[o] }))} />
           </div>
         )}
 
         <div className="field">
-          <label htmlFor="pf-proxy">{f.proxy}</label>
+          <span className="label" id="pf-proxy">{f.proxy}</span>
           <div className="pxcheck">
-            <select id="pf-proxy" value={proxyId} onChange={e => pickProxy(e.target.value)}>
-              <option value="">{f.noProxy}</option>
-              {proxyOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-              {manager && <option value={PASTE}>{f.pasteProxy}</option>}
-            </select>
-            {proxyId && <button className="btn btn-line btn-sm" type="button" onClick={check} disabled={pxNote?.state === 'checking'}>{d.common.check}</button>}
+            <Select labelledBy="pf-proxy" value={proxyId} onChange={pickProxy} options={proxyOptions} searchPh={f.searchPh} empty={d.profiles.emptyMatch} />
+            {proxyId && <button className="btn btn-secondary btn-sm" type="button" onClick={check} disabled={pxNote?.state === 'checking'}>{d.common.check}</button>}
           </div>
           {proxyId === PASTE && (
             <input className="mono-in" aria-label={f.pasteProxy} placeholder={f.pastePh} value={paste} onChange={e => setPaste(e.target.value)} spellCheck={false} autoComplete="off" />
@@ -217,22 +216,11 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
 
         {manager && (
           <div className="row2">
-            <div className="field">
-              <label htmlFor="pf-owner">{f.owner}</label>
-              <select id="pf-owner" value={ownerId} onChange={e => setOwnerId(e.target.value)}>
-                {!edit && <option value="">{d.team.you}</option>}
-                {edit && <option value="">{d.profiles.unassigned}</option>}
-                {data.members.map(m => <option key={m.userId} value={m.userId}>{m.email}</option>)}
-              </select>
-            </div>
+            <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} searchPh={f.searchPh}
+              options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
             {data.departments.length > 0 && (
-              <div className="field">
-                <label htmlFor="pf-dept">{f.department}</label>
-                <select id="pf-dept" value={departmentId} onChange={e => setDepartmentId(e.target.value)}>
-                  <option value="">{f.noDepartment}</option>
-                  {data.departments.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
-                </select>
-              </div>
+              <SelectField label={f.department} value={departmentId} onChange={setDepartmentId}
+                options={[{ value: '', label: f.noDepartment }, ...data.departments.map(x => ({ value: x.id, label: x.name }))]} />
             )}
           </div>
         )}
@@ -244,38 +232,19 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               <input id="pf-tags" type="text" placeholder={f.tagsPh} value={tags} onChange={e => setTags(e.target.value)} autoComplete="off" />
             </div>
             <div className="row2">
+              <SelectField label={f.tz} value={tz} onChange={setTz} options={zoneOptions} search searchPh={f.tzPh} empty={f.tzNone} />
               <div className="field">
-                <label htmlFor="pf-tz">{f.tz}</label>
-                <select id="pf-tz" value={tzMode} onChange={e => setTzMode(e.target.value)}>
-                  <option value="follow">{f.follow}</option><option value="custom">{f.custom}</option>
-                </select>
-                {tzMode === 'custom' && <input aria-label={f.tz} list="pf-zones" placeholder={f.tzPh} value={tz} onChange={e => setTz(e.target.value)} aria-invalid={!!tzErr} />}
-                <datalist id="pf-zones">{ZONES.map(z => <option key={z} value={z} />)}</datalist>
-                {tzErr && <p className="err">{tzErr}</p>}
-              </div>
-              <div className="field">
-                <label htmlFor="pf-lang">{f.lang}</label>
-                <select id="pf-lang" value={langMode} onChange={e => setLangMode(e.target.value)}>
-                  <option value="follow">{f.follow}</option><option value="custom">{f.custom}</option>
-                </select>
+                <span className="label" id="pf-lang">{f.lang}</span>
+                <Select labelledBy="pf-lang" value={langMode} onChange={setLangMode} options={[{ value: 'follow', label: f.follow }, { value: 'custom', label: f.custom }]} />
                 {langMode === 'custom' && <input aria-label={f.lang} placeholder={f.langPh} value={lang} onChange={e => setLang(e.target.value)} aria-invalid={!!langErr} />}
                 {langErr && <p className="err">{langErr}</p>}
               </div>
             </div>
-            <div className="field">
-              <label htmlFor="pf-version">{f.engineVersion}</label>
-              <select id="pf-version" value={kernelVersion} onChange={e => setKernelVersion(e.target.value)}>
-                {!versions.some(k => k.version === kernelVersion) && <option value={kernelVersion}>{kernelVersion}</option>}
-                {versions.map(k => <option key={k.version} value={k.version}>{`${kernel === 'chromium' ? 'Chromium' : 'Firefox'} ${k.version}`}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label htmlFor="pf-sync">{f.sync}</label>
-              <select id="pf-sync" value={syncMode} onChange={e => setSyncMode(e.target.value as 'cloud' | 'local')}>
-                <option value="cloud">{f.syncCloud}</option><option value="local">{f.syncLocal}</option>
-              </select>
-              <p className="hint">{f.syncHelp}</p>
-            </div>
+            <SelectField label={f.engineVersion} value={kernelVersion} onChange={setKernelVersion}
+              options={[...(versions.some(k => k.version === kernelVersion) ? [] : [{ value: kernelVersion, label: kernelVersion }]),
+                ...versions.map(k => ({ value: k.version, label: `${kernel === 'chromium' ? 'Chromium' : 'Firefox'} ${k.version}` }))]} />
+            <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}
+              options={[{ value: 'cloud', label: f.syncCloud }, { value: 'local', label: f.syncLocal }]} />
             <div className="field">
               <label htmlFor="pf-notes">{f.notes}</label>
               <textarea id="pf-notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={2000} />
@@ -286,7 +255,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
         <div className="fpbox" data-testid="fingerprint">
           <div className="fpbox-h">
             <b>{f.fp}</b>
-            {fp.state !== 'need-firefox' && <button className="btn btn-ghost btn-xs" type="button" onClick={() => void (edit ? regenerate() : generate())} disabled={fp.state === 'loading'}>{f.regen}</button>}
+            {fp.state !== 'need-firefox' && <button className="btn btn-secondary btn-xs" type="button" onClick={() => void (edit ? regenerate() : generate())} disabled={fp.state === 'loading'}>{f.regen}</button>}
           </div>
           {fp.state === 'loading' && <p className="hint"><span className="spin" aria-hidden="true" /></p>}
           {fp.state === 'error' && <p className="err">{f.fpErr}</p>}
@@ -295,7 +264,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               <p className="hint">{f.firefoxMissing}</p>
               {ffProgress && !ffProgress.error
                 ? <p className="hint">{f.downloading(percent(ffProgress))}</p>
-                : <button className="btn btn-line btn-sm" type="button" onClick={() => void data.install('firefox', fp.version).then(ok => { if (ok) void generate(); })}>{f.download} · 1.3 GB</button>}
+                : <button className="btn btn-secondary btn-sm" type="button" onClick={() => void data.install('firefox', fp.version).then(ok => { if (ok) void generate(); })}>{f.download} · 1.3 GB</button>}
             </div>
           )}
           {facts && (

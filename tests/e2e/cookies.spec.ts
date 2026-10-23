@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
 
 test.setTimeout(180_000);
 const cookies = JSON.stringify([
@@ -41,7 +41,7 @@ test('cookies come in from a file and go out as JSON; kept on one computer, Foli
 
   await detail(win).getByRole('button', { name: 'Edit' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
-  await form.getByLabel('Sign-ins').selectOption({ label: 'Keep on the computer that uses it' });
+  await choose(form.getByLabel('Sign-ins'), 'Keep on the computer that uses it');
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(storage).toContainText('Kept on the computer that uses it; Folio holds no copy.');
   await expect(storage.getByRole('button', { name: 'JSON' })).toHaveCount(0);
