@@ -12,7 +12,7 @@ import { ProxiesPage, ProxyForm, ProxyImportDialog } from './Proxies';
 import { TeamPage } from './Team';
 import { FlowsPage } from './Flows';
 import { TasksPage, type Focus } from './Tasks';
-import { ApiPage } from './Api';
+import { ApiPage } from './LocalApi';
 import { ExtensionsPage } from './Extensions';
 import { WindowSyncPage } from './WindowSync';
 import { ActivityPage } from './Activity';
