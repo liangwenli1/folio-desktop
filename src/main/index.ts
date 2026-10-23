@@ -294,6 +294,9 @@ ipcMain.handle('folio:installKernel', async (_e, kind: KernelKind, version: stri
 });
 
 app.whenReady().then(async () => {
+  // No File / Edit / View menu bar on Windows and Linux. macOS keeps its app menu and Edit menu, without which
+  // copy, paste and quitting from the keyboard don't work.
+  Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]) : null);
   if (BASIC_STORE) safeStorage.setUsePlainTextEncryption(true);
   await loadToken();
   await loadLocalApi();
