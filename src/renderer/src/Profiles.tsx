@@ -11,9 +11,10 @@ import { ExitMap, type Pin, type PinState } from './ExitMap';
 import { Flag } from './Flag';
 import { mod } from './CommandPalette';
 import { Rosette } from './Rosette';
+import { byProfile, risks, type Risk } from './risks';
 
 export type GroupFilter = 'all' | 'none' | string;
-type Status = 'all' | 'running' | 'issues';
+type Status = 'all' | 'running' | 'issues' | 'starred';
 type Sort = 'recent' | 'name' | 'latency';
 
 interface Props {
@@ -39,6 +40,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const [tag, setTag] = useState('');
   const [busyFix, setBusyFix] = useState<string | null>(null);
   const [onboardingHidden, setOnboardingHidden] = useState(() => hidden(ws.id));
+  // "Show these profiles" from a risk, and whether the risk list is open.
+  const [only, setOnly] = useState<Set<string> | null>(null);
+  const [riskOpen, setRiskOpen] = useState(false);
 
   useEffect(() => {
     if (!drawer) return;
@@ -51,6 +55,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const proxies = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
   const groupName = useMemo(() => new Map(data.groups.map(g => [g.id, g.name])), [data.groups]);
   const healthOf = useMemo(() => new Map(all.map(p => [p.id, health(p, proxies, data.kernels)])), [all, proxies, data.kernels]);
+  const riskList = useMemo(() => risks(all, id => proxies.get(id)?.name ?? ''), [all, proxies]);
+  const riskOf = useMemo(() => byProfile(riskList), [riskList]);
+  const risky = (id: string) => (riskOf.get(id) ?? []).some(r => r.level !== 'info');
   const now = useNow(Object.values(data.status).some(s => s.state === 'running'));
   const running = all.filter(p => data.status[p.id]?.state === 'running').length;
   const limit = ws.subscription.entitlements.profiles;
@@ -61,9 +68,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const h = (p: Profile) => healthOf.get(p.id)!;
-    let out = all.filter(p => group === 'all' || (group === 'none' ? !p.groupId : p.groupId === group));
+    let out = all.filter(p => (group === 'all' || (group === 'none' ? !p.groupId : p.groupId === group)) && (!only || only.has(p.id)));
     if (status === 'running') out = out.filter(p => data.status[p.id]);
-    if (status === 'issues') out = out.filter(p => h(p).level !== 'ok');
+    if (status === 'issues') out = out.filter(p => h(p).level !== 'ok' || risky(p.id));
+    if (status === 'starred') out = out.filter(p => p.starred);
     if (needle) out = out.filter(p => {
       const g = h(p).geo;
       return [p.name, `#${number(p)}`, g?.city, g?.country, g?.countryName, groupLabel(p), d.os[p.os], ...p.tags].join(' ').toLowerCase().includes(needle);
@@ -78,15 +86,16 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
       name: (a, b) => a.name.localeCompare(b.name, lang, { numeric: true }),
       latency: (a, b) => latency(a) - latency(b)
     };
-    return out.sort(by[sort]);
-  }, [all, group, status, q, sort, healthOf, data.status, lang, groupName, d]);
+    // Favourites first, then the chosen order.
+    return out.sort((a, b) => Number(b.starred) - Number(a.starred) || by[sort](a, b));
+  }, [all, group, status, q, sort, healthOf, data.status, lang, groupName, d, only, riskOf]);
 
   const ids = [...sel].filter(id => all.some(p => p.id === id));
   const shownSel = list.filter(p => sel.has(p.id)).length;
   // The detail column (or drawer) shows only while a profile is picked.
   const curProfile = (drawer && all.find(p => p.id === cur)) || null;
   const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 5, !!curProfile);
-  const filtered = group !== 'all' || status !== 'all' || !!q;
+  const filtered = group !== 'all' || status !== 'all' || !!q || !!only;
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
   async function open(p: Profile){
@@ -149,6 +158,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     } catch (e){ fail(e); } finally { setBusyFix(null); }
   }
 
+  async function star(p: Profile){
+    try { await folio.api(p.starred ? 'DELETE' : 'PUT', `/profiles/${p.id}/star`); } catch (e){ fail(e); }
+    data.refresh('profiles');
+  }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const toggleAll = () => setSel(s => {
     const n = new Set(s);
@@ -179,6 +192,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     return [...at.values()];
   }, [all, healthOf, data.status, P]);
   const countries = new Set(h.map(x => x.geo?.country).filter(Boolean)).size;
+  // Where profiles moved from, as lines on the map.
+  const links = riskList.filter(r => r.from && r.to).map(r => ({ from: r.from!, to: r.to!, level: r.level === 'bad' ? 'bad' as const : 'warn' as const }));
+  const shown = riskList.filter(r => r.level !== 'info');
+  const names = (r: Risk) => r.ids.map(id => all.find(p => p.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
 
   const showOnboarding = !onboardingHidden && data.profiles !== null && !(data.proxies.length && all.length && all.some(p => p.lastOpenedAt));
   const hideOnboarding = () => { setOnboardingHidden(true); try { localStorage.setItem(ONBOARDING_KEY(ws.id), 'hidden'); } catch { /* per-session only */ } };
@@ -210,7 +227,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
               {pins.length > 0 && <span className="map-n">{P.map.count(pins.length, countries)}</span>}
             </header>
             {pins.length > 0
-              ? <ExitMap pins={pins} label={P.map.label} onPick={key => setQ(key)} />
+              ? <ExitMap pins={pins} links={links} label={P.map.label} onPick={key => setQ(key)} />
               : (
                 <div className="map-empty">
                   <b>{P.map.emptyTitle}</b>
@@ -242,10 +259,31 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           </section>
         </div>
 
+        {shown.length > 0 && (
+          <section className={`risk-bar${shown.some(r => r.level === 'bad') ? ' bad' : ''}`} aria-label={d.risks.title(shown.length)} data-testid="risks">
+            <div className="risk-h">
+              <Icon name="alert" /><b>{d.risks.title(shown.length)}</b><span className="sp" />
+              <button type="button" className="btn btn-xs btn-text" aria-expanded={riskOpen} onClick={() => setRiskOpen(o => !o)}>{riskOpen ? d.risks.hide : d.risks.show}</button>
+            </div>
+            {riskOpen && (
+              <ul className="risk-list">
+                {shown.map((r, i) => (
+                  <li key={i} className={r.level} data-risk={r.kind}>
+                    <span className={`d ${r.level === 'bad' ? 'bad' : 'warn'}`} aria-hidden="true" />
+                    <div><p><b>{d.risks.kinds[r.kind].t(r.ids.length, r.what)}</b></p><p className="hint">{names(r)} · {d.risks.kinds[r.kind].fix}</p></div>
+                    <button type="button" className="btn btn-xs btn-secondary" onClick={() => setOnly(new Set(r.ids))}>{d.risks.only}</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
         <div className="filters">
           <div className="seg" role="group" aria-label={P.filter.label}>
-            {(['all', 'running', 'issues'] as const).map(s => <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)}>{P.filter[s]}</button>)}
+            {(['all', 'running', 'issues', 'starred'] as const).map(s => <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)}>{P.filter[s]}</button>)}
           </div>
+          {only && <button type="button" className="chip" onClick={() => setOnly(null)}>{d.risks.clear} <span aria-hidden="true">×</span></button>}
           {group !== 'all' && (
             <button type="button" className="chip" aria-label={P.clearGroup(group === 'none' ? d.groups.none : groupName.get(group) ?? '')} onClick={() => setGroup('all')}>
               {P.groupChip(group === 'none' ? d.groups.none : groupName.get(group) ?? '')} <span aria-hidden="true">×</span>
@@ -339,12 +377,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                 <tr className="empty"><td colSpan={6}>
                   {all.length
                     ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
-                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); }}>{P.clearFilters}</button></>
+                      <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
                     : <><Rosette size={200} /><p><b>{P.emptyNone}</b></p></>}
                 </td></tr>
               )}
               {list.map(p => (
-                <Row key={p.id} d={d} p={p} h={healthOf.get(p.id)!} group={groupLabel(p)} now={now} cur={p.id === curProfile?.id} checked={sel.has(p.id)}
+                <Row key={p.id} d={d} p={p} h={healthOf.get(p.id)!} group={groupLabel(p)} now={now} cur={p.id === curProfile?.id} checked={sel.has(p.id)} risky={risky(p.id)} onStar={() => void star(p)}
                   sync={data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null}
                   status={data.status[p.id]} progress={data.progress[kernelKey(p.kernel, p.kernelVersion)]} checking={!!p.proxyId && data.checking.has(p.proxyId)}
                   onToggle={() => toggle(p.id)} onView={() => view(p.id)} onOpen={() => void open(p)} onStop={() => void stop(p)} onCheck={() => p.proxyId && void data.check([p.proxyId])} />
@@ -361,6 +399,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             d={d} lang={lang} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
             status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
             size={data.kernels.find(k => k.kind === curProfile.kernel && k.version === curProfile.kernelVersion)?.size ?? null} failed={data.failed[curProfile.id]}
+            risks={riskOf.get(curProfile.id) ?? []} others={all} onStar={() => void star(curProfile)}
             group={groupLabel(curProfile)} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
             activity={recent.entries ?? []}
             onClose={() => setDrawer(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
@@ -378,12 +417,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
 interface RowProps {
   d: Dict; p: Profile; h: Health; group: string; now: number; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null;
-  status?: WorkspaceData['status'][string]; progress?: WorkspaceData['progress'][string]; checking: boolean;
-  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void;
+  status?: WorkspaceData['status'][string]; progress?: WorkspaceData['progress'][string]; checking: boolean; risky: boolean;
+  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void; onStar(): void;
 }
 
 // The status column: what the profile is doing, and the one thing to do about it.
-function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checking, onToggle, onView, onOpen, onStop, onCheck }: RowProps){
+function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checking, risky, onToggle, onView, onOpen, onStop, onCheck, onStar }: RowProps){
   const P = d.profiles;
   const geo = h.geo, ms = h.px?.lastCheck?.ms;
   const latency = { none: null, unchecked: <span className="lat">{P.unchecked}</span>, down: <span className="lat down">{P.noResponse}</span>,
@@ -418,6 +457,8 @@ function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checki
       <td className="prof">
         <span className="prof-cell"><Flag country={geo?.country ?? null} kernel={p.kernel} /><span>
           <button type="button" className="rowlink" onClick={onView}>{p.name}</button>
+          <button type="button" className={`star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
+          {risky && <span className="risk-flag" title={d.risks.flag}><Icon name="alert" /><span className="sr">{d.risks.flag}</span></span>}
           {p.tags.map(t => <span key={t} className="tag">{t}</span>)}
           <span className="l2"><span className="mono">#{number(p)}</span> · {group}</span>
         </span></span>

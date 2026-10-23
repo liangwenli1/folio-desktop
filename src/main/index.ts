@@ -8,7 +8,7 @@ import { watch } from './changes';
 import { generate } from './fingerprint';
 import { install, list as listKernels, recommended, remove as removeKernel, resolve as resolveKernel, upload as uploadKernel } from './kernels';
 import { forget } from './account';
-import { addCookies, discard, focus, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
+import { addCookies, checkup, discard, focus, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
 import { parseCookies, toJson, toNetscape, type Cookie } from '../shared/cookies';
 import { api } from './api';
 import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './transfer';
@@ -17,9 +17,9 @@ import { readFile, stat } from 'node:fs/promises';
 import { checkById, checkWorkspace } from './proxy-check';
 import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
-import { createApiToken, loadLocalApi, localApi, revokeApiToken, setLocalApi } from './local-api';
+import { createApiToken, loadLocalApi, localApi, onLocalApi, revokeApiToken, setLocalApi } from './local-api';
 import { fromStore } from './extensions';
-import { leftWindowSync, onWindowSync, setLeader, startWindowSync, stopWindowSync, syncGoto, windowSync } from './windowsync';
+import { leftWindowSync, onSyncPulse, onWindowSync, setLeader, startWindowSync, stopWindowSync, syncGoto, windowSync } from './windowsync';
 import { tile } from './tile';
 import { installUpdate, onUpdate, startUpdates, update } from './update';
 
@@ -217,6 +217,8 @@ ipcMain.handle('folio:watch', (_e, workspaceId: string | null) => {
 
 onStatus(s => { send('profile:status', s); if (s.state === 'stopped' || s.state === 'error') leftWindowSync(s.id); });
 onWindowSync(s => send('sync:state', s));
+onSyncPulse(id => send('sync:pulse', id));
+onLocalApi(() => void localApi().then(s => send('api:state', s)));
 onUpdate(u => send('app:update', u));
 ipcMain.handle('folio:update', () => update());
 ipcMain.handle('folio:installUpdate', async () => { await stopRuns(); await stopAll(); installUpdate(); });
@@ -232,6 +234,7 @@ ipcMain.handle('folio:tileWindows', e => {
 ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id)); });
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
 ipcMain.handle('folio:focusProfile', (_e, id: string) => focus(String(id)));
+ipcMain.handle('folio:checkup', (_e, id: string) => checkup(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());
 ipcMain.handle('folio:checkProxy', (_e, id: string) => checkById(String(id)));
 

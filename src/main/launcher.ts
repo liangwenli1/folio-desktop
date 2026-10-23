@@ -17,7 +17,7 @@ import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
 import { collectExtensionData, prepareExtensions, writeExtensionData, type Extension } from './extensions';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
-import type { CheckResult, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
+import type { CheckResult, CheckupFacts, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 import type { Cookie } from '../shared/cookies';
 
 interface LaunchProfile {
@@ -237,6 +237,8 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
     };
     running.set(id, entry);
     notify(status);
+    // Where it went out from this time, for the warnings about profiles that look related or moved.
+    if (check?.ip) void api('POST', `/profiles/${id}/exit`, { ip: check.ip, geo });
     return null;
   } catch (e){
     await fwd?.close();
@@ -305,6 +307,51 @@ export const isRunning = (id: string) => running.has(id);
 export const debugOf = (id: string) => running.get(id)?.debug ?? null;
 // The running browser and its folder, for window sync and tiling.
 export const browserOf = (id: string) => { const r = running.get(id); return r ? { ctx: r.ctx, kernel: r.profile.kernel, dir: r.dir } : null; };
+// The self-check page: what a site can read from inside the profile's browser. WebRTC asks a public STUN server for
+// this connection's addresses; canvas and WebGL are drawn and hashed (FNV-1a, as crypto.subtle needs a secure page).
+const CHECKUP = `async () => {
+  const hash = s => { let a = 0x811c9dc5, b = 0x01000193; for (let i = 0; i < s.length; i++){ a = Math.imul(a ^ s.charCodeAt(i), 16777619); b = Math.imul(b ^ s.charCodeAt(i), 2246822519); } return ((a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0')); };
+  const ips = await new Promise(done => {
+    const found = new Set();
+    let pc;
+    try { pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }); } catch { return done([]); }
+    pc.onicecandidate = e => {
+      if (!e.candidate) return done([...found]);
+      const m = e.candidate.candidate.match(/ (\\d+\\.\\d+\\.\\d+\\.\\d+|[0-9a-f]*:[0-9a-f:]+) /i);
+      if (m) found.add(m[1]);
+    };
+    pc.createDataChannel('folio');
+    pc.createOffer().then(o => pc.setLocalDescription(o)).catch(() => done([]));
+    setTimeout(() => done([...found]), 4000);
+  });
+  const c = document.createElement('canvas'); c.width = 280; c.height = 60;
+  const x = c.getContext('2d'); x.textBaseline = 'top'; x.font = '16px Arial'; x.fillStyle = '#f60'; x.fillRect(120, 1, 62, 20);
+  x.fillStyle = '#069'; x.fillText('Folio check 1.2 \\u2713', 2, 15); x.fillStyle = 'rgba(102,204,0,.7)'; x.fillText('Folio check 1.2 \\u2713', 4, 17);
+  let webgl = null;
+  try {
+    const g = document.createElement('canvas').getContext('webgl');
+    if (g){ const d = g.getExtension('WEBGL_debug_renderer_info'); webgl = hash([g.getParameter(d ? d.UNMASKED_VENDOR_WEBGL : g.VENDOR), g.getParameter(d ? d.UNMASKED_RENDERER_WEBGL : g.RENDERER), ...(g.getSupportedExtensions() || [])].join('|')); }
+  } catch {}
+  return { ips, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, language: navigator.language, userAgent: navigator.userAgent, canvas: hash(c.toDataURL()), webgl };
+}`;
+
+// Runs the self-check in a new tab of the profile's browser (opening the profile first if needed), then closes it.
+export async function checkup(id: string): Promise<{ ok: true; facts: CheckupFacts; exitIp: string | null; exitGeo: Geo | null } | { ok: false; error: string }> {
+  if (!running.has(id)){
+    const why = await open(id);
+    if (why) return { ok: false, error: why };
+  }
+  const r = running.get(id)!;
+  const page = await r.ctx.newPage();
+  try {
+    await page.goto('data:text/html;charset=utf-8,' + encodeURIComponent('<!doctype html><title>Folio</title><body style="font:16px system-ui;padding:40px">Folio …</body>'));
+    return { ok: true, facts: await page.evaluate(`(${CHECKUP})()`) as CheckupFacts, exitIp: r.status.exitIp ?? null, exitGeo: r.status.exitGeo ?? null };
+  } catch (e){
+    console.error('checkup failed', e);
+    return { ok: false, error: 'checkup_failed' };
+  } finally { await page.close().catch(() => {}); }
+}
+
 // Brings a running profile's window to the front (the command palette's "switch to it").
 export async function focus(id: string){
   const page = running.get(id)?.ctx.pages()[0];

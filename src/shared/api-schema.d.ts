@@ -1720,6 +1720,47 @@ export interface paths {
                                     since: string;
                                     self: boolean;
                                 } | null;
+                                lastExit: {
+                                    ip: string;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
+                                prevExit: {
+                                    ip: string;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
+                                report: {
+                                    at: string;
+                                    checks: {
+                                        /** @enum {string} */
+                                        id: "webrtc" | "timezone" | "language" | "ua" | "canvas" | "webgl";
+                                        ok: boolean;
+                                        seen: string;
+                                        want: string | null;
+                                    }[];
+                                    canvas: string | null;
+                                    webgl: string | null;
+                                } | null;
+                                starred: boolean;
                             }[];
                         };
                     };
@@ -1837,6 +1878,47 @@ export interface paths {
                                 since: string;
                                 self: boolean;
                             } | null;
+                            lastExit: {
+                                ip: string;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
+                            } | null;
+                            prevExit: {
+                                ip: string;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
+                            } | null;
+                            report: {
+                                at: string;
+                                checks: {
+                                    /** @enum {string} */
+                                    id: "webrtc" | "timezone" | "language" | "ua" | "canvas" | "webgl";
+                                    ok: boolean;
+                                    seen: string;
+                                    want: string | null;
+                                }[];
+                                canvas: string | null;
+                                webgl: string | null;
+                            } | null;
+                            starred: boolean;
                         };
                     };
                 };
@@ -1970,6 +2052,47 @@ export interface paths {
                                     since: string;
                                     self: boolean;
                                 } | null;
+                                lastExit: {
+                                    ip: string;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
+                                prevExit: {
+                                    ip: string;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
+                                report: {
+                                    at: string;
+                                    checks: {
+                                        /** @enum {string} */
+                                        id: "webrtc" | "timezone" | "language" | "ua" | "canvas" | "webgl";
+                                        ok: boolean;
+                                        seen: string;
+                                        want: string | null;
+                                    }[];
+                                    canvas: string | null;
+                                    webgl: string | null;
+                                } | null;
+                                starred: boolean;
                             }[];
                         };
                     };
@@ -2103,6 +2226,47 @@ export interface paths {
                                 since: string;
                                 self: boolean;
                             } | null;
+                            lastExit: {
+                                ip: string;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
+                            } | null;
+                            prevExit: {
+                                ip: string;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
+                            } | null;
+                            report: {
+                                at: string;
+                                checks: {
+                                    /** @enum {string} */
+                                    id: "webrtc" | "timezone" | "language" | "ua" | "canvas" | "webgl";
+                                    ok: boolean;
+                                    seen: string;
+                                    want: string | null;
+                                }[];
+                                canvas: string | null;
+                                webgl: string | null;
+                            } | null;
+                            starred: boolean;
                         };
                     };
                 };
@@ -2166,6 +2330,168 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/exit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ip: string;
+                        geo: {
+                            country: string;
+                            countryName: string;
+                            region: string | null;
+                            city: string | null;
+                            lat: number;
+                            lon: number;
+                            timezone: string;
+                            locale: string;
+                        } | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        checks: {
+                            /** @enum {string} */
+                            id: "webrtc" | "timezone" | "language" | "ua" | "canvas" | "webgl";
+                            ok: boolean;
+                            seen: string;
+                            want: string | null;
+                        }[];
+                        canvas: string | null;
+                        webgl: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/star": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -2250,6 +2576,47 @@ export interface paths {
                                     since: string;
                                     self: boolean;
                                 } | null;
+                                lastExit: {
+                                    ip: string;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
+                                prevExit: {
+                                    ip: string;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
+                                report: {
+                                    at: string;
+                                    checks: {
+                                        /** @enum {string} */
+                                        id: "webrtc" | "timezone" | "language" | "ua" | "canvas" | "webgl";
+                                        ok: boolean;
+                                        seen: string;
+                                        want: string | null;
+                                    }[];
+                                    canvas: string | null;
+                                    webgl: string | null;
+                                } | null;
+                                starred: boolean;
                             };
                             proxy: {
                                 id: string;
@@ -2283,6 +2650,7 @@ export interface paths {
                                 /** @enum {string} */
                                 source: "upload" | "store";
                                 storeId: string | null;
+                                icon: string | null;
                                 createdAt: string;
                                 updatedAt: string;
                                 profiles: number;
@@ -2352,6 +2720,25 @@ export interface paths {
                                     error: string | null;
                                     checkedAt: string;
                                 } | null;
+                                history: {
+                                    at: string;
+                                    ok: boolean;
+                                    ms: number | null;
+                                }[];
+                                lastExit: {
+                                    ip: string | null;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
+                                } | null;
                                 profiles: number;
                                 createdAt: string;
                                 updatedAt: string;
@@ -2419,6 +2806,25 @@ export interface paths {
                                 } | null;
                                 error: string | null;
                                 checkedAt: string;
+                            } | null;
+                            history: {
+                                at: string;
+                                ok: boolean;
+                                ms: number | null;
+                            }[];
+                            lastExit: {
+                                ip: string | null;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
                             } | null;
                             profiles: number;
                             createdAt: string;
@@ -2498,6 +2904,25 @@ export interface paths {
                                     } | null;
                                     error: string | null;
                                     checkedAt: string;
+                                } | null;
+                                history: {
+                                    at: string;
+                                    ok: boolean;
+                                    ms: number | null;
+                                }[];
+                                lastExit: {
+                                    ip: string | null;
+                                    geo: {
+                                        country: string;
+                                        countryName: string;
+                                        region: string | null;
+                                        city: string | null;
+                                        lat: number;
+                                        lon: number;
+                                        timezone: string;
+                                        locale: string;
+                                    } | null;
+                                    at: string;
                                 } | null;
                                 profiles: number;
                                 createdAt: string;
@@ -2611,6 +3036,25 @@ export interface paths {
                                 error: string | null;
                                 checkedAt: string;
                             } | null;
+                            history: {
+                                at: string;
+                                ok: boolean;
+                                ms: number | null;
+                            }[];
+                            lastExit: {
+                                ip: string | null;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
+                            } | null;
                             profiles: number;
                             createdAt: string;
                             updatedAt: string;
@@ -2692,6 +3136,25 @@ export interface paths {
                                 } | null;
                                 error: string | null;
                                 checkedAt: string;
+                            } | null;
+                            history: {
+                                at: string;
+                                ok: boolean;
+                                ms: number | null;
+                            }[];
+                            lastExit: {
+                                ip: string | null;
+                                geo: {
+                                    country: string;
+                                    countryName: string;
+                                    region: string | null;
+                                    city: string | null;
+                                    lat: number;
+                                    lon: number;
+                                    timezone: string;
+                                    locale: string;
+                                } | null;
+                                at: string;
                             } | null;
                             profiles: number;
                             createdAt: string;
@@ -5053,6 +5516,7 @@ export interface paths {
                                 /** @enum {string} */
                                 source: "upload" | "store";
                                 storeId: string | null;
+                                icon: string | null;
                                 createdAt: string;
                                 updatedAt: string;
                                 profiles: number;
@@ -5098,6 +5562,7 @@ export interface paths {
                             /** @enum {string} */
                             source: "upload" | "store";
                             storeId: string | null;
+                            icon: string | null;
                             createdAt: string;
                             updatedAt: string;
                             profiles: number;
@@ -5173,6 +5638,7 @@ export interface paths {
                             /** @enum {string} */
                             source: "upload" | "store";
                             storeId: string | null;
+                            icon: string | null;
                             createdAt: string;
                             updatedAt: string;
                             profiles: number;

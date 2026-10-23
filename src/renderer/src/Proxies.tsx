@@ -5,7 +5,8 @@ import { folio, isApiError, type Proxy, type ProxyImport } from './api';
 import { proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Icon, Modal, useToast } from './ui';
+import { Icon, Modal, Num, Spark, useToast } from './ui';
+import { ExitMap, type Pin } from './ExitMap';
 import { SelectField } from './Select';
 
 type ProxyType = Proxy['type'];
@@ -29,6 +30,21 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
   }, [data.proxies, q]);
   const ids = [...sel].filter(id => byId.has(id));
   const down = data.proxies.filter(p => proxyState(p) === 'down').length;
+  const states = { ok: 0, slow: 0, down: 0, unchecked: 0 };
+  for (const p of data.proxies){ const st = proxyState(p); if (st !== 'none') states[st]++; }
+  // A pin per exit; a line that is down sits where it last got through.
+  const pins = useMemo(() => {
+    const at = new Map<string, Pin>();
+    for (const p of data.proxies){
+      const st = proxyState(p), g = p.lastCheck?.ok ? p.lastCheck.geo : p.lastExit?.geo;
+      if (!g || st === 'unchecked') continue;
+      const key = g.city ?? g.countryName, pin = at.get(key);
+      const state = st === 'down' ? 'bad' : st === 'slow' ? 'warn' : 'ok';
+      if (!pin) at.set(key, { key, lat: g.lat, lon: g.lon, state, title: [g.city, g.countryName].filter(Boolean).join(', '), lines: [p.name] });
+      else { pin.lines.push(p.name); if (state === 'bad' || (state === 'warn' && pin.state === 'ok')) pin.state = state; }
+    }
+    return [...at.values()];
+  }, [data.proxies]);
   const shownSel = list.filter(p => sel.has(p.id)).length;
 
   async function check(targets: string[]){
@@ -59,6 +75,17 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
           <button className="btn btn-secondary" type="button" onClick={onImport}>{X.import}</button>
           <button className="btn btn-primary" type="button" onClick={onAdd}><Icon name="plus" />{X.add}</button>
         </header>
+
+        {data.proxies.length > 0 && (
+          <section className="px-hero" aria-label={X.mapLabel}>
+            <ExitMap small pins={pins} label={X.mapLabel} onPick={setQ} />
+            <dl className="px-states">
+              {(['ok', 'slow', 'down', 'unchecked'] as const).map(k => (
+                <div key={k} className={k}><dt><span className={`d ${k === 'ok' ? 'good' : k === 'slow' ? 'warn' : k === 'down' ? 'bad' : ''}`} aria-hidden="true" />{X.states[k]}</dt><dd><Num value={states[k]} /></dd></div>
+              ))}
+            </dl>
+          </section>
+        )}
 
         {ids.length > 0 && (
           <div className="bulk top-gap">
@@ -97,22 +124,29 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
               {list.map(p => {
                 const c = p.lastCheck, g = c?.ok ? c.geo : null, s = proxyState(p), busy = data.checking.has(p.id);
                 return (
-                  <tr key={p.id} data-id={p.id}>
+                  <tr key={p.id} data-id={p.id} className={busy ? 'scanning' : ''}>
                     <td className="cb"><input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} aria-label={d.common.select(p.name)} /></td>
                     <td>
                       <span className="l1"><b>{p.name}</b><span className="cc">{p.type.toUpperCase()}</span></span>
                       <span className="l2 mono">{[p.name !== `${p.host}:${p.port}` && `${p.host}:${p.port}`, p.username].filter(Boolean).join(' · ')}</span>
                     </td>
                     <td>
-                      <span className="l1">{g ? <><span className="cc">{g.country}</span>{g.city ?? g.countryName}</> : X.none}</span>
-                      <span className="l2 mono">{c?.ok ? c.ip : ''}</span>
+                      {g ? <span className="l1"><span className="cc">{g.country}</span>{g.city ?? g.countryName}</span>
+                        : p.lastExit?.geo ? <span className="l1 muted" title={X.lastSeen}><span className="cc">{p.lastExit.geo.country}</span>{p.lastExit.geo.city ?? p.lastExit.geo.countryName}</span>
+                        : <span className="l1">{X.none}</span>}
+                      <span className="l2 mono">{c?.ok ? c.ip : p.lastExit?.ip ?? ''}</span>
                     </td>
                     <td data-testid="proxy-check">
-                      {busy ? <span className="st boot"><span className="spin" aria-hidden="true" />{d.common.checking}</span> : <>
-                        <span className="l1">{!c ? <span className="lat">{X.never}</span> : c.ok
-                          ? <span className={`lat ${s}`}>{d.profiles.ms(c.ms ?? 0)}</span> : <span className="lat down">{X.noResponse(c.error ?? '')}</span>}</span>
-                        {c && <span className="l2">{ago(c.checkedAt, d)}</span>}
-                      </>}
+                      {busy ? <span className="st boot"><span className="spin" aria-hidden="true" />{d.common.checking}</span> : (
+                        <span className="check-cell">
+                          <span>
+                            <span className="l1">{!c ? <span className="lat">{X.never}</span> : c.ok
+                              ? <span className={`lat ${s}`}>{d.profiles.ms(c.ms ?? 0)}</span> : <span className="lat down">{X.noResponse(c.error ?? '')}</span>}</span>
+                            {c && <span className="l2">{ago(c.checkedAt, d)}{p.history.length > 1 && ` · ${X.uptime(Math.round((p.history.filter(h => h.ok).length / p.history.length) * 100))}`}</span>}
+                          </span>
+                          {p.history.length > 1 && <span title={X.history(p.history.length)}><Spark history={p.history} /></span>}
+                        </span>
+                      )}
                     </td>
                     <td className="num">{p.profiles}</td>
                     <td>{p.backupId ? byId.get(p.backupId)?.name ?? X.none : X.none}</td>

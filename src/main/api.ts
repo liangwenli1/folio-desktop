@@ -16,7 +16,7 @@ export const SITE_URL = process.env.FOLIO_SITE_URL ?? FOLIO_URL ?? 'http://local
 
 // JSON both ways, except saved sign-in state, which travels as bytes (a Buffer body, an octet-stream answer), and
 // exports, which come back as text (CSV).
-async function call<T>(method: Method | 'PUT', path: string, body?: unknown, withToken = true): Promise<ApiResult<T>> {
+async function call<T>(method: Method, path: string, body?: unknown, withToken = true): Promise<ApiResult<T>> {
   const token = getToken();
   const bytes = Buffer.isBuffer(body);
   let res: Response;
@@ -68,7 +68,7 @@ export async function logout(){
 }
 
 // For the main process's own use (launching, locks, saved state, proxy checks).
-export const api = <T = unknown>(method: Method | 'PUT', path: string, body?: unknown) => call<T>(method, path, body);
+export const api = <T = unknown>(method: Method, path: string, body?: unknown) => call<T>(method, path, body);
 
 // Proxy passwords, saved sign-in state and the locks around it stay in the main process.
 // Starting a task run returns its variables (which may hold passwords); the reports are the runner's alone.
@@ -80,7 +80,7 @@ const MAIN_ONLY = [
 // What the renderer may call through the bridge.
 export function forRenderer(method: Method, path: string, body?: unknown){
   const bare = path.split('?')[0];
-  if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(method) || !path.startsWith('/') || path.startsWith('//') || MAIN_ONLY.some(r => r.test(bare))){
+  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method) || !path.startsWith('/') || path.startsWith('//') || MAIN_ONLY.some(r => r.test(bare))){
     return Promise.resolve<ApiResult>({ ok: false, error: { code: 'forbidden', message: 'Not available here', status: 403 } });
   }
   return call(method, path, body);

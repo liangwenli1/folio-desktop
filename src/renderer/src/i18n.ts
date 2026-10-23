@@ -65,7 +65,7 @@ export const en = {
       fp: 'Fingerprint warnings', fpOk: 'Everything matches its proxy', fpNote: (n: number) => (n === 1 ? 'Doesn’t match its proxy' : `${n} don’t match their proxy`),
       usage: 'Plan usage', usageOf: (n: number) => ` / ${n} profiles`
     },
-    filter: { label: 'Status', all: 'All', running: 'Running', issues: 'Needs attention' },
+    filter: { label: 'Status', all: 'All', running: 'Running', issues: 'Needs attention', starred: 'Favourites' }, star: 'Add to favourites', unstar: 'Remove from favourites',
     groupChip: (g: string) => `Group: ${g}`, clearGroup: (g: string) => `Clear group filter ${g}`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
     cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', last: 'Last opened', status: 'Status' },
@@ -178,6 +178,8 @@ export const en = {
     title: 'Proxies', count: proxiesN, sub: (n: number, down: number) => `${proxiesN(n)}${down ? ` · ${down} not answering` : ''}`,
     search: 'Search proxies', searchPh: 'Search name, host or city', add: 'Add proxy', import: 'Import', checkAll: 'Check all',
     cols: { proxy: 'Proxy', exit: 'Exit', check: 'Last check', profiles: 'Profiles', backup: 'Backup line' },
+    states: { ok: 'Answering', slow: 'Slow', down: 'Not answering', unchecked: 'Not checked' }, mapLabel: 'Where the proxies exit',
+    uptime: (pct: number) => `${pct}% answered`, history: (n: number) => `Last ${n} ${n === 1 ? 'check' : 'checks'}`, lastSeen: 'Last seen exiting here',
     never: 'Not checked', noResponse: (why: string) => `No response${why === 'timeout' ? ' within 10 s' : ''}`, none: '—',
     empty: 'No proxies yet. Add one, or import a list from your provider.',
     bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use them keep working without a proxy.',
@@ -380,7 +382,7 @@ export const en = {
     examples: 'Examples', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox profiles' },
     chromiumNote: 'Chromium profiles answer with a CDP address: Playwright, Puppeteer, Selenium (with chromedriver for Chromium 150) or any CDP client can take over.',
     firefoxNote: 'Firefox profiles answer with a WebDriver BiDi address: Puppeteer or another WebDriver BiDi client can take over. Playwright and Selenium can’t attach to a running Firefox. While a script drives one, tasks skip it.',
-    endpoints: 'Endpoints',
+    endpoints: 'Endpoints', calls: 'Recent calls', noCalls: 'No script has called it yet. Calls show up here as they happen.', noToken: 'No valid token',
     routes: [
       ['GET /api/v1/profiles', 'The profiles you can see, and whether they run'], ['POST /api/v1/profiles/{number}/start', 'Opens a profile and answers with its debugging address'],
       ['GET /api/v1/profiles/{number}', 'Whether it runs, with its address when opened through the API'], ['POST /api/v1/profiles/{number}/stop', 'Closes it, saving its sign-ins'],
@@ -393,6 +395,7 @@ export const en = {
     empty: 'No extensions yet. Add one from a file or its store, then install it in profiles.',
     cols: { name: 'Extension', engine: 'Engine', version: 'Version', profiles: 'Profiles', updated: 'Changed' },
     uploaded: 'Uploaded file', update: 'New version', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
+    signed: 'Signature checked', signedNote: 'Before installing it in a profile, Folio checks the package against its signature and checksum, and leaves it out if either fails.',
     confirmDelete: (n: string, count: number) => (count ? `Delete “${n}”? It comes off ${profilesN(count)}.` : `Delete “${n}”?`),
     deleted: (n: string) => `${n} deleted`, added: (n: string) => `${n} added to the library`, updated: (n: string) => `${n} updated; profiles get it the next time they open`,
     addTitle: 'Add an extension', updateTitle: (n: string) => `New version of ${n}`, from: 'From', fromFile: 'A file', fromStore: (k: string): string => (k === 'chromium' ? 'Chrome Web Store' : 'addons.mozilla.org'),
@@ -431,6 +434,33 @@ export const en = {
     none: 'Nothing matches.', move: 'select', run: 'run', close: 'close', open: 'open', switchTo: 'switch to its window', stop: (n: string) => `Stop ${n}`,
     newProfile: 'New profile', importProfiles: 'Import profiles', checkProxies: 'Check all proxies', addProxy: 'Add a proxy',
     switchWs: (n: string) => `Switch to ${n}`, language: 'Switch to 简体中文'
+  },
+  risks: {
+    title: (n: number) => (n === 1 ? '1 thing could link your profiles' : `${n} things could link your profiles`), show: 'Show', hide: 'Hide',
+    only: 'Show these profiles', clear: 'Show all profiles', flag: 'May be linked to other profiles',
+    kinds: {
+      'same-proxy': { t: (n: number, x: string) => `${n} profiles share the proxy ${x}`, fix: 'Give each profile its own proxy.' },
+      'same-ip': { t: (n: number, x: string) => `${n} profiles came out of the same IP ${x} through different proxies`, fix: 'Their proxies lead to one address. Ask the provider for separate exits.' },
+      direct: { t: (n: number) => `${n} profiles connect straight from this computer`, fix: 'Without proxies, sites see this computer’s address for all of them.' },
+      'moved-country': { t: (_n: number, x: string) => `Its exit changed country since last time (${x})`, fix: 'A sudden change of country can make sites ask for verification. Keep each profile’s exit in one place.' },
+      'moved-ip': { t: (_n: number, x: string) => `Its exit IP changed since last time (${x})`, fix: 'Same country: most sites accept this, a few ask to verify.' },
+      'same-fp': { t: (n: number) => `${n} profiles have the same fingerprint`, fix: 'Regenerate the fingerprint of all but one, in Edit.' },
+      'same-canvas': { t: (n: number) => `${n} profiles draw canvas the same way`, fix: 'Their health checks found identical canvas drawings. Regenerate their fingerprints.' }
+    }
+  },
+  checkup: {
+    run: 'Health check', running: 'Checking…', title: (n: string) => `Health check · ${n}`, card: 'FOLIO · HEALTH CHECK', passed: 'PASSED', review: 'REVIEW',
+    last: (when: string, ok: boolean) => `Last health check ${when}: ${ok ? 'passed' : 'needs attention'}`, view: 'View report', again: 'Check again',
+    lead: 'Opens a check page in the profile’s browser and reads what sites can see.', failed: 'The health check couldn’t run in this profile.',
+    seen: 'Seen: ', want: 'expected: ', none: 'none',
+    checks: {
+      webrtc: { t: 'WebRTC shows no other address', fix: 'A real or local address leaked through WebRTC. Check that the profile has a proxy and opens through it.' },
+      timezone: { t: 'Time zone matches the exit', fix: 'Set the time zone to follow the proxy, in Edit.' },
+      language: { t: 'Language matches the exit', fix: 'Set the language to follow the proxy, in Edit.' },
+      ua: { t: 'User agent matches the system', fix: 'The browser reports another system than the profile’s. Regenerate its fingerprint.' },
+      canvas: { t: 'Canvas drawing is unique in the team', fix: 'Another profile draws canvas the same way. Regenerate the fingerprint of one of them.' },
+      webgl: { t: 'WebGL', fix: '' }
+    }
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
@@ -481,7 +511,8 @@ export const en = {
     kernel_exists: 'This version is already in the catalog for that system.',
     upload_incomplete: 'The upload did not finish. Upload the file again.',
     upload_failed: 'The upload failed. Check the connection and try again.',
-    kernel_archive: 'Choose a .zip, .tar.xz or .dmg package.'
+    kernel_archive: 'Choose a .zip, .tar.xz or .dmg package.',
+    checkup_failed: 'The health check couldn’t run in this profile.'
   } as Record<string, string>
 };
 
@@ -535,7 +566,7 @@ export const zh: Dict = {
       fp: '指纹警告', fpOk: '全部与代理一致', fpNote: (n: number) => `${n} 个与代理不一致`,
       usage: '套餐用量', usageOf: (n: number) => ` / ${n} 个环境`
     },
-    filter: { label: '状态', all: '全部', running: '运行中', issues: '需处理' },
+    filter: { label: '状态', all: '全部', running: '运行中', issues: '需处理', starred: '收藏' }, star: '收藏', unstar: '取消收藏',
     groupChip: (g: string) => `分组：${g}`, clearGroup: (g: string) => `清除分组筛选 ${g}`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
     cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', last: '最近打开', status: '状态' },
@@ -648,6 +679,8 @@ export const zh: Dict = {
     title: '代理', count: (n: number) => `${n} 个代理`, sub: (n: number, down: number) => `${n} 个代理${down ? ` · ${down} 个无响应` : ''}`,
     search: '搜索代理', searchPh: '搜索名称、主机或城市', add: '添加代理', import: '导入', checkAll: '全部检测',
     cols: { proxy: '代理', exit: '出口', check: '最近检测', profiles: '环境数', backup: '备用线路' },
+    states: { ok: '正常', slow: '较慢', down: '无响应', unchecked: '未检测' }, mapLabel: '各代理的出口位置',
+    uptime: (pct: number) => `可用率 ${pct}%`, history: (n: number) => `最近 ${n} 次检测`, lastSeen: '最近一次可用时的出口',
     never: '未检测', noResponse: (why: string) => `无响应${why === 'timeout' ? '（10 秒）' : ''}`, none: '—',
     empty: '暂无代理。可逐个添加，或导入代理商提供的列表。',
     bulkCheck: '检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '使用这些代理的环境将保留，并改为不使用代理。',
@@ -850,7 +883,7 @@ export const zh: Dict = {
     examples: '示例', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox 环境' },
     chromiumNote: 'Chromium 环境返回 CDP 地址，支持 Playwright、Puppeteer、Selenium（需配合 Chromium 150 对应版本的 chromedriver）及其他支持 CDP 的工具接管。',
     firefoxNote: 'Firefox 环境返回 WebDriver BiDi 地址，支持 Puppeteer 及其他支持 WebDriver BiDi 的工具接管。Playwright 与 Selenium 目前无法接管已运行的 Firefox。脚本控制期间，定时任务将跳过该环境。',
-    endpoints: '接口',
+    endpoints: '接口', calls: '最近调用', noCalls: '暂无脚本调用，调用发生时将在此实时显示。', noToken: '令牌无效',
     routes: [
       ['GET /api/v1/profiles', '可见的环境及运行状态'], ['POST /api/v1/profiles/{编号}/start', '打开环境，返回调试地址'],
       ['GET /api/v1/profiles/{编号}', '运行状态；通过 API 打开的环境附带调试地址'], ['POST /api/v1/profiles/{编号}/stop', '关闭环境，照常保存登录状态'],
@@ -863,6 +896,7 @@ export const zh: Dict = {
     empty: '暂无扩展。可从文件或商店添加，再安装到环境中。',
     cols: { name: '扩展', engine: '内核', version: '版本', profiles: '环境', updated: '修改时间' },
     uploaded: '上传的文件', update: '新版本', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
+    signed: '签名已校验', signedNote: '安装到环境前，Folio 都会核对安装包的签名与校验值，任一不符即不予安装。',
     confirmDelete: (n: string, count: number) => (count ? `删除「${n}」？将从 ${count} 个环境中卸载。` : `删除「${n}」？`),
     deleted: (n: string) => `已删除 ${n}`, added: (n: string) => `已将 ${n} 加入扩展库`, updated: (n: string) => `${n} 已更新，环境下次打开时启用新版本`,
     addTitle: '添加扩展', updateTitle: (n: string) => `${n} 的新版本`, from: '来源', fromFile: '文件', fromStore: (k: string) => (k === 'chromium' ? 'Chrome 应用商店' : 'addons.mozilla.org'),
@@ -901,6 +935,33 @@ export const zh: Dict = {
     none: '没有匹配的结果。', move: '选择', run: '执行', close: '关闭', open: '打开', switchTo: '切换到窗口', stop: (n: string) => `停止 ${n}`,
     newProfile: '新建环境', importProfiles: '导入环境', checkProxies: '检测全部代理', addProxy: '添加代理',
     switchWs: (n: string) => `切换到 ${n}`, language: '切换到 English'
+  },
+  risks: {
+    title: (n: number) => `发现 ${n} 项关联风险`, show: '展开', hide: '收起',
+    only: '只看这些环境', clear: '显示全部环境', flag: '可能与其他环境关联',
+    kinds: {
+      'same-proxy': { t: (n: number, x: string) => `${n} 个环境共用代理 ${x}`, fix: '为每个环境分配独立代理。' },
+      'same-ip': { t: (n: number, x: string) => `${n} 个环境经不同代理从同一 IP ${x} 出网`, fix: '这些代理的出口相同，请向服务商申请不同出口。' },
+      direct: { t: (n: number) => `${n} 个环境未设置代理，直接使用本机网络`, fix: '未设置代理时，网站看到的都是本机 IP。' },
+      'moved-country': { t: (_n: number, x: string) => `出口国家与上次不同（${x}）`, fix: '出口国家突变可能触发网站安全验证，请保持环境出口位置稳定。' },
+      'moved-ip': { t: (_n: number, x: string) => `出口 IP 与上次不同（${x}）`, fix: '国家未变，多数网站可以接受，少数会要求验证。' },
+      'same-fp': { t: (n: number) => `${n} 个环境的指纹完全相同`, fix: '在「编辑」中为其余环境重新生成指纹。' },
+      'same-canvas': { t: (n: number) => `${n} 个环境的 Canvas 绘制结果相同`, fix: '体检发现 Canvas 绘制结果一致，请重新生成指纹。' }
+    }
+  },
+  checkup: {
+    run: '体检', running: '体检中…', title: (n: string) => `体检报告 · ${n}`, card: 'FOLIO · 体检报告', passed: '体检通过', review: '需处理',
+    last: (when: string, ok: boolean) => `最近体检：${when} · ${ok ? '通过' : '需处理'}`, view: '查看报告', again: '重新体检',
+    lead: '在环境的浏览器中打开自检页，读取网站可获取的信息。', failed: '无法在该环境中完成体检。',
+    seen: '实际：', want: '应为：', none: '无',
+    checks: {
+      webrtc: { t: 'WebRTC 未暴露其他地址', fix: 'WebRTC 暴露了真实或局域网地址，请确认环境已设置代理并通过代理打开。' },
+      timezone: { t: '时区与出口一致', fix: '在「编辑」中将时区设为跟随代理。' },
+      language: { t: '语言与出口一致', fix: '在「编辑」中将语言设为跟随代理。' },
+      ua: { t: 'User-Agent 与系统一致', fix: '浏览器报告的系统与环境设置不符，请重新生成指纹。' },
+      canvas: { t: 'Canvas 指纹在团队内唯一', fix: '另一个环境的 Canvas 绘制结果相同，请为其中之一重新生成指纹。' },
+      webgl: { t: 'WebGL', fix: '' }
+    }
   },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟完成首个环境配置', hide: '隐藏',
@@ -951,7 +1012,8 @@ export const zh: Dict = {
     kernel_exists: '该系统的此版本已在目录中。',
     upload_incomplete: '上传未完成，请重新上传。',
     upload_failed: '上传失败，请检查网络后重试。',
-    kernel_archive: '请选择 .zip、.tar.xz 或 .dmg 安装包。'
+    kernel_archive: '请选择 .zip、.tar.xz 或 .dmg 安装包。',
+    checkup_failed: '无法在该环境中完成体检。'
   }
 };
 

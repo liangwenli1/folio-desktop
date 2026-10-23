@@ -8,6 +8,9 @@ import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { Icon, Modal, useToast } from './ui';
 
+// The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
+const SHIELD = 'M8 1.8 13 3.6v4.1c0 3-2.1 5.5-5 6.5-2.9-1-5-3.5-5-6.5V3.6zM5.6 8l1.7 1.7 3.2-3.4';
+
 const engine = (k: KernelKind) => (k === 'chromium' ? 'Chromium' : 'Firefox');
 
 export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: WorkspaceData }){
@@ -16,6 +19,8 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
   const manager = data.role !== 'member';
   const [dialog, setDialog] = useState<{ ext?: Extension } | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  // Icons that turned out not to be images show the generic one.
+  const [broken, setBroken] = useState<Set<string>>(() => new Set());
 
   async function remove(e: Extension){
     setConfirm(null);
@@ -32,33 +37,36 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({})}><Icon name="plus" />{X.add}</button>}
         </header>
         {!manager && <p className="hint page-note">{X.memberNote}</p>}
-        <div className="tw top-gap">
-          <table>
-            <thead><tr><th scope="col">{X.cols.name}</th><th scope="col">{X.cols.engine}</th><th scope="col">{X.cols.version}</th><th scope="col" className="num">{X.cols.profiles}</th><th scope="col">{X.cols.updated}</th>{manager && <th className="act" scope="col" />}</tr></thead>
-            <tbody>
-              {!data.extensions.length && <tr className="empty"><td colSpan={6}><p>{X.empty}</p></td></tr>}
-              {data.extensions.map(e => (
-                <tr key={e.id} data-extension={e.name}>
-                  <td><b>{e.name}</b><span className="l2 mono">{e.source === 'store' ? e.storeId : X.uploaded}</span></td>
-                  <td>{engine(e.kernel)}</td>
-                  <td className="mono ver">{e.version}</td>
-                  <td className="num">{e.profiles}</td>
-                  <td>{ago(e.updatedAt, d)}</td>
-                  {manager && <td className="act"><span className="actin">
-                    {confirm === e.id ? <>
-                      <span className="hint">{X.confirmDelete(e.name, e.profiles)}</span>
-                      <button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                      <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(e)}>{X.delete}</button>
-                    </> : <>
-                      <button type="button" className="btn btn-xs btn-secondary" onClick={() => setDialog({ ext: e })}>{X.update}</button>
-                      <button type="button" className="btn btn-xs btn-danger" aria-label={X.deleteX(e.name)} onClick={() => setConfirm(e.id)}>{X.delete}</button>
-                    </>}
-                  </span></td>}
-                </tr>
+        {!data.extensions.length && <div className="ext-empty"><Icon name="extensions" /><p>{X.empty}</p></div>}
+        <ul className="ext-grid">
+          {data.extensions.map(e => (
+            <li key={e.id} className="ext-card" data-extension={e.name}>
+              <div className="ext-top">
+                <span className="ext-icon">{e.icon && !broken.has(e.id) ? <img src={e.icon} alt="" onError={() => setBroken(b => new Set(b).add(e.id))} /> : <Icon name="extensions" />}</span>
+                <span className="ext-name"><b>{e.name}</b><span className="l2 mono">{e.source === 'store' ? e.storeId : X.uploaded}</span></span>
+                <span className="shield" title={X.signedNote}><svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={SHIELD} /></svg>{X.signed}</span>
+              </div>
+              <dl className="ext-facts">
+                <div><dt>{X.cols.engine}</dt><dd><span className={`eng-dot ${e.kernel}`} aria-hidden="true" />{engine(e.kernel)}</dd></div>
+                <div><dt>{X.cols.version}</dt><dd className="mono">{e.version}</dd></div>
+                <div><dt>{X.cols.profiles}</dt><dd>{e.profiles}</dd></div>
+                <div><dt>{X.cols.updated}</dt><dd>{ago(e.updatedAt, d)}</dd></div>
+              </dl>
+              {manager && (confirm === e.id ? (
+                <div className="away-note" role="alertdialog" aria-label={X.delete}>
+                  <span>{X.confirmDelete(e.name, e.profiles)}</span>
+                  <div className="d-actions"><button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                    <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(e)}>{X.delete}</button></div>
+                </div>
+              ) : (
+                <div className="ext-acts">
+                  <button type="button" className="btn btn-xs btn-secondary" onClick={() => setDialog({ ext: e })}>{X.update}</button>
+                  <button type="button" className="btn btn-xs btn-danger" aria-label={X.deleteX(e.name)} onClick={() => setConfirm(e.id)}>{X.delete}</button>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </li>
+          ))}
+        </ul>
       </main>
       {dialog && <ExtensionDialog d={d} ws={ws} data={data} ext={dialog.ext} onClose={() => setDialog(null)} />}
     </div>

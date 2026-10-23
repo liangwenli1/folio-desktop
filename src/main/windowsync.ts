@@ -25,6 +25,9 @@ const INPUT_MS = 1500;
 let session: Session | null = null;
 let notify: (s: WindowSync | null) => void = () => {};
 export const onWindowSync = (fn: typeof notify) => { notify = fn; };
+// Something the leader did was repeated in a follower's window (the page draws it travelling down the line).
+let pulse: (id: string) => void = () => {};
+export const onSyncPulse = (fn: typeof pulse) => { pulse = fn; };
 export const windowSync = (): WindowSync | null => session && {
   leader: session.leader.id, members: [session.leader, ...session.followers].map(m => ({ id: m.id, issue: m.issue }))
 };
@@ -154,9 +157,9 @@ async function lead(s: Session){
   m.off.push(() => m.ctx.off('page', closeLater));
 }
 
-// Each follower replays in order.
-function run(f: Member, op: () => Promise<void>){
-  f.queue = f.queue.then(op).catch(() => { if (f.issue !== 'failed'){ f.issue = 'failed'; changed(); } });
+// Each follower replays in order. Mouse moves are too many to show.
+function run(f: Member, op: () => Promise<void>, shown = true){
+  f.queue = f.queue.then(op).then(() => { if (shown) pulse(f.id); }).catch(() => { if (f.issue !== 'failed'){ f.issue = 'failed'; changed(); } });
 }
 const size = (p: Page) => p.evaluate(() => [innerWidth, innerHeight] as [number, number]);
 
@@ -186,7 +189,7 @@ function replay(f: Member, i: number, e: Event){
     const button = (['left', 'middle', 'right'] as const)[e.button] ?? 'left';
     if (e.detail >= 2){ await page.mouse.move(x, y); await page.mouse.down({ button, clickCount: e.detail }); await page.mouse.up({ button, clickCount: e.detail }); }
     else await page.mouse.click(x, y, { button });
-  });
+  }, e.t !== 'move');
 }
 
 function member(id: string): Member | null {

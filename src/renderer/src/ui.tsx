@@ -25,6 +25,7 @@ const PATHS = {
   linux: 'M2.5 3.5h11v9h-11zM5 6.5l2 1.5-2 1.5M8.5 10H11',
   engines: 'M4.5 4.5h7v7h-7zM6.5 2v2.5M9.5 2v2.5M6.5 11.5V14M9.5 11.5V14M2 6.5h2.5M2 9.5h2.5M11.5 6.5H14M11.5 9.5H14',
   up: 'M8 13V3.5M4 7.5l4-4 4 4',
+  star: 'M8 2.2l1.75 3.6 3.95.55-2.86 2.78.68 3.92L8 11.2l-3.52 1.85.68-3.92L2.3 6.35l3.95-.55z',
   upload: 'M8 10.5v-8M4.5 6 8 2.5 11.5 6M3 13.5h10'
 };
 export type IconName = keyof typeof PATHS;
@@ -139,6 +140,23 @@ export function Modal({ title, closeLabel, onClose, foot, children }: { title: s
         {foot && <div className="m-foot">{foot}</div>}
       </div>
     </>
+  );
+}
+
+// A proxy's recent checks as a line of latencies, failures as red marks along the top.
+export function Spark({ history }: { history: { ok: boolean; ms: number | null }[] }){
+  if (!history.length) return null;
+  const W = 84, H = 22, top = Math.max(300, ...history.map(h => h.ms ?? 0));
+  const x = (i: number) => (history.length === 1 ? W / 2 : (i / (history.length - 1)) * (W - 4) + 2);
+  const y = (ms: number) => H - 3 - (ms / top) * (H - 8);
+  const ok = history.map((h, i) => (h.ok && h.ms !== null ? [x(i), y(h.ms)] : null));
+  const line = ok.filter(Boolean).map(p => p!.join(',')).join(' ');
+  return (
+    <svg className="spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      {line && <polyline points={line} />}
+      {history.map((h, i) => !h.ok && <circle key={i} className="miss" cx={x(i)} cy={3} r={1.8} />)}
+      {ok.at(-1) && <circle className="last" cx={ok.at(-1)![0]} cy={ok.at(-1)![1]} r={2.2} />}
+    </svg>
   );
 }
 

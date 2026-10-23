@@ -1,9 +1,11 @@
 // Window sync: pick the profiles and the leader, then work in the leader's window while the others follow.
 // Studio and Company; Free sees what it does and how to get it.
-import { useState } from 'react';
-import { folio, type Workspace } from './api';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { WindowSync } from '@shared/bridge';
+import { folio, type Profile, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import type { Dict, Lang } from './i18n';
+import { Flag } from './Flag';
 import { useToast } from './ui';
 
 export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
@@ -61,16 +63,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
                 <button type="button" className="btn btn-xs btn-secondary" onClick={() => { setTiled(null); void folio.stopWindowSync(); }}>{W.stop}</button>
               </span>
             </div>
-            <ul className="plain-list">
-              {s.members.map(m => (
-                <li key={m.id} data-sync={name.get(m.id)}>
-                  <span><b>{name.get(m.id)}</b> <span className="synctag">{m.id === s.leader ? W.leaderTag : W.followerTag}</span>
-                    {m.issue && <><br /><span className="hint warn-text">{W.issues[m.issue]}</span></>}</span>
-                  <span className="sp" />
-                  {m.id !== s.leader && <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
-                </li>
-              ))}
-            </ul>
+            <SyncDiagram d={d} sync={s} profiles={profiles} country={id => { const p = profiles.find(x => x.id === id); const px = p?.proxyId ? data.proxies.find(x => x.id === p.proxyId) : null; return px?.lastCheck?.ok ? px.lastCheck.geo?.country ?? null : null; }} />
             {tiled && <p className="hint" role="status">{tiled}</p>}
             <form className="sync-url wide" onSubmit={e => { e.preventDefault(); if (url.trim()) void folio.syncGoto(url.trim()); setUrl(''); }}>
               <input aria-label={W.address} placeholder={W.addressPh} value={url} onChange={e => setUrl(e.target.value)} spellCheck={false} />
@@ -99,6 +92,65 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
           </section>
         )}
       </main>
+    </div>
+  );
+}
+
+// The leader on the left, the followers on the right, a line to each; what the leader does travels down the lines
+// as it is repeated. A follower with a problem turns red and says what happened.
+function SyncDiagram({ d, sync, profiles, country }: { d: Dict; sync: WindowSync; profiles: Profile[]; country(id: string): string | null }){
+  const W = d.windowSync;
+  const box = useRef<HTMLDivElement>(null);
+  const [ends, setEnds] = useState<{ from: number; to: Record<string, number>; width: number }>({ from: 0, to: {}, width: 0 });
+  const [pulses, setPulses] = useState<{ key: number; id: string }[]>([]);
+  const seq = useRef(0);
+  const leader = sync.members.find(m => m.id === sync.leader)!, followers = sync.members.filter(m => m.id !== sync.leader);
+  const profile = (id: string) => profiles.find(p => p.id === id);
+
+  // Where the lines start and end: the middle of each card, measured.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const measure = () => {
+      const top = el.getBoundingClientRect().top, mid = (x: Element | null) => (x ? x.getBoundingClientRect().top - top + x.getBoundingClientRect().height / 2 : 0);
+      const to: Record<string, number> = {};
+      el.querySelectorAll<HTMLElement>('.sync-node.follower').forEach(n => { to[n.dataset.id!] = mid(n); });
+      setEnds({ from: mid(el.querySelector('.sync-node.leader')), to, width: el.querySelector('.sync-mid')!.getBoundingClientRect().width });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sync]);
+  useEffect(() => folio.onSyncPulse(id => {
+    const key = ++seq.current;
+    setPulses(list => [...list.filter(p => p.id !== id).slice(-12), ...list.filter(p => p.id === id).slice(-2), { key, id }]);
+    setTimeout(() => setPulses(list => list.filter(p => p.key !== key)), 900);
+  }), []);
+  const path = (id: string) => `M0 ${ends.from}C${ends.width * 0.5} ${ends.from} ${ends.width * 0.5} ${ends.to[id] ?? ends.from} ${ends.width} ${ends.to[id] ?? ends.from}`;
+  const node = (m: WindowSync['members'][number], role: 'leader' | 'follower') => {
+    const p = profile(m.id);
+    return (
+      <div key={m.id} className={`sync-node ${role}${m.issue ? ' bad' : ''}`} data-id={m.id} data-sync={p?.name}>
+        {p && <Flag country={country(m.id)} kernel={p.kernel} />}
+        <span className="sync-who"><b>{p?.name}</b><span className="synctag">{role === 'leader' ? W.leaderTag : W.followerTag}</span>
+          {m.issue && <span className="hint">{W.issues[m.issue]}</span>}</span>
+        {role === 'follower' && <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
+      </div>
+    );
+  };
+  return (
+    <div className="sync-diagram" ref={box}>
+      <div className="sync-col">{node(leader, 'leader')}</div>
+      <div className="sync-mid">
+        <svg className="sync-lines" aria-hidden="true">
+          {followers.map(f => <path key={f.id} className={f.issue ? 'bad' : ''} d={path(f.id)} />)}
+          {pulses.map(p => ends.to[p.id] !== undefined && (
+            <circle key={p.key} r={4} className="pulse"><animateMotion dur="0.8s" fill="freeze" path={path(p.id)} /></circle>
+          ))}
+        </svg>
+      </div>
+      <div className="sync-col followers">{followers.map(f => node(f, 'follower'))}</div>
     </div>
   );
 }

@@ -107,7 +107,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   function commands(): Command[] {
     const C = d.palette, P = d.profiles;
     const proxies = new Map(data.proxies.map(p => [p.id, p]));
-    const recent = [...(data.profiles ?? [])].sort((a, b) => Number(!!data.status[b.id]) - Number(!!data.status[a.id]) || Date.parse(b.lastOpenedAt ?? b.createdAt) - Date.parse(a.lastOpenedAt ?? a.createdAt));
+    const recent = [...(data.profiles ?? [])].sort((a, b) => Number(b.starred) - Number(a.starred) || Number(!!data.status[b.id]) - Number(!!data.status[a.id]) || Date.parse(b.lastOpenedAt ?? b.createdAt) - Date.parse(a.lastOpenedAt ?? a.createdAt));
     const profiles = recent.flatMap<Command>(p => {
       const h = health(p, proxies, data.kernels), on = data.status[p.id]?.state === 'running';
       const hint = [`#${String(p.number).padStart(4, '0')}`, h.geo?.city ?? h.geo?.countryName, on && P.st.running].filter(Boolean).join(' · ');

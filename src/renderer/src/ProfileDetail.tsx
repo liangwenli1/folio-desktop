@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
-import type { ActivityEntry, Profile } from './api';
+import { folio, isApiError, type ActivityEntry, type Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
 import { engineName, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
-import { day, runTime, type Dict, type Lang } from './i18n';
-import { Icon, bytes, percent, type IconName } from './ui';
+import { day, errorText, runTime, type Dict, type Lang } from './i18n';
+import { Icon, bytes, percent, useToast, type IconName } from './ui';
 import { Flag } from './Flag';
+import { ReportDialog, buildReport, passed, type Report } from './Checkup';
+import type { Risk } from './risks';
 
 interface Props {
   d: Dict; lang: Lang; p: Profile; h: Health; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
   // The download size of the profile's engine version, when the catalog has it; why its last launch here failed.
   size: number | null; failed?: string;
+  // What could tie it to other profiles; the team's profiles, for the health check's comparisons.
+  risks: Risk[]; others: Profile[]; onStar(): void;
   // The assigned person's email, when there is one.
   owner: string | null; activity: ActivityEntry[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean; canExport: boolean;
@@ -62,7 +66,7 @@ function useGuilloche(dep: unknown){
   return ref;
 }
 
-export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, group, owner, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, risks, others, onStar, group, owner, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
   const canvas = useGuilloche(p.id);
   // The card tilts toward the pointer and catches a holographic sheen where it is.
   const card = useRef<HTMLElement>(null);
@@ -80,7 +84,24 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
   const stampLevel = failed ? 'bad' : h.level;
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
-  const closeBtn = <button type="button" className="icon-btn" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>;
+  const toast = useToast();
+  const closeBtn = <span className="d-tools">
+    <button type="button" className={`icon-btn star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? d.profiles.unstar : d.profiles.star} title={p.starred ? d.profiles.unstar : d.profiles.star} onClick={onStar}><Icon name="star" /></button>
+    <button type="button" className="icon-btn" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>
+  </span>;
+  // The health check: run in the profile's browser, compared with the team, saved for everyone, shown as a report.
+  const [checking, setChecking] = useState(false);
+  const [report, setReport] = useState<Report | null>(null);
+  useEffect(() => setReport(null), [p.id]);
+  async function checkup(){
+    setChecking(true);
+    try {
+      const { facts, exitIp, exitGeo } = await folio.checkup(p.id);
+      const r = buildReport(p, facts, exitIp, exitGeo ?? h.geo, others);
+      await folio.api('PUT', `/profiles/${p.id}/report`, r);
+      setReport({ ...r, at: new Date().toISOString() });
+    } catch (e){ toast(errorText(d, isApiError(e) && e.code ? e.code : 'checkup_failed')); } finally { setChecking(false); }
+  }
   const num = String(p.number).padStart(4, '0');
   const away = elsewhere(p);
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
@@ -183,9 +204,36 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
       </article>
       {geo && <p className="attrib">{d.common.attribution}</p>}
       <section aria-label={d.detail.checksTitle}>
-        <h3 className="sec-t">{d.detail.checksTitle}</h3>
-        <div className="check">{h.checks.map(row)}</div>
+        <div className="sec-row">
+          <h3 className="sec-t">{d.detail.checksTitle}</h3>
+          <button type="button" className="btn btn-xs btn-secondary" title={d.checkup.lead} disabled={checking || !!away} onClick={() => void checkup()}>
+            {checking ? <span className="spin" aria-hidden="true" /> : <Icon name="check" />}{checking ? d.checkup.running : d.checkup.run}
+          </button>
+        </div>
+        {p.report && (
+          <p className={`report-line ${passed(p.report) ? 'ok' : 'warn'}`}>
+            {d.checkup.last(`${dayLabel(p.report.at, d, lang)} ${time(p.report.at, lang)}`, passed(p.report))}{' '}
+            <button type="button" className="linkish" onClick={() => setReport(p.report)}>{d.checkup.view}</button>
+          </p>
+        )}
+        <div className="check">
+          {h.checks.map(row)}
+          {risks.map((r, i) => {
+            const level = r.level === 'info' ? 'todo' : r.level;
+            const with_ = r.ids.filter(id => id !== p.id).map(id => others.find(o => o.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
+            return (
+              <div key={`r${i}`} className={`ck ${level}`} data-risk={r.kind}>
+                <span className="ic" aria-hidden="true"><Icon name={r.level === 'info' ? 'alert' : IC[level]} /></span>
+                <div>
+                  <p className="ck-t"><span className="sr">{d.detail.status[level]}: </span>{d.risks.kinds[r.kind].t(r.ids.length, r.what)}</p>
+                  <p className="ck-d">{[with_, d.risks.kinds[r.kind].fix].filter(Boolean).join(' · ')}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </section>
+      {report && <ReportDialog d={d} lang={lang} p={p} report={report} busy={checking} onAgain={() => void checkup()} onClose={() => setReport(null)} />}
       <section aria-label={d.detail.storage} data-testid="storage">
         <h3 className="sec-t">{d.detail.storage}</h3>
         {p.syncMode === 'local' ? <p className="hint">{d.detail.localOnly}</p> : p.data ? <>

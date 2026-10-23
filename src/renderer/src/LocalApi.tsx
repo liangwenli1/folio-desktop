@@ -1,5 +1,5 @@
 // API & scripts: the local API's switch, port and tokens, with examples to copy for each engine.
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import type { LocalApi } from '@shared/bridge';
 import { folio, type Workspace } from './api';
 import type { WorkspaceData } from './data';
@@ -7,6 +7,24 @@ import { day, type Dict, type Lang } from './i18n';
 import { Switch, useToast } from './ui';
 
 type Example = 'playwright' | 'puppeteer' | 'selenium' | 'firefox';
+
+// Colours for the examples (JavaScript and Python): comments, strings, numbers, keywords and calls.
+const KEYWORDS = new Set(['import', 'from', 'const', 'let', 'await', 'async', 'new', 'return', 'function', 'def', 'if', 'else', 'for', 'in', 'of', 'True', 'False', 'None', 'true', 'false', 'null']);
+const TOKEN = /(\/\/[^\n]*|#[^\n]*)|('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_$][\w$]*)(?=\s*\()|([A-Za-z_$][\w$]*)/g;
+function highlight(code: string){
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of code.matchAll(TOKEN)){
+    const [t, comment, str, num, call, word] = m;
+    if (m.index > last) out.push(code.slice(last, m.index));
+    const cls = comment ? 'c-com' : str ? 'c-str' : num ? 'c-num' : call ? (KEYWORDS.has(call) ? 'c-kw' : 'c-fn') : word && KEYWORDS.has(word) ? 'c-kw' : null;
+    out.push(cls ? <span key={m.index} className={cls}>{t}</span> : t);
+    last = m.index + t.length;
+  }
+  out.push(code.slice(last));
+  return out;
+}
+const clock = (at: number, lang: Lang) => new Date(at).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
 export function ApiPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
   const A = d.apiPage;
@@ -23,6 +41,8 @@ export function ApiPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Worksp
   const base = `http://127.0.0.1:${state?.port ?? 47210}`;
 
   useEffect(() => { void folio.localApi().then(s => { setState(s); setPort(String(s.port)); }); }, []);
+  // Each script call shows up at once.
+  useEffect(() => folio.onLocalApi(setState), []);
   const copy = (text: string) => void navigator.clipboard.writeText(text).then(() => toast(A.copied));
 
   async function change(c: { enabled?: boolean; port?: number }){
@@ -139,10 +159,28 @@ await page.goto('https://example.com');`
             </div>
             <p className="hint">{example === 'firefox' ? A.firefoxNote : A.chromiumNote}</p>
             <div className="code-wrap">
-              <pre className="code"><code>{code[example]}</code></pre>
+              <pre className="code"><code>{highlight(code[example])}</code></pre>
               <button type="button" className="btn btn-xs btn-secondary copy" onClick={() => copy(code[example])}>{A.copy}</button>
             </div>
           </section>
+
+          {state.enabled && (
+            <section className="api-card wide" aria-label={A.calls}>
+              <h2 className="sec-t">{A.calls}</h2>
+              {!state.calls.length ? <p className="hint">{A.noCalls}</p> : (
+                <ol className="calls">
+                  {state.calls.map(c => (
+                    <li key={`${c.at}${c.path}`}>
+                      <time className="mono">{clock(c.at, lang)}</time>
+                      <span className="mono call"><b>{c.method}</b> {c.path}</span>
+                      <span className={`st ${c.status < 300 ? 'run' : c.status < 500 ? 'away' : 'bad'}`}>{c.status}</span>
+                      <span className="hint">{c.token ?? A.noToken}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          )}
 
           <section className="api-card wide" aria-label={A.endpoints}>
             <h2 className="sec-t">{A.endpoints}</h2>

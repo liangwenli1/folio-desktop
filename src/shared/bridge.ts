@@ -4,7 +4,7 @@ import type { components } from './api-schema';
 
 export interface ApiErrorBody { code: string; message: string; status: number }
 export type ApiResult<T = unknown> = { ok: true; data: T } | { ok: false; error: ApiErrorBody };
-export type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export interface AppInfo { locale: string; version: string; siteUrl: string; platform: string }
 
 export type KernelKind = 'chromium' | 'firefox';
@@ -26,6 +26,8 @@ export interface ProfileStatus {
 }
 // An engine version for this computer: in Folio's catalog (`available`), downloaded here (`installed`), or both. `size`
 // is the package's, when the catalog knows it; `recommended` is the version new profiles get.
+// What a site can read from inside a profile's browser, gathered by its self-check page.
+export interface CheckupFacts { ips: string[]; timezone: string; language: string; userAgent: string; canvas: string; webgl: string | null }
 export interface KernelState { kind: KernelKind; version: string; installed: boolean; available: boolean; recommended: boolean; size: number | null }
 // A platform admin's upload of a new engine version: reading the file for its sha256, then sending it.
 export interface KernelUpload { stage: 'hash' | 'upload'; done: number; total: number }
@@ -42,8 +44,10 @@ export interface Tiled { moved: number; missed: number; why: null | 'unsupported
 // Where a script connects to a profile opened through the local API.
 export interface Debugging { protocol: 'cdp' | 'webdriver-bidi'; wsEndpoint: string; debuggerAddress?: string }
 export interface ApiToken { id: string; name: string; workspaceId: string; createdAt: string; lastUsedAt: string | null }
-// The local API's settings on this computer; `error` is why it isn't listening (the port is taken).
-export interface LocalApi { enabled: boolean; port: number; listening: boolean; error: string | null; tokens: ApiToken[] }
+// A request a script made to the local API, and which token it came with.
+export interface ApiCall { at: number; method: string; path: string; status: number; token: string | null }
+// The local API's settings on this computer; `error` is why it isn't listening (the port is taken); `calls`, the last 50.
+export interface LocalApi { enabled: boolean; port: number; listening: boolean; error: string | null; tokens: ApiToken[]; calls: ApiCall[] }
 // A task run under way on this computer, and the profiles a finished run found signed out.
 export interface ActiveRun { runId: string; taskId: string }
 // A newer Folio: `installs` (Windows) when it is downloaded and installs on restart; otherwise (macOS) it is out and
@@ -89,6 +93,9 @@ export interface FolioBridge {
   openProfile(id: string): Promise<void>;
   stopProfile(id: string): Promise<void>;
   focusProfile(id: string): Promise<void>;
+  // Opens the self-check page in the profile's browser (opening the profile if needed) and reads what it found.
+  // `exitIp` and `exitGeo`: where the browser went out when it opened, which the time zone and language follow.
+  checkup(id: string): Promise<{ facts: CheckupFacts; exitIp: string | null; exitGeo: Geo | null }>;
   statuses(): Promise<ProfileStatus[]>;
   onStatus(cb: (s: ProfileStatus) => void): () => void;
 
@@ -119,11 +126,14 @@ export interface FolioBridge {
   // Lays the synced windows out in a grid on the screen Folio is on, the leader top left.
   tileWindows(): Promise<Tiled | null>;
   onWindowSync(cb: (s: WindowSync | null) => void): () => void;
+  // Each time something the leader did is repeated in a follower (by the follower's profile id).
+  onSyncPulse(cb: (id: string) => void): () => void;
   // The local API: turn it on or off, change its port, and make or revoke tokens (a new token is shown once).
   localApi(): Promise<LocalApi>;
   setLocalApi(change: { enabled?: boolean; port?: number }): Promise<LocalApi>;
   createApiToken(name: string, workspaceId: string): Promise<{ token: string; api: LocalApi }>;
   revokeApiToken(id: string): Promise<LocalApi>;
+  onLocalApi(cb: (api: LocalApi) => void): () => void;
   showWindow(): Promise<void>;
   // Adds an extension to the workspace's library, or a new version to one already there: from a file the person
   // picked, or downloaded from the Chrome Web Store (id or link) or addons.mozilla.org (link or slug).

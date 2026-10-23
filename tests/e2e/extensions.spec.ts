@@ -68,14 +68,14 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
   await dialog.getByLabel('Choose a file…').setInputFiles({ name: 'helper.xpi', mimeType: 'application/x-xpinstall', buffer: firefox('1.0') });
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(win.locator('tr[data-extension="Shop Helper FF"]')).toContainText('1.0');
+  await expect(win.locator('[data-extension="Shop Helper FF"]')).toContainText('1.0');
   // A new version from addons.mozilla.org keeps the add-on's identity.
-  await win.locator('tr[data-extension="Shop Helper FF"]').getByRole('button', { name: 'New version' }).click();
+  await win.locator('[data-extension="Shop Helper FF"]').getByRole('button', { name: 'New version' }).click();
   dialog = win.getByRole('dialog', { name: 'New version of Shop Helper FF' });
   await dialog.getByRole('button', { name: 'addons.mozilla.org' }).click();
   await dialog.getByLabel('Link to the add-on (or its short name)').fill('https://addons.mozilla.org/en-US/firefox/addon/shop-helper/');
   await dialog.getByRole('button', { name: 'Upload' }).click();
-  await expect(win.locator('tr[data-extension="Shop Helper FF"]')).toContainText('2.0');
+  await expect(win.locator('[data-extension="Shop Helper FF"]')).toContainText('2.0');
   const library = (await (await acct.api.get(`${base}/extensions`)).json()).extensions;
   const crExt = library.find((e: { kernel: string }) => e.kernel === 'chromium');
   expect(crExt).toMatchObject({ source: 'store', storeId: 'abcdefghijklmnopabcdefghijklmnop' });

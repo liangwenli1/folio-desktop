@@ -12,7 +12,7 @@ import { me } from './account';
 import { api } from './api';
 import { debugOf, isRunning, open, stop } from './launcher';
 import { runTask } from './runs';
-import type { ApiToken, LocalApi } from '../shared/bridge';
+import type { ApiCall, ApiToken, LocalApi } from '../shared/bridge';
 
 interface Stored extends ApiToken { userId: string; hash: string }
 interface Settings { enabled: boolean; port: number; tokens: Stored[] }
@@ -25,6 +25,10 @@ const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 let settings: Settings = { enabled: false, port: DEFAULT_PORT, tokens: [] };
 let server: Server | null = null, error: string | null = null;
 const hits: number[] = [];
+// The last 50 requests, newest first, for the page; it hears of each one.
+const calls: ApiCall[] = [];
+let heard: () => void = () => {};
+export const onLocalApi = (fn: typeof heard) => { heard = fn; };
 const plans = new Map<string, { company: boolean; at: number }>();
 
 export async function loadLocalApi(){
@@ -37,7 +41,7 @@ export async function localApi(): Promise<LocalApi> {
   const who = await me();
   return {
     enabled: settings.enabled, port: settings.port, listening: !!server, error,
-    tokens: settings.tokens.filter(t => t.userId === who?.id).map(({ userId: _u, hash: _h, ...t }) => t)
+    tokens: settings.tokens.filter(t => t.userId === who?.id).map(({ userId: _u, hash: _h, ...t }) => t), calls
   };
 }
 
@@ -72,7 +76,15 @@ async function close(){
 async function listen(){
   await close();
   error = null;
-  const s = createServer((req, res) => { void handle(req, res).catch(() => reply(res, 500, { error: { code: 'internal', message: 'Something went wrong' } })); });
+  const s = createServer((req, res) => {
+    res.on('finish', () => {
+      const raw = req.headers.authorization?.match(/^Bearer (\S+)$/)?.[1];
+      calls.unshift({ at: Date.now(), method: req.method ?? '', path: (req.url ?? '').split('?')[0], status: res.statusCode, token: (raw && settings.tokens.find(t => t.hash === sha256(raw))?.name) || null });
+      calls.splice(50);
+      heard();
+    });
+    void handle(req, res).catch(() => reply(res, 500, { error: { code: 'internal', message: 'Something went wrong' } }));
+  });
   await new Promise<void>(resolve => {
     s.once('error', (e: NodeJS.ErrnoException) => { error = e.code === 'EADDRINUSE' ? 'port_in_use' : 'listen_failed'; resolve(); });
     s.listen(settings.port, '127.0.0.1', () => { server = s; resolve(); });
