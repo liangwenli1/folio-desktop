@@ -40,6 +40,8 @@ jobs:
   build:
     needs: draft
     strategy:
+      # Each system's result is worth having even when the other fails; the release is published only if both pass.
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -48,6 +50,10 @@ jobs:
           - os: macos-latest
             target: --mac
     runs-on: ${{ matrix.os }}
+    # Bash on Windows too: PowerShell splits arguments like -c.publish.repo=x at the dot.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

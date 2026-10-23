@@ -16,6 +16,8 @@ permissions:
 jobs:
   build:
     strategy:
+      # Each system's result is worth having even when the other fails.
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -26,9 +28,12 @@ jobs:
             target: --mac
             installer: release/Folio-arm64.dmg
     runs-on: ${{ matrix.os }}
+    # Bash on Windows too: PowerShell splits arguments like -c.publish.repo=x at the dot.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: The address starts with http:// or https://
-        shell: bash
         env:
           FOLIO_URL: ${{ inputs.folio_url }}
         run: |
