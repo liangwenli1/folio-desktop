@@ -17,11 +17,14 @@ const PATHS = {
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
-// The Folio mark: a guilloche rosette in a ring, in the stamp colour (via .seal).
+// The Folio mark: a stack of profile cards, the front one solid with a photo and a line cut out, in the stamp colour
+// (via .seal).
 export const Mark = () => (
-  <svg className="seal" viewBox="0 0 64 64" fill="none" stroke="currentColor" aria-hidden="true">
-    <circle cx="32" cy="32" r="28.5" strokeWidth="3.6" />
-    {[0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5].map(a => <ellipse key={a} cx="32" cy="32" rx="22" ry="9.5" strokeWidth="2" transform={`rotate(${a} 32 32)`} />)}
+  <svg className="seal" viewBox="0 0 64 64" aria-hidden="true">
+    <g transform="translate(32 32) scale(0.107) translate(-500.6 -483.8)">
+      <path d="M316 312H688A44 44 0 0 1 732 356V588A44 44 0 0 1 688 632H316A44 44 0 0 1 272 588V356A44 44 0 0 1 316 312Z" fill="none" stroke="currentColor" strokeWidth="40" opacity="0.55" transform="rotate(-9 502 472)" />
+      <path d="M346 392H718A44 44 0 0 1 762 436V668A44 44 0 0 1 718 712H346A44 44 0 0 1 302 668V436A44 44 0 0 1 346 392ZM350 520A56 56 0 1 0 462 520A56 56 0 1 0 350 520ZM510 500H670A20 20 0 0 1 690 520V520A20 20 0 0 1 670 540H510A20 20 0 0 1 490 520V520A20 20 0 0 1 510 500Z" fill="currentColor" fillRule="evenodd" transform="rotate(2 532 552)" />
+    </g>
   </svg>
 );
 
