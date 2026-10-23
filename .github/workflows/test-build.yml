@@ -1,0 +1,51 @@
+# Installers for trying Folio against a server that has no domain yet (or any other address): Actions › Test build
+# › Run workflow, enter the server's address, then download the installers from the run's Artifacts. Nothing is
+# released and no tag is made; the installers always talk to the address they were built with.
+name: Test build
+
+on:
+  workflow_dispatch:
+    inputs:
+      folio_url:
+        description: The Folio server's address, e.g. http://203.0.113.10:8080 or https://folio.example.com
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+            installer: release/Folio-Setup-x64.exe
+          # macos-latest runs on Apple silicon.
+          - os: macos-latest
+            target: --mac
+            installer: release/Folio-arm64.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: The address starts with http:// or https://
+        shell: bash
+        env:
+          FOLIO_URL: ${{ inputs.folio_url }}
+        run: |
+          case "$FOLIO_URL" in http://*|https://*) ;; *) echo "::error::Enter the address with http:// or https://, e.g. http://203.0.113.10:8080"; exit 1;; esac
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          MAIN_VITE_FOLIO_URL: ${{ inputs.folio_url }}
+      - name: Package
+        run: npx electron-builder ${{ matrix.target }} --publish never -c.publish.owner=${{ github.repository_owner }} -c.publish.repo=${{ github.event.repository.name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Folio-${{ runner.os }}
+          path: ${{ matrix.installer }}
+          if-no-files-found: error

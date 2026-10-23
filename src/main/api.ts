@@ -10,7 +10,7 @@ import { clearToken, getToken, setToken } from './session';
 
 // The Folio deployment this build talks to: its address is written in when the installer is built (the site at
 // the root, the API under /api). The environment variables point a development build or a test elsewhere.
-const FOLIO_URL = import.meta.env.MAIN_VITE_FOLIO_URL;
+const FOLIO_URL = import.meta.env.MAIN_VITE_FOLIO_URL?.replace(/\/+$/, '');
 export const API_URL = process.env.FOLIO_API_URL ?? (FOLIO_URL ? `${FOLIO_URL}/api` : 'http://localhost:47110');
 export const SITE_URL = process.env.FOLIO_SITE_URL ?? FOLIO_URL ?? 'http://localhost:47120';
 
