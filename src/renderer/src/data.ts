@@ -6,7 +6,7 @@ import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus,
 import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
 type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
-export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'trash' | 'restore' | 'purge';
+export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'trash' | 'restore' | 'purge';
 export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
@@ -21,16 +21,24 @@ export interface WorkspaceData {
   // The window sync under way on this computer.
   sync: WindowSync | null;
   status: Record<string, ProfileStatus>; kernels: KernelState[]; progress: Record<string, KernelProgress>;
+  // Why each profile's last launch on this computer failed, until it is opened again.
+  failed: Record<string, string>;
   refresh(...kinds: Kind[]): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
-  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string }): Promise<number>;
+  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string }): Promise<number>;
   // The id of the group with this name, created when there is none.
   ensureGroup(name: string): Promise<string>;
   // Checks proxies two at a time; `checking` holds the ones under way.
   checking: Set<string>;
   check(ids: string[]): Promise<void>;
   install(kind: KernelKind, version: string): Promise<boolean>;
+  // Opens a profile, downloading its engine first when this computer doesn't have it. Resolves with why it couldn't
+  // start (the engine isn't built for this computer, or its download failed), or null once it is starting.
+  launch(p: Profile): Promise<'kernel_missing' | 'download_failed' | null>;
+  // Deletes a downloaded engine version from this computer; reloads the list (also after an upload).
+  removeKernel(kind: KernelKind, version: string): Promise<void>;
+  reloadKernels(): void;
 }
 
 export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void }): WorkspaceData {
@@ -50,6 +58,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [status, setStatus] = useState<Record<string, ProfileStatus>>({});
   const [kernels, setKernels] = useState<KernelState[]>([]);
   const [progress, setProgress] = useState<Record<string, KernelProgress>>({});
+  const [failed, setFailed] = useState<Record<string, string>>({});
   const [checking, setChecking] = useState<Set<string>>(() => new Set());
   const handlers = useRef(on);
   handlers.current = on;
@@ -99,6 +108,11 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
         const next = { ...m };
         if (s.state === 'stopped' || s.state === 'error') delete next[s.id]; else next[s.id] = s;
         return next;
+      });
+      setFailed(m => {
+        if (s.state === 'error') return { ...m, [s.id]: s.error ?? 'launch_failed' };
+        if (!(s.id in m)) return m;
+        const next = { ...m }; delete next[s.id]; return next;
       });
       if (s.state === 'error') handlers.current.launchError(s);
       if (s.extensionErrors?.length) handlers.current.extensionErrors(s);
@@ -161,5 +175,20 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     void folio.installKernel(kind, version);
   }), []);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, checking, refresh, patch, batch, ensureGroup, check, install };
+  const launch = useCallback(async (p: Profile) => {
+    const k = kernels.find(x => x.kind === p.kernel && x.version === p.kernelVersion);
+    if (kernels.length && !k) return 'kernel_missing' as const;
+    if (k && !k.installed && !(await install(p.kernel, p.kernelVersion))) return 'download_failed' as const;
+    await folio.openProfile(p.id);
+    return null;
+  }, [kernels, install]);
+
+  const reloadKernels = useCallback(() => { void folio.kernels().then(setKernels); }, []);
+  const removeKernel = useCallback(async (kind: KernelKind, version: string) => {
+    await folio.removeKernel(kind, version);
+    setProgress(m => { const next = { ...m }; delete next[kernelKey(kind, version)]; return next; });
+    reloadKernels();
+  }, [reloadKernels]);
+
+  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
 }

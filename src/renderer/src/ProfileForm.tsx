@@ -6,7 +6,7 @@ import { folio, isApiError, type Profile, type ProxyImport } from './api';
 import { fingerprintFacts, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
-import { Modal, percent } from './ui';
+import { Modal, bytes, percent } from './ui';
 import { Select, SelectField, type Opt } from './Select';
 
 interface Props { d: Dict; wsId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
@@ -50,21 +50,18 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const versions = data.kernels.filter(k => k.kind === kernel);
-  const latest = versions[0];
-  const ffKey = latest ? kernelKey('firefox', latest.version) : '';
-  const ffProgress = kernel === 'firefox' ? data.progress[ffKey] : undefined;
+  // The engine's versions for this computer. A new profile gets the recommended one unless another is picked.
+  const versions = data.kernels.filter(k => k.kind === kernel && k.available);
+  const target = edit ? kernelVersion : kernelVersion || (versions.find(k => k.recommended) ?? versions[0])?.version || '';
+  const chosen = data.kernels.find(k => k.kind === kernel && k.version === target);
+  const ffProgress = kernel === 'firefox' ? data.progress[kernelKey('firefox', target)] : undefined;
 
   const generate = useCallback(async () => {
-    if (!latest) return;
-    if (kernel === 'firefox' && !latest.installed){ setFp({ state: 'need-firefox', version: latest.version }); return; }
+    if (!chosen) return;
+    if (kernel === 'firefox' && !chosen.installed){ setFp({ state: 'need-firefox', version: chosen.version }); return; }
     setFp({ state: 'loading' });
-    try {
-      const r = await folio.newFingerprint(kernel, os);
-      setFp({ state: 'ready', ...r });
-      setKernelVersion(r.kernelVersion);
-    } catch { setFp({ state: 'error' }); }
-  }, [kernel, os, latest]);
+    try { setFp({ state: 'ready', ...await folio.newFingerprint(kernel, os, chosen.version) }); } catch { setFp({ state: 'error' }); }
+  }, [kernel, os, chosen?.version, chosen?.installed]);
 
   useEffect(() => { if (!edit) void generate(); }, [edit, generate]);
 
@@ -89,8 +86,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
     if (!profile) return;
     setFp({ state: 'loading' });
     try {
-      const r = await folio.newFingerprint(profile.kernel, profile.os);
-      setFp({ state: 'ready', ...r }); setKernelVersion(r.kernelVersion); setRegenerated(true);
+      setFp({ state: 'ready', ...await folio.newFingerprint(profile.kernel, profile.os, kernelVersion) }); setRegenerated(true);
     } catch { setFp({ state: 'error' }); }
   }
 
@@ -170,16 +166,17 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
         </div>
 
         {!edit && (
-          <div className="row2">
+          <div className="row3">
             <div className="field">
               <span className="label" id="pf-engine">{f.engine}</span>
               <div className="seg" role="group" aria-labelledby="pf-engine">
                 {(['chromium', 'firefox'] as const).map(k => (
-                  <button key={k} type="button" aria-pressed={kernel === k} onClick={() => setKernel(k)}>{k === 'chromium' ? 'Chromium' : 'Firefox'}</button>
+                  <button key={k} type="button" aria-pressed={kernel === k} onClick={() => { setKernel(k); setKernelVersion(''); }}>{k === 'chromium' ? 'Chromium' : 'Firefox'}</button>
                 ))}
               </div>
-              <p className="hint">{kernel === 'chromium' ? f.recommended : f.firefoxNote}</p>
             </div>
+            <SelectField label={f.engineVersion} value={target} onChange={setKernelVersion} placeholder="—"
+              options={versions.map(k => ({ value: k.version, label: k.version, hint: k.recommended ? d.engines.recommended : k.installed ? d.engines.installed : undefined }))} />
             <SelectField label={f.os} value={os} onChange={v => setOs(v as Os)} options={(['windows', 'macos', 'linux'] as const).map(o => ({ value: o, label: d.os[o] }))} />
           </div>
         )}
@@ -264,7 +261,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               <p className="hint">{f.firefoxMissing}</p>
               {ffProgress && !ffProgress.error
                 ? <p className="hint">{f.downloading(percent(ffProgress))}</p>
-                : <button className="btn btn-secondary btn-sm" type="button" onClick={() => void data.install('firefox', fp.version).then(ok => { if (ok) void generate(); })}>{f.download} · 1.3 GB</button>}
+                : <button className="btn btn-secondary btn-sm" type="button" onClick={() => void data.install('firefox', fp.version).then(ok => { if (ok) void generate(); })}>{f.download}{chosen?.size ? ` · ${bytes(chosen.size)}` : ''}</button>}
             </div>
           )}
           {facts && (

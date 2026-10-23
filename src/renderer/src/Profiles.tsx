@@ -5,8 +5,12 @@ import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { ago, errorText, runTime, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { useActivity } from './Activity';
-import { Icon, percent, useNow, useToast } from './ui';
+import { Icon, Num, percent, useNow, useToast } from './ui';
 import { Select } from './Select';
+import { ExitMap, type Pin, type PinState } from './ExitMap';
+import { Flag } from './Flag';
+import { mod } from './CommandPalette';
+import { Rosette } from './Rosette';
 
 export type GroupFilter = 'all' | 'none' | string;
 type Status = 'all' | 'running' | 'issues';
@@ -14,14 +18,14 @@ type Sort = 'recent' | 'name' | 'latency';
 
 interface Props {
   d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; group: GroupFilter; setGroup(g: GroupFilter): void;
-  onNew(): void; onImport(): void; onEdit(id: string): void; onAddProxy(): void;
+  onNew(): void; onImport(): void; onEdit(id: string): void; onAddProxy(): void; onPalette(): void;
 }
 
 const ONBOARDING_KEY = (ws: string) => `folio.onboarding.${ws}`;
 const hidden = (ws: string) => { try { return localStorage.getItem(ONBOARDING_KEY(ws)) === 'hidden'; } catch { return false; } };
 const number = (p: Profile) => String(p.number).padStart(4, '0');
 
-export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImport, onEdit, onAddProxy }: Props){
+export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImport, onEdit, onAddProxy, onPalette }: Props){
   const toast = useToast();
   const P = d.profiles;
   const [q, setQ] = useState('');
@@ -86,10 +90,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
   async function open(p: Profile){
-    const k = data.kernels.find(k => k.kind === p.kernel && k.version === p.kernelVersion);
-    if (data.kernels.length && !k){ setCur(p.id); setDrawer(true); toast(d.profiles.done.failed(p.name, d.launch.kernel_missing)); return; }
-    if (k && !k.installed && !(await data.install(p.kernel, p.kernelVersion))){ toast(d.launch.download_failed); return; }
-    await folio.openProfile(p.id);
+    const why = await data.launch(p);
+    if (why === 'kernel_missing'){ setCur(p.id); setDrawer(true); toast(d.profiles.done.failed(p.name, d.launch.kernel_missing)); }
+    else if (why) toast(d.launch.download_failed);
   }
   const stop = (p: Profile) => folio.stopProfile(p.id);
   async function exportCookies(list: Profile[], format: 'json' | 'netscape'){
@@ -154,10 +157,28 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   });
   const view = (id: string) => { setCur(id); setDrawer(true); };
 
-  // Summary strip
+  // The summary beside the map.
   const h = [...healthOf.values()];
   const down = h.filter(x => x.proxy === 'down').length, slow = h.filter(x => x.proxy === 'slow').length;
   const mism = h.filter(x => x.mismatch).length;
+  // A pin per exit, showing the busiest state of the profiles that go out there.
+  const pins = useMemo(() => {
+    const rank: PinState[] = ['run', 'boot', 'bad', 'warn', 'idle'];
+    const at = new Map<string, Pin>();
+    for (const p of all){
+      const x = healthOf.get(p.id)!, g = x.geo;
+      if (!g) continue;
+      const key = g.city ?? g.countryName;
+      const s = data.status[p.id];
+      const st: PinState = s?.state === 'running' ? 'run' : s ? 'boot' : x.level === 'bad' ? 'bad' : x.level === 'warn' ? 'warn' : 'idle';
+      const pin = at.get(key) ?? { key, lat: g.lat, lon: g.lon, state: 'idle' as PinState, title: [g.city, g.countryName].filter(Boolean).join(', '), lines: [] };
+      if (rank.indexOf(st) < rank.indexOf(pin.state)) pin.state = st;
+      pin.lines.push(st === 'run' ? `${p.name} · ${P.st.running}` : p.name);
+      at.set(key, pin);
+    }
+    return [...at.values()];
+  }, [all, healthOf, data.status, P]);
+  const countries = new Set(h.map(x => x.geo?.country).filter(Boolean)).size;
 
   const showOnboarding = !onboardingHidden && data.profiles !== null && !(data.proxies.length && all.length && all.some(p => p.lastOpenedAt));
   const hideOnboarding = () => { setOnboardingHidden(true); try { localStorage.setItem(ONBOARDING_KEY(ws.id), 'hidden'); } catch { /* per-session only */ } };
@@ -173,6 +194,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           <label className="search">
             <Icon name="search" /><span className="sr">{P.search}</span>
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
+            <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
           </label>
           {manager && <button className="btn btn-secondary" type="button" onClick={onImport}>{P.import}</button>}
           <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
@@ -180,25 +202,45 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
         {showOnboarding && <Onboarding d={d} data={data} onAddProxy={onAddProxy} onNew={onNew} onOpen={open} onHide={hideOnboarding} />}
 
-        <section className="summary" aria-label={P.sum.usage}>
-          <button type="button" className="sum" onClick={() => setStatus('running')}>
-            <span className="k"><span className={`d${running ? ' good pulse' : ''}`} aria-hidden="true" />{P.sum.running}</span>
-            <span className="n">{running}<small>{P.sum.of(all.length)}</small></span><span className="s">{P.sum.runningSub}</span>
-          </button>
-          <button type="button" className="sum" onClick={() => setStatus('issues')}>
-            <span className="k"><span className={`d${down ? ' bad' : slow ? ' warn' : ''}`} aria-hidden="true" />{P.sum.proxy}</span>
-            <span className="n">{down + slow}</span><span className="s">{P.sum.proxyNote(down, slow) || P.sum.proxyOk}</span>
-          </button>
-          <button type="button" className="sum" onClick={() => setStatus('issues')}>
-            <span className="k"><span className={`d${mism ? ' warn' : ''}`} aria-hidden="true" />{P.sum.fp}</span>
-            <span className="n">{mism}</span><span className="s">{mism ? P.sum.fpNote(mism) : P.sum.fpOk}</span>
-          </button>
-          <div className="sum">
-            <span className="k">{P.sum.usage}</span>
-            <span className="n">{all.length}<small>{P.sum.usageOf(limit)}</small></span>
-            <span className="meter"><i style={{ width: `${Math.min(100, (all.length / limit) * 100)}%` }} /></span>
-          </div>
-        </section>
+        <div className="hero">
+          <section className="map-card" aria-label={P.map.title}>
+            <header className="map-h">
+              <b>{P.map.title}</b>
+              <span className="legend"><span><span className="d good" />{P.map.legend.run}</span><span><span className="d boot" />{P.map.legend.boot}</span><span><span className="d bad" />{P.map.legend.bad}</span></span>
+              {pins.length > 0 && <span className="map-n">{P.map.count(pins.length, countries)}</span>}
+            </header>
+            {pins.length > 0
+              ? <ExitMap pins={pins} label={P.map.label} onPick={key => setQ(key)} />
+              : (
+                <div className="map-empty">
+                  <b>{P.map.emptyTitle}</b>
+                  <p className="hint">{P.map.emptyBody}</p>
+                  {manager && (data.proxies.length
+                    ? <button type="button" className="btn btn-sm btn-secondary" disabled={data.checking.size > 0} onClick={() => void data.check(data.proxies.map(p => p.id))}>{P.map.check}</button>
+                    : <button type="button" className="btn btn-sm btn-secondary" onClick={onAddProxy}>{P.map.add}</button>)}
+                </div>
+              )}
+          </section>
+          <section className="stack" aria-label={P.sum.usage}>
+            <button type="button" className="sum" onClick={() => setStatus('running')}>
+              <span className="k"><span className={`d${running ? ' good pulse' : ''}`} aria-hidden="true" />{P.sum.running}</span>
+              <span className="n"><Num value={running} /><small>{P.sum.of(all.length)}</small></span>
+            </button>
+            <button type="button" className="sum" onClick={() => setStatus('issues')} title={P.sum.proxyNote(down, slow) || P.sum.proxyOk}>
+              <span className="k"><span className={`d${down ? ' bad' : slow ? ' warn' : ' good'}`} aria-hidden="true" />{P.sum.proxy}</span>
+              <span className="n"><Num value={down + slow} /></span>
+            </button>
+            <button type="button" className="sum" onClick={() => setStatus('issues')} title={mism ? P.sum.fpNote(mism) : P.sum.fpOk}>
+              <span className="k"><span className={`d${mism ? ' warn' : ' good'}`} aria-hidden="true" />{P.sum.fp}</span>
+              <span className="n"><Num value={mism} /></span>
+            </button>
+            <div className="sum">
+              <span className="k"><span className="d" aria-hidden="true" />{P.sum.usage}</span>
+              <span className="n"><Num value={all.length} /><small>{P.sum.usageOf(limit)}</small></span>
+              <span className="meter"><i style={{ width: `${Math.min(100, (all.length / limit) * 100)}%` }} /></span>
+            </div>
+          </section>
+        </div>
 
         <div className="filters">
           <div className="seg" role="group" aria-label={P.filter.label}>
@@ -290,13 +332,15 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
               </tr>
             </thead>
             <tbody>
-              {data.profiles === null && <tr className="empty"><td colSpan={6}>{d.loading}</td></tr>}
+              {data.profiles === null && Array.from({ length: 5 }, (_, i) => (
+                <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /><i /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td></tr>
+              ))}
               {data.profiles !== null && !list.length && (
                 <tr className="empty"><td colSpan={6}>
                   {all.length
                     ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
                       <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); }}>{P.clearFilters}</button></>
-                    : <p><b>{P.emptyNone}</b></p>}
+                    : <><Rosette size={200} /><p><b>{P.emptyNone}</b></p></>}
                 </td></tr>
               )}
               {list.map(p => (
@@ -316,6 +360,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           <ProfileDetail
             d={d} lang={lang} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
             status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
+            size={data.kernels.find(k => k.kind === curProfile.kernel && k.version === curProfile.kernelVersion)?.size ?? null} failed={data.failed[curProfile.id]}
             group={groupLabel(curProfile)} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
             activity={recent.entries ?? []}
             onClose={() => setDrawer(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
@@ -345,13 +390,18 @@ function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checki
     ok: <span className="lat ok">{P.ms(ms ?? 0)}</span>, slow: <span className="lat slow">{P.ms(ms ?? 0)}</span> }[h.proxy];
   const downloading = progress && !progress.finished && !progress.error;
   const away = elsewhere(p);
+  // Opening: proxy, engine, sign-ins, browser, lit in turn.
+  const boarding = (at: number, label: string) => (
+    <span className="boarding" role="status"><span className="steps" aria-hidden="true">{P.stages.map((s, i) => <i key={s} className={i < at ? 'done' : i === at ? 'now' : ''} />)}</span>{label}</span>
+  );
   let st, act = null;
   if (status?.state === 'running'){
     st = <span className="st run"><span className="d" aria-hidden="true" />{P.st.running} · <span className="mono">{runTime(now - (status.startedAt ?? now))}</span></span>;
     act = <button type="button" className="btn btn-xs btn-secondary" aria-label={P.stopX(p.name)} onClick={onStop}>{P.stop}</button>;
   }
-  else if (status) st = <span className="st boot"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
-  else if (downloading) st = <span className="st boot"><span className="spin" aria-hidden="true" />{P.downloading(percent(progress))}</span>;
+  else if (status?.state === 'saving') st = <span className="st boot"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
+  else if (status) st = status.state === 'restoring' ? boarding(2, P.stage.restore) : status.stage === 'launch' ? boarding(3, P.stage.launch) : boarding(0, P.stage.proxy);
+  else if (downloading) st = boarding(1, P.downloading(percent(progress)));
   else if (away) st = <span className="st away" title={away.email}><span className="d" aria-hidden="true" />{P.inUseOn(away.deviceName ?? away.email)}</span>;
   else if (h.checks[0]?.id === 'proxy-down'){
     st = <span className="st bad"><span className="d" aria-hidden="true" />{P.st.proxyDown}</span>;
@@ -366,12 +416,14 @@ function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checki
     <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a')) onView(); }}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
       <td className="prof">
-        <button type="button" className="rowlink" onClick={onView}>{p.name}</button>
-        {p.tags.map(t => <span key={t} className="tag">{t}</span>)}
-        <span className="l2"><span className="mono">#{number(p)}</span> · {group}</span>
+        <span className="prof-cell"><Flag country={geo?.country ?? null} kernel={p.kernel} /><span>
+          <button type="button" className="rowlink" onClick={onView}>{p.name}</button>
+          {p.tags.map(t => <span key={t} className="tag">{t}</span>)}
+          <span className="l2"><span className="mono">#{number(p)}</span> · {group}</span>
+        </span></span>
       </td>
       <td className="pxc">
-        <span className="l1">{geo ? <><span className="cc">{geo.country}</span>{geo.city ?? geo.countryName}</> : h.px ? h.px.name : P.noProxy}</span>
+        <span className="l1">{h.px && <span className={`d ${h.proxy === 'ok' ? 'good' : h.proxy === 'slow' ? 'warn' : h.proxy === 'down' ? 'bad' : ''}`} aria-hidden="true" />}{geo ? geo.city ?? geo.countryName : h.px ? h.px.name : P.noProxy}</span>
         {h.px && <span className="l2">{latency} · {h.px.type.toUpperCase()}</span>}
       </td>
       <td className="fpc">

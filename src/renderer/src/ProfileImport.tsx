@@ -17,7 +17,8 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
   const parsed = useMemo(() => (text.trim() ? readProfiles(text) : null), [text]);
   const rows = parsed?.rows ?? [];
   const room = ws.subscription.entitlements.profiles - (data.profiles?.length ?? 0);
-  const firefox = data.kernels.find(k => k.kind === 'firefox');
+  // New profiles get the recommended version, which Firefox needs on this computer to make fingerprints.
+  const firefox = data.kernels.find(k => k.kind === 'firefox' && k.recommended) ?? data.kernels.find(k => k.kind === 'firefox' && k.available);
   const needsFirefox = rows.some(r => r.kernel === 'firefox') && !firefox?.installed;
   const ffProgress = firefox ? data.progress[kernelKey('firefox', firefox.version)] : undefined;
   const blocked = !rows.length || !!parsed?.errors.length || rows.length > MAX_ROWS || rows.length > room || needsFirefox || !!step;

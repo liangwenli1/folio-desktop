@@ -23,7 +23,7 @@ export const en = {
     email: 'Email', password: 'Password', submit: 'Log in',
     noAccount: 'No account yet?', create: 'Create one on the website', forgot: 'Forgot your password?'
   },
-  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', soon: 'Soon', soonHint: 'Arrives in an upcoming update' },
+  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines' },
   groups: {
     title: 'Groups', all: 'All profiles', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
     rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`
@@ -40,7 +40,7 @@ export const en = {
     scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
   },
-  user: { language: 'Language', engines: 'Browser engines', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out', startup: 'Start with this computer (minimized)' },
+  user: { language: 'Language', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out', startup: 'Start with this computer (minimized)' },
   tray: { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background so scheduled tasks run on time. Quit it from the tray icon.' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }) },
   update: {
@@ -71,6 +71,13 @@ export const en = {
     cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', last: 'Last opened', status: 'Status' },
     open: 'Open', stop: 'Stop', openX: (n: string) => `Open ${n}`, stopX: (n: string) => `Stop ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
+    stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Proxy', 'Engine', 'Sign-ins', 'Browser'],
+    map: {
+      title: 'Exits', legend: { run: 'Running', boot: 'Starting', bad: 'Proxy down' }, count: (exits: number, countries: number) => `${exits === 1 ? '1 exit' : `${exits} exits`} · ${countries === 1 ? '1 country' : `${countries} countries`}`,
+      label: 'Where the profiles’ proxies exit', emptyTitle: 'See where your profiles go out', emptyBody: 'Once a proxy is checked, its exit shows on the map with what its profiles are doing.',
+      check: 'Check all proxies', add: 'Add a proxy'
+    },
+    palette: 'Search everything',
     restoring: 'Restoring sign-ins…', saving: 'Saving sign-ins…', inUseOn: (where: string) => `In use on ${where}`,
     downloading: (pct: number) => `Downloading engine… ${pct}%`,
     noProxy: 'No proxy', unchecked: 'Not checked', noResponse: 'No response', ms: (n: number) => `${n} ms`, mismatch: '! Doesn’t match its proxy',
@@ -133,16 +140,16 @@ export const en = {
     'lang-mismatch': { t: () => 'Language doesn’t match the exit IP', d: x => `Set by hand to ${x.setLang}, but the proxy exits in ${x.country}.` },
     geo: { t: x => `Geolocation set near ${x.city}`, d: () => 'Accuracy about 50 m' },
     rtc: { t: () => 'WebRTC shows the proxy IP only', d: () => 'The real IP of this computer stays hidden' },
-    'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => 'The newest engine on this computer' },
-    'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `${x.latest} is available. The fingerprint stays the same when you upgrade.` },
-    'engine-missing': { t: x => `${x.kernel} ${x.version} isn’t downloaded yet`, d: x => `About ${x.size}, once for all profiles. It downloads when you open the profile.` },
+    'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => 'The recommended version' },
+    'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `${x.latest} is recommended. The fingerprint stays the same when you upgrade.` },
+    'engine-missing': { t: x => `${x.kernel} ${x.version} isn’t downloaded yet`, d: x => `${x.size}, once for all profiles. It downloads when you open the profile.` },
     'engine-unavailable': { t: x => `${x.kernel} ${x.version} isn’t built for this computer’s system`, d: x => `Use ${x.latest} for this profile to open it here.` }
   } satisfies Record<CheckId, CheckText>,
   fixes: { check: 'Check again', backup: 'Make the backup the main line', 'choose-proxy': 'Choose a proxy', 'follow-tz': 'Follow the proxy', 'follow-lang': 'Follow the proxy', download: 'Download', use: (v: string) => `Use ${v}` },
   form: {
     newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Give it a name.',
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
-    engine: 'Engine', recommended: 'Recommended', firefoxNote: 'Firefox engine: about 1.3 GB, downloaded once.', os: 'Operating system',
+    engine: 'Engine', os: 'Operating system',
     proxy: 'Proxy', noProxy: 'No proxy (this computer’s IP)', pasteProxy: 'Paste a new proxy…', pastePh: 'socks5://user:pass@host:port',
     proxyAdded: 'Added to Proxies.', proxyBad: 'That doesn’t look like a proxy address.',
     proxyOk: (place: string, ms: number) => `Answers in ${ms} ms, exits in ${place}`, proxyDown: 'The proxy didn’t answer.',
@@ -190,8 +197,22 @@ export const en = {
     restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} deleted forever`
   },
   engines: {
-    title: 'Browser engines', lead: 'Each profile keeps the engine version it was made with, so it looks the same to sites until you choose to upgrade it.',
-    installed: 'Downloaded', download: (size: string) => `Download · ${size}`, usedBy: profilesN, failed: 'The download failed.', recommended: 'Default for new profiles'
+    title: 'Engines', sub: 'Each profile keeps the engine version it was made with, so sites see the same browser until you upgrade it.',
+    recommended: 'Recommended', installed: 'Downloaded', download: (size: string) => `Download · ${size}`, failed: 'The download failed.',
+    usedBy: (n: number) => (n ? `${profilesN(n)} here use it` : 'No profiles here use it'), everywhere: (n: number) => `${profilesN(n)} in all workspaces`,
+    remove: 'Delete from this computer', removeBusy: 'Close the profiles that use it first.', removed: (v: string) => `${v} deleted from this computer`,
+    retired: 'No longer in the catalog', none: 'No version of this engine is built for this computer.',
+    outdated: (n: number, kernel: string) => `${profilesN(n)} use an older ${kernel}`, upgrade: (v: string) => `Upgrade to ${v}`, upgradeNote: 'Fingerprints stay the same.',
+    upgraded: (n: number, v: string) => `${profilesN(n)} now use ${v}`,
+    platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple silicon', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
+    admin: {
+      upload: 'Upload a version', title: 'Upload an engine version', kind: 'Engine', version: 'Version', versionPh: 'e.g. 151.0.7900.10', platform: 'System',
+      file: 'Package', choose: 'Choose a file…', fileHint: 'The package as the engine publishes it: .zip, .tar.xz or .dmg. It goes straight to Folio’s storage.',
+      hashing: (pct: number) => `Checking the file… ${pct}%`, uploading: (pct: number) => `Uploading… ${pct}%`, send: 'Upload', done: (v: string) => `${v} added to the catalog`,
+      recommend: 'Make recommended', recommended: (v: string) => `${v} is now recommended`, retire: 'Remove', unfinished: 'Upload unfinished',
+      retireConfirm: (v: string, n: number) => `Remove ${v} from the catalog?${n ? ` ${profilesN(n)} use it.` : ''} Computers that downloaded it keep it; elsewhere its profiles are offered another version.`,
+      retiredDone: (v: string) => `${v} removed from the catalog`
+    }
   },
   team: {
     title: 'Team', sub: (n: number, seats: number | null) => `${n === 1 ? '1 person' : `${n} people`}${seats === null ? '' : ` · ${seats} ${seats === 1 ? 'seat' : 'seats'} on the plan`}`,
@@ -241,7 +262,8 @@ export const en = {
       'task.delete': (_p, x) => `deleted the task ${x.name}`, 'run.start': (_p, x) => `started ${x.name} on ${profilesN(x.profiles)}${x.trigger === 'rerun' ? ' (again)' : ''}`,
       'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.signedOut ? `, ${x.signedOut} signed out` : ''}${x.skipped ? `, ${x.skipped} not run` : ''}`,
       'extension.add': (_p, x) => `added the extension ${x.name} ${x.version}`, 'extension.update': (_p, x) => `updated the extension ${x.name} from ${x.from} to ${x.version}`,
-      'extension.delete': (_p, x) => `deleted the extension ${x.name}`, 'profile.add-extension': (p, x) => `installed ${x.extension} in ${p}`, 'profile.remove-extension': (p, x) => `uninstalled ${x.extension} from ${p}`
+      'extension.delete': (_p, x) => `deleted the extension ${x.name}`, 'profile.add-extension': (p, x) => `installed ${x.extension} in ${p}`, 'profile.remove-extension': (p, x) => `uninstalled ${x.extension} from ${p}`,
+      'profile.set-kernel': (p, x) => `changed the engine of ${p} to ${x.kernel === 'firefox' ? 'Firefox' : 'Chromium'} ${x.version}`
     } satisfies Record<ActivityAction, Said>
   },
   transfer: {
@@ -404,12 +426,18 @@ export const en = {
       failed: 'The other windows couldn’t be moved.'
     }
   },
+  palette: {
+    title: 'Command palette', placeholder: 'Search profiles, pages or actions', groups: { profiles: 'Profiles', actions: 'Actions', pages: 'Pages' },
+    none: 'Nothing matches.', move: 'select', run: 'run', close: 'close', open: 'open', switchTo: 'switch to its window', stop: (n: string) => `Stop ${n}`,
+    newProfile: 'New profile', importProfiles: 'Import profiles', checkProxies: 'Check all proxies', addProxy: 'Add a proxy',
+    switchWs: (n: string) => `Switch to ${n}`, language: 'Switch to 简体中文'
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
     proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
     open: 'Open it', openD: 'The browser starts with the time zone and language of the proxy.', done: 'Done'
   },
-  loading: 'Loading…', retry: 'Try again',
+  retry: 'Try again',
   errors: {
     invalid_credentials: 'The email or password is not right.',
     unauthenticated: 'Your session has ended. Log in again.',
@@ -449,7 +477,11 @@ export const en = {
     store_ref: 'That doesn’t look like a store link or id.',
     store_failed: 'The store didn’t hand over the extension. Check the link, or download it and upload the file.',
     no_device: 'Log out and back in to this app once before scheduling tasks on this computer.',
-    already_run: 'This scheduled time has already run.'
+    already_run: 'This scheduled time has already run.',
+    kernel_exists: 'This version is already in the catalog for that system.',
+    upload_incomplete: 'The upload did not finish. Upload the file again.',
+    upload_failed: 'The upload failed. Check the connection and try again.',
+    kernel_archive: 'Choose a .zip, .tar.xz or .dmg package.'
   } as Record<string, string>
 };
 
@@ -461,7 +493,7 @@ export const zh: Dict = {
     email: '邮箱', password: '密码', submit: '登录',
     noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？'
   },
-  nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', soon: '即将推出', soonHint: '将在后续版本推出' },
+  nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', engines: '内核' },
   groups: {
     title: '分组', all: '全部环境', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
     rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组内环境将保留并变为未分组。`
@@ -478,7 +510,7 @@ export const zh: Dict = {
     scheduled: (plan: string, date: string) => `${date} 起变更为${plan}`,
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
   },
-  user: { language: '语言', engines: '浏览器内核', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录', startup: '开机自动启动（最小化）' },
+  user: { language: '语言', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录', startup: '开机自动启动（最小化）' },
   tray: { open: '打开 Folio', quit: '退出 Folio', background: 'Folio 将在后台运行，以确保定时任务按时执行。如需退出，请使用托盘图标。' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} 已掉线` : `${names.length} 个环境已掉线`, body: `${task}：${names.join('、')}` }) },
   update: {
@@ -509,6 +541,13 @@ export const zh: Dict = {
     cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', last: '最近打开', status: '状态' },
     open: '打开', stop: '停止', openX: (n: string) => `打开 ${n}`, stopX: (n: string) => `停止 ${n}`, starting: '启动中…', inUse: '正在使用',
     st: { idle: '未运行', running: '运行中', proxyDown: '代理异常' }, checkProxy: '检测代理',
+    stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['代理', '内核', '登录', '浏览器'],
+    map: {
+      title: '出口分布', legend: { run: '运行中', boot: '启动中', bad: '代理异常' }, count: (exits: number, countries: number) => `${exits} 个出口 · ${countries} 个国家`,
+      label: '各环境代理的出口位置', emptyTitle: '查看环境从哪里出网', emptyBody: '检测代理后，地图将标出每个出口的位置及其环境的状态。',
+      check: '检测全部代理', add: '添加代理'
+    },
+    palette: '全局搜索',
     restoring: '正在恢复登录状态…', saving: '正在保存登录状态…', inUseOn: (where: string) => `${where} 正在使用`,
     downloading: (pct: number) => `正在下载内核… ${pct}%`,
     noProxy: '无代理', unchecked: '未检测', noResponse: '无响应', ms: (n: number) => `${n} ms`, mismatch: '! 与代理不一致',
@@ -571,16 +610,16 @@ export const zh: Dict = {
     'lang-mismatch': { t: () => '语言与出口 IP 不一致', d: x => `手动设置为 ${x.setLang}，但代理出口位于 ${x.country}。` },
     geo: { t: x => `地理位置设在 ${x.city} 附近`, d: () => '精度约 50 米' },
     rtc: { t: () => 'WebRTC 只显示代理 IP', d: () => '本机真实 IP 不会泄露' },
-    'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => '本机最新内核' },
-    'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `可升级至 ${x.latest}，指纹保持不变。` },
-    'engine-missing': { t: x => `${x.kernel} ${x.version} 尚未下载`, d: x => `约 ${x.size}，所有环境共用，仅需下载一次。打开环境时自动下载。` },
+    'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => '推荐版本' },
+    'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `推荐版本为 ${x.latest}，升级后指纹保持不变。` },
+    'engine-missing': { t: x => `${x.kernel} ${x.version} 尚未下载`, d: x => `${x.size}，所有环境共用，仅需下载一次。打开环境时自动下载。` },
     'engine-unavailable': { t: x => `${x.kernel} ${x.version} 不支持本机系统`, d: x => `改用 ${x.latest} 即可在本机打开。` }
   },
   fixes: { check: '重新检测', backup: '将备用线路设为主线路', 'choose-proxy': '选择代理', 'follow-tz': '跟随代理', 'follow-lang': '跟随代理', download: '下载', use: (v: string) => `改用 ${v}` },
   form: {
     newTitle: '新建环境', editTitle: '编辑环境', name: '名称', defaultName: (n: number) => `环境 ${n}`, nameErr: '请填写名称。',
     group: '分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组名称',
-    engine: '内核', recommended: '推荐', firefoxNote: 'Firefox 内核约 1.3 GB，仅需下载一次。', os: '操作系统',
+    engine: '内核', os: '操作系统',
     proxy: '代理', noProxy: '不使用代理（本机 IP）', pasteProxy: '粘贴新代理…', pastePh: 'socks5://用户名:密码@主机:端口',
     proxyAdded: '已加入代理列表。', proxyBad: '无法识别该代理地址。',
     proxyOk: (place: string, ms: number) => `响应 ${ms} ms，出口位于 ${place}`, proxyDown: '代理无响应。',
@@ -628,8 +667,22 @@ export const zh: Dict = {
     restored: (n: number) => `已恢复 ${n} 个环境`, purged: (n: number) => `已彻底删除 ${n} 个环境`
   },
   engines: {
-    title: '浏览器内核', lead: '每个环境固定使用创建时的内核版本；升级前，网站检测到的指纹始终保持不变。',
-    installed: '已下载', download: (size: string) => `下载 · ${size}`, usedBy: (n: number) => `${n} 个环境在用`, failed: '下载失败。', recommended: '新环境默认使用'
+    title: '内核', sub: '每个环境固定使用创建时的内核版本，升级前网站看到的浏览器保持不变。',
+    recommended: '推荐', installed: '已下载', download: (size: string) => `下载 · ${size}`, failed: '下载失败。',
+    usedBy: (n: number) => (n ? `本工作区 ${n} 个环境在用` : '本工作区暂无环境使用'), everywhere: (n: number) => `全平台 ${n} 个环境在用`,
+    remove: '删除本机文件', removeBusy: '请先关闭使用该版本的环境。', removed: (v: string) => `已从本机删除 ${v}`,
+    retired: '已从目录下架', none: '该内核暂无适用于本机系统的版本。',
+    outdated: (n: number, kernel: string) => `${n} 个环境使用旧版 ${kernel}`, upgrade: (v: string) => `升级到 ${v}`, upgradeNote: '升级后指纹保持不变。',
+    upgraded: (n: number, v: string) => `已将 ${n} 个环境升级到 ${v}`,
+    platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple 芯片', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
+    admin: {
+      upload: '上传新版本', title: '上传内核版本', kind: '内核', version: '版本号', versionPh: '如 151.0.7900.10', platform: '系统',
+      file: '安装包', choose: '选择文件…', fileHint: '内核发布的原始安装包：.zip、.tar.xz 或 .dmg，直接上传至 Folio 存储。',
+      hashing: (pct: number) => `正在校验文件… ${pct}%`, uploading: (pct: number) => `正在上传… ${pct}%`, send: '上传', done: (v: string) => `已将 ${v} 加入目录`,
+      recommend: '设为推荐', recommended: (v: string) => `已将 ${v} 设为推荐版本`, retire: '下架', unfinished: '上传未完成',
+      retireConfirm: (v: string, n: number) => `下架 ${v}？${n ? `全平台 ${n} 个环境在用。` : ''}已下载的电脑可继续使用，其他电脑上的相关环境需改用其他版本。`,
+      retiredDone: (v: string) => `已下架 ${v}`
+    }
   },
   team: {
     title: '团队', sub: (n: number, seats: number | null) => `${n} 人${seats === null ? '' : ` · 套餐含 ${seats} 个席位`}`,
@@ -679,7 +732,8 @@ export const zh: Dict = {
       'task.delete': (_p, x) => `删除了任务 ${x.name}`, 'run.start': (_p, x) => `${x.trigger === 'rerun' ? '重新运行' : '运行'}了任务 ${x.name}，共 ${x.profiles} 个环境`,
       'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '已完成'}：${x.ok} 个成功，${x.failed} 个失败${x.signedOut ? `，${x.signedOut} 个掉线` : ''}${x.skipped ? `，${x.skipped} 个未运行` : ''}`,
       'extension.add': (_p, x) => `添加了扩展 ${x.name} ${x.version}`, 'extension.update': (_p, x) => `将扩展 ${x.name} 从 ${x.from} 更新至 ${x.version}`,
-      'extension.delete': (_p, x) => `删除了扩展 ${x.name}`, 'profile.add-extension': (p, x) => `为 ${p} 安装了 ${x.extension}`, 'profile.remove-extension': (p, x) => `从 ${p} 卸载了 ${x.extension}`
+      'extension.delete': (_p, x) => `删除了扩展 ${x.name}`, 'profile.add-extension': (p, x) => `为 ${p} 安装了 ${x.extension}`, 'profile.remove-extension': (p, x) => `从 ${p} 卸载了 ${x.extension}`,
+      'profile.set-kernel': (p, x) => `将 ${p} 的内核版本改为 ${x.kernel === 'firefox' ? 'Firefox' : 'Chromium'} ${x.version}`
     }
   },
   transfer: {
@@ -842,12 +896,18 @@ export const zh: Dict = {
       failed: '其余窗口移动失败。'
     }
   },
+  palette: {
+    title: '命令面板', placeholder: '搜索环境、页面或操作', groups: { profiles: '环境', actions: '操作', pages: '页面' },
+    none: '没有匹配的结果。', move: '选择', run: '执行', close: '关闭', open: '打开', switchTo: '切换到窗口', stop: (n: string) => `停止 ${n}`,
+    newProfile: '新建环境', importProfiles: '导入环境', checkProxies: '检测全部代理', addProxy: '添加代理',
+    switchWs: (n: string) => `切换到 ${n}`, language: '切换到 English'
+  },
   onboarding: {
     head: 'FOLIO · GETTING STARTED', title: '三分钟完成首个环境配置', hide: '隐藏',
     proxy: '添加代理', proxyD: '支持直接粘贴常见格式。', profile: '新建环境', profileD: '选择系统后自动生成指纹。',
     open: '打开环境', openD: '浏览器将以代理所在地的时区与语言启动。', done: '已完成'
   },
-  loading: '加载中…', retry: '重试',
+  retry: '重试',
   errors: {
     invalid_credentials: '邮箱或密码错误。',
     unauthenticated: '登录已过期，请重新登录。',
@@ -887,7 +947,11 @@ export const zh: Dict = {
     store_ref: '无法识别该商店链接或 ID。',
     store_failed: '无法从商店获取该扩展。请检查链接，或下载后上传文件。',
     no_device: '请先退出并重新登录工作台，再在本机设置定时任务。',
-    already_run: '该时间点已运行。'
+    already_run: '该时间点已运行。',
+    kernel_exists: '该系统的此版本已在目录中。',
+    upload_incomplete: '上传未完成，请重新上传。',
+    upload_failed: '上传失败，请检查网络后重试。',
+    kernel_archive: '请选择 .zip、.tar.xz 或 .dmg 安装包。'
   }
 };
 

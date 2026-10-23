@@ -3,6 +3,7 @@ import { folio, isApiError, type Me, type Workspace } from './api';
 import { dicts, type Lang } from './i18n';
 import { Login } from './Login';
 import { Workbench } from './Workbench';
+import { Mark } from './ui';
 
 const WS_KEY = 'folio.workspace';
 const savedWorkspace = () => { try { return localStorage.getItem(WS_KEY); } catch { return null; } };
@@ -40,7 +41,7 @@ export function App(){
   // Coming back from the website (for example after buying more profiles) shows the new limits right away.
   useEffect(() => folio.onFocus(() => { if (phase === 'app') void load(); }), [phase, load]);
 
-  if (phase === 'loading') return <div className="boot">{d.loading}</div>;
+  if (phase === 'loading') return <div className="boot"><Mark /></div>;
   if (phase === 'offline') return (
     <div className="boot"><p className="notice error" role="alert">{d.errors.network} <button className="linkish" type="button" onClick={() => load()}>{d.retry}</button></p></div>
   );

@@ -395,7 +395,7 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
           <p className="hint">{T.varsHelp}</p>
           {vars.mode !== 'replace' && task?.hasVariables ? (
             <div className="vars-kept">
-              <span>{vars.mode === 'clear' ? T.varsCleared : stored ? T.varsStored(stored.count, stored.names.join(', ')) : d.loading}</span>
+              <span>{vars.mode === 'clear' ? T.varsCleared : stored ? T.varsStored(stored.count, stored.names.join(', ')) : <span className="spin" aria-hidden="true" />}</span>
               <span className="sp" />
               <button type="button" className="btn btn-xs btn-secondary" onClick={() => setVars({ mode: 'replace', text: '' })}>{T.varsReplace}</button>
               {vars.mode === 'keep' && <button type="button" className="btn btn-xs btn-secondary" onClick={() => setVars({ mode: 'clear', text: '' })}>{T.varsClear}</button>}

@@ -18,11 +18,17 @@ export interface CheckResult { ok: boolean; ms: number | null; ip: string | null
 
 export interface ProfileStatus {
   id: string; state: 'starting' | 'restoring' | 'running' | 'saving' | 'stopped' | 'error';
+  // While it starts: checking the proxy, restoring sign-ins, starting the browser.
+  stage?: 'proxy' | 'restore' | 'launch';
   error?: string; startedAt?: number; usedBackup?: boolean; exitIp?: string | null; exitGeo?: Geo | null;
   // Extensions that failed their check (signature or hash) and were not installed, by name.
   extensionErrors?: string[];
 }
-export interface KernelState { kind: KernelKind; version: string; installed: boolean; sizeHint: string }
+// An engine version for this computer: in Folio's catalog (`available`), downloaded here (`installed`), or both. `size`
+// is the package's, when the catalog knows it; `recommended` is the version new profiles get.
+export interface KernelState { kind: KernelKind; version: string; installed: boolean; available: boolean; recommended: boolean; size: number | null }
+// A platform admin's upload of a new engine version: reading the file for its sha256, then sending it.
+export interface KernelUpload { stage: 'hash' | 'upload'; done: number; total: number }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
@@ -82,6 +88,7 @@ export interface FolioBridge {
 
   openProfile(id: string): Promise<void>;
   stopProfile(id: string): Promise<void>;
+  focusProfile(id: string): Promise<void>;
   statuses(): Promise<ProfileStatus[]>;
   onStatus(cb: (s: ProfileStatus) => void): () => void;
 
@@ -126,9 +133,14 @@ export interface FolioBridge {
   showFile(path: string): Promise<void>;
 
   checkProxy(id: string): Promise<CheckResult>;
-  // Uses the newest engine version for this platform; Firefox needs that engine installed.
-  newFingerprint(kind: KernelKind, os: Os): Promise<{ fingerprint: Fingerprint; kernelVersion: string }>;
+  // For the given engine version (the recommended one by default); Firefox needs that version installed.
+  newFingerprint(kind: KernelKind, os: Os, version?: string): Promise<{ fingerprint: Fingerprint; kernelVersion: string }>;
   kernels(): Promise<KernelState[]>;
   installKernel(kind: KernelKind, version: string): Promise<void>;
+  removeKernel(kind: KernelKind, version: string): Promise<void>;
   onKernelProgress(cb: (p: KernelProgress) => void): () => void;
+  // Platform admins: pick an engine package, then add it to the catalog as a version for a platform.
+  pickKernelFile(): Promise<{ token: string; name: string; size: number } | null>;
+  uploadKernel(token: string, meta: { kind: KernelKind; version: string; platform: string }): Promise<null>;
+  onKernelUpload(cb: (u: KernelUpload) => void): () => void;
 }

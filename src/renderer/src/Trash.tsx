@@ -70,7 +70,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
               </tr>
             </thead>
             <tbody>
-              {data.trash === null && <tr className="empty"><td colSpan={5}>{d.loading}</td></tr>}
+              {data.trash === null && Array.from({ length: 3 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /><i /></td><td><i /></td><td><i className="w3" /></td><td /></tr>)}
               {data.trash !== null && !list.length && <tr className="empty"><td colSpan={5}><p>{T.empty}</p></td></tr>}
               {list.map(p => (
                 <tr key={p.id} data-id={p.id}>

@@ -63,10 +63,12 @@ export function health(p: Profile, proxies: Map<string, Proxy>, kernels: KernelS
   else if (geo || p.localeOverride) checks.push({ id: 'lang-ok', level: 'ok' });
   if (geo) checks.push({ id: 'geo', level: 'ok' }, { id: 'rtc', level: 'ok' });
 
-  // Engines are a fact about this computer: a missing download is not a problem with the profile.
+  // Engines are a fact about this computer: a missing download is not a problem with the profile. A version the
+  // catalog no longer has still opens where it is downloaded; elsewhere the profile moves to the recommended one.
   const versions = kernels.filter(k => k.kind === p.kernel);
-  if (versions.length){
-    const mine = versions.find(k => k.version === p.kernelVersion), latest = versions[0];
+  const latest = versions.find(k => k.recommended) ?? versions.find(k => k.available);
+  if (latest){
+    const mine = versions.find(k => k.version === p.kernelVersion);
     if (!mine) checks.push({ id: 'engine-unavailable', level: 'warn', fix: { kind: 'use-engine', version: latest.version } });
     else if (!mine.installed) checks.push({ id: 'engine-missing', level: 'todo', fix: { kind: 'download', version: mine.version } });
     else if (latest.version !== mine.version) checks.push({ id: 'engine-older', level: 'ok', fix: { kind: 'use-engine', version: latest.version } });

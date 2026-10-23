@@ -35,6 +35,7 @@ const bridge: FolioBridge = {
 
   openProfile: id => ipcRenderer.invoke('folio:openProfile', id),
   stopProfile: id => ipcRenderer.invoke('folio:stopProfile', id),
+  focusProfile: id => ipcRenderer.invoke('folio:focusProfile', id),
   statuses: () => ipcRenderer.invoke('folio:statuses'),
   onStatus: cb => listen('profile:status', cb),
 
@@ -69,10 +70,14 @@ const bridge: FolioBridge = {
   showFile: path => ipcRenderer.invoke('folio:showFile', path),
 
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),
-  newFingerprint: (kind, os) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os)),
+  newFingerprint: (kind, os, version) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os, version)),
   kernels: () => ipcRenderer.invoke('folio:kernels'),
   installKernel: (kind, version) => ipcRenderer.invoke('folio:installKernel', kind, version),
-  onKernelProgress: cb => listen('kernel:progress', cb)
+  removeKernel: (kind, version) => ipcRenderer.invoke('folio:removeKernel', kind, version),
+  onKernelProgress: cb => listen('kernel:progress', cb),
+  pickKernelFile: () => ipcRenderer.invoke('folio:pickKernelFile'),
+  uploadKernel: (token, meta) => unwrap(ipcRenderer.invoke('folio:uploadKernel', token, meta)),
+  onKernelUpload: cb => listen('kernel:upload', cb)
 };
 
 contextBridge.exposeInMainWorld('folio', bridge);

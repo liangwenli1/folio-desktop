@@ -6,14 +6,14 @@ import { SITE_URL, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
 import { generate } from './fingerprint';
-import { install, latest, list as listKernels, resolve as resolveKernel } from './kernels';
+import { install, list as listKernels, recommended, remove as removeKernel, resolve as resolveKernel, upload as uploadKernel } from './kernels';
 import { forget } from './account';
-import { addCookies, discard, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
+import { addCookies, discard, focus, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
 import { parseCookies, toJson, toNetscape, type Cookie } from '../shared/cookies';
 import { api } from './api';
 import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './transfer';
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { checkById, checkWorkspace } from './proxy-check';
 import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
@@ -231,6 +231,7 @@ ipcMain.handle('folio:tileWindows', e => {
 });
 ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id)); });
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
+ipcMain.handle('folio:focusProfile', (_e, id: string) => focus(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());
 ipcMain.handle('folio:checkProxy', (_e, id: string) => checkById(String(id)));
 
@@ -280,8 +281,8 @@ ipcMain.handle('folio:setStartup', (_e, on: boolean) => {
   if (startupSupported) app.setLoginItemSettings({ openAtLogin: !!on, args: ['--hidden'] });
 });
 
-ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os) => {
-  const kernelVersion = latest(kind);
+ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os, version?: string) => {
+  const kernelVersion = version ? String(version) : await recommended(kind);
   if (!kernelVersion) return { ok: false, error: { code: 'kernel_unavailable', message: 'This engine is not available on this computer', status: 400 } };
   try {
     const exe = kind === 'firefox' ? await resolveKernel(kind, kernelVersion) : null;
@@ -299,6 +300,28 @@ ipcMain.handle('folio:installKernel', async (_e, kind: KernelKind, version: stri
   } catch (e){
     send('kernel:progress', { kind, version, done: 0, total: 0, error: (e as Error).message });
   }
+});
+ipcMain.handle('folio:removeKernel', (_e, kind: KernelKind, version: string) => removeKernel(kind === 'firefox' ? 'firefox' : 'chromium', String(version)));
+// A package picked for upload waits here, by token, until it is sent.
+const packages = new Map<string, string>();
+ipcMain.handle('folio:pickKernelFile', async e => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  const opts = { properties: ['openFile' as const], filters: [{ name: 'zip, tar.xz, dmg', extensions: ['zip', 'xz', 'dmg'] }] };
+  const r = await (win ? dialog.showOpenDialog(win, opts) : dialog.showOpenDialog(opts));
+  if (r.canceled || !r.filePaths[0]) return null;
+  const token = randomUUID();
+  packages.set(token, r.filePaths[0]);
+  return { token, name: basename(r.filePaths[0]), size: (await stat(r.filePaths[0])).size };
+});
+ipcMain.handle('folio:uploadKernel', async (_e, token: string, meta: { kind: KernelKind; version: string; platform: string }) => {
+  const path = packages.get(String(token));
+  if (!path) return failure('not_found');
+  try {
+    await uploadKernel(path, { kind: meta.kind === 'firefox' ? 'firefox' : 'chromium', version: String(meta.version).trim(), platform: String(meta.platform) },
+      (stage, done, total) => send('kernel:upload', { stage, done, total }));
+    packages.delete(String(token));
+    return { ok: true, data: null };
+  } catch (err){ return failure((err as Error).message); }
 });
 
 app.whenReady().then(async () => {

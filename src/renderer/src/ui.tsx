@@ -22,7 +22,10 @@ const PATHS = {
   // Systems, as plain glyphs: a tiled window, the command key, a terminal.
   windows: 'M2.5 2.5h5v5h-5zM8.5 2.5h5v5h-5zM2.5 8.5h5v5h-5zM8.5 8.5h5v5h-5z',
   macos: 'M6 6V4.75A1.75 1.75 0 1 0 4.25 6.5H6m0-.5v4m0 0v1.25a1.75 1.75 0 1 1-1.75-1.75H6m4-4V4.75a1.75 1.75 0 1 1 1.75 1.75H10m0-.5v4m0 0v1.25a1.75 1.75 0 1 0 1.75-1.75H10M6 6h4M6 10h4',
-  linux: 'M2.5 3.5h11v9h-11zM5 6.5l2 1.5-2 1.5M8.5 10H11'
+  linux: 'M2.5 3.5h11v9h-11zM5 6.5l2 1.5-2 1.5M8.5 10H11',
+  engines: 'M4.5 4.5h7v7h-7zM6.5 2v2.5M9.5 2v2.5M6.5 11.5V14M9.5 11.5V14M2 6.5h2.5M2 9.5h2.5M11.5 6.5H14M11.5 9.5H14',
+  up: 'M8 13V3.5M4 7.5l4-4 4 4',
+  upload: 'M8 10.5v-8M4.5 6 8 2.5 11.5 6M3 13.5h10'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -57,6 +60,24 @@ export function useOutsideClose(open: boolean, close: () => void){
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open, close]);
   return ref;
+}
+
+// A count that rolls to its new value instead of jumping (straight to it when motion is reduced).
+export function Num({ value }: { value: number }){
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current;
+    if (start === value || matchMedia('(prefers-reduced-motion: reduce)').matches){ from.current = value; setShown(value); return; }
+    const t0 = performance.now();
+    let raf = requestAnimationFrame(function step(t){
+      const k = Math.min(1, (t - t0) / 450), eased = 1 - (1 - k) ** 3;
+      setShown(Math.round(start + (value - start) * eased));
+      if (k < 1) raf = requestAnimationFrame(step); else from.current = value;
+    });
+    return () => { cancelAnimationFrame(raf); from.current = value; };
+  }, [value]);
+  return <>{shown}</>;
 }
 
 // The current time, ticking every second while `on` (for run timers).
@@ -120,6 +141,18 @@ export function Modal({ title, closeLabel, onClose, foot, children }: { title: s
     </>
   );
 }
+
+// A download as a ring that fills, with the percentage inside.
+export function Ring({ pct, label }: { pct: number; label: string }){
+  const c = 2 * Math.PI * 11;
+  return (
+    <span className="ring" role="progressbar" aria-label={label} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="11" /><circle cx="14" cy="14" r="11" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} /></svg>
+      <b>{pct}</b>
+    </span>
+  );
+}
+export const bytes = (n: number) => (n < 1024 ** 2 ? `${Math.max(1, Math.round(n / 1024))} KB` : n < 1024 ** 3 ? `${Math.round(n / 1024 ** 2)} MB` : `${(n / 1024 ** 3).toFixed(1)} GB`);
 
 // A download bar for an engine, from the main process's progress events.
 export function Progress({ done, total }: { done: number; total: number }){

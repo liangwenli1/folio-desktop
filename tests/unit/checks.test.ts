@@ -14,7 +14,8 @@ const profile = (over: Partial<Profile> = {}): Profile => ({
   fingerprint: { kind: 'chromium', seed: 42, hardwareConcurrency: 8 }, proxyId: 'main', timezoneOverride: null, localeOverride: null, notes: null,
   lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, version: 1, syncMode: 'cloud', extensionIds: [], data: null, lock: null, ...over
 });
-const kernels: KernelState[] = [{ kind: 'chromium', version: '150.0.7871.186', installed: true, sizeHint: '150 MB' }];
+const kernel = (version: string, over: Partial<KernelState> = {}): KernelState => ({ kind: 'chromium', version, installed: true, available: true, recommended: false, size: 150_000_000, ...over });
+const kernels: KernelState[] = [kernel('150.0.7871.186', { recommended: true })];
 const map = (...list: Proxy[]) => new Map(list.map(p => [p.id, p]));
 const ids = (h: ReturnType<typeof health>) => h.checks.map(c => `${c.level}:${c.id}`);
 
@@ -63,19 +64,25 @@ describe('health', () => {
     expect(ids(health(profile({ proxyId: null }), map(), kernels))).toEqual(['warn:proxy-none', 'ok:tz-host', 'ok:engine-ok']);
   });
 
-  it('offers engine downloads and upgrades without counting them as problems, but flags engines this system lacks', () => {
-    const two: KernelState[] = [{ kind: 'chromium', version: '151.0.1', installed: false, sizeHint: '150 MB' }, { ...kernels[0] }];
+  it('offers engine downloads and upgrades to the recommended version without counting them as problems, but flags engines this system lacks', () => {
+    const two = [kernel('151.0.1', { installed: false, recommended: true }), kernel('150.0.7871.186')];
     const older = health(profile(), map(proxy('main', {})), two);
     expect(older.level).toBe('ok');
     expect(older.checks.at(-1)).toEqual({ id: 'engine-older', level: 'ok', fix: { kind: 'use-engine', version: '151.0.1' } });
+    // A newer version that isn't the recommended one is no reason to upgrade.
+    expect(health(profile(), map(proxy('main', {})), [kernel('151.0.1'), ...kernels]).checks.at(-1)).toEqual({ id: 'engine-ok', level: 'ok' });
 
     const missing = health(profile(), map(proxy('main', {})), [{ ...kernels[0], installed: false }]);
     expect(missing.level).toBe('ok');
     expect(missing.checks.at(-1)).toEqual({ id: 'engine-missing', level: 'todo', fix: { kind: 'download', version: '150.0.7871.186' } });
 
-    const mac: KernelState[] = [{ kind: 'chromium', version: '148.0.7778.215', installed: true, sizeHint: '150 MB' }];
+    const mac = [kernel('148.0.7778.215', { recommended: true })];
     const unavailable = health(profile(), map(proxy('main', {})), mac);
     expect(unavailable.level).toBe('warn');
     expect(unavailable.checks.at(-1)).toEqual({ id: 'engine-unavailable', level: 'warn', fix: { kind: 'use-engine', version: '148.0.7778.215' } });
+
+    // Taken off the catalog but downloaded here: it still opens, and the recommended version is offered.
+    const retired = health(profile(), map(proxy('main', {})), [kernel('151.0.1', { recommended: true, installed: false }), kernel('150.0.7871.186', { available: false })]);
+    expect(retired.checks.at(-1)).toEqual({ id: 'engine-older', level: 'ok', fix: { kind: 'use-engine', version: '151.0.1' } });
   });
 });

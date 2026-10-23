@@ -75,7 +75,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
           {canExport && <button className="btn btn-secondary" type="button" onClick={() => void exportCsv()}>{A.export}</button>}
         </header>
         <div className="log">
-          {entries === null && <p className="hint">{d.loading}</p>}
+          {entries === null && <ol className="log-list skel-list" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <li key={i}><i className="w3" /><i /></li>)}</ol>}
           {entries?.length === 0 && <p className="hint">{A.empty}</p>}
           {byDay.map(([label, list]) => (
             <section key={label} aria-label={label}>

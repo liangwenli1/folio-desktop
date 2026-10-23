@@ -1,13 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import type { ActivityEntry, Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
 import { engineName, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import { day, runTime, type Dict, type Lang } from './i18n';
-import { Icon, percent, type IconName } from './ui';
+import { Icon, bytes, percent, type IconName } from './ui';
+import { Flag } from './Flag';
 
 interface Props {
   d: Dict; lang: Lang; p: Profile; h: Health; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
+  // The download size of the profile's engine version, when the catalog has it; why its last launch here failed.
+  size: number | null; failed?: string;
   // The assigned person's email, when there is one.
   owner: string | null; activity: ActivityEntry[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean; canExport: boolean;
@@ -59,8 +62,22 @@ function useGuilloche(dep: unknown){
   return ref;
 }
 
-export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
-  const canvas = useGuilloche(p?.id);
+export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, group, owner, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
+  const canvas = useGuilloche(p.id);
+  // The card tilts toward the pointer and catches a holographic sheen where it is.
+  const card = useRef<HTMLElement>(null);
+  const tilt = (e: MouseEvent) => {
+    const el = card.current!, r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    el.style.setProperty('--mx', `${Math.round(x * 100)}%`); el.style.setProperty('--my', `${Math.round(y * 100)}%`);
+    el.style.setProperty('--rx', `${((0.5 - y) * 6).toFixed(2)}deg`); el.style.setProperty('--ry', `${((x - 0.5) * 8).toFixed(2)}deg`);
+  };
+  const untilt = () => ['--mx', '--my', '--rx', '--ry'].forEach(v => card.current?.style.removeProperty(v));
+  // The stamp lands again when a launch here succeeds (the check's verdict) or fails (OFFLINE).
+  const launch = failed ? `x:${failed}` : status?.state === 'running' ? `r:${status.startedAt}` : '';
+  const seen = useRef({ id: p.id, launch });
+  const thud = seen.current.id === p.id && launch !== '' && launch !== seen.current.launch;
+  useEffect(() => { seen.current = { id: p.id, launch }; });
+  const stampLevel = failed ? 'bad' : h.level;
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
   const closeBtn = <button type="button" className="icon-btn" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>;
@@ -74,7 +91,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
     ms: px?.lastCheck?.ms ?? 0, host: px ? `${px.type.toUpperCase()} · ${px.host}:${px.port}` : '', city: geo?.city ?? geo?.countryName ?? '',
     tz: geo?.timezone ?? tz ?? '', set: p.timezoneOverride ?? '', setLang: p.localeOverride ?? '',
     lang: locale ? `${locale}, ${locale.split('-')[0]}` : '', country: geo?.countryName ?? '', version: p.kernelVersion,
-    latest: latest && 'version' in latest ? `${kernel} ${latest.version}` : '', size: p.kernel === 'firefox' ? '1.3 GB' : '150 MB', kernel
+    latest: latest && 'version' in latest ? `${kernel} ${latest.version}` : '', size: engineSize ? bytes(engineSize) : '—', kernel
   };
   const fixLabel = (f: Fix) => (f.kind === 'use-engine' ? d.fixes.use(`${kernel} ${f.version.split('.')[0]}`) : d.fixes[f.kind]);
   const fixKey = (f: Fix) => `${f.kind}:${'proxyId' in f ? f.proxyId : 'version' in f ? f.version : ''}`;
@@ -124,7 +141,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
     <>
       <div className="d-head">
         <div className="d-top"><p className="sec-t">{d.detail.profile} <span className="mono">#{num}</span></p>{closeBtn}</div>
-        <h2 data-testid="detail-name">{p.name}</h2>
+        <div className="d-title"><Flag country={h.geo?.country ?? null} kernel={p.kernel} size="lg" /><h2 data-testid="detail-name">{p.name}</h2></div>
         <p className="d-meta">{d.detail.meta(group, day(p.createdAt, lang))} · {engineName(p.kernel, p.kernelVersion)}</p>
         <p className="d-meta" data-testid="assigned">{owner ? d.detail.assignedTo(owner) : d.profiles.unassigned}</p>
         {away && (
@@ -146,7 +163,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
           {canTrash && <button type="button" className="btn btn-danger" onClick={onTrash}>{d.detail.trash}</button>}
         </div>
       </div>
-      <article className="idcard" aria-label={d.detail.cardLabel(p.name)}>
+      <article className="idcard" ref={card} aria-label={d.detail.cardLabel(p.name)} onMouseMove={tilt} onMouseLeave={untilt}>
         <canvas className="gl" ref={canvas} aria-hidden="true" />
         <header className="id-head"><span>{d.detail.card}</span><span>No. <b>{num}</b></span></header>
         <div className="id-city">
@@ -155,8 +172,8 @@ export function ProfileDetail({ d, lang, p, h, status, progress, group, owner, a
               ? <><span className="city">{geo.city ?? geo.countryName}</span><span className="region">{[geo.region, geo.countryName].filter(Boolean).join(', ')}</span></>
               : <><span className="city">{px ? (h.proxy === 'down' ? d.detail.noExit : d.detail.notChecked) : d.detail.direct}</span>{!px && <span className="region">{d.detail.directSub}</span>}</>}
           </div>
-          <div className={`stamp ${h.level}`} data-testid="stamp" aria-hidden="true">
-            <span className="s-top">FOLIO</span><span className="s-main">{d.detail.stamps[h.level]}</span><span className="s-date">{stampDate}</span>
+          <div key={`${p.id}${launch}`} className={`stamp ${stampLevel}${thud ? ' thud' : ''}`} data-testid="stamp" aria-hidden="true">
+            <span className="s-top">FOLIO</span><span className="s-main">{d.detail.stamps[stampLevel]}</span><span className="s-date">{stampDate}</span>
           </div>
         </div>
         <dl className="id-fields">

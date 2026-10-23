@@ -98,7 +98,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
 
   if (open){
     const flow = open.id ? data.flows.find(f => f.id === open.id) ?? null : null;
-    if (open.id && !flow) return <div className="page"><main className="main"><p className="boot">{d.loading}</p></main></div>;
+    if (open.id && !flow) return <div className="page"><main className="main"><div className="flow-steps skel-list" aria-hidden="true"><i className="w2" /><i /><i /></div></main></div>;
     return <FlowEditor key={open.id ?? 'new'} d={d} wsId={wsId} data={data} flow={flow} template={!!open.template} onClose={() => setOpen(null)} onCreated={id => setOpen({ id })} onDuplicate={duplicate} />;
   }
 

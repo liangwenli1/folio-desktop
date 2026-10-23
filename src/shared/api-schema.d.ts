@@ -365,6 +365,7 @@ export interface paths {
                                 /** @enum {string} */
                                 status: "active" | "trialing";
                             }[];
+                            admin: boolean;
                         };
                     };
                 };
@@ -2132,7 +2133,7 @@ export interface paths {
                     "application/json": {
                         ids: string[];
                         /** @enum {string} */
-                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "add-extension" | "remove-extension" | "trash" | "restore" | "purge";
+                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "add-extension" | "remove-extension" | "set-kernel" | "trash" | "restore" | "purge";
                         /** Format: uuid */
                         groupId?: string | null;
                         tag?: string;
@@ -2144,6 +2145,9 @@ export interface paths {
                         departmentId?: string | null;
                         /** Format: uuid */
                         extensionId?: string;
+                        /** @enum {string} */
+                        kernel?: "chromium" | "firefox";
+                        kernelVersion?: string;
                     };
                 };
             };
@@ -3758,7 +3762,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -5256,6 +5260,288 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/kernels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            kernels: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "chromium" | "firefox";
+                                version: string;
+                                /** @enum {string} */
+                                platform: "win32-x64" | "darwin-arm64" | "darwin-x64" | "linux-x64";
+                                /** @enum {string} */
+                                archive: "zip" | "tar.xz" | "dmg";
+                                size: number;
+                                sha256: string;
+                                recommended: boolean;
+                                /** @enum {string} */
+                                source: "upstream" | "folio";
+                                ready: boolean;
+                                createdAt: string;
+                                profiles: number | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        kind: "chromium" | "firefox";
+                        /** @enum {string} */
+                        platform: "win32-x64" | "darwin-arm64" | "darwin-x64" | "linux-x64";
+                        /** @enum {string} */
+                        archive: "zip" | "tar.xz" | "dmg";
+                        version: string;
+                        size: number;
+                        sha256: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            kernel: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "chromium" | "firefox";
+                                version: string;
+                                /** @enum {string} */
+                                platform: "win32-x64" | "darwin-arm64" | "darwin-x64" | "linux-x64";
+                                /** @enum {string} */
+                                archive: "zip" | "tar.xz" | "dmg";
+                                size: number;
+                                sha256: string;
+                                recommended: boolean;
+                                /** @enum {string} */
+                                source: "upstream" | "folio";
+                                ready: boolean;
+                                createdAt: string;
+                                profiles: number | null;
+                            };
+                            uploadUrl: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kernels/{id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            url: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kernels/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "chromium" | "firefox";
+                            version: string;
+                            /** @enum {string} */
+                            platform: "win32-x64" | "darwin-arm64" | "darwin-x64" | "linux-x64";
+                            /** @enum {string} */
+                            archive: "zip" | "tar.xz" | "dmg";
+                            size: number;
+                            sha256: string;
+                            recommended: boolean;
+                            /** @enum {string} */
+                            source: "upstream" | "folio";
+                            ready: boolean;
+                            createdAt: string;
+                            profiles: number | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kernels/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        recommended: true;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            kernels: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "chromium" | "firefox";
+                                version: string;
+                                /** @enum {string} */
+                                platform: "win32-x64" | "darwin-arm64" | "darwin-x64" | "linux-x64";
+                                /** @enum {string} */
+                                archive: "zip" | "tar.xz" | "dmg";
+                                size: number;
+                                sha256: string;
+                                recommended: boolean;
+                                /** @enum {string} */
+                                source: "upstream" | "folio";
+                                ready: boolean;
+                                createdAt: string;
+                                profiles: number | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
 }

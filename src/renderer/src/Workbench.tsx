@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type { ProfileStatus, Update } from '@shared/bridge';
 import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { useWorkspaceData, type WorkspaceData } from './data';
-import { EnginesDialog } from './Engines';
+import { EnginesPage } from './Engines';
 import { errorText, type Dict, type Lang } from './i18n';
 import { isPaid, planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
@@ -19,14 +19,17 @@ import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { Icon, Mark, Toasts, useOutsideClose, useToast, type IconName } from './ui';
+import { CommandPalette, mod, type Command } from './CommandPalette';
+import { Flag } from './Flag';
+import { health } from './checks';
 
 interface Props {
   d: Dict; lang: Lang; me: Me; ws: Workspace;
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'activity' | 'trash';
-type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'engines' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'activity' | 'trash';
+type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 
 export function Workbench(props: Props){
   return <Toasts><Shell {...props} /></Toasts>;
@@ -76,6 +79,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [update, setUpdate] = useState<Update | null>(null);
+  const [palette, setPalette] = useState(false);
   useEffect(() => { void folio.update().then(setUpdate); return folio.onUpdate(setUpdate); }, []);
   useEffect(() => { void folio.startup().then(setStartup); }, [userOpen]);
   // What the main process shows itself follows the workbench's language.
@@ -85,6 +89,48 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
     const n = new Notification(d.notify.signedOut(e.task, e.profiles).title, { body: d.notify.signedOut(e.task, e.profiles).body });
     n.onclick = () => { void folio.showWindow(); setPage('tasks'); setFocus({ taskId: e.taskId, runId: e.runId }); };
   }), [d]);
+  // Ctrl+K (⌘K) opens the command palette anywhere; Ctrl+N (⌘N) a new profile when no dialog is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() === 'k'){ e.preventDefault(); setPalette(o => !o); }
+      else if (e.key.toLowerCase() === 'n' && !document.querySelector('.modal')){ e.preventDefault(); setPalette(false); go('profiles'); setDialog({ kind: 'new' }); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+  const pages: [Page, IconName, string, boolean][] = [
+    ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['extensions', 'extensions', d.nav.extensions, true],
+    ['team', 'team', d.nav.team, true], ['sync', 'sync', d.nav.sync, true], ['flows', 'flows', d.nav.flows, true], ['tasks', 'tasks', d.nav.tasks, true],
+    ['api', 'api', d.nav.api, true], ['engines', 'engines', d.nav.engines, true], ['activity', 'activity', d.nav.activity, true], ['trash', 'trash', d.nav.trash, manager]
+  ];
+  function commands(): Command[] {
+    const C = d.palette, P = d.profiles;
+    const proxies = new Map(data.proxies.map(p => [p.id, p]));
+    const recent = [...(data.profiles ?? [])].sort((a, b) => Number(!!data.status[b.id]) - Number(!!data.status[a.id]) || Date.parse(b.lastOpenedAt ?? b.createdAt) - Date.parse(a.lastOpenedAt ?? a.createdAt));
+    const profiles = recent.flatMap<Command>(p => {
+      const h = health(p, proxies, data.kernels), on = data.status[p.id]?.state === 'running';
+      const hint = [`#${String(p.number).padStart(4, '0')}`, h.geo?.city ?? h.geo?.countryName, on && P.st.running].filter(Boolean).join(' · ');
+      const icon = <Flag country={h.geo?.country ?? null} kernel={p.kernel} />;
+      const main: Command = on
+        ? { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.switchTo}`, icon, run: () => void folio.focusProfile(p.id) }
+        : { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.open}`, icon, run: () => void data.launch(p).then(why => { if (why) toast(why === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed); }) };
+      return on ? [main, { id: `s:${p.id}`, group: 'profiles', label: C.stop(p.name), hint, icon, run: () => void folio.stopProfile(p.id) }] : [main];
+    });
+    const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
+    return [
+      ...profiles,
+      act('new', C.newProfile, 'plus', () => { go('profiles'); setDialog({ kind: 'new' }); }, `${mod} N`),
+      ...(manager ? [
+        act('import', C.importProfiles, 'upload', () => { go('profiles'); setDialog({ kind: 'import' }); }),
+        act('add-proxy', C.addProxy, 'proxies', () => setDialog({ kind: 'proxy' })),
+        act('check', C.checkProxies, 'check', () => void data.check(data.proxies.map(p => p.id)))
+      ] : []),
+      ...me.workspaces.filter(w => w.id !== ws.id).map(w => act(`ws:${w.id}`, C.switchWs(w.name), 'team', () => { go('profiles'); onSwitch(w.id); })),
+      act('lang', C.language, 'proxies', () => void onLang(lang === 'en' ? 'zh' : 'en')),
+      ...pages.filter(([, , , ok]) => ok).map(([p, icon, label]) => ({ id: `go:${p}`, group: 'pages' as const, label, icon: <Icon name={icon} />, run: () => go(p) }))
+    ];
+  }
   const loadInvites = () => folio.api<{ invitations: MyInvitation[] }>('GET', '/me/invitations').then(r => setInvites(r.invitations), () => {});
   useEffect(() => { void loadInvites(); }, [wsOpen]);
   async function answer(i: MyInvitation, accept: boolean){
@@ -138,6 +184,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           <NavItem icon="flows" label={d.nav.flows} count={data.flows.length || undefined} active={shown === 'flows'} onClick={() => go('flows')} />
           <NavItem icon="tasks" label={d.nav.tasks} count={data.active.length || data.tasks.length || undefined} active={shown === 'tasks'} onClick={() => go('tasks')} />
           <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
+          <NavItem icon="engines" label={d.nav.engines} active={shown === 'engines'} onClick={() => go('engines')} />
           <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
           {manager && <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
@@ -184,7 +231,6 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
                   ))}
                 </div>
               </div>
-              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'engines' }); }}>{d.user.engines}</button>
               {startup?.supported && (
                 <button className="menu-item menu-check" type="button" role="menuitemcheckbox" aria-checked={startup.enabled}
                   onClick={() => void folio.setStartup(!startup.enabled).then(() => folio.startup()).then(setStartup)}>{d.user.startup}</button>
@@ -198,7 +244,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       </aside>
 
       {shown === 'profiles' && (
-        <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup}
+        <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} onPalette={() => setPalette(true)}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
           onEdit={id => setDialog({ kind: 'edit', id })} onAddProxy={() => setDialog({ kind: 'proxy' })} />
       )}
@@ -209,6 +255,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
+      {shown === 'engines' && <EnginesPage d={d} data={data} admin={me.admin} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 
@@ -220,8 +267,8 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       {dialog?.kind === 'import' && <ProfileImportDialog d={d} ws={ws} data={data} onClose={close} />}
       {dialog?.kind === 'proxy' && (!dialog.id || editingProxy) && <ProxyForm d={d} wsId={ws.id} data={data} proxy={editingProxy} onClose={close} />}
       {dialog?.kind === 'proxy-import' && <ProxyImportDialog d={d} wsId={ws.id} data={data} onClose={close} />}
-      {dialog?.kind === 'engines' && <EnginesDialog d={d} data={data} onClose={close} />}
       {dialog?.kind === 'export-all' && <ExportDialog d={d} ws={ws} onClose={close} />}
+      {palette && <CommandPalette d={d} commands={commands()} onClose={() => setPalette(false)} />}
       {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
     </div>
   );

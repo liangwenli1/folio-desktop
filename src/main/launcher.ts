@@ -174,6 +174,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
 
     let line = proxy, check: CheckResult | null = null, usedBackup = false;
     if (proxy){
+      notify({ id, state: 'starting', stage: 'proxy' });
       check = await echoThrough(proxy);
       void report(proxy.id, check);
       if (!check.ok && backup){
@@ -201,7 +202,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
       const pkg = await download(id);
       saved = pkg.state;
       if (pkg.sha256 !== local.sha256){
-        notify({ id, state: 'restoring' });
+        notify({ id, state: 'restoring', stage: 'restore' });
         await restore(profile, exe, dir, pkg.state);
         await writeExtensionData(dir, extensions, pkg.state.extensions);
         local.sha256 = pkg.sha256;
@@ -210,6 +211,7 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
       }
     }
 
+    notify({ id, state: 'starting', stage: 'launch' });
     const ext = await prepareExtensions(profile, extensions, dir);
     fwd = await startForwarder(line);
     if (opts.api) await rm(join(dir, 'DevToolsActivePort'), { force: true });
@@ -303,6 +305,11 @@ export const isRunning = (id: string) => running.has(id);
 export const debugOf = (id: string) => running.get(id)?.debug ?? null;
 // The running browser and its folder, for window sync and tiling.
 export const browserOf = (id: string) => { const r = running.get(id); return r ? { ctx: r.ctx, kernel: r.profile.kernel, dir: r.dir } : null; };
+// Brings a running profile's window to the front (the command palette's "switch to it").
+export async function focus(id: string){
+  const page = running.get(id)?.ctx.pages()[0];
+  await page?.bringToFront().catch(() => {});
+}
 // A new tab in the profile's browser, for a flow to run in.
 export async function newPage(id: string){
   const r = running.get(id);
