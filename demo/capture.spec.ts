@@ -1,6 +1,7 @@
 // Records the product demo (PLAN 6.15, part four): the real workbench, driven through the storyboard against a local
 // server with demo data and the real engines, one picture per step for each language and colour scheme, and what the
-// player needs to animate between them: where the pointer clicks, where the opening cards land, the restored browser.
+// player needs to animate between them: what each step is about (the player's camera moves in on it), where the pointer
+// clicks, where the opening cards land, the restored browser.
 // Writes src/renderer/src/demo/, which the website copies to public/demo/.
 //   npm run build && npx playwright test -c demo
 // Needs what the end-to-end tests need (folio-server with DEV_TOOLS and MOCK_PAYMENTS, Mailpit, the engines in
@@ -133,14 +134,22 @@ for (const lang of ['en', 'zh'] as const){
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
     const drawer = win.getByRole('complementary', { name: d.detail.profile });
 
-    const frames: { file: string; clicks: [number, number][]; browser?: true }[] = [];
+    const frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[] = [];
     const pictures: { file: string; light: Buffer; dark: Buffer }[] = [];
     const at = async (l: Locator): Promise<[number, number]> => {
       const b = (await l.boundingBox())!;
       return [+((b.x + b.width / 2) / W).toFixed(4), +((b.y + b.height / 2) / H).toFixed(4)];
     };
-    // The picture of this moment, light and dark (after their colour transitions).
-    async function snap(file: string, extra: { browser?: true } = {}){
+    // Left, top, width, height as fractions of the window: of one element, or of several together.
+    const box = async (...ls: Locator[]) => {
+      const bs = await Promise.all(ls.map(async l => (await l.boundingBox())!));
+      const x = Math.min(...bs.map(b => b.x)), y = Math.min(...bs.map(b => b.y));
+      const r = Math.max(...bs.map(b => b.x + b.width)), btm = Math.max(...bs.map(b => b.y + b.height));
+      return [x / W, y / H, (r - x) / W, (btm - y) / H].map(v => +Math.max(0, v).toFixed(4));
+    };
+    // The picture of this moment, light and dark (after their colour transitions), and what it is about.
+    async function snap(file: string, { focus, browser }: { focus?: Locator[]; browser?: true } = {}){
+      const extra = { ...(focus ? { focus: await box(...focus) } : {}), ...(browser ? { browser } : {}) };
       await win.mouse.move(W / 2, 3);
       await win.waitForTimeout(500);
       const light = await win.screenshot();
@@ -157,7 +166,6 @@ for (const lang of ['en', 'zh'] as const){
       frames.at(-1)!.clicks.push(await at(l));
       await l.click();
     }
-    const box = async (l: Locator) => { const b = (await l.boundingBox())!; return [b.x / W, b.y / H, b.width / W, b.height / H].map(v => +v.toFixed(4)); };
 
     // 1. The list; the three opening cards land on their rows.
     await expect(row('US-Store-01').locator('.st.run')).toBeVisible();
@@ -169,7 +177,7 @@ for (const lang of ['en', 'zh'] as const){
     await snap('proxies');
     await click(win.getByRole('button', { name: d.proxies.checkAll }));
     await expect(win.getByRole('button', { name: d.proxies.checkAll }).locator('.spin')).toHaveCount(0, { timeout: 30_000 });
-    await snap('proxies-checked');
+    await snap('proxies-checked', { focus: [win.locator('li.pxc[data-id]').first()] });
     // 3. Opening UK-Shop-01: proxy, its sign-ins from the other computer, the browser.
     await click(nav(d.nav.profiles));
     await snap('profiles');
@@ -177,7 +185,7 @@ for (const lang of ['en', 'zh'] as const){
     await snap('drawer');
     await click(drawer.getByRole('button', { name: d.detail.openProfile }));
     await expect(drawer.locator('.opening .step-r').nth(2)).toHaveClass(/now/, { timeout: 60_000 });
-    await snap('opening');
+    await snap('opening', { focus: [drawer.locator('.opening')] });
     // 4. Its three tabs come back.
     await expect(row('UK-Shop-01').locator('.st.run')).toBeVisible({ timeout: 90_000 });
     await drawer.getByRole('button', { name: d.detail.close }).click();
@@ -195,7 +203,7 @@ for (const lang of ['en', 'zh'] as const){
     await click(drawer.getByRole('button', { name: d.checkup.run, exact: true }));
     const report = win.getByRole('dialog', { name: d.checkup.title('US-Store-02') });
     await expect(report).toBeVisible({ timeout: 120_000 });
-    await snap('checkup');
+    await snap('checkup', { focus: [report] });
     await click(report.locator('.m-foot').getByRole('button', { name: d.common.close }));
     await drawer.getByRole('button', { name: d.detail.close }).click();
     // 6. An extension goes into three profiles.
@@ -204,9 +212,9 @@ for (const lang of ['en', 'zh'] as const){
     await click(win.locator('[data-extension="Order Helper"]').getByRole('button', { name: d.extensions.install }));
     const install = win.getByRole('dialog', { name: d.extensions.installTitle('Order Helper') });
     for (const n of ['US-Store-03', 'DE-Shop-01', 'SG-Ads-01']) await install.getByRole('checkbox', { name: new RegExp(n) }).check();
-    await snap('install');
+    await snap('install', { focus: [install] });
     await click(install.getByRole('button', { name: d.extensions.installDo(3) }));
-    await snap('installed');
+    await snap('installed', { focus: [win.locator('[data-extension="Order Helper"]')] });
     // 7. Three profiles opened together; the one whose line is down can be retried.
     await click(nav(d.nav.profiles));
     await snap('profiles-again');
@@ -215,14 +223,14 @@ for (const lang of ['en', 'zh'] as const){
       frames.at(-1)!.clicks.push(await at(cb));
       await cb.check();
     }
-    await snap('selected');
+    await snap('selected', { focus: [win.getByTestId('bulk')] });
     await click(win.getByTestId('bulk').getByRole('button', { name: d.profiles.bulk.open }));
     const tray = win.locator('section.tray');
     await expect(tray.locator('li.run')).not.toHaveCount(0, { timeout: 60_000 });
-    await snap('batch');
+    await snap('batch', { focus: [tray] });
     await expect(tray.locator('li.bad')).toHaveCount(1, { timeout: 60_000 });
     await expect(tray.locator('li.boot, li.idle')).toHaveCount(0, { timeout: 60_000 });
-    await snap('batch-done');
+    await snap('batch-done', { focus: [tray] });
     // 8. Window sync: a click in the leader's window happens in the others.
     const synced = [ids['US-Store-01'], ids['DE-Shop-01'], ids['SG-Ads-01']];
     await app.evaluate(async (_e, ids) => {
@@ -232,7 +240,7 @@ for (const lang of ['en', 'zh'] as const){
     await click(nav(d.nav.sync));
     await app.evaluate(async (_e, id) => { await (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages()[0].click('#add2'); }, synced[0]);
     await win.waitForTimeout(4500);
-    await snap('sync');
+    await snap('sync', { focus: [win.locator('article.win').nth(0), win.locator('article.win').nth(1)] });
     await win.evaluate(() => window.folio.stopWindowSync());
     // 9. A teammate opens JP-Social-01 on their computer.
     await click(nav(d.nav.profiles));
@@ -241,7 +249,7 @@ for (const lang of ['en', 'zh'] as const){
     expect((await mateDesk.post(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } })).ok()).toBe(true);
     await expect(row('JP-Social-01')).toContainText(who.device, { timeout: 30_000 });
     await row('JP-Social-01').scrollIntoViewIfNeeded();
-    await snap('team');
+    await snap('team', { focus: [row('JP-Social-01').locator('.st.away')] });
 
     await mateDesk.delete(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } });
 

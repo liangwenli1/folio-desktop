@@ -1,13 +1,15 @@
 // The product demo (PLAN 6.15, part four). The same file plays on the workbench's sign-in page (src/renderer/src/demo/
 // player.ts) and on the website (src/scripts/demo-player.ts): pictures of the real workbench recorded by
 // demo/capture.spec.ts, one after another, with a pointer that goes to what is clicked next, and the restored browser
-// window drawn over the list. Given the sign-in page's profile cards, each round starts with them floating in and
-// landing on their rows. It pauses with its button, while out of view and while the page is hidden; with reduced
-// motion it shows the profile list and nothing moves.
+// window drawn over the list. A camera keeps the text readable: it moves in on what each step is about, close to the
+// workbench's real size, and goes to what is clicked when that is out of view. Given the sign-in page's profile cards,
+// each round starts with them floating in and landing on their rows in the whole window. It pauses with its button,
+// while out of view and while the page is hidden; with reduced motion it shows the profile list and nothing moves.
 
 export interface DemoManifest {
   width: number; height: number;
-  frames: { file: string; clicks: [number, number][]; browser?: true }[];
+  // `focus`: what the step is about (left, top, width, height, as fractions of the picture).
+  frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[];
   // Where the cards land in the first picture: left, top, width, height, as fractions of it.
   cards: number[][];
   browser: { tabs: { host: string; title: string }[] };
@@ -24,11 +26,13 @@ export interface DemoOptions {
 // The page places the player (it must be positioned, for the pause button).
 const CSS = `
 .fd-stage{position:relative;overflow:hidden;border-radius:12px;background:#fff;box-shadow:0 0 0 1px rgba(29,28,43,.1),0 40px 80px -30px rgba(40,10,30,.55);transition:opacity .5s ease,transform .5s ease}
-.fd-stage>img.fd-f{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .45s ease}
-.fd-stage>img.fd-f.on{opacity:1}
-.fd-ptr{position:absolute;left:0;top:0;width:22px;height:22px;margin:-2px 0 0 -3px;pointer-events:none;opacity:0;transition:left .6s cubic-bezier(.4,0,.2,1),top .6s cubic-bezier(.4,0,.2,1),opacity .3s ease;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+@property --fd-z{syntax:'<number>';inherits:true;initial-value:1}
+.fd-world{position:absolute;inset:0;transform-origin:0 0;transition:transform .7s cubic-bezier(.45,0,.2,1),--fd-z .7s cubic-bezier(.45,0,.2,1)}
+.fd-world>img.fd-f{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .3s ease}
+.fd-world>img.fd-f.on{opacity:1}
+.fd-ptr{position:absolute;left:0;top:0;width:22px;height:22px;margin:-2px 0 0 -3px;pointer-events:none;opacity:0;scale:calc(1 / var(--fd-z));transform-origin:3px 2px;transition:left .55s cubic-bezier(.4,0,.2,1),top .55s cubic-bezier(.4,0,.2,1),opacity .3s ease;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
 .fd-ptr.on{opacity:1}
-.fd-tap{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:rgba(210,68,94,.35);pointer-events:none;opacity:0}
+.fd-tap{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;background:rgba(210,68,94,.35);pointer-events:none;opacity:0;scale:calc(1 / var(--fd-z))}
 .fd-tap.go{animation:fd-tap .45s ease-out}
 @keyframes fd-tap{from{opacity:1;transform:scale(.3)}to{opacity:0;transform:scale(1.4)}}
 .fd-win{position:absolute;right:4%;bottom:5%;width:52%;border-radius:10px;overflow:hidden;background:#f1f1f4;box-shadow:0 0 0 1px rgba(29,28,43,.12),0 30px 60px -20px rgba(20,10,30,.55);opacity:0;transform:translateY(18px) scale(.96);transition:opacity .4s ease,transform .4s ease;pointer-events:none}
@@ -54,7 +58,7 @@ const PAUSE = '<svg viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="1.5" 
 const PLAY = '<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.6v8.8a.6.6 0 0 0 .9.5l7-4.4a.6.6 0 0 0 0-1L3.9 1.1a.6.6 0 0 0-.9.5z"/></svg>';
 
 // How long things take, in milliseconds.
-const T = { fade: 450, hold: 800, still: 1700, move: 650, tap: 300, browser: 2600, intro: 2200, land: 900, out: 600 };
+const T = { camera: 700, hold: 450, still: 1300, move: 550, tap: 250, browser: 2600, intro: 2200, land: 900, out: 600 };
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, html = ''){
   const e = document.createElement(tag);
@@ -79,7 +83,9 @@ export function mountDemo(root: HTMLElement, o: DemoOptions): () => void {
   win.append(tabs, Object.assign(el('div', 'fd-bar', '<span></span>')), shot);
   (win.querySelector('.fd-bar span') as HTMLElement).textContent = `http://${m.browser.tabs[0]?.host ?? ''}/`;
   const ptr = el('div', 'fd-ptr', POINTER), tap = el('span', 'fd-tap');
-  stage.append(...layers, win, ptr, tap);
+  const world = el('div', 'fd-world');
+  world.append(...layers, ptr, tap);
+  stage.append(world, win);
   const btn = el('button', 'fd-btn') as HTMLButtonElement;
   btn.type = 'button';
   root.append(stage, btn);
@@ -140,6 +146,37 @@ export function mountDemo(root: HTMLElement, o: DemoOptions): () => void {
   }
   const place = (x: number, y: number) => { ptr.style.left = tap.style.left = `${x * 100}%`; ptr.style.top = tap.style.top = `${y * 100}%`; };
 
+  // ---- the camera ----
+  // Close-ups show the workbench at 90% of its real size, at most twice the whole picture. `x`, `y`: the point of the
+  // picture it centres on (as near as the picture's edges allow); `view`: what is in sight.
+  let cam = { z: 1, x: 0.5, y: 0.5 }, view = { left: 0, top: 0, size: 1 };
+  const closeUp = () => Math.min(2, Math.max(1, (0.9 * m.width) / (stage.clientWidth || m.width)));
+  function aim(c: typeof cam){
+    cam = c;
+    const w = stage.clientWidth, h = stage.clientHeight, clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+    const tx = clamp(w / 2 - c.x * w * c.z, w - w * c.z, 0), ty = clamp(h / 2 - c.y * h * c.z, h - h * c.z, 0);
+    view = { left: -tx / (w * c.z), top: -ty / (h * c.z), size: 1 / c.z };
+    world.style.transform = `translate(${tx}px, ${ty}px) scale(${c.z})`;
+    world.style.setProperty('--fd-z', String(c.z));
+    root.dataset.zoom = c.z.toFixed(2);
+  }
+  // Framing a box with some room above and below; the whole picture without one. A box too wide to fit is followed to
+  // the point where it is clicked.
+  function framing(b?: number[], click?: [number, number]){
+    if (!b) return { z: 1, x: 0.5, y: 0.5 };
+    const z = Math.max(1, Math.min(closeUp(), 1 / (b[3] * 1.2))), half = 0.5 / z;
+    const x = b[2] * 1.2 <= 1 / z || !click ? b[0] + b[2] / 2 : Math.min(b[0] + b[2] - half, Math.max(b[0] + half, click[0]));
+    return { z, x, y: b[1] + b[3] / 2 };
+  }
+  const inView = (x: number, y: number) => {
+    const edge = view.size * 0.08;
+    return x > view.left + edge && x < view.left + view.size - edge && y > view.top + edge && y < view.top + view.size - edge;
+  };
+  // The same at once: at the start of a round, and when the player changes size.
+  function jump(c: typeof cam){ world.style.transition = 'none'; aim(c); void world.offsetWidth; world.style.transition = ''; }
+  const sized = new ResizeObserver(() => jump(cam));
+  sized.observe(stage);
+
   // ---- the opening cards ----
   const cards = o.intro ? [...o.intro.children] as HTMLElement[] : [];
   async function floatIn(){
@@ -164,15 +201,20 @@ export function mountDemo(root: HTMLElement, o: DemoOptions): () => void {
     if (cards.length){
       stage.style.opacity = '0';
       stage.style.transform = 'scale(.97)';
+      jump(framing());
       await frame(m.frames[0].file);
       await floatIn();
       await land();
     }
     ptr.classList.add('on');
     for (const [i, f] of m.frames.entries()){
+      // What the step is about: its subject, else where it is clicked first; the restored browser shows over the whole list.
+      const [cx, cy] = f.clicks[0] ?? [0.5, 0.5];
+      aim(f.browser ? framing() : framing(f.focus ?? (f.clicks.length ? [cx - 0.15, cy - 0.15, 0.3, 0.3] : undefined), f.clicks[0]));
       if (i > 0 || !cards.length) await frame(f.file);
       root.dataset.frame = String(i);
       void load(m.frames[i + 1]?.file ?? m.frames[0].file);
+      await sleep(T.camera);
       if (f.browser){
         shot.src = o.src('browser');
         win.classList.add('on');
@@ -183,6 +225,7 @@ export function mountDemo(root: HTMLElement, o: DemoOptions): () => void {
       }
       await sleep(f.clicks.length ? T.hold : T.still);
       for (const [x, y] of f.clicks){
+        if (!inView(x, y)){ aim({ ...cam, x, y }); await sleep(T.camera); }
         place(x, y);
         await sleep(T.move);
         tap.classList.remove('go'); void tap.offsetWidth; tap.classList.add('go');
@@ -198,6 +241,7 @@ export function mountDemo(root: HTMLElement, o: DemoOptions): () => void {
 
   async function run(){
     root.dataset.frame = '0';
+    jump(framing());
     if (still.matches){
       await frame(m.frames[0].file);
       stage.style.opacity = '1';
@@ -221,6 +265,7 @@ export function mountDemo(root: HTMLElement, o: DemoOptions): () => void {
     still.removeEventListener('change', restart);
     document.removeEventListener('visibilitychange', onVisibility);
     seen.disconnect();
+    sized.disconnect();
     root.replaceChildren();
   };
 }
