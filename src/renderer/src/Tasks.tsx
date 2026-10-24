@@ -30,7 +30,7 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const flowName = new Map(data.flows.map(f => [f.id, f.name]));
   const email = new Map(data.members.map(m => [m.userId, m.email]));
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const task = open ? data.tasks.find(t => t.id === open) : undefined;
   const scheduledHere = data.tasks.some(t => t.schedule && t.runner?.self);
 
@@ -346,7 +346,7 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
       toast(d.tasks.saved);
       onSaved(saved.id);
     } catch (e){
-      toast(isApiError(e) && e.code === 'stale' ? d.tasks.stale : errorText(d, isApiError(e) ? e.code : 'internal'));
+      toast(isApiError(e) && e.code === 'stale' ? d.tasks.stale : errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
     } finally { setSaving(false); }
   }
   const badSchedule = (sched.kind === 'once' && !sched.at) || (sched.kind === 'daily' && (!sched.days.length || !sched.time));

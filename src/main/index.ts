@@ -65,14 +65,14 @@ onScheduled(updateTray);
 // The title bar takes the app's colours: Windows keeps its own minimize, maximize and close buttons over a strip the
 // workbench draws (36 px, see --tb in styles.css), macOS keeps its traffic lights. Linux keeps the system frame.
 const TITLE_BAR = 36;
-const overlay = () => ({ color: '#00000000', symbolColor: nativeTheme.shouldUseDarkColors ? '#E4E9E3' : '#13212F', height: TITLE_BAR });
+const overlay = () => ({ color: '#00000000', symbolColor: nativeTheme.shouldUseDarkColors ? '#ECEBF2' : '#1D1C2B', height: TITLE_BAR });
 const frame = process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: overlay() }
   : process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 11 } } : {};
 nativeTheme.on('updated', () => { if (process.platform === 'win32') BrowserWindow.getAllWindows().forEach(w => w.setTitleBarOverlay(overlay())); });
 
 function createWindow(){
   const win = new BrowserWindow({
-    width: 1360, height: 860, minWidth: 980, minHeight: 640, show: false, title: 'Folio', backgroundColor: nativeTheme.shouldUseDarkColors ? '#0C1620' : '#F2F4F0', ...frame,
+    width: 1360, height: 860, minWidth: 980, minHeight: 640, show: false, title: 'Folio', backgroundColor: nativeTheme.shouldUseDarkColors ? '#121117' : '#F7F7F9', ...frame,
     webPreferences: { preload: join(import.meta.dirname, '../preload/index.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false }
   });
   win.once('ready-to-show', () => { if (!startedHidden) win.show(); });

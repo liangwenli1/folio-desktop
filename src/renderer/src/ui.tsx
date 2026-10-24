@@ -26,7 +26,10 @@ const PATHS = {
   engines: 'M4.5 4.5h7v7h-7zM6.5 2v2.5M9.5 2v2.5M6.5 11.5V14M9.5 11.5V14M2 6.5h2.5M2 9.5h2.5M11.5 6.5H14M11.5 9.5H14',
   up: 'M8 13V3.5M4 7.5l4-4 4 4',
   star: 'M8 2.2l1.75 3.6 3.95.55-2.86 2.78.68 3.92L8 11.2l-3.52 1.85.68-3.92L2.3 6.35l3.95-.55z',
-  upload: 'M8 10.5v-8M4.5 6 8 2.5 11.5 6M3 13.5h10'
+  upload: 'M8 10.5v-8M4.5 6 8 2.5 11.5 6M3 13.5h10',
+  pause: 'M6 4.5v7M10 4.5v7',
+  monitor: 'M2.5 3.5h11v7h-11zM6 13.5h4M8 10.5v3',
+  stop: 'M4.5 4.5h7v7h-7z'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -63,24 +66,6 @@ export function useOutsideClose(open: boolean, close: () => void){
   return ref;
 }
 
-// A count that rolls to its new value instead of jumping (straight to it when motion is reduced).
-export function Num({ value }: { value: number }){
-  const [shown, setShown] = useState(value);
-  const from = useRef(value);
-  useEffect(() => {
-    const start = from.current;
-    if (start === value || matchMedia('(prefers-reduced-motion: reduce)').matches){ from.current = value; setShown(value); return; }
-    const t0 = performance.now();
-    let raf = requestAnimationFrame(function step(t){
-      const k = Math.min(1, (t - t0) / 450), eased = 1 - (1 - k) ** 3;
-      setShown(Math.round(start + (value - start) * eased));
-      if (k < 1) raf = requestAnimationFrame(step); else from.current = value;
-    });
-    return () => { cancelAnimationFrame(raf); from.current = value; };
-  }, [value]);
-  return <>{shown}</>;
-}
-
 // The current time, ticking every second while `on` (for run timers).
 export function useNow(on: boolean){
   const [now, setNow] = useState(Date.now);
@@ -92,8 +77,9 @@ export function useNow(on: boolean){
   return now;
 }
 
-interface ToastItem { id: number; msg: string; action?: { label: string; fn(): void } }
-type Push = (msg: string, action?: ToastItem['action']) => void;
+// `bad` for something that went wrong; anything else is news of something done.
+interface ToastItem { id: number; msg: string; action?: { label: string; fn(): void }; tone?: 'bad' }
+type Push = (msg: string, action?: ToastItem['action'], tone?: 'bad') => void;
 const ToastContext = createContext<Push>(() => {});
 export const useToast = () => useContext(ToastContext);
 
@@ -101,9 +87,9 @@ export function Toasts({ children }: { children: ReactNode }){
   const [list, setList] = useState<ToastItem[]>([]);
   const seq = useRef(0);
   const drop = (id: number) => setList(l => l.filter(t => t.id !== id));
-  const push = useCallback<Push>((msg, action) => {
+  const push = useCallback<Push>((msg, action, tone) => {
     const id = ++seq.current;
-    setList(l => [...l.slice(-2), { id, msg, action }]);
+    setList(l => [...l.slice(-2), { id, msg, action, tone }]);
     setTimeout(() => drop(id), action ? 8000 : 4500);
   }, []);
   return (
@@ -111,7 +97,8 @@ export function Toasts({ children }: { children: ReactNode }){
       {children}
       <div className="toasts" aria-live="polite">
         {list.map(t => (
-          <div key={t.id} className="toast" role="status">
+          <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}`} role="status">
+            <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'alert' : 'check'} /></span>
             <span>{t.msg}</span>
             {t.action && <button type="button" onClick={() => { drop(t.id); t.action!.fn(); }}>{t.action.label}</button>}
           </div>
@@ -121,7 +108,9 @@ export function Toasts({ children }: { children: ReactNode }){
   );
 }
 
-export function Modal({ title, closeLabel, onClose, foot, children }: { title: string; closeLabel: string; onClose(): void; foot?: ReactNode; children: ReactNode }){
+// A dialog. `icon` makes it a short one (a confirmation, a one-step import): the icon on top, the title and the content
+// centred, the buttons side by side; its content goes straight in. A long one (a form) brings its own .m-body.
+export function Modal({ title, closeLabel, onClose, foot, icon, tone, children }: { title: string; closeLabel: string; onClose(): void; foot?: ReactNode; icon?: IconName; tone?: 'bad' | 'good'; children: ReactNode }){
   const id = useId();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -131,15 +120,31 @@ export function Modal({ title, closeLabel, onClose, foot, children }: { title: s
   return (
     <>
       <div className="scrim modal-scrim" onClick={onClose} />
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={id}>
-        <div className="m-head">
-          <h2 id={id}>{title}</h2>
-          <button className="icon-btn" type="button" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
-        </div>
-        {children}
+      <div className={`modal${icon ? ' short' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id}>
+        {icon ? <>
+          <button className="icon-btn bare sm m-close" type="button" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
+          <div className="m-body"><span className={`m-icon${tone ? ` ${tone}` : ''}`} aria-hidden="true"><Icon name={icon} /></span><h2 id={id}>{title}</h2>{children}</div>
+        </> : <>
+          <div className="m-head">
+            <h2 id={id}>{title}</h2>
+            <button className="icon-btn bare" type="button" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
+          </div>
+          {children}
+        </>}
         {foot && <div className="m-foot">{foot}</div>}
       </div>
     </>
+  );
+}
+
+// What to do with the rows ticked on a page: how many, the actions, and a cross that clears the selection.
+export function BulkBar({ n, label, clearLabel, onClear, children }: { n: number; label: string; clearLabel: string; onClear(): void; children: ReactNode }){
+  return (
+    <div className="bulk" role="toolbar" aria-label={label} data-testid="bulk">
+      <b><span className="count">{n}</span>{label}</b>
+      {children}
+      <button type="button" className="bb close" aria-label={clearLabel} title={clearLabel} onClick={onClear}><Icon name="x" /></button>
+    </div>
   );
 }
 

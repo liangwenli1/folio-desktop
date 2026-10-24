@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useState } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import { folio, isApiError, type ActivityEntry, type Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
@@ -31,56 +31,7 @@ const two = (n: number) => String(n).padStart(2, '0');
 const pad32 = (s: string) => `${s}${'<'.repeat(32)}`.slice(0, 32);
 const ascii = (s: string) => s.normalize('NFD').toUpperCase().replace(/[^A-Z]/g, '');
 
-// Wavy security lines behind the passport card, in the guilloche colour of the theme.
-function useGuilloche(dep: unknown){
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    const draw = () => {
-      const r = c.getBoundingClientRect();
-      if (!r.width) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr);
-      const ctx = c.getContext('2d')!;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.strokeStyle = getComputedStyle(c).getPropertyValue('--guilloche').trim();
-      for (const [y0, amp, f, lines, alpha] of [[70, 6, 0.026, 10, 0.09], [r.height - 24, 5, 0.032, 9, 0.08]]){
-        ctx.globalAlpha = alpha; ctx.lineWidth = 0.55;
-        for (let j = 0; j < lines; j++){
-          const ph = (j * Math.PI * 2) / lines;
-          ctx.beginPath();
-          for (let x = -4; x <= r.width + 4; x += 3){
-            const y = y0 + amp * Math.sin(x * f + ph) + amp * 0.5 * Math.sin(x * f * 2.3 - ph * 1.7);
-            if (x > -4) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-          }
-          ctx.stroke();
-        }
-      }
-    };
-    draw();
-    const ro = new ResizeObserver(draw);
-    ro.observe(c);
-    return () => ro.disconnect();
-  }, [dep]);
-  return ref;
-}
-
 export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, risks, others, onStar, group, owner, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
-  const canvas = useGuilloche(p.id);
-  // The card tilts toward the pointer and catches a holographic sheen where it is.
-  const card = useRef<HTMLElement>(null);
-  const tilt = (e: MouseEvent) => {
-    const el = card.current!, r = el.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-    el.style.setProperty('--mx', `${Math.round(x * 100)}%`); el.style.setProperty('--my', `${Math.round(y * 100)}%`);
-    el.style.setProperty('--rx', `${((0.5 - y) * 6).toFixed(2)}deg`); el.style.setProperty('--ry', `${((x - 0.5) * 8).toFixed(2)}deg`);
-  };
-  const untilt = () => ['--mx', '--my', '--rx', '--ry'].forEach(v => card.current?.style.removeProperty(v));
-  // The stamp lands again when a launch here succeeds (the check's verdict) or fails (OFFLINE).
-  const launch = failed ? `x:${failed}` : status?.state === 'running' ? `r:${status.startedAt}` : '';
-  const seen = useRef({ id: p.id, launch });
-  const thud = seen.current.id === p.id && launch !== '' && launch !== seen.current.launch;
-  useEffect(() => { seen.current = { id: p.id, launch }; });
   const stampLevel = failed ? 'bad' : h.level;
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
@@ -100,7 +51,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
       const r = buildReport(p, facts, exitIp, exitGeo ?? h.geo, others);
       await folio.api('PUT', `/profiles/${p.id}/report`, r);
       setReport({ ...r, at: new Date().toISOString() });
-    } catch (e){ toast(errorText(d, isApiError(e) && e.code ? e.code : 'checkup_failed')); } finally { setChecking(false); }
+    } catch (e){ toast(errorText(d, isApiError(e) && e.code ? e.code : 'checkup_failed'), undefined, 'bad'); } finally { setChecking(false); }
   }
   const num = String(p.number).padStart(4, '0');
   const away = elsewhere(p);
@@ -184,8 +135,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
           {canTrash && <button type="button" className="btn btn-danger" onClick={onTrash}>{d.detail.trash}</button>}
         </div>
       </div>
-      <article className="idcard" ref={card} aria-label={d.detail.cardLabel(p.name)} onMouseMove={tilt} onMouseLeave={untilt}>
-        <canvas className="gl" ref={canvas} aria-hidden="true" />
+      <article className="idcard" aria-label={d.detail.cardLabel(p.name)}>
         <header className="id-head"><span>{d.detail.card}</span><span>No. <b>{num}</b></span></header>
         <div className="id-city">
           <div>
@@ -193,7 +143,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
               ? <><span className="city">{geo.city ?? geo.countryName}</span><span className="region">{[geo.region, geo.countryName].filter(Boolean).join(', ')}</span></>
               : <><span className="city">{px ? (h.proxy === 'down' ? d.detail.noExit : d.detail.notChecked) : d.detail.direct}</span>{!px && <span className="region">{d.detail.directSub}</span>}</>}
           </div>
-          <div key={`${p.id}${launch}`} className={`stamp ${stampLevel}${thud ? ' thud' : ''}`} data-testid="stamp" aria-hidden="true">
+          <div className={`stamp ${stampLevel}`} data-testid="stamp" aria-hidden="true">
             <span className="s-top">FOLIO</span><span className="s-main">{d.detail.stamps[stampLevel]}</span><span className="s-date">{stampDate}</span>
           </div>
         </div>

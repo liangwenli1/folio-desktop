@@ -3,7 +3,7 @@ import { folio, isApiError, type Workspace } from './api';
 import type { BatchAction, WorkspaceData } from './data';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { engineName } from './checks';
-import { useToast } from './ui';
+import { BulkBar, Icon, Modal, useToast } from './ui';
 
 export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
   const toast = useToast();
@@ -24,7 +24,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
     } catch (e){
       const code = isApiError(e) ? e.code : 'internal';
       toast(errorText(d, code), code === 'plan_limit' && manager
-        ? { label: d.plan.addProfiles, fn: () => void folio.openSite(`/${lang}/checkout/?ws=${ws.id}`) } : undefined);
+        ? { label: d.plan.addProfiles, fn: () => void folio.openSite(`/${lang}/checkout/?ws=${ws.id}`) } : undefined, 'bad');
     }
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -38,24 +38,17 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
           <button className="btn btn-danger" type="button" disabled={!list.length} onClick={() => setConfirm(list.map(p => p.id))}>{T.purgeAll}</button>
         </header>
 
-        {(confirm || ids.length > 0) && (
-          <div className="bulk top-gap">
-            {confirm ? (
-              <>
-                <b>{T.confirmPurge(confirm.length)}</b><span className="note">{T.confirmNote}</span><span className="sp" />
-                <button type="button" className="bb" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                <button type="button" className="bb danger" onClick={() => void run('purge', confirm)}>{T.purge}</button>
-              </>
-            ) : (
-              <>
-                <b>{d.common.selected(ids.length)}</b>
-                <button type="button" className="bb" onClick={() => void run('restore', ids)}>{T.restore}</button>
-                <button type="button" className="bb danger" onClick={() => setConfirm(ids)}>{T.purge}</button>
-                <span className="sp" />
-                <button type="button" className="bb plain" onClick={() => setSel(new Set())}>{d.common.clearSelection}</button>
-              </>
-            )}
-          </div>
+        {ids.length > 0 && (
+          <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+            <button type="button" className="bb" onClick={() => void run('restore', ids)}><Icon name="up" />{T.restore}</button>
+            <button type="button" className="bb danger" onClick={() => setConfirm(ids)}><Icon name="trash" />{T.purge}</button>
+          </BulkBar>
+        )}
+        {confirm && (
+          <Modal icon="trash" tone="bad" title={T.confirmPurge(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+            <button type="button" className="btn btn-danger solid" onClick={() => void run('purge', confirm)}>{T.purge}</button>
+          </>}><p>{T.confirmNote}</p></Modal>
         )}
 
         <div className="tw top-gap">

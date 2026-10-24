@@ -5,12 +5,11 @@ import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { ago, errorText, runTime, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { useActivity } from './Activity';
-import { Icon, Num, percent, useNow, useToast } from './ui';
+import { BulkBar, Icon, Modal, percent, useNow, useToast } from './ui';
 import { Select } from './Select';
 import { ExitMap, type Pin, type PinState } from './ExitMap';
 import { Flag } from './Flag';
 import { mod } from './CommandPalette';
-import { Rosette } from './Rosette';
 import { byProfile, risks, type Risk } from './risks';
 
 export type GroupFilter = 'all' | 'none' | string;
@@ -97,18 +96,18 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 5, !!curProfile);
   const filtered = group !== 'all' || status !== 'all' || !!q || !!only;
 
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   async function open(p: Profile){
     const why = await data.launch(p);
-    if (why === 'kernel_missing'){ setCur(p.id); setDrawer(true); toast(d.profiles.done.failed(p.name, d.launch.kernel_missing)); }
-    else if (why) toast(d.launch.download_failed);
+    if (why === 'kernel_missing'){ setCur(p.id); setDrawer(true); toast(d.profiles.done.failed(p.name, d.launch.kernel_missing), undefined, 'bad'); }
+    else if (why) toast(d.launch.download_failed, undefined, 'bad');
   }
   const stop = (p: Profile) => folio.stopProfile(p.id);
   async function exportCookies(list: Profile[], format: 'json' | 'netscape'){
     const r = await folio.exportCookies(list.map(p => ({ id: p.id, name: p.name, number: p.number })), format);
     if (!r) return;
     if (r.saved) toast(d.detail.exported(r.saved, r.path));
-    r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code))));
+    r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code)), undefined, 'bad'));
   }
   async function importCookies(p: Profile, text: string){
     try { toast(d.detail.imported((await folio.importCookies(p.id, text)).count)); } catch (e){ fail(e); }
@@ -126,7 +125,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const syncAllowed = ws.subscription.plan !== 'free';
   async function startSync(){
     const s = await folio.startWindowSync(list.filter(p => sel.has(p.id)).map(p => p.id));
-    toast(s ? P.done.syncing(all.find(p => p.id === s.leader)?.name ?? '', s.members.length - 1) : P.done.syncFailed);
+    if (s) toast(P.done.syncing(all.find(p => p.id === s.leader)?.name ?? '', s.members.length - 1)); else toast(P.done.syncFailed, undefined, 'bad');
   }
   async function batch(action: BatchAction, extra: Parameters<WorkspaceData['batch']>[2], done: (n: number) => string){
     try { toast(done(await data.batch(action, ids, extra))); } catch (e){ fail(e); }
@@ -152,9 +151,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
       else if (f.kind === 'follow-tz') ok = await data.patch(p, { timezoneOverride: null });
       else if (f.kind === 'follow-lang') ok = await data.patch(p, { localeOverride: null });
       else if (f.kind === 'use-engine') ok = await data.patch(p, { kernelVersion: f.version });
-      else if (f.kind === 'download'){ if (!(await data.install(p.kernel, f.version))) toast(d.launch.download_failed); }
+      else if (f.kind === 'download'){ if (!(await data.install(p.kernel, f.version))) toast(d.launch.download_failed, undefined, 'bad'); }
       else onEdit(p.id);
-      if (!ok) toast(P.done.stale);
+      if (!ok) toast(P.done.stale, undefined, 'bad');
     } catch (e){ fail(e); } finally { setBusyFix(null); }
   }
 
@@ -241,19 +240,19 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
           <section className="stack" aria-label={P.sum.usage}>
             <button type="button" className="sum" onClick={() => setStatus('running')}>
               <span className="k"><span className={`d${running ? ' good pulse' : ''}`} aria-hidden="true" />{P.sum.running}</span>
-              <span className="n"><Num value={running} /><small>{P.sum.of(all.length)}</small></span>
+              <span className="n">{running}<small>{P.sum.of(all.length)}</small></span>
             </button>
             <button type="button" className="sum" onClick={() => setStatus('issues')} title={P.sum.proxyNote(down, slow) || P.sum.proxyOk}>
               <span className="k"><span className={`d${down ? ' bad' : slow ? ' warn' : ' good'}`} aria-hidden="true" />{P.sum.proxy}</span>
-              <span className="n"><Num value={down + slow} /></span>
+              <span className="n">{down + slow}</span>
             </button>
             <button type="button" className="sum" onClick={() => setStatus('issues')} title={mism ? P.sum.fpNote(mism) : P.sum.fpOk}>
               <span className="k"><span className={`d${mism ? ' warn' : ' good'}`} aria-hidden="true" />{P.sum.fp}</span>
-              <span className="n"><Num value={mism} /></span>
+              <span className="n">{mism}</span>
             </button>
             <div className="sum">
               <span className="k"><span className="d" aria-hidden="true" />{P.sum.usage}</span>
-              <span className="n"><Num value={all.length} /><small>{P.sum.usageOf(limit)}</small></span>
+              <span className="n">{all.length}<small>{P.sum.usageOf(limit)}</small></span>
               <span className="meter"><i style={{ width: `${Math.min(100, (all.length / limit) * 100)}%` }} /></span>
             </div>
           </section>
@@ -296,27 +295,18 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
         {data.sync && <SyncBar d={d} data={data} names={new Map(all.map(p => [p.id, p.name]))} />}
         {ids.length > 0 && (
-          <div className="bulk" data-testid="bulk">
-            {confirm ? (
+          <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+            {tagging ? (
               <>
-                <b>{P.bulk.confirm(ids.length)}</b><span className="note">{P.bulk.confirmNote}</span><span className="sp" />
-                <button type="button" className="bb" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
-                <button type="button" className="bb danger" onClick={() => void trash(ids)}>{P.bulk.doTrash}</button>
-              </>
-            ) : tagging ? (
-              <>
-                <b>{d.common.selected(ids.length)}</b>
                 <input className="bb-in" aria-label={P.bulk.tagPh} placeholder={P.bulk.tagPh} value={tag} onChange={e => setTag(e.target.value)} maxLength={24} autoFocus />
                 <button type="button" className="bb" disabled={!tag.trim()} onClick={() => { void batch('tag', { tag: tag.trim() }, n => P.done.tagged(n, tag.trim())); setTagging(false); setTag(''); }}>{P.bulk.addTag}</button>
                 <button type="button" className="bb" disabled={!tag.trim()} onClick={() => { void batch('untag', { tag: tag.trim() }, n => P.done.untagged(n, tag.trim())); setTagging(false); setTag(''); }}>{P.bulk.removeTag}</button>
-                <span className="sp" />
-                <button type="button" className="bb plain" onClick={() => setTagging(false)}>{d.common.cancel}</button>
+                <button type="button" className="bb" onClick={() => setTagging(false)}>{d.common.cancel}</button>
               </>
             ) : (
               <>
-                <b>{d.common.selected(ids.length)}</b>
-                <button type="button" className="bb" onClick={() => all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)).forEach(p => void open(p))}>{P.bulk.open}</button>
-                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}>{P.bulk.stop}</button>
+                <button type="button" className="bb" onClick={() => all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)).forEach(p => void open(p))}><Icon name="play" />{P.bulk.open}</button>
+                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
                 <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={!syncAllowed ? d.windowSync.upgrade : ids.length < 2 ? P.bulk.syncTwo : undefined} onClick={() => void startSync()}>{P.bulk.sync}</button>
                 <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" searchPh={d.form.searchPh}
                   options={[...data.groups.map(g => ({ value: g.id, label: g.name })), { value: 'none', label: d.groups.none }]}
@@ -349,12 +339,16 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                     options={[{ value: 'json', label: d.detail.json }, { value: 'netscape', label: d.detail.netscape }]}
                     onChange={v => void exportCookies(all.filter(p => sel.has(p.id)), v as 'json' | 'netscape')} />
                 )}
-                {manager && <button type="button" className="bb danger" onClick={() => setConfirm(true)}>{P.bulk.trash}</button>}
-                <span className="sp" />
-                <button type="button" className="bb plain" onClick={() => setSel(new Set())}>{d.common.clearSelection}</button>
+                {manager && <button type="button" className="bb danger" onClick={() => setConfirm(true)}><Icon name="trash" />{P.bulk.trash}</button>}
               </>
             )}
-          </div>
+          </BulkBar>
+        )}
+        {confirm && ids.length > 0 && (
+          <Modal icon="trash" tone="bad" title={P.bulk.confirm(ids.length)} closeLabel={d.common.close} onClose={() => setConfirm(false)} foot={<>
+            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
+            <button type="button" className="btn btn-danger solid" onClick={() => void trash(ids)}>{P.bulk.doTrash}</button>
+          </>}><p>{P.bulk.confirmNote}</p></Modal>
         )}
 
         <div className="tw">
@@ -378,7 +372,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                   {all.length
                     ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
                       <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
-                    : <><Rosette size={200} /><p><b>{P.emptyNone}</b></p></>}
+                    : <p><b>{P.emptyNone}</b></p>}
                 </td></tr>
               )}
               {list.map(p => (
@@ -429,25 +423,25 @@ function Row({ d, p, h, group, now, cur, checked, sync, status, progress, checki
     ok: <span className="lat ok">{P.ms(ms ?? 0)}</span>, slow: <span className="lat slow">{P.ms(ms ?? 0)}</span> }[h.proxy];
   const downloading = progress && !progress.finished && !progress.error;
   const away = elsewhere(p);
-  // Opening: proxy, engine, sign-ins, browser, lit in turn.
+  // Opening: proxy, engine, sign-ins, browser, in turn.
   const boarding = (at: number, label: string) => (
-    <span className="boarding" role="status"><span className="steps" aria-hidden="true">{P.stages.map((s, i) => <i key={s} className={i < at ? 'done' : i === at ? 'now' : ''} />)}</span>{label}</span>
+    <span className="st boot" role="status"><span className="spin" aria-hidden="true" />{label}<span className="sub">{at + 1} / {P.stages.length}</span></span>
   );
   let st, act = null;
   if (status?.state === 'running'){
-    st = <span className="st run"><span className="d" aria-hidden="true" />{P.st.running} · <span className="mono">{runTime(now - (status.startedAt ?? now))}</span></span>;
+    st = <span className="st run"><Icon name="play" />{P.st.running}<span className="sub">{runTime(now - (status.startedAt ?? now))}</span></span>;
     act = <button type="button" className="btn btn-xs btn-secondary" aria-label={P.stopX(p.name)} onClick={onStop}>{P.stop}</button>;
   }
   else if (status?.state === 'saving') st = <span className="st boot"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>;
   else if (status) st = status.state === 'restoring' ? boarding(2, P.stage.restore) : status.stage === 'launch' ? boarding(3, P.stage.launch) : boarding(0, P.stage.proxy);
   else if (downloading) st = boarding(1, P.downloading(percent(progress)));
-  else if (away) st = <span className="st away" title={away.email}><span className="d" aria-hidden="true" />{P.inUseOn(away.deviceName ?? away.email)}</span>;
+  else if (away) st = <span className="st away" title={away.email}><Icon name="monitor" />{P.inUseOn(away.deviceName ?? away.email)}</span>;
   else if (h.checks[0]?.id === 'proxy-down'){
-    st = <span className="st bad"><span className="d" aria-hidden="true" />{P.st.proxyDown}</span>;
+    st = <span className="st bad"><Icon name="alert" />{P.st.proxyDown}</span>;
     act = <button type="button" className="btn btn-xs btn-secondary" disabled={checking} onClick={onCheck}>{checking && <span className="spin" aria-hidden="true" />}{P.checkProxy}</button>;
   }
   else {
-    st = <span className="st idle"><span className="d" aria-hidden="true" />{P.st.idle}</span>;
+    st = <span className="st idle"><Icon name="pause" />{P.st.idle}</span>;
     act = <button type="button" className="btn btn-xs btn-secondary" aria-label={P.openX(p.name)} onClick={onOpen}><Icon name="play" />{P.open}</button>;
   }
 

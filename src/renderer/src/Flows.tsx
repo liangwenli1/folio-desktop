@@ -79,7 +79,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   const [open, setOpen] = useState<{ id: string | null; template?: boolean } | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
   const email = new Map(data.members.map(m => [m.userId, m.email]));
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   // The tasks a flow is used by, by name; such a flow can't be deleted.
   const users = (id: string) => data.tasks.filter(t => t.flowId === id).map(t => t.name).join(', ');
 
@@ -185,7 +185,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
       toast(F.saved);
     } catch (e){
       if (isApiError(e) && e.code === 'stale') setStale(true);
-      else toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+      else toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
     } finally { setSaving(false); }
   }
 

@@ -108,14 +108,14 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await expect(row(win, 'P-2').locator('.tag')).toHaveText('vip');
 
   await bulk.getByRole('button', { name: 'Delete' }).click();
-  await bulk.getByRole('button', { name: 'Move to Trash' }).click();
+  await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await expect(row(win, 'P-1')).toBeHidden();
   await win.getByRole('status').filter({ hasText: '2 profiles moved to Trash' }).getByRole('button', { name: 'Undo' }).click();
   await expect(row(win, 'P-1')).toBeVisible();
 
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
   await win.getByTestId('bulk').getByRole('button', { name: 'Delete' }).click();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Move to Trash' }).click();
+  await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await win.getByRole('button', { name: /^Trash/ }).click();
   await expect(row(win, 'P-1').or(win.locator('tr[data-id]', { hasText: 'P-1' }))).toBeVisible();
 
@@ -125,7 +125,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await trashed.getByRole('button', { name: 'Restore' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'no room for more profiles' })).toBeVisible();
   await trashed.getByRole('button', { name: 'Delete forever' }).click();
-  await win.locator('.bulk').getByRole('button', { name: 'Delete forever' }).click();
+  await win.getByRole('dialog').getByRole('button', { name: 'Delete forever' }).click();
   await expect(win.getByText('The Trash is empty.')).toBeVisible();
   await app.close();
 });

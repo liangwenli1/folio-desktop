@@ -5,7 +5,7 @@ import { folio, isApiError, type Proxy, type ProxyImport } from './api';
 import { proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Icon, Modal, Num, Spark, useToast } from './ui';
+import { BulkBar, Icon, Modal, Spark, useToast } from './ui';
 import { ExitMap, type Pin } from './ExitMap';
 import { SelectField } from './Select';
 
@@ -57,7 +57,7 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
       await Promise.all(targets.map(id => folio.api('DELETE', `/proxies/${id}`)));
       setSel(new Set());
       toast(X.deleted(targets.length));
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal')); }
+    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
     data.refresh('proxies', 'profiles');
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -81,30 +81,23 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
             <ExitMap small pins={pins} label={X.mapLabel} onPick={setQ} />
             <dl className="px-states">
               {(['ok', 'slow', 'down', 'unchecked'] as const).map(k => (
-                <div key={k} className={k}><dt><span className={`d ${k === 'ok' ? 'good' : k === 'slow' ? 'warn' : k === 'down' ? 'bad' : ''}`} aria-hidden="true" />{X.states[k]}</dt><dd><Num value={states[k]} /></dd></div>
+                <div key={k} className={k}><dt><span className={`d ${k === 'ok' ? 'good' : k === 'slow' ? 'warn' : k === 'down' ? 'bad' : ''}`} aria-hidden="true" />{X.states[k]}</dt><dd>{states[k]}</dd></div>
               ))}
             </dl>
           </section>
         )}
 
         {ids.length > 0 && (
-          <div className="bulk top-gap">
-            {confirm ? (
-              <>
-                <b>{X.confirmDelete(ids.length)}</b><span className="note">{X.confirmNote}</span><span className="sp" />
-                <button type="button" className="bb" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
-                <button type="button" className="bb danger" onClick={() => void remove(ids)}>{X.bulkDelete}</button>
-              </>
-            ) : (
-              <>
-                <b>{d.common.selected(ids.length)}</b>
-                <button type="button" className="bb" onClick={() => void check(ids)}>{X.bulkCheck}</button>
-                <button type="button" className="bb danger" onClick={() => setConfirm(true)}>{X.bulkDelete}</button>
-                <span className="sp" />
-                <button type="button" className="bb plain" onClick={() => setSel(new Set())}>{d.common.clearSelection}</button>
-              </>
-            )}
-          </div>
+          <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+            <button type="button" className="bb" onClick={() => void check(ids)}><Icon name="check" />{X.bulkCheck}</button>
+            <button type="button" className="bb danger" onClick={() => setConfirm(true)}><Icon name="trash" />{X.bulkDelete}</button>
+          </BulkBar>
+        )}
+        {confirm && ids.length > 0 && (
+          <Modal icon="trash" tone="bad" title={X.confirmDelete(ids.length)} closeLabel={d.common.close} onClose={() => setConfirm(false)} foot={<>
+            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
+            <button type="button" className="btn btn-danger solid" onClick={() => void remove(ids)}>{X.bulkDelete}</button>
+          </>}><p>{X.confirmNote}</p></Modal>
         )}
 
         <div className="tw top-gap">
@@ -124,7 +117,7 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
               {list.map(p => {
                 const c = p.lastCheck, g = c?.ok ? c.geo : null, s = proxyState(p), busy = data.checking.has(p.id);
                 return (
-                  <tr key={p.id} data-id={p.id} className={busy ? 'scanning' : ''}>
+                  <tr key={p.id} data-id={p.id}>
                     <td className="cb"><input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} aria-label={d.common.select(p.name)} /></td>
                     <td>
                       <span className="l1"><b>{p.name}</b><span className="cc">{p.type.toUpperCase()}</span></span>

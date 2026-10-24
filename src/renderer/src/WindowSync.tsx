@@ -28,7 +28,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
     const lead = leader && picked.includes(leader) ? leader : picked[0];
     const r = await folio.startWindowSync(picked, lead);
     setBusy(false);
-    toast(r ? d.profiles.done.syncing(name.get(r.leader) ?? '', r.members.length - 1) : d.profiles.done.syncFailed);
+    if (r) toast(d.profiles.done.syncing(name.get(r.leader) ?? '', r.members.length - 1)); else toast(d.profiles.done.syncFailed, undefined, 'bad');
   }
   async function tile(){
     setBusy(true);

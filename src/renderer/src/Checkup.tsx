@@ -41,7 +41,7 @@ export function ReportDialog({ d, lang, p, report, busy, onAgain, onClose }: { d
       <div className="m-body">
         <article className="report" data-testid="report">
           <header className="id-head"><span>{C.card}</span><span>{when}</span></header>
-          <div className={`stamp report-stamp ${ok ? 'ok' : 'warn'} thud`} aria-hidden="true">
+          <div className={`stamp report-stamp ${ok ? 'ok' : 'warn'}`} aria-hidden="true">
             <span className="s-top">FOLIO</span><span className="s-main">{ok ? C.passed : C.review}</span><span className="s-date">#{String(p.number).padStart(4, '0')}</span>
           </div>
           <p className="sr" role="status">{ok ? C.passed : C.review}</p>

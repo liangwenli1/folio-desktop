@@ -19,7 +19,7 @@ export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; 
   const [catalog, setCatalog] = useState<Kernel[]>([]);
   const [uploading, setUploading] = useState(false);
   const [retiring, setRetiring] = useState<string | null>(null);
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   // Admins manage every system's packages; everyone else needs only this computer's list.
   const loadCatalog = () => { if (admin) void folio.api<{ kernels: Kernel[] }>('GET', '/kernels').then(r => setCatalog(r.kernels), fail); };
   useEffect(loadCatalog, [admin]);

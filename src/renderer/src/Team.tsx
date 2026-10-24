@@ -17,7 +17,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const company = ws.subscription.plan === 'company';
   const deptName = new Map(data.departments.map(x => [x.id, x.name]));
   const email = new Map(data.members.map(m => [m.userId, m.email]));
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const close = () => setDialog(null);
 
   async function setRole(m: Member, role: 'admin' | 'member'){
@@ -27,7 +27,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   async function resend(emailAddr: string, role: 'admin' | 'member', departmentIds: string[]){
     try {
       const r = await folio.api<{ emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, role, departmentIds });
-      toast(r.emailed ? T.sent(emailAddr) : T.notSent);
+      if (r.emailed) toast(T.sent(emailAddr)); else toast(T.notSent, undefined, 'bad');
     } catch (e){ fail(e); }
     data.refresh('members');
   }

@@ -24,7 +24,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
 
   async function remove(e: Extension){
     setConfirm(null);
-    try { await folio.api('DELETE', `/extensions/${e.id}`); toast(X.deleted(e.name)); } catch (err){ toast(errorText(d, isApiError(err) ? err.code : 'internal')); }
+    try { await folio.api('DELETE', `/extensions/${e.id}`); toast(X.deleted(e.name)); } catch (err){ toast(errorText(d, isApiError(err) ? err.code : 'internal'), undefined, 'bad'); }
     data.refresh('extensions', 'profiles');
   }
 

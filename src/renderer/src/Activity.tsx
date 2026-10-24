@@ -51,7 +51,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
       const csv = await folio.api<string>('GET', `/workspaces/${ws.id}/activity.csv`);
       const path = await folio.saveFile(`folio-activity-${new Date().toISOString().slice(0, 10)}.csv`, csv);
       if (path) toast(A.exported(path));
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal')); }
+    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
   }
 
   const byDay: [string, ActivityEntry[]][] = [];

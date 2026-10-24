@@ -58,12 +58,12 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       const p = data.profiles?.find(x => x.id === st.id);
       const why = d.launch[st.error ?? ''] ?? d.launch.launch_failed;
       toast(p ? d.profiles.done.failed(p.name, why) : why, st.error === 'kernel_missing' && p
-        ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined);
+        ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined, 'bad');
     },
     // The profile opened, but some of its extensions failed their check and were left out.
     extensionErrors(st: ProfileStatus){
       const p = data.profiles?.find(x => x.id === st.id);
-      toast(d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []));
+      toast(d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []), undefined, 'bad');
     }
   });
   const used = data.profiles?.length ?? ws.usage.profiles;
@@ -114,7 +114,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       const icon = <Flag country={h.geo?.country ?? null} kernel={p.kernel} />;
       const main: Command = on
         ? { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.switchTo}`, icon, run: () => void folio.focusProfile(p.id) }
-        : { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.open}`, icon, run: () => void data.launch(p).then(why => { if (why) toast(why === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed); }) };
+        : { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.open}`, icon, run: () => void data.launch(p).then(why => { if (why) toast(why === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed, undefined, 'bad'); }) };
       return on ? [main, { id: `s:${p.id}`, group: 'profiles', label: C.stop(p.name), hint, icon, run: () => void folio.stopProfile(p.id) }] : [main];
     });
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
@@ -138,7 +138,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
       await folio.api('POST', `/invitations/${i.id}/${accept ? 'accept' : 'decline'}`);
       setWsOpen(false);
       if (accept){ go('profiles'); onSwitch(i.workspaceId); } else void loadInvites();
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal')); }
+    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
   }
 
   return (
@@ -293,7 +293,7 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
   const [name, setName] = useState('');
   const menuRef = useOutsideClose(!!menu, () => setMenu(null));
   const ungrouped = (data.profiles ?? []).filter(p => !p.groupId).length;
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'));
+  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
 
   async function save(e: FormEvent){
     e.preventDefault();
