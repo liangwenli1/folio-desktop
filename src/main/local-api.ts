@@ -157,7 +157,7 @@ async function handle(req: IncomingMessage, res: ServerResponse){
         return debugOf(p.id) ? reply(res, 200, view(p))
           : fail(res, 409, 'running_without_api', 'This profile is open without a debugging address. Close it, then start it through the API.');
       }
-      const failed = await open(p.id, { api: true });
+      const failed = await open(p.id, { api: true, tabs: url.searchParams.get('restoreTabs') === '1' });
       if (failed) return fail(res, LAUNCH[failed] ?? 500, failed, `The profile didn't open: ${failed}`);
       return reply(res, 200, view(p));
     }

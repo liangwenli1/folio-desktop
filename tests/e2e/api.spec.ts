@@ -70,6 +70,19 @@ test('scripts open profiles through the API and take them over: Playwright for C
   const opened = (await (await acct.api.get(`${base}/activity?profileId=${shop.id}&kind=open`)).json()).entries;
   expect(opened.at(-1)).toMatchObject({ action: 'profile.open', detail: { via: 'api' } });
 
+  // Scripts get one blank tab, unless they ask for the tabs it was last closed with; asking also keeps them.
+  const keep = await (await local('POST', '/api/v1/profiles/1/start?restoreTabs=1', token)).json();
+  const kept = await chromium.connectOverCDP(keep.wsEndpoint);
+  await kept.contexts()[0].pages()[0].goto(`${site.url}kept`);
+  await kept.close();
+  await local('POST', '/api/v1/profiles/1/stop', token);
+  for (const [query, tabs] of [['', ['about:blank']], ['?restoreTabs=1', [`${site.url}kept`]]] as const){
+    const again = await chromium.connectOverCDP((await (await local('POST', `/api/v1/profiles/1/start${query}`, token)).json()).wsEndpoint);
+    await expect.poll(() => again.contexts()[0].pages().map(p => p.url())).toEqual(tabs);
+    await again.close();
+    await local('POST', '/api/v1/profiles/1/stop', token);
+  }
+
   // Firefox: a WebDriver BiDi address that Puppeteer connects to.
   const ff = await (await local('POST', '/api/v1/profiles/%230002/start', token)).json();
   expect(ff).toMatchObject({ id: fox.id, protocol: 'webdriver-bidi', wsEndpoint: expect.stringMatching(/^ws:\/\/127\.0\.0\.1:\d+\/session$/) });

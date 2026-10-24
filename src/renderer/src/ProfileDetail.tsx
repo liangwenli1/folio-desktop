@@ -5,7 +5,7 @@ import { dayLabel, describe, time } from './Activity';
 import { ENGINES, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import { day, errorText, runTime, type Dict, type Lang } from './i18n';
 import { ExtIcon, Icon, Progress, bytes, percent, useOutsideClose, useToast, type IconName } from './ui';
-import { EngineLogo, Flag } from './Flag';
+import { EngineLogo, Flag, SearchLogo } from './Flag';
 import { ReportDialog, buildReport, passed, type Report } from './Checkup';
 import type { Risk } from './risks';
 
@@ -170,6 +170,8 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
             <dt>{d.detail.fields.tz}</dt><dd className={`mono${h.checks.some(c => c.id === 'tz-mismatch') ? ' warn' : ''}`}>{tz ?? d.detail.hostTz}</dd>
             <dt>{d.detail.fields.lang}</dt><dd className="mono">{locale ?? d.detail.hostTz}</dd>
             <dt>{d.detail.fields.proxy}</dt><dd>{px ? `${px.type.toUpperCase()} · ${px.host}:${px.port}` : P.noProxy}</dd>
+            <dt>{d.browser.search}</dt><dd><SearchLogo engine={p.searchEngine} size={14} />{d.browser.name(p.searchEngine)}</dd>
+            <dt>{d.browser.start}</dt><dd>{p.restoreTabs ? d.browser.startTabs : p.searchEngine !== 'none' ? d.browser.startHome(d.browser.name(p.searchEngine)) : d.browser.startBlank}</dd>
             <dt>{facts.seed ? d.detail.fields.seed : d.detail.fields.screen}</dt><dd className="mono">{facts.seed ?? facts.screen ?? '—'}</dd>
             <dt>{d.detail.fields.cores}</dt><dd>{facts.cores ?? '—'}</dd>
             {facts.gpu && <><dt>{d.detail.fields.gpu}</dt><dd>{facts.gpu}</dd></>}

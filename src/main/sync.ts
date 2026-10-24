@@ -9,9 +9,11 @@ import type { BrowserContext } from 'playwright-core';
 import { api } from './api';
 import type { ExtensionData } from './extensions';
 
-// Playwright's storage state, plus the data folders of the profile's extensions, by library extension id.
-export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>> & { extensions?: Record<string, ExtensionData> };
-export interface Local { sha256: string | null; origins: string[]; workspaceId: string | null }
+// Playwright's storage state, plus the data folders of the profile's extensions, by library extension id, and the
+// addresses of the tabs it was closed with.
+export type StorageState = Awaited<ReturnType<BrowserContext['storageState']>> & { extensions?: Record<string, ExtensionData>; tabs?: string[] };
+// `tabs`: as in the state, for a profile whose state stays on this computer.
+export interface Local { sha256: string | null; origins: string[]; workspaceId: string | null; tabs?: string[] }
 
 const FILE = '.folio-sync.json';
 const MAX_ORIGINS = 300;
@@ -32,7 +34,8 @@ function pack(state: StorageState){
   const sorted: StorageState = {
     cookies: [...state.cookies].sort((a, b) => `${a.domain}${a.path}${a.name}`.localeCompare(`${b.domain}${b.path}${b.name}`)),
     origins: [...state.origins].sort((a, b) => a.origin.localeCompare(b.origin)),
-    ...(state.extensions && Object.keys(state.extensions).length ? { extensions: Object.fromEntries(Object.entries(state.extensions).sort(([a], [b]) => a.localeCompare(b))) } : {})
+    ...(state.extensions && Object.keys(state.extensions).length ? { extensions: Object.fromEntries(Object.entries(state.extensions).sort(([a], [b]) => a.localeCompare(b))) } : {}),
+    ...(state.tabs?.length ? { tabs: state.tabs } : {})
   };
   const body = gzipSync(JSON.stringify(sorted));
   return { body, sha256: createHash('sha256').update(body).digest('hex'), query: counts(sorted) };

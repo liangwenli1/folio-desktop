@@ -2,12 +2,13 @@
 // engine and system; an edit keeps it unless the user regenerates it.
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { CheckResult, Fingerprint, KernelKind, Os } from '@shared/bridge';
+import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { folio, isApiError, type Profile, type ProxyImport } from './api';
 import { ENGINES, fingerprintFacts, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
-import { Icon, Modal, bytes, percent, type IconName } from './ui';
-import { EngineLogo, Flag } from './Flag';
+import { Icon, Modal, Switch, bytes, percent, type IconName } from './ui';
+import { EngineLogo, Flag, SEARCH_LOGOS } from './Flag';
 import { Select, SelectField, type Opt } from './Select';
 
 interface Props { d: Dict; wsId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
@@ -44,6 +45,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [notes, setNotes] = useState(profile?.notes ?? '');
   const [syncMode, setSyncMode] = useState(profile?.syncMode ?? 'cloud');
   const [extensionIds, setExtensionIds] = useState<string[]>(profile?.extensionIds ?? []);
+  const [searchEngine, setSearchEngine] = useState<SearchEngine>(profile?.searchEngine ?? 'none');
+  const [restoreTabs, setRestoreTabs] = useState(profile?.restoreTabs ?? true);
   const [kernelVersion, setKernelVersion] = useState(profile?.kernelVersion ?? '');
   const [fp, setFp] = useState<FpState>(profile ? { state: 'ready', fingerprint: profile.fingerprint, kernelVersion: profile.kernelVersion } : { state: 'loading' });
   const [regenerated, setRegenerated] = useState(false);
@@ -105,7 +108,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
       const common = {
         name: name.trim(), groupId: group, proxyId: proxyId || null,
         tags: [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10),
-        extensionIds: extensionIds.filter(id => usable.some(x => x.id === id)),
+        extensionIds: extensionIds.filter(id => usable.some(x => x.id === id)), searchEngine, restoreTabs,
         ...(manager ? { ...(ownerId || profile ? { ownerId: ownerId || null } : {}), ...(data.departments.length ? { departmentId: departmentId || null } : {}) } : {})
       };
       if (profile && base){
@@ -224,6 +227,18 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                     <span>{pxNote.text}</span>
                   </p>
                 )}
+              </div>
+            </div>
+          </section>
+
+          <section className="pf-sec">
+            <h3><span className="n">3</span>{d.browser.title}</h3>
+            <div className="row2">
+              <SelectField label={d.browser.search} value={searchEngine} onChange={v => setSearchEngine(v as SearchEngine)} hint={d.browser.searchHint}
+                options={SEARCH_IDS.map(id => ({ value: id, label: d.browser.name(id), ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) }))} />
+              <div className="field pf-switch">
+                <Switch label={d.browser.restore} checked={restoreTabs} onChange={setRestoreTabs} />
+                <p className="hint">{d.browser.restoreHint}</p>
               </div>
             </div>
           </section>

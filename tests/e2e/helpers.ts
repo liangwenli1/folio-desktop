@@ -58,6 +58,12 @@ export function inBrowser(app: ElectronApplication, id: string, url: string){
   }, { id, url });
 }
 
+// What a person does: close every window of the browser.
+export const closeWindows = (app: ElectronApplication, id: string) => app.evaluate(async (_e, id) => {
+  const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
+  await Promise.all(r.ctx.pages().map(p => p.close()));
+}, id);
+
 // Creates an account the way the website does: register, verify, and optionally buy a plan.
 export async function account({ locale = 'en', buy }: { locale?: 'en' | 'zh'; buy?: { plan: string; period: string } } = {}){
   const email = `desk${Date.now().toString(36)}${n++}@example.com`;

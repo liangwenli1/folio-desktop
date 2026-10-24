@@ -4,7 +4,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type ElectronApplication } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { ENGINE_ENV, account, dataDir, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { ENGINE_ENV, account, closeWindows, dataDir, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
 
 test.skip(!hasKernels, 'browser engines are not unpacked here');
 test.setTimeout(300_000);
@@ -45,11 +45,6 @@ const browse = (app: ElectronApplication, id: string, url: string, title: string
   return page.evaluate(() => ({ ...document.body.dataset }));
 }, { id, url, title });
 
-// What a person does: close every window of the browser.
-const closeWindows = (app: ElectronApplication, id: string) => app.evaluate(async (_e, id) => {
-  const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
-  await Promise.all(r.ctx.pages().map(p => p.close()));
-}, id);
 
 for (const kernel of ['chromium', 'firefox'] as const){
   test(`${kernel}: signed in on one computer, still signed in on the next; one computer at a time`, async () => {

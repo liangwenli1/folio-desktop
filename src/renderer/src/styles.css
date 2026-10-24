@@ -698,6 +698,8 @@ body:has(.tray) .bulk{left:calc(50% + 114px - 188px);max-width:calc(100% - 228px
 .pf .seg button{height:30px}
 .pf .seg button:disabled{opacity:.45;cursor:default}
 .pf .seg .logo,.pf .seg .i{width:15px;height:15px}
+/* the switch lines up with the dropdown beside it, below that one's label */
+.pf-switch{align-content:start;padding-top:25px}
 .pf-preview{position:sticky;top:0;display:grid;gap:12px}
 .pf-t{font-size:12px;font-weight:600;color:var(--ink-3)}
 .pf-preview .idcard{padding:14px 16px}

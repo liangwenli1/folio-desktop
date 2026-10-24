@@ -1,8 +1,8 @@
 // The redesigned pages' own behaviour: the Trash's cards and who deleted what, installing an extension from its card,
-// the engines' download settings, and copying a waiting invitation's link again.
+// the engines' download settings, copying a waiting invitation's link again, and a profile's browser settings.
 import { strToU8, zipSync } from 'fflate';
 import { expect, test } from '@playwright/test';
-import { account, chromiumProfile, dataDir, launch, logIn } from './helpers';
+import { account, choose, chromiumProfile, dataDir, launch, logIn } from './helpers';
 
 const STUDIO = { plan: 'studio', period: 'monthly' };
 const nav = (win: import('@playwright/test').Page, name: RegExp) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
@@ -80,5 +80,38 @@ test('a waiting invitation’s link can be copied again, which replaces the old 
   expect((await acct.api.get(`/invitations/by-token/${token}`)).status()).toBe(404);
   const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
   expect(copied).toContain('/invite/?token=');
+  await app.close();
+});
+
+test('a profile’s search engine and tab setting: chosen when it is made, shown in its details, changed in bulk', async () => {
+  const acct = await account();
+  const base = `/workspaces/${acct.workspaceId}`;
+  await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Shop-1') });
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+  await win.getByRole('button', { name: 'New profile' }).first().click();
+  const form = win.getByRole('dialog', { name: 'New profile' });
+  await form.getByLabel('Name', { exact: true }).fill('Shop-2');
+  await choose(form.getByLabel('Search engine'), 'Baidu');
+  await form.getByRole('switch', { name: 'Restore last tabs' }).uncheck();
+  await expect(form.getByTestId('fingerprint')).toContainText('Chromium 150');
+  await form.getByRole('button', { name: 'Create profile' }).click();
+
+  const row = win.locator('tr[data-id]', { hasText: 'Shop-2' });
+  await row.getByRole('button', { name: 'Shop-2', exact: true }).click();
+  const detail = win.getByRole('complementary', { name: 'Profile' });
+  await expect(detail).toContainText('Search engineBaidu');
+  await expect(detail).toContainText('On openingOpens the Baidu home page');
+  await detail.getByRole('button', { name: 'Close details' }).click();
+
+  for (const n of ['Shop-1', 'Shop-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'Browser…' }), 'Bing');
+  await expect(win.getByRole('status').filter({ hasText: 'Search engine set to Bing on 2 profiles' })).toBeVisible();
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'Browser…' }), 'On');
+  await expect(win.getByRole('status').filter({ hasText: 'Restoring tabs turned on on 2 profiles' })).toBeVisible();
+  const profiles = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; searchEngine: string; restoreTabs: boolean }[];
+  expect(profiles.map(p => [p.name, p.searchEngine, p.restoreTabs])).toEqual([['Shop-1', 'bing', true], ['Shop-2', 'bing', true]]);
+  await row.getByRole('button', { name: 'Shop-2', exact: true }).click();
+  await expect(detail).toContainText('On openingRestores the last tabs');
   await app.close();
 });

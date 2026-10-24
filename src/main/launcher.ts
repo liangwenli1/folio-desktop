@@ -1,8 +1,9 @@
 // Opens and closes profiles. Opening: take the profile's lock (one computer at a time), fetch the launch details,
 // check the proxy (falling back to its backup line), bring the profile's folder up to the saved sign-in state,
-// align time zone, language and location with the exit IP, start the local forwarder and the engine. While it
-// runs, the lock is renewed and cookies are saved every few minutes. When the browser closes (however it
-// closes), its folder is read back with the engine offline, the state is uploaded and the lock released.
+// align time zone, language and location with the exit IP, set its search engine, start the local forwarder and the
+// engine, and open its start pages. While it runs, the lock is renewed and cookies are saved every few minutes. When
+// the browser closes (however it closes), its folder is read back with the engine offline, the state (with the tabs
+// it had open) is uploaded and the lock released.
 import { app } from 'electron';
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
@@ -16,19 +17,23 @@ import { startForwarder, type Forwarder } from './forwarder';
 import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
 import { collectExtensionData, prepareExtensions, writeExtensionData, type Extension } from './extensions';
+import { chromiumSearch, withFirefoxSearch } from './search';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, CheckupFacts, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 import type { Cookie } from '../shared/cookies';
+import { SEARCH_ENGINES, type SearchEngine } from '../shared/search';
 
 interface LaunchProfile {
   id: string; workspaceId: string; syncMode: 'cloud' | 'local'; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
-  timezoneOverride: string | null; localeOverride: string | null;
+  timezoneOverride: string | null; localeOverride: string | null; searchEngine: SearchEngine; restoreTabs: boolean;
 }
 interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null; extensions: Extension[] }
 
 class LaunchError extends Error { constructor(public code: string){ super(code); } }
 
 const RENEW_MS = 30_000, AUTOSAVE_MS = 5 * 60_000;
+// Tabs kept for the next opening. Tabs that close within a second of each other at the end went with the browser.
+const MAX_TABS = 20, TAB_GRACE_MS = 1000;
 
 interface Running {
   ctx: BrowserContext; fwd: Forwarder; status: ProfileStatus; profile: LaunchProfile; exe: string; dir: string;
@@ -41,7 +46,11 @@ interface Running {
   debug: Debugging | null;
   // The extensions it opened with, whose data is saved with its sign-ins.
   extensions: Extension[];
+  // Its tabs in the order they opened, with their addresses ('' until they show a site) and when they closed, when
+  // they are kept for next time (see open()); otherwise the tabs kept from before, saved again unchanged.
+  tabs: Map<Page, Tab> | null; keptTabs: string[];
 }
+interface Tab { url: string; closedAt: number | null }
 const running = new Map<string, Running>();
 // End-to-end tests drive the launched browsers through this; it is not set in normal runs.
 if (process.env.FOLIO_TEST_HOOKS) (globalThis as { __folioRunning?: typeof running }).__folioRunning = running;
@@ -121,7 +130,8 @@ async function cdpAddress(dir: string): Promise<Debugging> {
 }
 
 // The engine on a profile's folder with no window and no network (a proxy nobody listens on, and every page
-// answered locally), to write or read its storage.
+// answered locally), to write or read its storage. Firefox reads the search engine here too, so it gets the profile's
+// own (Firefox reapplies a changed one over the person's choice).
 async function offline(p: LaunchProfile, exe: string, dir: string){
   const dead = 'http://127.0.0.1:9';
   const ctx = p.kernel === 'chromium'
@@ -130,11 +140,11 @@ async function offline(p: LaunchProfile, exe: string, dir: string){
       args: ['--remote-debugging-pipe', '--headless=new', `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
         `--proxy-server=${dead}`, '--proxy-bypass-list=<-loopback>', ...(process.env.FOLIO_KERNEL_NO_SANDBOX ? ['--no-sandbox'] : []), 'about:blank']
     })
-    : await prepareFirefox().then(() => Camoufox({
+    : await prepareFirefox().then(() => withFirefoxSearch(exe, p.searchEngine, () => Camoufox({
       executable_path: exe, persistent_context: true, user_data_dir: dir, headless: true, os: p.os,
       config: (p.fingerprint as Extract<Fingerprint, { kind: 'firefox' }>).config, i_know_what_im_doing: true, exclude_addons: ['UBO'],
       proxy: { server: dead }, firefox_user_prefs: { 'network.proxy.allow_hijacking_localhost': true }
-    }) as Promise<BrowserContext>);
+    }) as Promise<BrowserContext>));
   await ctx.route('**/*', r => r.fulfill({ contentType: 'text/html', body: '<html></html>' }));
   return ctx;
 }
@@ -142,6 +152,22 @@ async function offline(p: LaunchProfile, exe: string, dir: string){
 async function restore(p: LaunchProfile, exe: string, dir: string, state: StorageState){
   const ctx = await offline(p, exe, dir);
   try { await ctx.setStorageState({ cookies: state.cookies, origins: state.origins }); } finally { await ctx.close(); }
+}
+
+// The browser starts on a blank tab: the first page goes there, the rest into new tabs, all loading in the background.
+async function openTabs(ctx: BrowserContext, urls: string[]){
+  for (const [i, url] of urls.entries()){
+    const page = (i === 0 && ctx.pages()[0]) || await ctx.newPage();
+    void page.goto(url).catch(() => {});
+  }
+  if (urls.length > 1) await ctx.pages()[0]?.bringToFront().catch(() => {});
+}
+// The open tabs, or once the browser has closed, the last ones to close.
+function tabsOf(r: Running){
+  if (!r.tabs) return r.keptTabs;
+  const all = [...r.tabs.values()], open = all.filter(t => t.closedAt === null);
+  const last = Math.max(0, ...all.map(t => t.closedAt ?? 0));
+  return (open.length ? open : all.filter(t => last - t.closedAt! < TAB_GRACE_MS)).map(t => t.url).filter(Boolean).slice(0, MAX_TABS);
 }
 
 // Visiting each known site is how the engine is asked for that site's storage.
@@ -155,8 +181,11 @@ async function harvest(p: LaunchProfile, exe: string, dir: string, origins: stri
 }
 
 // Resolves when the browser is up (null) or could not start (the reason). Opened for the local API, it also
-// listens for scripts: CDP for Chromium, WebDriver BiDi for Firefox, on this computer only.
-export async function open(id: string, opts: { api?: boolean } = {}): Promise<string | null> {
+// listens for scripts: CDP for Chromium, WebDriver BiDi for Firefox, on this computer only. `tabs`: opened for the
+// person at the computer, it comes back with the tabs it was closed with (unless the profile says not to), else on
+// its search engine's home page, and the tabs it closes with are kept. Opened for a script, a flow or window sync, it
+// starts on one blank tab and leaves the kept tabs alone.
+export async function open(id: string, opts: { api?: boolean; tabs?: boolean } = {}): Promise<string | null> {
   if (running.has(id)) return null;
   if (starting.has(id)) return 'starting';
   starting.add(id);
@@ -214,24 +243,39 @@ export async function open(id: string, opts: { api?: boolean } = {}): Promise<st
     notify({ id, state: 'starting', stage: 'launch' });
     const ext = await prepareExtensions(profile, extensions, dir);
     fwd = await startForwarder(line);
+    const port = fwd.port;
     if (opts.api) await rm(join(dir, 'DevToolsActivePort'), { force: true });
     const bidiPort = opts.api && profile.kernel === 'firefox' ? await freePort() : null;
+    if (profile.kernel === 'chromium') await chromiumSearch(dir, profile.searchEngine);
     const ctx = profile.kernel === 'chromium'
-      ? await launchChromium(exe, dir, profile, fwd.port, tz, locale, geo, !!opts.api, ext.dirs)
-      : await launchFirefox(exe, dir, profile, fwd.port, tz, locale, geo, check?.ip ?? null, bidiPort, ext);
+      ? await launchChromium(exe, dir, profile, port, tz, locale, geo, !!opts.api, ext.dirs)
+      : await withFirefoxSearch(exe, profile.searchEngine, () => launchFirefox(exe, dir, profile, port, tz, locale, geo, check?.ip ?? null, bidiPort, ext));
     const debug: Debugging | null = !opts.api ? null
       : bidiPort ? { protocol: 'webdriver-bidi', wsEndpoint: `ws://127.0.0.1:${bidiPort}/session` } : await cdpAddress(dir);
 
     const visited = new Set<string>();
-    const track = (page: Page) => page.on('framenavigated', f => {
-      const u = f === page.mainFrame() ? URL.parse(f.url()) : null;
-      if (u?.protocol === 'http:' || u?.protocol === 'https:') visited.add(u.origin);
-    });
+    const keptTabs = (profile.syncMode === 'cloud' ? saved?.tabs : local.tabs) ?? [];
+    const tabs = opts.tabs ? new Map<Page, Tab>() : null;
+    const track = (page: Page) => {
+      const tab: Tab = { url: '', closedAt: null };
+      tabs?.set(page, tab);
+      page.on('framenavigated', f => {
+        const u = f === page.mainFrame() ? URL.parse(f.url()) : null;
+        if (u?.protocol === 'http:' || u?.protocol === 'https:'){ visited.add(u.origin); tab.url = u.href; }
+      });
+      // Tabs closed earlier than that are forgotten.
+      page.on('close', () => {
+        tab.closedAt = Date.now();
+        for (const [p, t] of tabs ?? []) if (t.closedAt !== null && tab.closedAt - t.closedAt >= TAB_GRACE_MS) tabs!.delete(p);
+      });
+    };
     ctx.pages().forEach(track);
     ctx.on('page', track);
+    const engine = profile.searchEngine === 'none' ? null : SEARCH_ENGINES[profile.searchEngine];
+    await openTabs(ctx, !opts.tabs ? [] : profile.restoreTabs && keptTabs.length ? keptTabs : engine ? [engine.home] : []);
     const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo, ...(ext.failed.length ? { extensionErrors: ext.failed } : {}) };
     const entry: Running = {
-      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug, extensions,
+      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug, extensions, tabs, keptTabs,
       timers: [setInterval(() => void renew(id), RENEW_MS), setInterval(() => void autosave(id), AUTOSAVE_MS)],
       done: new Promise(resolve => ctx.on('close', () => { void finish(id).finally(resolve); }))
     };
@@ -267,7 +311,7 @@ async function autosave(id: string){
   const r = running.get(id);
   if (!r || r.lost || r.profile.syncMode === 'local') return;
   try {
-    const result = await upload(id, { cookies: await r.ctx.cookies(), origins: r.saved?.origins ?? [], extensions: r.saved?.extensions }, r.local);
+    const result = await upload(id, { cookies: await r.ctx.cookies(), origins: r.saved?.origins ?? [], extensions: r.saved?.extensions, tabs: tabsOf(r) }, r.local);
     if (result === 'lost'){ r.lost = 'lock_lost'; await r.ctx.close().catch(() => {}); }
     else await writeLocal(r.dir, r.local);
   } catch (e){ console.error('autosave failed', e); }
@@ -280,7 +324,11 @@ async function finish(id: string){
   await r.fwd.close();
   // A profile of a workspace the account left just stops; its folder is deleted by discard().
   let error = r.lost === 'lock_lost' ? 'lock_lost' : undefined;
-  if (!r.lost && r.profile.syncMode === 'local') await api('DELETE', `/profiles/${id}/lock`);
+  if (!r.lost && r.profile.syncMode === 'local'){
+    r.local.tabs = tabsOf(r);
+    await writeLocal(r.dir, r.local);
+    await api('DELETE', `/profiles/${id}/lock`);
+  }
   else if (!r.lost){
     r.status = { id, state: 'saving' };
     notify(r.status);
@@ -288,7 +336,7 @@ async function finish(id: string){
       r.local.origins = addOrigins(r.local.origins, r.visited);
       // Extension data is read straight from the folder, before the engine starts again without its extensions.
       const extensions = await collectExtensionData(r.dir, r.extensions);
-      const state = { ...(await harvest(r.profile, r.exe, r.dir, r.local.origins)), extensions };
+      const state = { ...(await harvest(r.profile, r.exe, r.dir, r.local.origins)), extensions, tabs: tabsOf(r) };
       if (await upload(id, state, r.local) === 'lost') error = 'lock_lost';
       await writeLocal(r.dir, r.local);
     } catch (e){
@@ -338,7 +386,7 @@ const CHECKUP = `async () => {
 // Runs the self-check in a new tab of the profile's browser (opening the profile first if needed), then closes it.
 export async function checkup(id: string): Promise<{ ok: true; facts: CheckupFacts; exitIp: string | null; exitGeo: Geo | null } | { ok: false; error: string }> {
   if (!running.has(id)){
-    const why = await open(id);
+    const why = await open(id, { tabs: true });
     if (why) return { ok: false, error: why };
   }
   const r = running.get(id)!;

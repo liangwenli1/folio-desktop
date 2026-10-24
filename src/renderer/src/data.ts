@@ -6,7 +6,7 @@ import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus,
 import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
 type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
-export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'trash' | 'restore' | 'purge';
+export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
 export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
@@ -26,7 +26,7 @@ export interface WorkspaceData {
   refresh(...kinds: Kind[]): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
-  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string }): Promise<number>;
+  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean }): Promise<number>;
   // The id of the group with this name, created when there is none.
   ensureGroup(name: string): Promise<string>;
   // Checks proxies two at a time; `checking` holds the ones under way.

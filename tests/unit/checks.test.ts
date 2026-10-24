@@ -12,7 +12,7 @@ const proxy = (id: string, check: Partial<NonNullable<Proxy['lastCheck']>> | nul
 const profile = (over: Partial<Profile> = {}): Profile => ({
   id: 'p1', workspaceId: 'w1', number: 1, name: 'US-Store-01', groupId: null, ownerId: null, departmentId: null, tags: [], kernel: 'chromium', kernelVersion: '150.0.7871.186', os: 'windows',
   fingerprint: { kind: 'chromium', seed: 42, hardwareConcurrency: 8 }, proxyId: 'main', timezoneOverride: null, localeOverride: null, notes: null,
-  lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, deletedBy: null, version: 1, syncMode: 'cloud', extensionIds: [], data: null, lock: null,
+  lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, deletedBy: null, version: 1, syncMode: 'cloud', searchEngine: 'none', restoreTabs: true, extensionIds: [], data: null, lock: null,
   lastExit: null, prevExit: null, report: null, starred: false, ...over
 });
 const kernel = (version: string, over: Partial<KernelState> = {}): KernelState => ({ kind: 'chromium', version, installed: true, available: true, recommended: false, size: 150_000_000, note: null, addedAt: null, recommendedAt: null, ...over });

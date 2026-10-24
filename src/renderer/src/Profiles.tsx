@@ -8,7 +8,8 @@ import { useActivity } from './Activity';
 import { BulkBar, ExtIcon, Icon, Modal, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Select } from './Select';
 import { ExitMap, type Pin, type PinState } from './ExitMap';
-import { Flag } from './Flag';
+import { Flag, SEARCH_LOGOS } from './Flag';
+import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { mod } from './CommandPalette';
 import { byProfile, risks, type Risk } from './risks';
 
@@ -381,6 +382,16 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                       void batchAction(how === 'add' ? 'add-extension' : 'remove-extension', { extensionId: id }, n => (how === 'add' ? P.done.extAdded(n, x.name, ids.length - n) : P.done.extRemoved(n, x.name)));
                     }} />
                 )}
+                <Select variant="bar" action label={d.browser.bulk} placeholder={d.browser.bulk} value=""
+                  options={[
+                    ...SEARCH_IDS.map(id => ({ value: `se:${id}`, label: d.browser.name(id), group: d.browser.search, ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) })),
+                    ...(['on', 'off'] as const).map(v => ({ value: `tabs:${v}`, label: d.browser[v], group: d.browser.restore }))
+                  ]}
+                  onChange={v => {
+                    const [what, x] = v.split(':');
+                    if (what === 'se') void batchAction('set-browser', { searchEngine: x }, n => d.browser.searchSet(n, d.browser.name(x as SearchEngine)));
+                    else void batchAction('set-browser', { restoreTabs: x === 'on' }, n => d.browser.tabsSet(n, x === 'on'));
+                  }} />
                 <button type="button" className="bb" onClick={() => setTagging(true)}>{P.bulk.tag}</button>
                 {manager && (
                   <Select variant="bar" action label={P.bulk.cookies} placeholder={P.bulk.cookies} value=""

@@ -2,6 +2,7 @@ import type { Problem } from './csv';
 import type { CheckId } from './checks';
 import type { ActivityAction } from './api';
 import type { Step } from '@shared/bridge';
+import { SEARCH_ENGINES, type SearchEngine } from '@shared/search';
 
 export type Lang = 'en' | 'zh';
 type CheckText = { t: (x: CheckVars) => string; d: (x: CheckVars) => string };
@@ -12,10 +13,12 @@ export interface CheckVars { ms: number; host: string; city: string; tz: string;
 const profilesN = (n: number) => (n === 1 ? '1 profile' : `${n} profiles`);
 const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
 
-const enFields: Record<string, string> = { name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'owner', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
+const enFields: Record<string, string> = { searchEngine: 'search engine', restoreTabs: 'tab restoring', name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'owner', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
 const enRoles: Record<string, string> = { admin: 'an admin', member: 'a member', owner: 'the owner' };
-const zhFields: Record<string, string> = { name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
+const zhFields: Record<string, string> = { searchEngine: '搜索引擎', restoreTabs: '恢复标签页', name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
 const zhRoles: Record<string, string> = { admin: '管理员', member: '成员', owner: '所有者' };
+const enSearch = (id: SearchEngine): string => (id === 'none' ? 'None' : SEARCH_ENGINES[id].name);
+const zhSearch = (id: SearchEngine): string => (id === 'none' ? '无' : id === 'baidu' ? '百度' : SEARCH_ENGINES[id].name);
 
 export const en = {
   login: {
@@ -188,12 +191,21 @@ export const en = {
     syncHelp: 'Kept on one computer, sign-ins never leave it, and the profile opens signed out anywhere else.',
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.'
   },
+  // A profile's search engine and the pages it opens with.
+  browser: {
+    title: 'Browser', search: 'Search engine', name: enSearch, searchHint: 'For text typed in the address bar. With none, the text is opened as an address.',
+    restore: 'Restore last tabs', restoreHint: 'When off, and the first time, it opens the search engine’s home page, or a blank page without one.',
+    start: 'On opening', startTabs: 'Restores the last tabs', startHome: (name: string) => `Opens the ${name} home page`, startBlank: 'Opens a blank page',
+    bulk: 'Browser…', on: 'On', off: 'Off',
+    searchSet: (n: number, name: string) => `Search engine set to ${name} on ${profilesN(n)}`,
+    tabsSet: (n: number, on: boolean) => `Restoring tabs turned ${on ? 'on' : 'off'} on ${profilesN(n)}`
+  },
   importer: {
     title: 'Import profiles', lead: 'One profile per row with a header row. Save Excel sheets as CSV first; up to 500 rows at a time.',
-    columns: 'Columns: name (required), group, tags (separated by |), os (windows, macos, linux), engine (chromium, firefox), proxy, timezone, language, notes, cookies (JSON or cookies.txt text).',
+    columns: 'Columns: name (required), group, tags (separated by |), os (windows, macos, linux), engine (chromium, firefox), proxy, timezone, language, search engine (google, bing, baidu, duckduckgo, yahoo, yandex or none), restore tabs (yes or no), notes, cookies (JSON or cookies.txt text).',
     example: 'Insert an example', file: 'Choose a file…', pasteLabel: 'CSV', ready: (n: number) => `${profilesN(n)} ready to import.`,
     problems: 'Fix these rows first:', row: (n: number) => `Row ${n}`, header: 'The first row needs a “name” column.',
-    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags of 24 characters', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', cookies: 'no cookies could be read', header: '' } satisfies Record<Problem | 'proxy', string>,
+    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags of 24 characters', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', cookies: 'no cookies could be read', search: 'unknown search engine', restoreTabs: 'use yes or no', header: '' } satisfies Record<Problem | 'proxy', string>,
     tooMany: 'Up to 500 rows at a time.', room: (free: number) => `The plan has room for ${profilesN(free)} more.`, firefox: 'Some rows use Firefox: download its engine first.',
     submit: (n: number) => `Import ${profilesN(n)}`, steps: { proxies: 'Adding proxies…', groups: 'Creating groups…', fingerprints: (i: number, n: number) => `Making fingerprints… ${i} / ${n}`, saving: 'Saving…', cookies: (i: number, n: number) => `Importing cookies… ${i} / ${n}` },
     done: (n: number) => `${profilesN(n)} imported`
@@ -309,7 +321,8 @@ export const en = {
       'run.finish': (_p, x) => `${x.name} ${x.status === 'stopped' ? 'stopped' : 'finished'}: ${x.ok} done, ${x.failed} failed${x.signedOut ? `, ${x.signedOut} signed out` : ''}${x.skipped ? `, ${x.skipped} not run` : ''}`,
       'extension.add': (_p, x) => `added the extension ${x.name} ${x.version}`, 'extension.update': (_p, x) => `updated the extension ${x.name} from ${x.from} to ${x.version}`,
       'extension.delete': (_p, x) => `deleted the extension ${x.name}`, 'profile.add-extension': (p, x) => `installed ${x.extension} in ${p}`, 'profile.remove-extension': (p, x) => `uninstalled ${x.extension} from ${p}`,
-      'profile.set-kernel': (p, x) => `changed the engine of ${p} to ${x.kernel === 'firefox' ? 'Firefox' : 'Chromium'} ${x.version}`
+      'profile.set-kernel': (p, x) => `changed the engine of ${p} to ${x.kernel === 'firefox' ? 'Firefox' : 'Chromium'} ${x.version}`,
+      'profile.set-browser': (p, x) => (x.searchEngine ? `set the search engine of ${p} to ${enSearch(x.searchEngine)}` : `turned ${x.restoreTabs ? 'on' : 'off'} restoring tabs for ${p}`)
     } satisfies Record<ActivityAction, Said>
   },
   transfer: {
@@ -762,12 +775,20 @@ export const zh: Dict = {
     syncHelp: '仅存本机时，登录状态不会离开该电脑；在其他电脑上打开时为未登录状态。',
     stale: '编辑期间该环境已被他人修改。再次保存将覆盖对方的修改，取消则保留对方的修改。'
   },
+  browser: {
+    title: '浏览器', search: '搜索引擎', name: zhSearch, searchHint: '用于在地址栏输入文字搜索。选「无」时，输入的文字按网址打开。',
+    restore: '恢复上次的标签页', restoreHint: '关闭此项或首次打开时，打开所选搜索引擎的首页；未选搜索引擎则打开空白页。',
+    start: '打开时', startTabs: '恢复上次的标签页', startHome: (name: string) => `打开${name}首页`, startBlank: '打开空白页',
+    bulk: '浏览器设置…', on: '开启', off: '关闭',
+    searchSet: (n: number, name: string) => `已将 ${n} 个环境的搜索引擎设为${name}`,
+    tabsSet: (n: number, on: boolean) => `已为 ${n} 个环境${on ? '开启' : '关闭'}恢复标签页`
+  },
   importer: {
     title: '导入环境', lead: '每行一个环境，首行为表头。Excel 表格请先另存为 CSV；每次最多 500 行。',
-    columns: '列：name 或 名称（必填）、group 分组、tags 标签（用 | 分隔）、os 系统（windows、macos、linux）、engine 内核（chromium、firefox）、proxy 代理、timezone 时区、language 语言、notes 备注、cookies（JSON 或 cookies.txt 文本）。',
+    columns: '列：name 或 名称（必填）、group 分组、tags 标签（用 | 分隔）、os 系统（windows、macos、linux）、engine 内核（chromium、firefox）、proxy 代理、timezone 时区、language 语言、搜索引擎（google、bing、baidu、duckduckgo、yahoo、yandex 或 none）、恢复标签页（是或否）、notes 备注、cookies（JSON 或 cookies.txt 文本）。',
     example: '填入示例', file: '选择文件…', pasteLabel: 'CSV', ready: (n: number) => `${n} 个环境可导入。`,
     problems: '请先修正以下行：', row: (n: number) => `第 ${n} 行`, header: '首行须包含「name」或「名称」列。',
-    errs: { name: '名称为空或太长', os: '无法识别的系统', engine: '无法识别的内核', tags: '最多 10 个标签，每个不超过 24 个字', timezone: '无法识别的时区', language: '不是有效的语言代码', proxy: '代理地址无法识别', cookies: '无法读取 Cookie', header: '' },
+    errs: { name: '名称为空或太长', os: '无法识别的系统', engine: '无法识别的内核', tags: '最多 10 个标签，每个不超过 24 个字', timezone: '无法识别的时区', language: '不是有效的语言代码', proxy: '代理地址无法识别', cookies: '无法读取 Cookie', search: '无法识别的搜索引擎', restoreTabs: '请填写「是」或「否」', header: '' },
     tooMany: '每次最多 500 行。', room: (free: number) => `套餐剩余 ${free} 个环境额度。`, firefox: '部分行使用 Firefox，请先下载 Firefox 内核。',
     submit: (n: number) => `导入 ${n} 个环境`, steps: { proxies: '正在添加代理…', groups: '正在创建分组…', fingerprints: (i: number, n: number) => `正在生成指纹… ${i} / ${n}`, saving: '正在保存…', cookies: (i: number, n: number) => `正在导入 Cookie… ${i} / ${n}` },
     done: (n: number) => `已导入 ${n} 个环境`
@@ -883,7 +904,8 @@ export const zh: Dict = {
       'run.finish': (_p, x) => `任务 ${x.name} ${x.status === 'stopped' ? '已停止' : '已完成'}：${x.ok} 个成功，${x.failed} 个失败${x.signedOut ? `，${x.signedOut} 个掉线` : ''}${x.skipped ? `，${x.skipped} 个未运行` : ''}`,
       'extension.add': (_p, x) => `添加了扩展 ${x.name} ${x.version}`, 'extension.update': (_p, x) => `将扩展 ${x.name} 从 ${x.from} 更新至 ${x.version}`,
       'extension.delete': (_p, x) => `删除了扩展 ${x.name}`, 'profile.add-extension': (p, x) => `为 ${p} 安装了 ${x.extension}`, 'profile.remove-extension': (p, x) => `从 ${p} 卸载了 ${x.extension}`,
-      'profile.set-kernel': (p, x) => `将 ${p} 的内核版本改为 ${x.kernel === 'firefox' ? 'Firefox' : 'Chromium'} ${x.version}`
+      'profile.set-kernel': (p, x) => `将 ${p} 的内核版本改为 ${x.kernel === 'firefox' ? 'Firefox' : 'Chromium'} ${x.version}`,
+      'profile.set-browser': (p, x) => (x.searchEngine ? `将 ${p} 的搜索引擎设为${zhSearch(x.searchEngine)}` : `为 ${p} ${x.restoreTabs ? '开启' : '关闭'}了恢复标签页`)
     }
   },
   transfer: {

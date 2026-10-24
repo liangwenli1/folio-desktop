@@ -58,7 +58,7 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
         profiles.push({
           name: r.name, groupId: r.group ? groupOf.get(r.group)! : null, tags: [...new Set(r.tags)], kernel: r.kernel, os: r.os,
           kernelVersion: fp.kernelVersion, fingerprint: fp.fingerprint, proxyId: r.proxy ? proxyOf.get(r.proxy)! : null,
-          timezoneOverride: r.timezone, localeOverride: r.language, notes: r.notes
+          timezoneOverride: r.timezone, localeOverride: r.language, notes: r.notes, searchEngine: r.searchEngine, restoreTabs: r.restoreTabs
         });
       }
       setStep(I.steps.saving);

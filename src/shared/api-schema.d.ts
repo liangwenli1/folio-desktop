@@ -1696,6 +1696,9 @@ export interface paths {
                                 timezoneOverride: string | null;
                                 localeOverride: string | null;
                                 notes: string | null;
+                                /** @enum {string} */
+                                searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                                restoreTabs: boolean;
                                 lastOpenedAt: string | null;
                                 lastOpenedBy: string | null;
                                 createdAt: string;
@@ -1815,6 +1818,9 @@ export interface paths {
                         /** @enum {string} */
                         syncMode?: "cloud" | "local";
                         extensionIds?: string[];
+                        /** @enum {string} */
+                        searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                        restoreTabs?: boolean;
                     };
                 };
             };
@@ -1855,6 +1861,9 @@ export interface paths {
                             timezoneOverride: string | null;
                             localeOverride: string | null;
                             notes: string | null;
+                            /** @enum {string} */
+                            searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                            restoreTabs: boolean;
                             lastOpenedAt: string | null;
                             lastOpenedBy: string | null;
                             createdAt: string;
@@ -1988,6 +1997,9 @@ export interface paths {
                             /** @enum {string} */
                             syncMode?: "cloud" | "local";
                             extensionIds?: string[];
+                            /** @enum {string} */
+                            searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                            restoreTabs?: boolean;
                         }[];
                     };
                 };
@@ -2030,6 +2042,9 @@ export interface paths {
                                 timezoneOverride: string | null;
                                 localeOverride: string | null;
                                 notes: string | null;
+                                /** @enum {string} */
+                                searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                                restoreTabs: boolean;
                                 lastOpenedAt: string | null;
                                 lastOpenedBy: string | null;
                                 createdAt: string;
@@ -2165,6 +2180,9 @@ export interface paths {
                         /** @enum {string} */
                         syncMode?: "cloud" | "local";
                         extensionIds?: string[];
+                        /** @enum {string} */
+                        searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                        restoreTabs?: boolean;
                     };
                 };
             };
@@ -2205,6 +2223,9 @@ export interface paths {
                             timezoneOverride: string | null;
                             localeOverride: string | null;
                             notes: string | null;
+                            /** @enum {string} */
+                            searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                            restoreTabs: boolean;
                             lastOpenedAt: string | null;
                             lastOpenedBy: string | null;
                             createdAt: string;
@@ -2301,7 +2322,7 @@ export interface paths {
                     "application/json": {
                         ids: string[];
                         /** @enum {string} */
-                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "add-extension" | "remove-extension" | "set-kernel" | "trash" | "restore" | "purge";
+                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "add-extension" | "remove-extension" | "set-kernel" | "set-browser" | "trash" | "restore" | "purge";
                         /** Format: uuid */
                         groupId?: string | null;
                         tag?: string;
@@ -2316,6 +2337,9 @@ export interface paths {
                         /** @enum {string} */
                         kernel?: "chromium" | "firefox";
                         kernelVersion?: string;
+                        /** @enum {string} */
+                        searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                        restoreTabs?: boolean;
                     };
                 };
             };
@@ -2556,6 +2580,9 @@ export interface paths {
                                 timezoneOverride: string | null;
                                 localeOverride: string | null;
                                 notes: string | null;
+                                /** @enum {string} */
+                                searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                                restoreTabs: boolean;
                                 lastOpenedAt: string | null;
                                 lastOpenedBy: string | null;
                                 createdAt: string;
@@ -4233,7 +4260,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
                                 profile: {
                                     id: string | null;
                                     name: string;
@@ -4359,6 +4386,9 @@ export interface paths {
                                 notes?: string | null;
                                 /** @enum {string} */
                                 syncMode?: "cloud" | "local";
+                                /** @enum {string} */
+                                searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                                restoreTabs?: boolean;
                                 ref: string;
                                 group: string | null;
                                 proxyRef: string | null;
@@ -4449,6 +4479,9 @@ export interface paths {
                             notes?: string | null;
                             /** @enum {string} */
                             syncMode?: "cloud" | "local";
+                            /** @enum {string} */
+                            searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
+                            restoreTabs?: boolean;
                             ref: string;
                             group: string | null;
                             proxyRef: string | null;

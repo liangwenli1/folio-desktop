@@ -17,8 +17,8 @@ describe('readProfiles', () => {
     const { rows, errors } = readProfiles(TEMPLATE);
     expect(errors).toEqual([]);
     expect(rows).toEqual([
-      { line: 2, name: 'US-Store-01', group: 'US stores', tags: ['flagship', 'new'], os: 'windows', kernel: 'chromium', proxy: 'socks5://user:pass@us1.example.net:1080', timezone: null, language: null, notes: null, cookies: null },
-      { line: 3, name: 'EU-Store-DE-01', group: 'EU stores', tags: [], os: 'macos', kernel: 'firefox', proxy: 'de1.example.net:8080:user:pass', timezone: 'Europe/Berlin', language: 'de-DE', notes: 'Shop admin', cookies: null }
+      { line: 2, name: 'US-Store-01', group: 'US stores', tags: ['flagship', 'new'], os: 'windows', kernel: 'chromium', proxy: 'socks5://user:pass@us1.example.net:1080', timezone: null, language: null, notes: null, searchEngine: 'google', restoreTabs: true, cookies: null },
+      { line: 3, name: 'EU-Store-DE-01', group: 'EU stores', tags: [], os: 'macos', kernel: 'firefox', proxy: 'de1.example.net:8080:user:pass', timezone: 'Europe/Berlin', language: 'de-DE', notes: 'Shop admin', searchEngine: 'none', restoreTabs: false, cookies: null }
     ]);
     expect(readProfiles('名称,系统,内核\n店铺 1,Windows 11,\n店铺 2,macOS 15,Chrome').rows.map(r => [r.name, r.os, r.kernel]))
       .toEqual([['店铺 1', 'windows', 'chromium'], ['店铺 2', 'macos', 'chromium']]);
@@ -32,6 +32,12 @@ describe('readProfiles', () => {
       { line: 2, problem: 'name', value: '' }, { line: 3, problem: 'os', value: 'xp' }, { line: 4, problem: 'engine', value: 'safari' },
       { line: 5, problem: 'timezone', value: 'Mars/Base' }, { line: 6, problem: 'language', value: 'english' }, { line: 7, problem: 'tags' }
     ]);
+  });
+
+  it('reads the search engine by id or name and the tab setting as yes or no', () => {
+    const { rows, errors } = readProfiles('名称,搜索引擎,恢复标签页\nA,百度,否\nB,DuckDuckGo,\nC,Ask,是\nD,bing,maybe');
+    expect(rows.map(r => [r.name, r.searchEngine, r.restoreTabs])).toEqual([['A', 'baidu', false], ['B', 'duckduckgo', true]]);
+    expect(errors).toEqual([{ line: 4, problem: 'search', value: 'Ask' }, { line: 5, problem: 'restoreTabs', value: 'maybe' }]);
   });
 
   it('takes cookies in a column and reports cells it cannot read', () => {

@@ -41,7 +41,7 @@ export function useActivity(wsId: string, query: string, data: WorkspaceData, li
 // Which filter of the log an entry belongs to (the server's grouping), for its category column.
 const KINDS: Record<Exclude<Kind, 'all'>, string[]> = {
   open: ['profile.open', 'profile.close', 'profile.takeover'],
-  profiles: ['profile.create', 'profile.update', 'profile.move', 'profile.tag', 'profile.untag', 'profile.set-proxy', 'profile.assign', 'profile.set-department', 'profile.add-extension', 'profile.remove-extension', 'profile.set-kernel'],
+  profiles: ['profile.create', 'profile.update', 'profile.move', 'profile.tag', 'profile.untag', 'profile.set-proxy', 'profile.assign', 'profile.set-department', 'profile.add-extension', 'profile.remove-extension', 'profile.set-kernel', 'profile.set-browser'],
   trash: ['profile.trash', 'profile.restore', 'profile.purge'],
   proxies: ['proxy.create', 'proxy.import', 'proxy.update', 'proxy.delete', 'group.create', 'group.rename', 'group.delete'],
   cookies: ['cookies.export', 'cookies.import', 'workspace.export', 'workspace.import'],

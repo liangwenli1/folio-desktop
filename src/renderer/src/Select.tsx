@@ -1,12 +1,12 @@
 // The app's dropdown, in place of the system one: same look everywhere, keyboard and type-to-filter, options with a
-// status dot and a hint (a proxy's exit city), a search box for long lists. The list opens above everything (dialogs
+// status dot or a logo and a hint (a proxy's exit city), a search box for long lists. The list opens above everything (dialogs
 // included) and closes on a click elsewhere, Escape, scrolling or resizing. With `action` it is a menu button: the
 // trigger always shows the placeholder, and picking runs onChange (the bulk bar's "Move to group…").
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './ui';
 
-export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle'; group?: string }
+export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle'; img?: string; group?: string }
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
   id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean;
@@ -53,10 +53,14 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
     const outside = (e: Event) => { if (!pop.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node)) close(false); };
     const away = () => close(false);
     document.addEventListener('mousedown', outside);
-    document.addEventListener('scroll', outside, true);
+    // A scroll that brought the field into view as it was clicked is reported a frame later; only later ones close it.
+    const frame = requestAnimationFrame(() => document.addEventListener('scroll', outside, true));
     window.addEventListener('resize', away);
     window.addEventListener('blur', away);
-    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('scroll', outside, true); window.removeEventListener('resize', away); window.removeEventListener('blur', away); };
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('mousedown', outside); document.removeEventListener('scroll', outside, true); window.removeEventListener('resize', away); window.removeEventListener('blur', away);
+    };
   }, [open]);
   useLayoutEffect(() => {
     if (!open) return;
@@ -88,6 +92,7 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
         onClick={() => (open ? close() : show())}
         onKeyDown={e => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); show(); } }}>
         {cur?.dot && <span className={`d ${cur.dot}`} aria-hidden="true" />}
+        {cur?.img && <img className="logo" src={cur.img} alt="" aria-hidden="true" />}
         <span className={`sel-v${cur ? '' : ' ph'}`}>{cur?.label ?? placeholder ?? ''}</span>
         {cur?.hint && variant === 'field' && <span className="sel-h">{cur.hint}</span>}
         <Icon name="chev" />
@@ -108,6 +113,7 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
                   <div key={o.value} id={optId(i)} role="option" aria-selected={!action && o.value === value} data-active={i === active}
                     onMouseMove={() => setActive(i)} onMouseDown={e => e.preventDefault()} onClick={() => pick(o)}>
                     {o.dot && <span className={`d ${o.dot}`} aria-hidden="true" />}
+                    {o.img && <img className="logo" src={o.img} alt="" aria-hidden="true" />}
                     <span className="sel-v">{o.label}</span>{o.hint && <span className="sel-h">{o.hint}</span>}
                     {!action && o.value === value && <Icon name="check" />}
                   </div>

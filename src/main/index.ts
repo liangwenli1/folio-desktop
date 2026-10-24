@@ -240,7 +240,7 @@ ipcMain.handle('folio:tileWindows', e => {
   const s = windowSync(), win = BrowserWindow.fromWebContents(e.sender);
   return s && win ? tile(s.members.map(m => m.id), screen.getDisplayMatching(win.getBounds()).workArea) : null;
 });
-ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id)); });
+ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id), { tabs: true }); });
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
 ipcMain.handle('folio:focusProfile', (_e, id: string) => focus(String(id)));
 ipcMain.handle('folio:checkup', (_e, id: string) => checkup(String(id)));
