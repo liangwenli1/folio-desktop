@@ -1,10 +1,11 @@
 // The team: people and their roles, invitations still open, and (Company) departments.
 import { useState, type FormEvent } from 'react';
-import { folio, isApiError, type Department, type Member, type Workspace } from './api';
+import { folio, isApiError, type ActivityEntry, type Department, type Member, type Workspace } from './api';
+import { dayLabel, time, useActivity } from './Activity';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
-import { Icon, Modal, useToast } from './ui';
-import { Select, SelectField } from './Select';
+import { Icon, Modal, useOutsideClose, useToast, type IconName } from './ui';
+import { SelectField } from './Select';
 
 type Dialog = { kind: 'invite' } | { kind: 'remove'; member: Member } | { kind: 'leave' } | { kind: 'dept'; dept?: Department } | null;
 interface Props { d: Dict; lang: Lang; ws: Workspace; meId: string; data: WorkspaceData; onLeft(): void }
@@ -13,12 +14,20 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const T = d.team;
   const toast = useToast();
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [q, setQ] = useState('');
   const manager = data.role !== 'member';
   const company = ws.subscription.plan === 'company';
   const deptName = new Map(data.departments.map(x => [x.id, x.name]));
-  const email = new Map(data.members.map(m => [m.userId, m.email]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const close = () => setDialog(null);
+  // Each person's latest entry in the activity log.
+  const log = useActivity(ws.id, '', data, 200);
+  const latest = new Map<string, ActivityEntry>();
+  for (const e of log.entries ?? []) if (e.actor && !latest.has(e.actor)) latest.set(e.actor, e);
+  const said = (e: ActivityEntry) => d.activity.actions[e.action](e.profile ? e.profile.name : '', e.detail);
+  const needle = q.trim().toLowerCase();
+  const people = data.members.filter(m => !needle || m.email.toLowerCase().includes(needle));
+  const self = data.members.find(m => m.userId === meId);
 
   async function setRole(m: Member, role: 'admin' | 'member'){
     try { await folio.api('PATCH', `/workspaces/${ws.id}/members/${m.userId}`, { role }); } catch (e){ fail(e); }
@@ -28,6 +37,15 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     try {
       const r = await folio.api<{ emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, role, departmentIds });
       if (r.emailed) toast(T.sent(emailAddr)); else toast(T.notSent, undefined, 'bad');
+    } catch (e){ fail(e); }
+    data.refresh('members');
+  }
+  // Links are stored hashed: copying one makes a new link (not emailed), and the one before stops working.
+  async function copyLink(emailAddr: string, role: 'admin' | 'member', departmentIds: string[]){
+    try {
+      const r = await folio.api<{ link: string }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, role, departmentIds, notify: false });
+      await navigator.clipboard.writeText(r.link);
+      toast(T.copiedNew);
     } catch (e){ fail(e); }
     data.refresh('members');
   }
@@ -41,38 +59,53 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
       <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.sub(data.members.length, ws.subscription.entitlements.members)}</p></div>
-          <span className="sp" />
+          <label className="search">
+            <Icon name="search" /><span className="sr">{T.search}</span>
+            <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
+          </label>
+          {self && self.role !== 'owner' && <button className="btn btn-danger" type="button" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
         </header>
 
-        <div className="tw top-gap flow">
+        {(company || data.departments.length > 0 || manager) && (
+          <section className="depts" aria-label={T.depts}>
+            {data.departments.map(x => (
+              <button key={x.id} type="button" className="dept" data-department={x.name} disabled={!manager || !company} onClick={() => setDialog({ kind: 'dept', dept: x })}>
+                <span className="kic accent"><Icon name="team" /></span>
+                <span><b>{x.name}</b><small>{T.deptSum(x.memberIds.length, x.profiles)}</small></span>
+              </button>
+            ))}
+            {manager && (
+              <button type="button" className="dept add" disabled={!company} onClick={() => setDialog({ kind: 'dept' })}>
+                <span className="kic"><Icon name="plus" /></span>
+                <span><b>{T.deptAdd}</b><small>{company ? T.deptHelp : T.deptCompany}</small></span>
+              </button>
+            )}
+          </section>
+        )}
+
+        <div className="tw flow">
           <table>
             <thead>
               <tr>
                 <th scope="col">{T.cols.person}</th><th scope="col">{T.cols.role}</th>
                 {(company || data.departments.length > 0) && <th scope="col">{T.cols.departments}</th>}
-                <th scope="col" className="num">{T.cols.profiles}</th><th scope="col">{T.cols.joined}</th><th className="act" scope="col" />
+                <th scope="col">{T.cols.profiles}</th><th scope="col">{T.cols.recent}</th><th scope="col">{T.cols.joined}</th><th aria-hidden="true" />
               </tr>
             </thead>
             <tbody>
-              {data.members.map(m => {
-                const self = m.userId === meId;
+              {people.map(m => {
+                const me = m.userId === meId, last = latest.get(m.email);
                 return (
                   <tr key={m.userId} data-member={m.email}>
-                    <td><span className="l1"><b>{m.email}</b>{self && <span className="tag">{T.you}</span>}</span></td>
-                    <td>
-                      {manager && m.role !== 'owner' && !self
-                        ? <Select variant="cell" label={T.roleOf(m.email)} value={m.role} onChange={v => void setRole(m, v as 'admin' | 'member')}
-                          options={[{ value: 'admin', label: d.roles.admin }, { value: 'member', label: d.roles.member }]} />
-                        : d.roles[m.role]}
-                    </td>
+                    <td><span className="prof-cell"><span className={`pav c${hue(m.email)}`} aria-hidden="true">{m.email.slice(0, 1).toUpperCase()}</span>
+                      <span className="l1"><b>{m.email}</b>{me && <span className="muted">{T.meTag}</span>}</span></span></td>
+                    <td><span className={`role ${m.role}`}><Icon name={ROLE_ICON[m.role]} />{d.roles[m.role]}</span></td>
                     {(company || data.departments.length > 0) && <td>{m.departmentIds.map(id => <span key={id} className="tag first">{deptName.get(id)}</span>)}</td>}
-                    <td className="num">{m.profiles}</td>
-                    <td>{day(m.joinedAt, lang)}</td>
-                    <td className="act"><span className="actin">
-                      {manager && m.role !== 'owner' && !self && <button type="button" className="btn btn-xs btn-danger" aria-label={T.removeX(m.email)} onClick={() => setDialog({ kind: 'remove', member: m })}>{T.remove}</button>}
-                      {self && m.role !== 'owner' && <button type="button" className="btn btn-xs btn-danger" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
-                    </span></td>
+                    <td className="mono">{m.profiles}</td>
+                    <td className="recent">{last ? <><time className="mono">{dayLabel(last.at, d, lang)} {time(last.at, lang)}</time> {said(last)}</> : <span className="muted">—</span>}</td>
+                    <td className="mono">{day(m.joinedAt, lang)}</td>
+                    <td className="act">{manager && m.role !== 'owner' && !me && <MemberMenu d={d} m={m} onRole={r => void setRole(m, r)} onRemove={() => setDialog({ kind: 'remove', member: m })} />}</td>
                   </tr>
                 );
               })}
@@ -81,35 +114,17 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
         </div>
 
         {manager && data.invitations.length > 0 && (
-          <section className="team-sec" aria-label={T.pending}>
-            <h2 className="sec-t">{T.pending}</h2>
-            <ul className="plain-list">
+          <section className="invites" aria-label={T.pending}>
+            <div className="sec-row"><h2 className="en-t">{T.pending}</h2><span className="muted">{data.invitations.length}</span></div>
+            <ul>
               {data.invitations.map(i => (
                 <li key={i.id} data-invitation={i.email}>
-                  <span><b>{i.email}</b> · {d.roles[i.role]}<br /><span className="hint">{[i.invitedBy && T.invitedBy(i.invitedBy), T.expires(day(i.expiresAt, lang))].filter(Boolean).join(' · ')}</span></span>
+                  <span className="kic"><Icon name="mail" /></span>
+                  <span><b>{i.email}</b><small>{[d.roles[i.role], ...i.departmentIds.map(id => deptName.get(id)), i.invitedBy && T.invitedBy(i.invitedBy), T.expires(day(i.expiresAt, lang))].filter(Boolean).join(' · ')}</small></span>
                   <span className="sp" />
+                  <button type="button" className="btn btn-xs btn-secondary" onClick={() => void copyLink(i.email, i.role, i.departmentIds)}><Icon name="link" />{T.copyLink}</button>
                   <button type="button" className="btn btn-xs btn-secondary" onClick={() => void resend(i.email, i.role, i.departmentIds)}>{T.resend}</button>
                   <button type="button" className="btn btn-xs btn-text" onClick={() => void withdraw(i.id)}>{T.withdraw}</button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {(company || data.departments.length > 0) && (
-          <section className="team-sec" aria-label={T.depts}>
-            <div className="sec-row">
-              <h2 className="sec-t">{T.depts}</h2>
-              {manager && company && <button type="button" className="btn btn-xs btn-secondary" onClick={() => setDialog({ kind: 'dept' })}><Icon name="plus" />{T.deptAdd}</button>}
-            </div>
-            <p className="hint">{company ? T.deptHelp : T.deptCompany}</p>
-            {!data.departments.length && <p className="hint">{T.deptNone}</p>}
-            <ul className="plain-list">
-              {data.departments.map(x => (
-                <li key={x.id} data-department={x.name}>
-                  <span><b>{x.name}</b> · {T.deptProfiles(x.profiles)}<br /><span className="hint">{x.memberIds.map(id => email.get(id)).filter(Boolean).join(', ') || '—'}</span></span>
-                  <span className="sp" />
-                  {manager && company && <button type="button" className="btn btn-xs btn-text" onClick={() => setDialog({ kind: 'dept', dept: x })}>{d.common.edit}</button>}
                 </li>
               ))}
             </ul>
@@ -120,14 +135,35 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
       {dialog?.kind === 'invite' && <InviteDialog d={d} ws={ws} data={data} company={company} onClose={close} />}
       {dialog?.kind === 'remove' && <RemoveDialog d={d} ws={ws} data={data} member={dialog.member} meId={meId} onClose={close} />}
       {dialog?.kind === 'leave' && (
-        <Modal title={T.leaveTitle(ws.name)} closeLabel={d.common.close} onClose={close} foot={<>
+        <Modal icon="logout" tone="bad" title={T.leaveTitle(ws.name)} closeLabel={d.common.close} onClose={close} foot={<>
           <button className="btn btn-secondary" type="button" onClick={close}>{d.common.cancel}</button>
           <button className="btn btn-danger solid" type="button" onClick={() => void folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</button>
-        </>}>
-          <div className="m-body"><p>{T.leaveLead}</p></div>
-        </Modal>
+        </>}><p>{T.leaveLead}</p></Modal>
       )}
       {dialog?.kind === 'dept' && <DepartmentDialog d={d} ws={ws} data={data} dept={dialog.dept} onClose={close} />}
+    </div>
+  );
+}
+
+const ROLE_ICON: Record<Member['role'], IconName> = { owner: 'crown', admin: 'key', member: 'team' };
+// A steady colour for each person's initial.
+const hue = (email: string) => [...email].reduce((n, c) => n + c.charCodeAt(0), 0) % 6;
+
+// What owners and admins do with someone: change their role, or take them out of the team.
+function MemberMenu({ d, m, onRole, onRemove }: { d: Dict; m: Member; onRole(r: 'admin' | 'member'): void; onRemove(): void }){
+  const T = d.team;
+  const [open, setOpen] = useState(false);
+  const ref = useOutsideClose(open, () => setOpen(false));
+  const other = m.role === 'admin' ? 'member' : 'admin';
+  return (
+    <div className="d-more" ref={ref}>
+      <button type="button" className="icon-btn bare sm" aria-label={T.moreX(m.email)} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="more" /></button>
+      {open && (
+        <div className="menu" role="menu">
+          <button className="menu-item" type="button" role="menuitem" onClick={() => { setOpen(false); onRole(other); }}>{T.makeRole(d.roles[other])}</button>
+          <button className="menu-item danger" type="button" role="menuitem" aria-label={T.removeX(m.email)} onClick={() => { setOpen(false); onRemove(); }}>{T.remove}</button>
+        </div>
+      )}
     </div>
   );
 }

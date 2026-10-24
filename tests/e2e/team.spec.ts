@@ -53,7 +53,8 @@ test('a member removed from the team loses the profile they have open, and its c
 
   // Removed: the browser closes, the folder goes, the workspace disappears from their workbench.
   await nav(winO, /^Team/).click();
-  await winO.getByRole('button', { name: `Remove ${member.email}` }).click();
+  await winO.getByRole('button', { name: `More for ${member.email}` }).click();
+  await winO.getByRole('menuitem', { name: `Remove ${member.email}` }).click();
   await winO.getByRole('dialog', { name: `Remove ${member.email}` }).getByRole('button', { name: 'Remove from team' }).click();
   await expect.poll(async () => (await lastStatus(winM, p.id))?.state, { timeout: 15_000 }).toBe('stopped');
   await expect(winM.getByRole('status').filter({ hasText: 'You’re no longer in Larkspur Trading' })).toBeVisible();

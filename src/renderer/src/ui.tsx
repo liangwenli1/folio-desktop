@@ -36,6 +36,11 @@ const PATHS = {
   grid: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z',
   more: 'M3.5 8h.01M8 8h.01M12.5 8h.01',
   refresh: 'M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3',
+  clock: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 4.5V8l2.5 1.5',
+  crown: 'M2.5 5 5.5 8 8 4l2.5 4 3-3-1 7h-9zM3.5 13.5h9',
+  key: 'M10 3a3 3 0 1 1-2.6 4.5L3 12v1.5h1.5V12H6v-1.5h1.5l1-1A3 3 0 0 1 10 3zM10.5 5.5h.01',
+  mail: 'M2.5 4h11v8h-11zM2.5 4.5 8 9l5.5-4.5',
+  link: 'M6.5 9.5l3-3M7 4.5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1M9 11.5l-1 1A2.5 2.5 0 0 1 4.5 9l1-1',
   lang: 'M2.5 3.5h7M6 2v1.5M8 3.5c-.5 2.5-2.5 4.5-5 5.5M4.5 5.5c.8 1.5 2 2.6 3.5 3.3M9 13.5l2.5-6 2.5 6M9.8 11.5h3.4'
 };
 export type IconName = keyof typeof PATHS;
@@ -172,23 +177,6 @@ export function BulkBar({ n, label, clearLabel, onClear, children }: { n: number
       {children}
       <button type="button" className="bb close" aria-label={clearLabel} title={clearLabel} onClick={onClear}><Icon name="x" /></button>
     </div>
-  );
-}
-
-// A proxy's recent checks as a line of latencies, failures as red marks along the top.
-export function Spark({ history }: { history: { ok: boolean; ms: number | null }[] }){
-  if (!history.length) return null;
-  const W = 84, H = 22, top = Math.max(300, ...history.map(h => h.ms ?? 0));
-  const x = (i: number) => (history.length === 1 ? W / 2 : (i / (history.length - 1)) * (W - 4) + 2);
-  const y = (ms: number) => H - 3 - (ms / top) * (H - 8);
-  const ok = history.map((h, i) => (h.ok && h.ms !== null ? [x(i), y(h.ms)] : null));
-  const line = ok.filter(Boolean).map(p => p!.join(',')).join(' ');
-  return (
-    <svg className="spark" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
-      {line && <polyline points={line} />}
-      {history.map((h, i) => !h.ok && <circle key={i} className="miss" cx={x(i)} cy={3} r={1.8} />)}
-      {ok.at(-1) && <circle className="last" cx={ok.at(-1)![0]} cy={ok.at(-1)![1]} r={2.2} />}
-    </svg>
   );
 }
 

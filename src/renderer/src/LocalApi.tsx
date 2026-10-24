@@ -4,7 +4,7 @@ import type { LocalApi } from '@shared/bridge';
 import { folio, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, type Dict, type Lang } from './i18n';
-import { Switch, useToast } from './ui';
+import { Icon, Switch, useToast } from './ui';
 
 type Example = 'playwright' | 'puppeteer' | 'selenium' | 'firefox';
 
@@ -96,100 +96,104 @@ const [page] = await browser.pages();
 await page.goto('https://example.com');`
   };
 
+  // A token made just now goes into the examples; otherwise they say where one goes.
+  const token = fresh ?? '<token>';
+  const shown = code[example].replaceAll('<token>', token);
+
   return (
     <div className="page">
       <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.sub}</p></div>
           <span className="sp" />
-          <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/docs/api/`)}>{A.reference}</button>
+          <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/docs/api/`)}><Icon name="api" />{A.reference}</button>
         </header>
         {state && <div className="api-page">
-          <section className="api-card" aria-label={A.server}>
-            <div className="sec-row">
-              <h2 className="sec-t">{A.server}</h2>
-              <Switch label={A.enable} checked={state.enabled} onChange={on => void change({ enabled: on })} />
-            </div>
-            <p className="api-status" role="status">
-              <span className={`d ${state.listening ? 'good' : state.error ? 'bad' : ''}`} aria-hidden="true" />
-              {state.listening ? <>{A.listening} <span className="mono">{base}</span> <button type="button" className="linkish hint" onClick={() => copy(base)}>{A.copy}</button></>
-                : state.error ? A.errors[state.error as keyof typeof A.errors] ?? state.error : A.off}
-            </p>
-            <form className="api-port" onSubmit={e => { e.preventDefault(); void change({ port: Number(port) }); }}>
-              <label className="field"><span>{A.port}</span><input type="number" min={1024} max={65535} value={port} onChange={e => setPort(e.target.value)} /></label>
-              <button type="submit" className="btn btn-secondary btn-sm" disabled={Number(port) === state.port}>{d.common.save}</button>
-            </form>
-            <p className="hint">{company ? A.unthrottled : A.limit}</p>
-            <p className="hint">{A.security}</p>
-          </section>
-
-          <section className="api-card" aria-label={A.tokens}>
-            <h2 className="sec-t">{A.tokens}</h2>
-            <p className="hint">{A.tokensHelp}</p>
-            {fresh && (
-              <div className="token-new" role="status">
-                <span>{A.newToken}</span>
-                <code className="mono">{fresh}</code>
-                <span className="actin"><button type="button" className="btn btn-xs btn-primary" onClick={() => copy(fresh)}>{A.copy}</button>
-                  <button type="button" className="btn btn-xs btn-text" onClick={() => setFresh(null)}>{A.done}</button></span>
+          <div className="api-col">
+            <section className="api-card" aria-label={A.server}>
+              <div className="api-h">
+                <span className="kic accent"><Icon name="api" /></span>
+                <span><b>{A.server}</b>
+                  <small className={`api-status${state.listening ? ' on' : state.error ? ' bad' : ''}`} role="status">
+                    {state.listening ? <>{A.listening} <span className="mono">{base}</span></> : state.error ? A.errors[state.error as keyof typeof A.errors] ?? state.error : A.off}
+                  </small>
+                </span>
+                {state.listening && <button type="button" className="btn btn-xs btn-secondary" onClick={() => copy(base)}><Icon name="link" />{A.copyAddress}</button>}
+                <Switch label={A.enable} checked={state.enabled} onChange={on => void change({ enabled: on })} />
               </div>
-            )}
-            <ul className="plain-list">
-              {state.tokens.map(t => (
-                <li key={t.id} data-token={t.name}>
-                  <span><b>{t.name}</b>{t.workspaceId !== ws.id && <span className="tag">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}<br />
-                    <span className="hint">{A.made(day(t.createdAt, lang))} · {t.lastUsedAt ? A.used(day(t.lastUsedAt, lang)) : A.unused}</span></span>
-                  <span className="sp" />
-                  <button type="button" className="btn btn-xs btn-danger" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>
-                </li>
-              ))}
-            </ul>
-            <form className="token-form" onSubmit={e => void create(e)}>
-              <input aria-label={A.tokenName} placeholder={A.tokenName} value={name} maxLength={60} onChange={e => setName(e.target.value)} />
-              <button type="submit" className="btn btn-secondary btn-sm">{A.createToken}</button>
-            </form>
-          </section>
-
-          <section className="api-card wide" aria-label={A.examples}>
-            <div className="sec-row">
-              <h2 className="sec-t">{A.examples}</h2>
-              <div className="seg" role="group" aria-label={A.examples}>
-                {(['playwright', 'puppeteer', 'selenium', 'firefox'] as const).map(k => <button key={k} type="button" aria-pressed={example === k} onClick={() => setExample(k)}>{A.exampleNames[k]}</button>)}
+              <div className="api-port">
+                <form onSubmit={e => { e.preventDefault(); void change({ port: Number(port) }); }}>
+                  <label className="field"><span>{A.port}</span><input type="number" min={1024} max={65535} value={port} onChange={e => setPort(e.target.value)} /></label>
+                  {Number(port) !== state.port && <button type="submit" className="btn btn-secondary btn-sm">{d.common.save}</button>}
+                </form>
+                <p><b>{A.limitTitle}</b><span className="hint">{company ? A.unthrottled : A.limit}</span></p>
               </div>
-            </div>
-            <p className="hint">{example === 'firefox' ? A.firefoxNote : A.chromiumNote}</p>
-            <div className="code-wrap">
-              <pre className="code"><code>{highlight(code[example])}</code></pre>
-              <button type="button" className="btn btn-xs btn-secondary copy" onClick={() => copy(code[example])}>{A.copy}</button>
-            </div>
-          </section>
+              <p className="api-warn"><Icon name="alert" />{A.security}</p>
+            </section>
 
-          {state.enabled && (
-            <section className="api-card wide" aria-label={A.calls}>
-              <h2 className="sec-t">{A.calls}</h2>
-              {!state.calls.length ? <p className="hint">{A.noCalls}</p> : (
+            <section className="api-card" aria-label={A.tokens}>
+              <div className="sec-row">
+                <b>{A.tokens}</b>
+                <form className="token-form" onSubmit={e => void create(e)}>
+                  <input aria-label={A.tokenName} placeholder={A.tokenName} value={name} maxLength={60} onChange={e => setName(e.target.value)} />
+                  <button type="submit" className="btn btn-sm btn-primary"><Icon name="plus" />{A.createToken}</button>
+                </form>
+              </div>
+              <p className="hint">{A.tokensHelp}</p>
+              {fresh && (
+                <div className="token-new" role="status">
+                  <span>{A.newToken}</span>
+                  <code className="mono">{fresh}</code>
+                  <span className="actin"><button type="button" className="btn btn-xs btn-primary" onClick={() => copy(fresh)}>{A.copy}</button>
+                    <button type="button" className="btn btn-xs btn-text" onClick={() => setFresh(null)}>{A.done}</button></span>
+                </div>
+              )}
+              <ul className="tokens">
+                {state.tokens.map(t => (
+                  <li key={t.id} data-token={t.name}>
+                    <span className="kic"><Icon name="key" /></span>
+                    <span><b>{t.name}{t.workspaceId !== ws.id && <span className="tag">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}</b>
+                      <small>{A.made(day(t.createdAt, lang))} · {t.lastUsedAt ? A.used(day(t.lastUsedAt, lang)) : A.unused}</small></span>
+                    <span className="sp" />
+                    <button type="button" className="btn btn-xs btn-text" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+
+          <div className="api-col">
+            <section className="api-card" aria-label={A.examples}>
+              <div className="sec-row">
+                <b>{A.examples}</b>
+                <div className="seg" role="group" aria-label={A.examples}>
+                  {(['playwright', 'puppeteer', 'selenium', 'firefox'] as const).map(k => <button key={k} type="button" aria-pressed={example === k} onClick={() => setExample(k)}>{A.exampleNames[k]}</button>)}
+                </div>
+              </div>
+              <div className="code-wrap">
+                <pre className="code"><code>{highlight(shown)}</code></pre>
+                <button type="button" className="btn btn-xs btn-secondary copy" onClick={() => copy(shown)}>{A.copy}</button>
+              </div>
+              <p className="hint">{fresh ? A.prefilled : A.placeholder} {example === 'firefox' ? A.firefoxNote : A.chromiumNote}</p>
+            </section>
+
+            <section className="api-card" aria-label={A.calls}>
+              <div className="sec-row"><b>{A.calls}</b><span className="hint">{A.callsLead}</span></div>
+              {!state.enabled ? <p className="hint">{A.off}</p> : !state.calls.length ? <p className="hint">{A.noCalls}</p> : (
                 <ol className="calls">
                   {state.calls.map(c => (
                     <li key={`${c.at}${c.path}`}>
                       <time className="mono">{clock(c.at, lang)}</time>
-                      <span className="mono call"><b>{c.method}</b> {c.path}</span>
-                      <span className={`st ${c.status < 300 ? 'run' : c.status < 500 ? 'away' : 'bad'}`}>{c.status}</span>
+                      <span className={`verb ${c.method.toLowerCase()}`}>{c.method}</span>
+                      <span className="mono call">{c.path}</span>
+                      <span className={`code-st${c.status >= 400 ? ' bad' : ''}`}>{c.status}{c.status === 429 && ` ${A.limited}`}</span>
                       <span className="hint">{c.token ?? A.noToken}</span>
                     </li>
                   ))}
                 </ol>
               )}
             </section>
-          )}
-
-          <section className="api-card wide" aria-label={A.endpoints}>
-            <h2 className="sec-t">{A.endpoints}</h2>
-            <table className="endpoints">
-              <tbody>
-                {A.routes.map(([route, what]) => <tr key={route}><td className="mono">{route}</td><td>{what}</td></tr>)}
-              </tbody>
-            </table>
-          </section>
+          </div>
         </div>}
       </main>
     </div>

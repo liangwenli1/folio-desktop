@@ -57,18 +57,25 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await expect(row).toContainText('Linux');
     await expect(row).toContainText('Download');
     await row.getByRole('button', { name: 'Make recommended' }).click();
+    const making = win.getByRole('dialog', { name: `Make Chromium ${version} the recommended version?` });
+    await making.getByLabel('What changed (optional)').fill('Chrome 151 security fixes');
+    await making.getByRole('button', { name: 'Make recommended' }).click();
     await expect(row).toContainText('Recommended');
+    await expect(win.getByRole('region', { name: 'Update history' })).toContainText(`Chromium ${version} made recommended`);
+    await expect(win.getByRole('region', { name: 'Update history' })).toContainText('Chrome 151 security fixes');
     await expect(chromium.locator('li[data-version="150.0.7871.186"]')).not.toContainText('Recommended');
 
     // Profiles on the older version move to it in one go.
-    await expect(chromium.getByRole('status')).toContainText('2 profiles use an older Chromium');
-    await chromium.getByRole('button', { name: `Upgrade to ${version}` }).click();
+    const banner = win.getByRole('status').filter({ hasText: 'use the older Chromium' });
+    await expect(banner).toContainText('2 profiles use the older Chromium 150');
+    await banner.getByRole('button', { name: `Upgrade to ${version}` }).click();
     await expect.poll(async () => (await (await admin.api.get(base)).json()).profiles.filter((p: { id: string; kernelVersion: string }) => made.includes(p.id) && p.kernelVersion === version).length).toBe(2);
-    await expect(chromium.getByRole('status')).toHaveCount(0);
+    await expect(banner).toHaveCount(0);
 
     await row.getByRole('button', { name: 'Remove' }).click();
-    await expect(row.getByRole('alertdialog')).toContainText('2 profiles use it');
-    await row.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click();
+    const removing = win.getByRole('dialog', { name: `Remove Chromium ${version} from the catalog?` });
+    await expect(removing).toContainText('2 profiles use it');
+    await removing.getByRole('button', { name: 'Remove' }).click();
     await expect(row).toHaveCount(0);
   } finally {
     // The seeded version is the recommended one again, for the other tests.

@@ -1,5 +1,5 @@
 // A profile's badge: the flag of the country it exits in (a globe until its proxy has been checked), with its engine's
-// logo in the corner. Flags are flag-icons' square SVGs (MIT), bundled and loaded as they are needed.
+// logo in the corner (a proxy's badge has no engine). Flags are flag-icons' square SVGs (MIT), bundled and loaded as they are needed.
 // The engine logos (logos/, from svgl) are the projects' trademarks, shown only to say which engine a profile uses.
 import { useEffect, useState } from 'react';
 import type { KernelKind } from '@shared/bridge';
@@ -26,12 +26,12 @@ function useFlag(cc: string | null){
 export const EngineLogo = ({ kernel, size = 16 }: { kernel: KernelKind; size?: number }) =>
   <img className="logo" src={kernel === 'chromium' ? chromium : firefox} width={size} height={size} alt="" aria-hidden="true" />;
 
-export function Flag({ country, kernel, size = 'sm' }: { country: string | null; kernel: KernelKind; size?: 'sm' | 'lg' }){
+export function Flag({ country, kernel, size = 'sm' }: { country: string | null; kernel?: KernelKind; size?: 'sm' | 'lg' }){
   const url = useFlag(country);
   return (
     <span className={`flag-badge ${size}`} aria-hidden="true">
       {url ? <img src={url} alt="" /> : <span className="globe"><Icon name="proxies" /></span>}
-      <span className="eng"><EngineLogo kernel={kernel} /></span>
+      {kernel && <span className="eng"><EngineLogo kernel={kernel} /></span>}
     </span>
   );
 }

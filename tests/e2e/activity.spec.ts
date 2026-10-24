@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, launch, logIn } from './helpers';
+import { account, chromiumProfile, dataDir, launch, logIn } from './helpers';
 
 test('the activity log says who did what, and each profile shows its recent entries', async () => {
   const acct = await account();
@@ -23,13 +23,15 @@ test('the activity log says who did what, and each profile shows its recent entr
 
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^Activity log/ }).click();
   await expect(win.getByText('Kept for 7 days on this plan')).toBeVisible();
-  const items = win.locator('.log-list li');
+  const items = win.locator('tr[data-action]');
   await expect(items).toHaveCount(3);
   await expect(items.first()).toContainText('changed the name of Shop Berlin');
-  await expect(items.last()).toContainText(`${acct.email} created the group EU stores`);
-  await choose(win.getByRole('combobox', { name: 'Showing' }), 'Profile changes');
+  await expect(items.last()).toContainText(acct.email);
+  await expect(items.last()).toContainText('created the group EU stores');
+  const kinds = win.getByRole('group', { name: 'Showing' });
+  await kinds.getByRole('button', { name: 'Profile changes' }).click();
   await expect(items).toHaveCount(2);
-  await choose(win.getByRole('combobox', { name: 'Showing' }), 'Team');
+  await kinds.getByRole('button', { name: 'Team' }).click();
   await expect(win.getByText('Nothing here yet.')).toBeVisible();
   await expect(win.getByRole('button', { name: 'Export CSV' })).toHaveCount(0);
   await app.close();

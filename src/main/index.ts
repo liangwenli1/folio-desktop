@@ -6,7 +6,7 @@ import { SITE_URL, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
 import { generate } from './fingerprint';
-import { install, list as listKernels, recommended, remove as removeKernel, resolve as resolveKernel, upload as uploadKernel } from './kernels';
+import { install, list as listKernels, pause as pauseKernel, recommended, remove as removeKernel, resolve as resolveKernel, settings as kernelSettings, setSettings as setKernelSettings, upload as uploadKernel, usage as kernelUsage } from './kernels';
 import { forget } from './account';
 import { addCookies, checkup, discard, focus, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
 import { parseCookies, toJson, toNetscape, type Cookie } from '../shared/cookies';
@@ -296,15 +296,47 @@ ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os, vers
   }
 });
 ipcMain.handle('folio:kernels', () => listKernels());
-ipcMain.handle('folio:installKernel', async (_e, kind: KernelKind, version: string) => {
+// Engine downloads: asked for (the Engines page, a profile that needs one), or in the background, the recommended version
+// of an engine this computer already has. With "only while idle", a background download pauses while a profile is
+// open and picks up again on a later round.
+const background = new Set<string>();
+async function getKernel(kind: KernelKind, version: string, auto = false){
+  const key = `${kind}-${version}`;
+  if (auto) background.add(key); else background.delete(key);
+  const { idleOnly } = await kernelSettings();
+  let last = { done: 0, total: 0 };
   try {
-    await install(kind, version, (done, total) => send('kernel:progress', { kind, version, done, total }));
+    await install(kind, version, (done, total) => {
+      last = { done, total };
+      send('kernel:progress', { kind, version, done, total });
+      if (idleOnly && background.has(key) && statuses().length) pauseKernel(kind, version);
+    });
     send('kernel:progress', { kind, version, done: 1, total: 1, finished: true });
   } catch (e){
-    send('kernel:progress', { kind, version, done: 0, total: 0, error: (e as Error).message });
+    send('kernel:progress', (e as Error).name === 'AbortError' ? { kind, version, ...last, paused: true } : { kind, version, done: 0, total: 0, error: (e as Error).message });
+  } finally { background.delete(key); }
+}
+async function fetchRecommended(){
+  const s = await kernelSettings();
+  if (!s.autoDownload || !getToken() || (s.idleOnly && statuses().length)) return;
+  const all = await listKernels();
+  for (const kind of ['chromium', 'firefox'] as const){
+    const mine = all.filter(k => k.kind === kind), rec = mine.find(k => k.recommended && k.available);
+    if (rec && !rec.installed && mine.some(k => k.installed)) void getKernel(kind, rec.version, true);
   }
-});
+}
+setInterval(() => void fetchRecommended().catch(() => {}), 10 * 60_000);
+app.whenReady().then(() => setTimeout(() => void fetchRecommended().catch(() => {}), 60_000));
+ipcMain.handle('folio:installKernel', (_e, kind: KernelKind, version: string) => getKernel(kind === 'firefox' ? 'firefox' : 'chromium', String(version)));
+ipcMain.handle('folio:pauseKernel', (_e, kind: KernelKind, version: string) => pauseKernel(kind === 'firefox' ? 'firefox' : 'chromium', String(version)));
 ipcMain.handle('folio:removeKernel', (_e, kind: KernelKind, version: string) => removeKernel(kind === 'firefox' ? 'firefox' : 'chromium', String(version)));
+ipcMain.handle('folio:kernelUsage', () => kernelUsage());
+ipcMain.handle('folio:kernelSettings', () => kernelSettings());
+ipcMain.handle('folio:setKernelSettings', async (_e, change: { autoDownload?: boolean; idleOnly?: boolean }) => {
+  const s = await setKernelSettings({ ...(typeof change.autoDownload === 'boolean' ? { autoDownload: change.autoDownload } : {}), ...(typeof change.idleOnly === 'boolean' ? { idleOnly: change.idleOnly } : {}) });
+  void fetchRecommended().catch(() => {});
+  return s;
+});
 // A package picked for upload waits here, by token, until it is sent.
 const packages = new Map<string, string>();
 ipcMain.handle('folio:pickKernelFile', async e => {
@@ -316,11 +348,11 @@ ipcMain.handle('folio:pickKernelFile', async e => {
   packages.set(token, r.filePaths[0]);
   return { token, name: basename(r.filePaths[0]), size: (await stat(r.filePaths[0])).size };
 });
-ipcMain.handle('folio:uploadKernel', async (_e, token: string, meta: { kind: KernelKind; version: string; platform: string }) => {
+ipcMain.handle('folio:uploadKernel', async (_e, token: string, meta: { kind: KernelKind; version: string; platform: string; note: string }) => {
   const path = packages.get(String(token));
   if (!path) return failure('not_found');
   try {
-    await uploadKernel(path, { kind: meta.kind === 'firefox' ? 'firefox' : 'chromium', version: String(meta.version).trim(), platform: String(meta.platform) },
+    await uploadKernel(path, { kind: meta.kind === 'firefox' ? 'firefox' : 'chromium', version: String(meta.version).trim(), platform: String(meta.platform), note: String(meta.note ?? '').trim() },
       (stage, done, total) => send('kernel:upload', { stage, done, total }));
     packages.delete(String(token));
     return { ok: true, data: null };

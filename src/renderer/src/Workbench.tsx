@@ -268,7 +268,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
-      {shown === 'engines' && <EnginesPage d={d} data={data} admin={me.admin} />}
+      {shown === 'engines' && <EnginesPage d={d} lang={lang} data={data} admin={me.admin} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 

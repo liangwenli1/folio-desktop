@@ -1,6 +1,6 @@
 // Browser engines on this machine. Which versions exist comes from Folio's catalog (GET /kernels), kept on disk so
 // engines already here still open offline; a download comes from the address the server hands out (the upstream
-// release, or Folio's storage) and is checked against the catalog's sha256. Platform admins add versions by uploading
+// release, or Folio's storage), can be paused and picked up again, and is checked against the catalog's sha256. Platform admins add versions by uploading
 // a package straight to Folio's storage. Installed under <userData>/kernels/<kind>-<version>/; FOLIO_KERNELS_DIR
 // points elsewhere (tests, development).
 import { app, net } from 'electron';
@@ -12,11 +12,11 @@ import https from 'node:https';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { KernelKind, KernelState } from '../shared/bridge';
+import type { KernelKind, KernelSettings, KernelState } from '../shared/bridge';
 import { api } from './api';
 
 type Archive = 'zip' | 'tar.xz' | 'dmg';
-interface Row { id: string; kind: KernelKind; version: string; platform: string; archive: Archive; size: number; sha256: string; recommended: boolean; ready: boolean }
+interface Row { id: string; kind: KernelKind; version: string; platform: string; archive: Archive; size: number; sha256: string; recommended: boolean; ready: boolean; note: string | null; createdAt: string; recommendedAt: string | null }
 
 const platform = `${process.platform}-${process.arch}`;
 const root = () => process.env.FOLIO_KERNELS_DIR ?? join(app.getPath('userData'), 'kernels');
@@ -72,8 +72,9 @@ export async function list(): Promise<KernelState[]> {
   const here = (await readdir(root()).catch(() => [] as string[])).map(n => n.match(/^(chromium|firefox)-(.+)$/)).filter(m => m && !m[2].endsWith('.download'))
     .map(m => ({ kind: m![1] as KernelKind, version: m![2] }));
   const all = [
-    ...rows.map(k => ({ kind: k.kind, version: k.version, size: k.size, recommended: k.recommended, available: true })),
-    ...here.filter(h => !rows.some(k => k.kind === h.kind && k.version === h.version)).map(h => ({ ...h, size: null, recommended: false, available: false }))
+    ...rows.map(k => ({ kind: k.kind, version: k.version, size: k.size, recommended: k.recommended, available: true, note: k.note, addedAt: k.createdAt, recommendedAt: k.recommendedAt })),
+    ...here.filter(h => !rows.some(k => k.kind === h.kind && k.version === h.version))
+      .map(h => ({ ...h, size: null, recommended: false, available: false, note: null, addedAt: null, recommendedAt: null }))
   ];
   const out = await Promise.all(all.map(async k => ({ ...k, installed: !!(await resolve(k.kind, k.version)) })));
   return out.filter(k => k.available || k.installed).sort((a, b) => a.kind.localeCompare(b.kind) || newestFirst(a.version, b.version));
@@ -86,6 +87,9 @@ export async function recommended(kind: KernelKind){
 }
 
 const installing = new Map<string, Promise<string>>();
+// Downloads under way, so they can be paused; a paused one carries on where it stopped the next time.
+const downloads = new Map<string, AbortController>();
+export const pause = (kind: KernelKind, version: string) => downloads.get(`${kind}-${version}`)?.abort();
 
 export function install(kind: KernelKind, version: string, onProgress: (done: number, total: number) => void){
   const key = `${kind}-${version}`;
@@ -99,22 +103,34 @@ async function doInstall(kind: KernelKind, version: string, onProgress: (done: n
   const where = await api<{ url: string }>('GET', `/kernels/${row.id}/download`);
   if (!where.ok) throw new Error(where.error.message);
   const dir = dirOf(kind, version), tmp = `${dir}.download`;
-  await rm(tmp, { recursive: true, force: true });
-  await mkdir(tmp, { recursive: true });
   const file = join(tmp, `kernel.${row.archive}`);
+  // What an earlier, paused download got, when it is still short of the whole package.
+  const have = existsSync(file) ? (await stat(file)).size : 0;
+  if (!have || have >= row.size) await rm(tmp, { recursive: true, force: true });
+  await mkdir(tmp, { recursive: true });
 
-  const res = await net.fetch(where.data.url);
-  if (!res.ok || !res.body) throw new Error(`Download failed (${res.status})`);
-  const total = Number(res.headers.get('content-length') ?? row.size);
-  const hash = createHash('sha256'), out = createWriteStream(file);
-  let done = 0;
-  for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>){
-    hash.update(chunk); done += chunk.length;
-    if (!out.write(chunk)) await new Promise<void>(r => out.once('drain', () => r()));
-    onProgress(done, total);
-  }
-  await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : r())));
-  if (hash.digest('hex') !== row.sha256) throw new Error('The download is damaged (checksum mismatch). Try again.');
+  const stop = new AbortController();
+  downloads.set(`${kind}-${version}`, stop);
+  try {
+    const part = have && have < row.size;
+    const res = await net.fetch(where.data.url, { signal: stop.signal, headers: part ? { Range: `bytes=${have}-` } : {} });
+    if (!res.ok || !res.body) throw new Error(`Download failed (${res.status})`);
+    // The server may send the whole package again instead of the rest.
+    const resumed = part && res.status === 206;
+    const hash = createHash('sha256');
+    if (resumed) for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
+    let done = resumed ? have : 0;
+    const total = done + Number(res.headers.get('content-length') ?? row.size - done);
+    const out = createWriteStream(file, { flags: resumed ? 'a' : 'w' });
+    try {
+      for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>){
+        hash.update(chunk); done += chunk.length;
+        if (!out.write(chunk)) await new Promise<void>(r => out.once('drain', () => r()));
+        onProgress(done, total);
+      }
+    } finally { await new Promise<void>((r, j) => out.end((e?: Error | null) => (e ? j(e) : r()))); }
+    if (hash.digest('hex') !== row.sha256){ await rm(file, { force: true }); throw new Error('The download is damaged (checksum mismatch). Try again.'); }
+  } finally { downloads.delete(`${kind}-${version}`); }
 
   const dest = join(tmp, 'app');
   await mkdir(dest);
@@ -145,12 +161,32 @@ async function doInstall(kind: KernelKind, version: string, onProgress: (done: n
 // Deletes a downloaded version from this computer (it downloads again when a profile needs it).
 export const remove = (kind: KernelKind, version: string) => rm(dirOf(kind, version), { recursive: true, force: true });
 
+// How much room the engines take here, and where they are.
+export async function usage(){
+  let bytes = 0;
+  for (const e of await readdir(root(), { recursive: true, withFileTypes: true }).catch(() => [])) if (e.isFile()) bytes += (await stat(join(e.parentPath, e.name)).catch(() => ({ size: 0 }))).size;
+  return { path: root(), bytes };
+}
+
+// What this computer does with new versions: download the recommended one in the background, and only while no
+// profile is open, so the download doesn't take the proxies' bandwidth.
+const settingsFile = () => join(app.getPath('userData'), 'kernel-settings.json');
+const DEFAULTS: KernelSettings = { autoDownload: true, idleOnly: false };
+export async function settings(): Promise<KernelSettings> {
+  try { return { ...DEFAULTS, ...JSON.parse(await readFile(settingsFile(), 'utf8')) }; } catch { return DEFAULTS; }
+}
+export async function setSettings(change: Partial<KernelSettings>){
+  const next = { ...await settings(), ...change };
+  await writeFile(settingsFile(), JSON.stringify(next));
+  return next;
+}
+
 export const archiveOf = (name: string): Archive | null => (/\.tar\.xz$/i.test(name) ? 'tar.xz' : /\.zip$/i.test(name) ? 'zip' : /\.dmg$/i.test(name) ? 'dmg' : null);
 
 // Adds a version to the catalog (platform admins): works out the package's size and sha256 here, then sends it
 // straight to Folio's storage at the address the server signs (with its length, which storage requires, so not
 // through Electron's buffered uploads) and has the server check it in.
-export async function upload(path: string, meta: { kind: KernelKind; version: string; platform: string }, onProgress: (stage: 'hash' | 'upload', done: number, total: number) => void){
+export async function upload(path: string, meta: { kind: KernelKind; version: string; platform: string; note: string }, onProgress: (stage: 'hash' | 'upload', done: number, total: number) => void){
   const archive = archiveOf(path);
   if (!archive) throw new Error('kernel_archive');
   const { size } = await stat(path);

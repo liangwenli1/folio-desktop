@@ -34,7 +34,8 @@ export interface WorkspaceData {
   check(ids: string[]): Promise<void>;
   install(kind: KernelKind, version: string): Promise<boolean>;
   // Opens a profile, downloading its engine first when this computer doesn't have it. Resolves with why it couldn't
-  // start (the engine isn't built for this computer, or its download failed), or null once it is starting.
+  // start (the engine isn't built for this computer, or its download failed), or null once it is starting (or when the
+  // download was paused).
   launch(p: Profile): Promise<'kernel_missing' | 'download_failed' | null>;
   // Deletes a downloaded engine version from this computer; reloads the list (also after an upload).
   removeKernel(kind: KernelKind, version: string): Promise<void>;
@@ -63,6 +64,8 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const handlers = useRef(on);
   handlers.current = on;
   const waiting = useRef(new Map<string, (ok: boolean) => void>());
+  // Downloads paused by the person: the profile that waited on one doesn't open, and that isn't an error.
+  const paused = useRef<Record<string, boolean>>({});
 
   const refresh = useCallback((...kinds: Kind[]) => {
     const base = `/workspaces/${wsId}`;
@@ -120,7 +123,8 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     const offKernel = folio.onKernelProgress(p => {
       const key = kernelKey(p.kind, p.version);
       setProgress(m => ({ ...m, [key]: p }));
-      if (p.finished || p.error){
+      paused.current[key] = !!p.paused;
+      if (p.finished || p.error || p.paused){
         void folio.kernels().then(setKernels);
         waiting.current.get(key)?.(!!p.finished);
         waiting.current.delete(key);
@@ -178,7 +182,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const launch = useCallback(async (p: Profile) => {
     const k = kernels.find(x => x.kind === p.kernel && x.version === p.kernelVersion);
     if (kernels.length && !k) return 'kernel_missing' as const;
-    if (k && !k.installed && !(await install(p.kernel, p.kernelVersion))) return 'download_failed' as const;
+    if (k && !k.installed && !(await install(p.kernel, p.kernelVersion))) return paused.current[kernelKey(p.kernel, p.kernelVersion)] ? null : 'download_failed' as const;
     await folio.openProfile(p.id);
     return null;
   }, [kernels, install]);

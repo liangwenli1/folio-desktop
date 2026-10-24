@@ -2,10 +2,11 @@
 // and backup lines.
 import { useMemo, useState, type FormEvent } from 'react';
 import { folio, isApiError, type Proxy, type ProxyImport } from './api';
-import { proxyState } from './checks';
+import { SLOW_MS, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { BulkBar, Icon, Modal, Spark, useToast } from './ui';
+import { BulkBar, Icon, Modal, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { Flag } from './Flag';
 import { ExitMap, type Pin } from './ExitMap';
 import { SelectField } from './Select';
 
@@ -13,25 +14,28 @@ type ProxyType = Proxy['type'];
 const TYPES: ProxyType[] = ['http', 'https', 'socks5'];
 const HOST = /^[A-Za-z0-9.:_-]+$/;
 
+type Filter = 'all' | 'ok' | 'slow' | 'down' | 'unchecked';
+
 export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; data: WorkspaceData; onAdd(): void; onEdit(id: string): void; onImport(): void }){
   const toast = useToast();
   const X = d.proxies;
   const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [view, setView] = useView<'cards' | 'table'>('proxies', 'cards');
   const [sel, setSel] = useState<Set<string>>(() => new Set());
   const [confirm, setConfirm] = useState(false);
   const byId = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
+  const states: Record<Filter, number> = { all: data.proxies.length, ok: 0, slow: 0, down: 0, unchecked: 0 };
+  for (const p of data.proxies){ const st = proxyState(p); if (st !== 'none') states[st]++; }
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return data.proxies;
     return data.proxies.filter(p => {
+      if (filter !== 'all' && proxyState(p) !== filter) return false;
       const g = p.lastCheck?.geo;
-      return [p.name, p.host, p.username, p.lastCheck?.ip, g?.city, g?.country, g?.countryName].join(' ').toLowerCase().includes(needle);
+      return !needle || [p.name, p.host, p.username, p.lastCheck?.ip, g?.city, g?.country, g?.countryName].join(' ').toLowerCase().includes(needle);
     });
-  }, [data.proxies, q]);
+  }, [data.proxies, q, filter]);
   const ids = [...sel].filter(id => byId.has(id));
-  const down = data.proxies.filter(p => proxyState(p) === 'down').length;
-  const states = { ok: 0, slow: 0, down: 0, unchecked: 0 };
-  for (const p of data.proxies){ const st = proxyState(p); if (st !== 'none') states[st]++; }
   // A pin per exit; a line that is down sits where it last got through.
   const pins = useMemo(() => {
     const at = new Map<string, Pin>();
@@ -61,35 +65,72 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
     data.refresh('proxies', 'profiles');
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const item = (p: Proxy) => ({ d, p, busy: data.checking.has(p.id), backup: p.backupId ? byId.get(p.backupId)?.name ?? null : null, checked: sel.has(p.id),
+    onToggle: () => toggle(p.id), onCheck: () => void data.check([p.id]), onEdit: () => onEdit(p.id) });
+  const KIC: Record<Exclude<Filter, 'all'>, [string, IconName]> = { ok: ['good', 'check'], slow: ['warn', 'clock'], down: ['bad', 'alert'], unchecked: ['', 'proxies'] };
 
   return (
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{X.title}</h1><p className="sub" data-testid="proxies-sub">{X.sub(data.proxies.length, down)}</p></div>
+          <div className="ttl"><h1>{X.title}</h1><p className="sub" data-testid="proxies-sub">{X.sub(data.proxies.length, states.down)}</p></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{X.search}</span>
             <input type="search" placeholder={X.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
           </label>
-          <button className="btn btn-secondary" type="button" disabled={!data.proxies.length || data.checking.size > 0} title={data.checking.size ? d.common.checking : undefined} onClick={() => void check(data.proxies.map(p => p.id))}>{X.checkAll}</button>
+          <button className="btn btn-secondary" type="button" disabled={!data.proxies.length || data.checking.size > 0} title={data.checking.size ? d.common.checking : undefined} onClick={() => void check(data.proxies.map(p => p.id))}>
+            {data.checking.size ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.checkAll}
+          </button>
           <button className="btn btn-secondary" type="button" onClick={onImport}>{X.import}</button>
           <button className="btn btn-primary" type="button" onClick={onAdd}><Icon name="plus" />{X.add}</button>
         </header>
 
         {data.proxies.length > 0 && (
-          <section className="px-hero" aria-label={X.mapLabel}>
-            <ExitMap small pins={pins} label={X.mapLabel} onPick={setQ} />
+          <section className="px-top" aria-label={X.mapLabel}>
+            <div className="map-card"><ExitMap small pins={pins} label={X.mapLabel} onPick={setQ} /></div>
             <dl className="px-states">
               {(['ok', 'slow', 'down', 'unchecked'] as const).map(k => (
-                <div key={k} className={k}><dt><span className={`d ${k === 'ok' ? 'good' : k === 'slow' ? 'warn' : k === 'down' ? 'bad' : ''}`} aria-hidden="true" />{X.states[k]}</dt><dd>{states[k]}</dd></div>
+                <div key={k}><span className={`kic ${KIC[k][0]}`} aria-hidden="true"><Icon name={KIC[k][1]} /></span><dt>{X.states[k]}</dt><dd>{states[k]}</dd></div>
               ))}
             </dl>
           </section>
         )}
 
+        <div className="filters">
+          <div className="seg" role="group" aria-label={d.profiles.filter.label}>
+            {(['all', 'ok', 'slow', 'down', 'unchecked'] as const).filter(f => f === 'all' || states[f]).map(f => (
+              <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === 'all' ? d.profiles.filter.all : X.states[f]} <small>{states[f]}</small></button>
+            ))}
+          </div>
+          <span className="sp" />
+          <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
+        </div>
+
+        {!list.length && <div className="cards-empty"><p>{data.proxies.length ? d.profiles.emptyMatch : X.empty}</p></div>}
+        {list.length > 0 && (view === 'cards'
+          ? <ul className="pxg">{list.map(p => <ProxyCard key={p.id} {...item(p)} />)}</ul>
+          : (
+            <div className="tw">
+              <table>
+                <thead>
+                  <tr>
+                    <th className="cb" scope="col">
+                      <input type="checkbox" aria-label={d.common.selectAll} checked={shownSel === list.length}
+                        onChange={() => setSel(shownSel === list.length ? new Set() : new Set(list.map(p => p.id)))} />
+                    </th>
+                    <th scope="col">{X.cols.proxy}</th><th scope="col">{X.cols.exit}</th><th scope="col">{X.cols.latency}</th>
+                    <th scope="col">{X.cols.uptime}</th><th scope="col">{X.cols.profiles}</th><th className="act" scope="col">{X.cols.status}</th><th aria-hidden="true" />
+                  </tr>
+                </thead>
+                <tbody>{list.map(p => <ProxyRow key={p.id} {...item(p)} />)}</tbody>
+              </table>
+            </div>
+          ))}
+        {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
+
         {ids.length > 0 && (
           <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-            <button type="button" className="bb" onClick={() => void check(ids)}><Icon name="check" />{X.bulkCheck}</button>
+            <button type="button" className="bb" onClick={() => void check(ids)}><Icon name="refresh" />{X.bulkCheck}</button>
             <button type="button" className="bb danger" onClick={() => setConfirm(true)}><Icon name="trash" />{X.bulkDelete}</button>
           </BulkBar>
         )}
@@ -99,63 +140,97 @@ export function ProxiesPage({ d, data, onAdd, onEdit, onImport }: { d: Dict; dat
             <button type="button" className="btn btn-danger solid" onClick={() => void remove(ids)}>{X.bulkDelete}</button>
           </>}><p>{X.confirmNote}</p></Modal>
         )}
-
-        <div className="tw top-gap">
-          <table>
-            <thead>
-              <tr>
-                <th className="cb" scope="col">
-                  <input type="checkbox" aria-label={d.common.selectAll} checked={list.length > 0 && shownSel === list.length}
-                    onChange={() => setSel(shownSel === list.length ? new Set() : new Set(list.map(p => p.id)))} />
-                </th>
-                <th scope="col">{X.cols.proxy}</th><th scope="col">{X.cols.exit}</th><th scope="col">{X.cols.check}</th>
-                <th scope="col" className="num">{X.cols.profiles}</th><th scope="col">{X.cols.backup}</th><th className="act" scope="col" />
-              </tr>
-            </thead>
-            <tbody>
-              {!list.length && <tr className="empty"><td colSpan={7}><p>{data.proxies.length ? d.profiles.emptyMatch : X.empty}</p></td></tr>}
-              {list.map(p => {
-                const c = p.lastCheck, g = c?.ok ? c.geo : null, s = proxyState(p), busy = data.checking.has(p.id);
-                return (
-                  <tr key={p.id} data-id={p.id}>
-                    <td className="cb"><input type="checkbox" checked={sel.has(p.id)} onChange={() => toggle(p.id)} aria-label={d.common.select(p.name)} /></td>
-                    <td>
-                      <span className="l1"><b>{p.name}</b><span className="cc">{p.type.toUpperCase()}</span></span>
-                      <span className="l2 mono">{[p.name !== `${p.host}:${p.port}` && `${p.host}:${p.port}`, p.username].filter(Boolean).join(' · ')}</span>
-                    </td>
-                    <td>
-                      {g ? <span className="l1"><span className="cc">{g.country}</span>{g.city ?? g.countryName}</span>
-                        : p.lastExit?.geo ? <span className="l1 muted" title={X.lastSeen}><span className="cc">{p.lastExit.geo.country}</span>{p.lastExit.geo.city ?? p.lastExit.geo.countryName}</span>
-                        : <span className="l1">{X.none}</span>}
-                      <span className="l2 mono">{c?.ok ? c.ip : p.lastExit?.ip ?? ''}</span>
-                    </td>
-                    <td data-testid="proxy-check">
-                      {busy ? <span className="st boot"><span className="spin" aria-hidden="true" />{d.common.checking}</span> : (
-                        <span className="check-cell">
-                          <span>
-                            <span className="l1">{!c ? <span className="lat">{X.never}</span> : c.ok
-                              ? <span className={`lat ${s}`}>{d.profiles.ms(c.ms ?? 0)}</span> : <span className="lat down">{X.noResponse(c.error ?? '')}</span>}</span>
-                            {c && <span className="l2">{ago(c.checkedAt, d)}{p.history.length > 1 && ` · ${X.uptime(Math.round((p.history.filter(h => h.ok).length / p.history.length) * 100))}`}</span>}
-                          </span>
-                          {p.history.length > 1 && <span title={X.history(p.history.length)}><Spark history={p.history} /></span>}
-                        </span>
-                      )}
-                    </td>
-                    <td className="num">{p.profiles}</td>
-                    <td>{p.backupId ? byId.get(p.backupId)?.name ?? X.none : X.none}</td>
-                    <td className="act"><span className="actin">
-                      <button type="button" className="btn btn-xs btn-secondary" aria-label={X.checkX(p.name)} disabled={busy} onClick={() => void data.check([p.id])}>{d.common.check}</button>
-                      <button type="button" className="btn btn-xs btn-text" aria-label={X.editX(p.name)} onClick={() => onEdit(p.id)}>{d.common.edit}</button>
-                    </span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
       </main>
     </div>
+  );
+}
+
+interface ProxyItem { d: Dict; p: Proxy; busy: boolean; backup: string | null; checked: boolean; onToggle(): void; onCheck(): void; onEdit(): void }
+
+// What a proxy is doing now, as a status label.
+function ProxyState({ d, p, busy }: { d: Dict; p: Proxy; busy: boolean }){
+  const X = d.proxies, s = proxyState(p);
+  if (busy) return <span className="st boot"><span className="spin" aria-hidden="true" />{d.common.checking}</span>;
+  if (s === 'ok') return <span className="st run"><Icon name="check" />{X.states.ok}</span>;
+  if (s === 'slow') return <span className="st boot slow"><Icon name="clock" />{X.states.slow}</span>;
+  if (s === 'down') return <span className="st bad"><Icon name="alert" />{X.states.down}</span>;
+  return <span className="st idle"><Icon name="pause" />{X.states.unchecked}</span>;
+}
+const uptime = (p: Proxy) => (p.history.length ? Math.round((p.history.filter(h => h.ok).length / p.history.length) * 100) : null);
+// Where it comes out: the last check that got through.
+const exitOf = (p: Proxy) => (p.lastCheck?.ok ? { geo: p.lastCheck.geo, ip: p.lastCheck.ip } : p.lastExit ? { geo: p.lastExit.geo, ip: p.lastExit.ip } : null);
+// The profiles on a proxy, as flags of where it exits, three at most.
+function Users({ p }: { p: Proxy }){
+  const cc = exitOf(p)?.geo?.country ?? null;
+  return <span className="users">{Array.from({ length: Math.min(3, p.profiles) }, (_, i) => <Flag key={i} country={cc} />)}<em>{p.profiles}</em></span>;
+}
+// How long a line that is down has been: failures in a row at the end, and when it last answered.
+function downNote(d: Dict, p: Proxy){
+  let n = 0;
+  for (let i = p.history.length - 1; i >= 0 && !p.history[i].ok; i--) n++;
+  const lastOk = [...p.history].reverse().find(h => h.ok);
+  return d.proxies.downNote(n, lastOk ? ago(lastOk.at, d) : null);
+}
+
+function ProxyCard({ d, p, busy, backup, checked, onToggle, onCheck, onEdit }: ProxyItem){
+  const X = d.proxies, ex = exitOf(p), s = proxyState(p), up = uptime(p), ms = p.lastCheck?.ok ? p.lastCheck.ms : null;
+  return (
+    <li className={`pxc${s === 'down' ? ' bad' : ''}`} data-id={p.id}>
+      <div className="pxc-h">
+        <Flag country={ex?.geo?.country ?? null} />
+        <span><b>{ex?.geo ? ex.geo.city ?? ex.geo.countryName : s === 'unchecked' ? X.never : X.noExit}</b><small className="mono">{ex?.ip ?? '—'}</small></span>
+        <ProxyState d={d} p={p} busy={busy} />
+        <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} />
+      </div>
+      <p className="pxc-n"><b>{p.name}</b><span className="cc">{p.type.toUpperCase()}</span></p>
+      <p className="l2 mono">{[`${p.host}:${p.port}`, p.username].filter(Boolean).join(' · ')}{backup && ` · ${X.backupOf(backup)}`}</p>
+      <div className="pxc-bars" title={X.history(p.history.length)}><Bars history={p.history} /></div>
+      {s === 'down' && <p className="pxc-down"><Icon name="alert" />{downNote(d, p)}</p>}
+      <div className="pxc-f">
+        <span><small>{X.labels.latency}</small><b className="mono">{ms !== null ? d.profiles.ms(ms) : '—'}</b></span>
+        <span><small>{X.labels.uptime}</small><b className="mono">{up === null ? '—' : `${up}%`}</b></span>
+        <span><small>{X.labels.profiles}</small><Users p={p} /></span>
+        <span className="sp" />
+        <button type="button" className="btn btn-xs btn-text" aria-label={X.editX(p.name)} onClick={onEdit}>{d.common.edit}</button>
+        <button type="button" className="btn btn-xs btn-secondary" aria-label={X.checkX(p.name)} disabled={busy} onClick={onCheck}>{d.common.check}</button>
+      </div>
+    </li>
+  );
+}
+
+function ProxyRow({ d, p, busy, backup, checked, onToggle, onCheck, onEdit }: ProxyItem){
+  const X = d.proxies, ex = exitOf(p), s = proxyState(p), up = uptime(p), ms = p.lastCheck?.ok ? p.lastCheck.ms : null;
+  return (
+    <tr data-id={p.id}>
+      <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
+      <td>
+        <span className="l1"><b>{p.name}</b><span className="cc">{p.type.toUpperCase()}</span></span>
+        <span className="l2 mono">{[`${p.host}:${p.port}`, p.username].filter(Boolean).join(' · ')}{backup && ` · ${X.backupOf(backup)}`}</span>
+      </td>
+      <td>
+        {ex?.geo ? <span className="prof-cell"><Flag country={ex.geo.country} /><span><span className="l1">{ex.geo.city ?? ex.geo.countryName}</span><span className="l2 mono">{ex.ip}</span></span></span> : <span className="muted">—</span>}
+      </td>
+      <td data-testid="proxy-check"><span className="lat-cell"><Bars history={p.history} /><b className={`lat ${s}`}>{ms !== null ? d.profiles.ms(ms) : s === 'down' ? X.states.down : '—'}</b></span></td>
+      <td>{up === null ? '—' : <span className="up"><b className="mono">{up}%</b><span className="meter"><i style={{ width: `${up}%` }} /></span></span>}</td>
+      <td><Users p={p} /></td>
+      <td className="act"><ProxyState d={d} p={p} busy={busy} /></td>
+      <td className="act"><span className="actin">
+        <button type="button" className="btn btn-xs btn-secondary" aria-label={X.checkX(p.name)} disabled={busy} onClick={onCheck}>{d.common.check}</button>
+        <button type="button" className="btn btn-xs btn-text" aria-label={X.editX(p.name)} onClick={onEdit}>{d.common.edit}</button>
+      </span></td>
+    </tr>
+  );
+}
+
+// A proxy's last 20 checks as bars, oldest first: the taller, the slower; a failure is a short red mark; checks not made
+// yet are grey stubs.
+function Bars({ history }: { history: Proxy['history'] }){
+  const top = Math.max(300, ...history.map(h => h.ms ?? 0));
+  const slots = [...Array<null>(Math.max(0, 20 - history.length)).fill(null), ...history.slice(-20)];
+  return (
+    <span className="bars" aria-hidden="true">
+      {slots.map((h, i) => <i key={i} className={!h ? 'none' : !h.ok ? 'miss' : (h.ms ?? 0) > SLOW_MS ? 'slow' : 'ok'} style={h?.ok ? { height: `${35 + (65 * (h.ms ?? 0)) / top}%` } : undefined} />)}
+    </span>
   );
 }
 

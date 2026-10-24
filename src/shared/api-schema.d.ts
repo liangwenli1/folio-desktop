@@ -1701,6 +1701,7 @@ export interface paths {
                                 createdAt: string;
                                 updatedAt: string;
                                 deletedAt: string | null;
+                                deletedBy: string | null;
                                 version: number;
                                 /** @enum {string} */
                                 syncMode: "cloud" | "local";
@@ -1859,6 +1860,7 @@ export interface paths {
                             createdAt: string;
                             updatedAt: string;
                             deletedAt: string | null;
+                            deletedBy: string | null;
                             version: number;
                             /** @enum {string} */
                             syncMode: "cloud" | "local";
@@ -2033,6 +2035,7 @@ export interface paths {
                                 createdAt: string;
                                 updatedAt: string;
                                 deletedAt: string | null;
+                                deletedBy: string | null;
                                 version: number;
                                 /** @enum {string} */
                                 syncMode: "cloud" | "local";
@@ -2207,6 +2210,7 @@ export interface paths {
                             createdAt: string;
                             updatedAt: string;
                             deletedAt: string | null;
+                            deletedBy: string | null;
                             version: number;
                             /** @enum {string} */
                             syncMode: "cloud" | "local";
@@ -2557,6 +2561,7 @@ export interface paths {
                                 createdAt: string;
                                 updatedAt: string;
                                 deletedAt: string | null;
+                                deletedBy: string | null;
                                 version: number;
                                 /** @enum {string} */
                                 syncMode: "cloud" | "local";
@@ -3803,6 +3808,8 @@ export interface paths {
                         role: "admin" | "member";
                         /** @default [] */
                         departmentIds?: string[];
+                        /** @default true */
+                        notify?: boolean;
                     };
                 };
             };
@@ -3906,6 +3913,7 @@ export interface paths {
                             /** @enum {string} */
                             role: "admin" | "member";
                             expired: boolean;
+                            expiresAt: string;
                         };
                     };
                 };
@@ -5767,6 +5775,8 @@ export interface paths {
                                 source: "upstream" | "folio";
                                 ready: boolean;
                                 createdAt: string;
+                                recommendedAt: string | null;
+                                note: string | null;
                                 profiles: number | null;
                             }[];
                         };
@@ -5794,6 +5804,7 @@ export interface paths {
                         version: string;
                         size: number;
                         sha256: string;
+                        note?: string;
                     };
                 };
             };
@@ -5821,6 +5832,8 @@ export interface paths {
                                 source: "upstream" | "folio";
                                 ready: boolean;
                                 createdAt: string;
+                                recommendedAt: string | null;
+                                note: string | null;
                                 profiles: number | null;
                             };
                             uploadUrl: string;
@@ -5916,6 +5929,8 @@ export interface paths {
                             source: "upstream" | "folio";
                             ready: boolean;
                             createdAt: string;
+                            recommendedAt: string | null;
+                            note: string | null;
                             profiles: number | null;
                         };
                     };
@@ -5974,6 +5989,7 @@ export interface paths {
                     "application/json": {
                         /** @enum {boolean} */
                         recommended: true;
+                        note?: string;
                     };
                 };
             };
@@ -6001,6 +6017,8 @@ export interface paths {
                                 source: "upstream" | "folio";
                                 ready: boolean;
                                 createdAt: string;
+                                recommendedAt: string | null;
+                                note: string | null;
                                 profiles: number | null;
                             }[];
                         };

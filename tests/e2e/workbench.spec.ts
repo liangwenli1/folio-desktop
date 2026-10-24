@@ -143,7 +143,8 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await expect(pi.getByRole('status')).toContainText('2 proxies added');
   await expect(pi.getByRole('status')).toContainText('Line 3');
   await pi.getByRole('button', { name: 'Close' }).first().click();
-  await expect(win.locator('tr[data-id]')).toHaveCount(2);
+  // Proxies show as cards first.
+  await expect(win.locator('li.pxc[data-id]')).toHaveCount(2);
 
   await win.getByRole('button', { name: /^Profiles/ }).click();
   await win.getByRole('button', { name: 'Import', exact: true }).click();

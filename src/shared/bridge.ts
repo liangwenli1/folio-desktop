@@ -28,10 +28,16 @@ export interface ProfileStatus {
 // is the package's, when the catalog knows it; `recommended` is the version new profiles get.
 // What a site can read from inside a profile's browser, gathered by its self-check page.
 export interface CheckupFacts { ips: string[]; timezone: string; language: string; userAgent: string; canvas: string; webgl: string | null }
-export interface KernelState { kind: KernelKind; version: string; installed: boolean; available: boolean; recommended: boolean; size: number | null }
+export interface KernelState {
+  kind: KernelKind; version: string; installed: boolean; available: boolean; recommended: boolean; size: number | null;
+  // From the catalog, for the engines page's history: what the admin said about it, when it was added, when it became recommended.
+  note: string | null; addedAt: string | null; recommendedAt: string | null;
+}
+// Background downloads of new recommended versions, and whether they wait until no profile is open.
+export interface KernelSettings { autoDownload: boolean; idleOnly: boolean }
 // A platform admin's upload of a new engine version: reading the file for its sha256, then sending it.
 export interface KernelUpload { stage: 'hash' | 'upload'; done: number; total: number }
-export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean }
+export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean; paused?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
 export type ExtensionSource = { file: Uint8Array } | { store: string };
@@ -148,9 +154,14 @@ export interface FolioBridge {
   kernels(): Promise<KernelState[]>;
   installKernel(kind: KernelKind, version: string): Promise<void>;
   removeKernel(kind: KernelKind, version: string): Promise<void>;
+  // Pausing a download keeps what it got; installing again carries on from there.
+  pauseKernel(kind: KernelKind, version: string): Promise<void>;
+  kernelUsage(): Promise<{ path: string; bytes: number }>;
+  kernelSettings(): Promise<KernelSettings>;
+  setKernelSettings(change: Partial<KernelSettings>): Promise<KernelSettings>;
   onKernelProgress(cb: (p: KernelProgress) => void): () => void;
   // Platform admins: pick an engine package, then add it to the catalog as a version for a platform.
   pickKernelFile(): Promise<{ token: string; name: string; size: number } | null>;
-  uploadKernel(token: string, meta: { kind: KernelKind; version: string; platform: string }): Promise<null>;
+  uploadKernel(token: string, meta: { kind: KernelKind; version: string; platform: string; note: string }): Promise<null>;
   onKernelUpload(cb: (u: KernelUpload) => void): () => void;
 }

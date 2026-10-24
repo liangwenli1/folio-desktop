@@ -70,7 +70,8 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(win.locator('[data-extension="Shop Helper FF"]')).toContainText('1.0');
   // A new version from addons.mozilla.org keeps the add-on's identity.
-  await win.locator('[data-extension="Shop Helper FF"]').getByRole('button', { name: 'New version' }).click();
+  await win.locator('[data-extension="Shop Helper FF"]').getByRole('button', { name: 'More actions' }).click();
+  await win.locator('[data-extension="Shop Helper FF"]').getByRole('menuitem', { name: 'New version' }).click();
   dialog = win.getByRole('dialog', { name: 'New version of Shop Helper FF' });
   await dialog.getByRole('button', { name: 'addons.mozilla.org' }).click();
   await dialog.getByLabel('Link to the add-on (or its short name)').fill('https://addons.mozilla.org/en-US/firefox/addon/shop-helper/');
