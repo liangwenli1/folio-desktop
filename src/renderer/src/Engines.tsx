@@ -5,12 +5,12 @@ import { useEffect, useState } from 'react';
 import type { KernelKind, KernelUpload } from '@shared/bridge';
 import { folio, isApiError, type Kernel } from './api';
 import { kernelKey, type WorkspaceData } from './data';
+import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { SelectField } from './Select';
 import { Icon, Modal, Progress, Ring, bytes, percent, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
-const NAME: Record<KernelKind, string> = { chromium: 'Chromium', firefox: 'Firefox' };
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
 
 export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; admin: boolean }){
@@ -30,16 +30,16 @@ export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; 
   const running = (kind: KernelKind, version: string) => usedHere(kind, version).some(p => data.status[p.id]);
 
   async function upgrade(kind: KernelKind, version: string, ids: string[]){
-    try { toast(E.upgraded(await data.batch('set-kernel', ids, { kernel: kind, kernelVersion: version }), `${NAME[kind]} ${version}`)); } catch (e){ fail(e); }
+    try { toast(E.upgraded(await data.batch('set-kernel', ids, { kernel: kind, kernelVersion: version }), `${ENGINES[kind]} ${version}`)); } catch (e){ fail(e); }
     loadCatalog();
   }
   async function recommend(k: Kernel){
-    try { await folio.api('PATCH', `/kernels/${k.id}`, { recommended: true }); toast(E.admin.recommended(`${NAME[k.kind]} ${k.version}`)); } catch (e){ fail(e); }
+    try { await folio.api('PATCH', `/kernels/${k.id}`, { recommended: true }); toast(E.admin.recommended(`${ENGINES[k.kind]} ${k.version}`)); } catch (e){ fail(e); }
     reload();
   }
   async function retire(rows: Kernel[]){
     setRetiring(null);
-    try { for (const k of rows) await folio.api('DELETE', `/kernels/${k.id}`); toast(E.admin.retiredDone(`${NAME[rows[0].kind]} ${rows[0].version}`)); } catch (e){ fail(e); }
+    try { for (const k of rows) await folio.api('DELETE', `/kernels/${k.id}`); toast(E.admin.retiredDone(`${ENGINES[rows[0].kind]} ${rows[0].version}`)); } catch (e){ fail(e); }
     reload();
   }
 
@@ -59,12 +59,12 @@ export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; 
             // Every version on this computer's list, plus (for admins) versions built only for other systems.
             const versions = [...new Set([...local.map(k => k.version), ...catalog.filter(k => k.kind === kind).map(k => k.version)])];
             return (
-              <section key={kind} className="engine-card" aria-label={NAME[kind]} data-engine={kind}>
-                <h2>{NAME[kind]}</h2>
+              <section key={kind} className="engine-card" aria-label={ENGINES[kind]} data-engine={kind}>
+                <h2>{ENGINES[kind]}</h2>
                 {old.length > 0 && rec && (
                   <div className="upgrade-note" role="status">
                     <Icon name="up" />
-                    <span><b>{E.outdated(old.length, NAME[kind])}</b><span className="hint">{E.upgradeNote}</span></span>
+                    <span><b>{E.outdated(old.length, ENGINES[kind])}</b><span className="hint">{E.upgradeNote}</span></span>
                     <button type="button" className="btn btn-sm btn-primary" onClick={() => void upgrade(kind, rec.version, old.map(p => p.id))}>{E.upgrade(rec.version)}</button>
                   </div>
                 )}
@@ -76,7 +76,7 @@ export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; 
                     const recommended = k ? k.recommended : rows.some(x => x.recommended);
                     const pr = data.progress[kernelKey(kind, version)], downloading = pr && !pr.finished && !pr.error;
                     const here = usedHere(kind, version).length, everywhere = rows.find(x => x.profiles !== null)?.profiles ?? 0;
-                    const label = `${NAME[kind]} ${version}`;
+                    const label = `${ENGINES[kind]} ${version}`;
                     return (
                       <li key={version} className={`${recommended ? 'rec' : ''}${k?.installed ? ' got' : ''}`} data-version={version}>
                         <span className="tl-dot" aria-hidden="true" />
@@ -153,7 +153,7 @@ function UploadDialog({ d, onClose, onDone }: { d: Dict; onClose(): void; onDone
     setError(null);
     try {
       await folio.uploadKernel(file!.token, { kind, version: version.trim(), platform });
-      toast(A.done(`${NAME[kind]} ${version.trim()}`));
+      toast(A.done(`${ENGINES[kind]} ${version.trim()}`));
       onDone(); onClose();
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); setProgress(null); }
   }
@@ -180,7 +180,7 @@ function UploadDialog({ d, onClose, onDone }: { d: Dict; onClose(): void; onDone
         <div className="row2">
           <div className="field"><span className="label">{A.kind}</span>
             <div className="seg" role="group" aria-label={A.kind}>
-              {KINDS.map(k => <button key={k} type="button" aria-pressed={kind === k} disabled={busy} onClick={() => setKind(k)}>{NAME[k]}</button>)}
+              {KINDS.map(k => <button key={k} type="button" aria-pressed={kind === k} disabled={busy} onClick={() => setKind(k)}>{ENGINES[k]}</button>)}
             </div>
           </div>
           <SelectField label={A.platform} value={platform} onChange={setPlatform} disabled={busy} options={PLATFORMS.map(p => ({ value: p, label: d.engines.platforms[p] }))} />

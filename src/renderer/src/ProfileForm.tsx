@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { CheckResult, Fingerprint, KernelKind, Os } from '@shared/bridge';
 import { folio, isApiError, type Profile, type ProxyImport } from './api';
-import { fingerprintFacts, proxyState } from './checks';
+import { ENGINES, fingerprintFacts, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
-import { Modal, bytes, percent } from './ui';
+import { Icon, Modal, bytes, percent, type IconName } from './ui';
+import { EngineLogo, Flag } from './Flag';
 import { Select, SelectField, type Opt } from './Select';
 
 interface Props { d: Dict; wsId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
@@ -144,138 +145,176 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
     return [{ value: '', label: f.follow }, ...(kept && !ZONES.includes(kept) ? [kept] : []).concat(ZONES).map(z => ({ value: z, label: z }))];
   }, [f, profile?.timezoneOverride]);
 
+  // The preview: the card the profile will get (exit from the proxy's last check) and its fingerprint.
+  const pxGeo = data.proxies.find(p => p.id === proxyId)?.lastCheck?.geo ?? null;
+  const groupLabel = groupId === NEW_GROUP ? newGroup.trim() || f.newGroup : data.groups.find(g => g.id === groupId)?.name ?? f.noGroup;
+  const fpVersion = (fp.state === 'ready' ? fp.kernelVersion : target).split('.')[0];
+  const tile = (icon: IconName, label: string, value: string | number, wide?: boolean) => (
+    <div className={`fp-tile${wide ? ' wide' : ''}`}><span className="ft-ic" aria-hidden="true"><Icon name={icon} /></span><span><small>{label}</small><b>{value}</b></span></div>
+  );
+
   return (
-    <Modal title={edit ? f.editTitle : f.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal wide title={edit ? f.editTitle : f.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
+      {!edit && <p className="hint">{f.moreHint}</p>}
+      <span className="sp" />
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
       <button className="btn btn-primary" type="submit" form="profile-form" disabled={busy || fp.state !== 'ready'}>{edit ? f.save : f.create}</button>
     </>}>
-      <form className="m-body" id="profile-form" onSubmit={submit} noValidate>
-        {error && <p className="notice error" role="alert">{error}</p>}
-        <div className="row2">
-          <div className="field">
-            <label htmlFor="pf-name">{f.name}</label>
-            <input id="pf-name" type="text" autoComplete="off" value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus aria-invalid={!!nameErr} />
-            {nameErr && <p className="err">{nameErr}</p>}
-          </div>
-          <div className="field">
-            <span className="label" id="pf-group">{f.group}</span>
-            <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} searchPh={f.searchPh}
-              options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name })), { value: NEW_GROUP, label: f.newGroup }]} />
-            {groupId === NEW_GROUP && <input aria-label={f.newGroupPh} placeholder={f.newGroupPh} value={newGroup} onChange={e => setNewGroup(e.target.value)} maxLength={80} />}
-          </div>
-        </div>
-
-        {!edit && (
-          <div className="row3">
-            <div className="field">
-              <span className="label" id="pf-engine">{f.engine}</span>
-              <div className="seg" role="group" aria-labelledby="pf-engine">
-                {(['chromium', 'firefox'] as const).map(k => (
-                  <button key={k} type="button" aria-pressed={kernel === k} onClick={() => { setKernel(k); setKernelVersion(''); }}>{k === 'chromium' ? 'Chromium' : 'Firefox'}</button>
-                ))}
+      <form className="m-body pf" id="profile-form" onSubmit={submit} noValidate>
+        <div className="pf-main">
+          {error && <p className="notice error" role="alert">{error}</p>}
+          <section className="pf-sec">
+            <h3><span className="n">1</span>{f.basic}</h3>
+            <div className="row3">
+              <div className="field">
+                <label htmlFor="pf-name">{f.name}</label>
+                <input id="pf-name" type="text" autoComplete="off" value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus aria-invalid={!!nameErr} />
+                {nameErr && <p className="err">{nameErr}</p>}
+              </div>
+              <div className="field">
+                <span className="label" id="pf-group">{f.group}</span>
+                <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} searchPh={f.searchPh}
+                  options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name })), { value: NEW_GROUP, label: f.newGroup }]} />
+                {groupId === NEW_GROUP && <input aria-label={f.newGroupPh} placeholder={f.newGroupPh} value={newGroup} onChange={e => setNewGroup(e.target.value)} maxLength={80} />}
+              </div>
+              <div className="field">
+                <label htmlFor="pf-tags">{f.tags}</label>
+                <input id="pf-tags" type="text" placeholder={f.tagsPh} value={tags} onChange={e => setTags(e.target.value)} autoComplete="off" />
               </div>
             </div>
-            <SelectField label={f.engineVersion} value={target} onChange={setKernelVersion} placeholder="—"
-              options={versions.map(k => ({ value: k.version, label: k.version, hint: k.recommended ? d.engines.recommended : k.installed ? d.engines.installed : undefined }))} />
-            <SelectField label={f.os} value={os} onChange={v => setOs(v as Os)} options={(['windows', 'macos', 'linux'] as const).map(o => ({ value: o, label: d.os[o] }))} />
-          </div>
-        )}
+          </section>
 
-        <div className="field">
-          <span className="label" id="pf-proxy">{f.proxy}</span>
-          <div className="pxcheck">
-            <Select labelledBy="pf-proxy" value={proxyId} onChange={pickProxy} options={proxyOptions} searchPh={f.searchPh} empty={d.profiles.emptyMatch} />
-            {proxyId && <button className="btn btn-secondary btn-sm" type="button" onClick={check} disabled={pxNote?.state === 'checking'}>{d.common.check}</button>}
-          </div>
-          {proxyId === PASTE && (
-            <input className="mono-in" aria-label={f.pasteProxy} placeholder={f.pastePh} value={paste} onChange={e => setPaste(e.target.value)} spellCheck={false} autoComplete="off" />
-          )}
-          {pxNote && (
-            <p className={`pxres ${pxNote.state}`} aria-live="polite">
-              {pxNote.state === 'checking' ? <span className="spin" aria-hidden="true" /> : pxNote.state === 'ok' && <span className="d" aria-hidden="true" />}
-              <span>{pxNote.text}</span>
-            </p>
-          )}
-        </div>
-
-        {data.extensions.length > 0 && (
-          <fieldset className="field ext-pick">
-            <legend className="label">{f.extensions}</legend>
-            {!usable.length && <p className="hint">{f.noExtensions(kernel === 'chromium' ? 'Chromium' : 'Firefox')}</p>}
-            {usable.map(x => (
-              <label key={x.id} className="check-row">
-                <input type="checkbox" checked={extensionIds.includes(x.id)} onChange={e => setExtensionIds(ids => e.target.checked ? [...ids, x.id] : ids.filter(i => i !== x.id))} />
-                <span>{x.name}</span><span className="mono muted">{x.version}</span>
-              </label>
-            ))}
-          </fieldset>
-        )}
-
-        {manager && (
-          <div className="row2">
-            <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} searchPh={f.searchPh}
-              options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
-            {data.departments.length > 0 && (
-              <SelectField label={f.department} value={departmentId} onChange={setDepartmentId}
-                options={[{ value: '', label: f.noDepartment }, ...data.departments.map(x => ({ value: x.id, label: x.name }))]} />
-            )}
-          </div>
-        )}
-
-        {edit && (
-          <>
-            <div className="field">
-              <label htmlFor="pf-tags">{f.tags}</label>
-              <input id="pf-tags" type="text" placeholder={f.tagsPh} value={tags} onChange={e => setTags(e.target.value)} autoComplete="off" />
+          <section className="pf-sec">
+            <h3><span className="n">2</span>{f.engineProxy}</h3>
+            <div className="row2">
+              <div className="field">
+                <span className="label" id="pf-engine">{f.engine}</span>
+                <div className="seg fill" role="group" aria-labelledby="pf-engine">
+                  {(['chromium', 'firefox'] as const).map(k => (
+                    <button key={k} type="button" aria-pressed={kernel === k} disabled={edit && kernel !== k} onClick={() => { setKernel(k); setKernelVersion(''); }}><EngineLogo kernel={k} />{ENGINES[k]}</button>
+                  ))}
+                </div>
+                <p className="hint">{f.versions(ENGINES[kernel], versions.length)}</p>
+              </div>
+              <SelectField label={f.engineVersion} value={edit ? kernelVersion : target} onChange={setKernelVersion} placeholder="—"
+                options={[...(edit && !versions.some(k => k.version === kernelVersion) ? [{ value: kernelVersion, label: kernelVersion }] : []),
+                  ...versions.map(k => ({ value: k.version, label: k.version, hint: k.recommended ? d.engines.recommended : k.installed ? d.engines.installed : undefined }))]} />
             </div>
             <div className="row2">
-              <SelectField label={f.tz} value={tz} onChange={setTz} options={zoneOptions} search searchPh={f.tzPh} empty={f.tzNone} />
               <div className="field">
-                <span className="label" id="pf-lang">{f.lang}</span>
-                <Select labelledBy="pf-lang" value={langMode} onChange={setLangMode} options={[{ value: 'follow', label: f.follow }, { value: 'custom', label: f.custom }]} />
-                {langMode === 'custom' && <input aria-label={f.lang} placeholder={f.langPh} value={lang} onChange={e => setLang(e.target.value)} aria-invalid={!!langErr} />}
-                {langErr && <p className="err">{langErr}</p>}
+                <span className="label" id="pf-os">{f.os}</span>
+                <div className="seg fill" role="group" aria-labelledby="pf-os">
+                  {(['windows', 'macos', 'linux'] as const).map(o => (
+                    <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => setOs(o)}><Icon name={o} />{d.os[o]}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <span className="label" id="pf-proxy">{f.proxy}</span>
+                <div className="pxcheck">
+                  <Select labelledBy="pf-proxy" value={proxyId} onChange={pickProxy} options={proxyOptions} searchPh={f.searchPh} empty={d.profiles.emptyMatch} />
+                  {proxyId && <button className="btn btn-secondary btn-sm" type="button" onClick={check} disabled={pxNote?.state === 'checking'}>{d.common.check}</button>}
+                </div>
+                {proxyId === PASTE && (
+                  <input className="mono-in" aria-label={f.pasteProxy} placeholder={f.pastePh} value={paste} onChange={e => setPaste(e.target.value)} spellCheck={false} autoComplete="off" />
+                )}
+                {pxNote && (
+                  <p className={`pxres ${pxNote.state}`} aria-live="polite">
+                    {pxNote.state === 'checking' ? <span className="spin" aria-hidden="true" /> : pxNote.state === 'ok' && <span className="d" aria-hidden="true" />}
+                    <span>{pxNote.text}</span>
+                  </p>
+                )}
               </div>
             </div>
-            <SelectField label={f.engineVersion} value={kernelVersion} onChange={setKernelVersion}
-              options={[...(versions.some(k => k.version === kernelVersion) ? [] : [{ value: kernelVersion, label: kernelVersion }]),
-                ...versions.map(k => ({ value: k.version, label: `${kernel === 'chromium' ? 'Chromium' : 'Firefox'} ${k.version}` }))]} />
-            <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}
-              options={[{ value: 'cloud', label: f.syncCloud }, { value: 'local', label: f.syncLocal }]} />
-            <div className="field">
-              <label htmlFor="pf-notes">{f.notes}</label>
-              <textarea id="pf-notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={2000} />
-            </div>
-          </>
-        )}
+          </section>
 
-        <div className="fpbox" data-testid="fingerprint">
-          <div className="fpbox-h">
-            <b>{f.fp}</b>
-            {fp.state !== 'need-firefox' && <button className="btn btn-secondary btn-xs" type="button" onClick={() => void (edit ? regenerate() : generate())} disabled={fp.state === 'loading'}>{f.regen}</button>}
-          </div>
-          {fp.state === 'loading' && <p className="hint"><span className="spin" aria-hidden="true" /></p>}
-          {fp.state === 'error' && <p className="err">{f.fpErr}</p>}
-          {fp.state === 'need-firefox' && (
-            <div className="fp-need">
-              <p className="hint">{f.firefoxMissing}</p>
-              {ffProgress && !ffProgress.error
-                ? <p className="hint">{f.downloading(percent(ffProgress))}</p>
-                : <button className="btn btn-secondary btn-sm" type="button" onClick={() => void data.install('firefox', fp.version).then(ok => { if (ok) void generate(); })}>{f.download}{chosen?.size ? ` · ${bytes(chosen.size)}` : ''}</button>}
-            </div>
-          )}
-          {facts && (
-            <dl className="fpgrid">
-              <div><dt>{d.detail.fields.os}</dt><dd>{d.os[profile?.os ?? os]}</dd></div>
-              <div><dt>{d.detail.fields.engine}</dt><dd>{`${kernel === 'chromium' ? 'Chromium' : 'Firefox'} ${(fp.state === 'ready' ? fp.kernelVersion : kernelVersion).split('.')[0]}`}</dd></div>
-              {facts.seed && <div><dt>{d.detail.fields.seed}</dt><dd>{facts.seed}</dd></div>}
-              {facts.screen && <div><dt>{d.detail.fields.screen}</dt><dd>{facts.screen}</dd></div>}
-              <div><dt>{d.detail.fields.cores}</dt><dd>{facts.cores ?? '—'}</dd></div>
-              {facts.gpu && <div className="wide"><dt>{d.detail.fields.gpu}</dt><dd>{facts.gpu}</dd></div>}
-            </dl>
-          )}
-          <p className="hint">{regenerated ? f.regenWarn : f.fpHint}</p>
+          <details className="pf-sec pf-more" open={edit}>
+            <summary><h3>{f.more}</h3><Icon name="chev" /></summary>
+            {data.extensions.length > 0 && (
+              <fieldset className="field ext-pick">
+                <legend className="label">{f.extensions}</legend>
+                {!usable.length && <p className="hint">{f.noExtensions(ENGINES[kernel])}</p>}
+                {usable.map(x => (
+                  <label key={x.id} className="check-row">
+                    <input type="checkbox" checked={extensionIds.includes(x.id)} onChange={e => setExtensionIds(ids => e.target.checked ? [...ids, x.id] : ids.filter(i => i !== x.id))} />
+                    <span>{x.name}</span><span className="mono muted">{x.version}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {manager && (
+              <div className="row2">
+                <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} searchPh={f.searchPh}
+                  options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
+                {data.departments.length > 0 && (
+                  <SelectField label={f.department} value={departmentId} onChange={setDepartmentId}
+                    options={[{ value: '', label: f.noDepartment }, ...data.departments.map(x => ({ value: x.id, label: x.name }))]} />
+                )}
+              </div>
+            )}
+            {edit && (
+              <>
+                <div className="row2">
+                  <SelectField label={f.tz} value={tz} onChange={setTz} options={zoneOptions} search searchPh={f.tzPh} empty={f.tzNone} />
+                  <div className="field">
+                    <span className="label" id="pf-lang">{f.lang}</span>
+                    <Select labelledBy="pf-lang" value={langMode} onChange={setLangMode} options={[{ value: 'follow', label: f.follow }, { value: 'custom', label: f.custom }]} />
+                    {langMode === 'custom' && <input aria-label={f.lang} placeholder={f.langPh} value={lang} onChange={e => setLang(e.target.value)} aria-invalid={!!langErr} />}
+                    {langErr && <p className="err">{langErr}</p>}
+                  </div>
+                </div>
+                <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}
+                  options={[{ value: 'cloud', label: f.syncCloud }, { value: 'local', label: f.syncLocal }]} />
+                <div className="field">
+                  <label htmlFor="pf-notes">{f.notes}</label>
+                  <textarea id="pf-notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={2000} />
+                </div>
+              </>
+            )}
+          </details>
         </div>
+
+        <aside className="pf-preview" aria-label={f.preview}>
+          <p className="pf-t">{f.preview}</p>
+          <div className="idcard">
+            <div className="idc-top">
+              <Flag country={pxGeo?.country ?? null} kernel={kernel} size="lg" />
+              <div><h2>{name.trim() || f.defaultName((data.profiles?.length ?? 0) + 1)}</h2><span className="mono">{groupLabel}</span></div>
+            </div>
+            <div className="idc-city">
+              <b>{pxGeo ? pxGeo.city ?? pxGeo.countryName : proxyId && proxyId !== PASTE ? d.detail.notChecked : d.detail.direct}</b>
+              <span className="mono">{data.proxies.find(p => p.id === proxyId)?.name ?? ''}</span>
+            </div>
+          </div>
+          <section className="fpbox" data-testid="fingerprint">
+            <div className="fpbox-h">
+              <b>{f.fp}</b>
+              {fp.state !== 'need-firefox' && <button className="btn btn-text btn-xs" type="button" onClick={() => void (edit ? regenerate() : generate())} disabled={fp.state === 'loading'}><Icon name="refresh" />{f.regen}</button>}
+            </div>
+            {fp.state === 'loading' && <p className="hint"><span className="spin" aria-hidden="true" /></p>}
+            {fp.state === 'error' && <p className="err">{f.fpErr}</p>}
+            {fp.state === 'need-firefox' && (
+              <div className="fp-need">
+                <p className="hint">{f.firefoxMissing}</p>
+                {ffProgress && !ffProgress.error
+                  ? <p className="hint">{f.downloading(percent(ffProgress))}</p>
+                  : <button className="btn btn-secondary btn-sm" type="button" onClick={() => void data.install('firefox', fp.version).then(ok => { if (ok) void generate(); })}>{f.download}{chosen?.size ? ` · ${bytes(chosen.size)}` : ''}</button>}
+              </div>
+            )}
+            {facts && (
+              <div className="fp-tiles">
+                {tile('proxies', d.detail.fields.tz, pxGeo?.timezone ?? f.follow, true)}
+                {tile('lang', d.detail.fields.lang, pxGeo?.locale ?? f.follow)}
+                {tile(profile?.os ?? os, d.detail.fields.os, d.os[profile?.os ?? os])}
+                {facts.seed ? tile('monitor', d.detail.fields.seed, facts.seed) : tile('monitor', d.detail.fields.screen, facts.screen ?? '—')}
+                {tile('engines', d.detail.fields.cores, facts.cores ?? '—')}
+                {tile('engines', d.detail.fields.engine, `${ENGINES[kernel]} ${fpVersion}`, true)}
+                {facts.gpu && tile('monitor', d.detail.fields.gpu, facts.gpu, true)}
+              </div>
+            )}
+            <p className="hint">{regenerated ? f.regenWarn : f.fpHint}</p>
+          </section>
+        </aside>
       </form>
     </Modal>
   );

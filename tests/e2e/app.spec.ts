@@ -61,6 +61,7 @@ test('Chinese accounts get the Chinese workbench, and upgrading opens the site c
   const win = await logIn(app, email);
   await expect(win.getByTestId('plan-name')).toHaveText('体验版');
   await expect(win.getByTestId('plan-usage')).toHaveText('已用 0 / 5 个环境');
+  await win.locator('.me').click();
   await win.getByTestId('plan-buy').click();
   await expect.poll(() => app.evaluate(() => (globalThis as { opened?: string[] }).opened)).toEqual([`${SITE}/zh/checkout/?ws=${workspaceId}`]);
   await app.close();

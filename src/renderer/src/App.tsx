@@ -11,6 +11,7 @@ const savedWorkspace = () => { try { return localStorage.getItem(WS_KEY); } catc
 export function App(){
   const [phase, setPhase] = useState<'loading' | 'login' | 'app' | 'offline'>('loading');
   const [lang, setLang] = useState<Lang>('en');
+  const [version, setVersion] = useState('');
   const [me, setMe] = useState<Me | null>(null);
   const [ws, setWs] = useState<Workspace | null>(null);
   const wsId = useRef<string | null>(savedWorkspace());
@@ -34,21 +35,21 @@ export function App(){
 
   useEffect(() => {
     // The platform decides whether the window has a title bar of its own (styles.css, --tb).
-    folio.info().then(i => { setLang(i.locale.startsWith('zh') ? 'zh' : 'en'); document.documentElement.dataset.platform = i.platform; });
+    folio.info().then(i => { setLang(i.locale.startsWith('zh') ? 'zh' : 'en'); setVersion(i.version); document.documentElement.dataset.platform = i.platform; });
     folio.hasSession().then(has => (has ? load() : setPhase('login')));
   }, [load]);
 
   // Coming back from the website (for example after buying more profiles) shows the new limits right away.
   useEffect(() => folio.onFocus(() => { if (phase === 'app') void load(); }), [phase, load]);
 
-  if (phase === 'loading') return <div className="boot"><Mark /></div>;
+  if (phase === 'loading') return <div className="splash"><Mark /></div>;
   if (phase === 'offline') return (
-    <div className="boot"><p className="notice error" role="alert">{d.errors.network} <button className="linkish" type="button" onClick={() => load()}>{d.retry}</button></p></div>
+    <div className="splash"><p className="notice error" role="alert">{d.errors.network} <button className="linkish" type="button" onClick={() => load()}>{d.retry}</button></p></div>
   );
-  if (phase === 'login' || !me || !ws) return <Login d={d} onDone={() => load()} />;
+  if (phase === 'login' || !me || !ws) return <Login d={d} lang={lang} version={version} onLang={setLang} onDone={() => load()} />;
   return (
     <Workbench
-      d={d} lang={lang} me={me} ws={ws}
+      d={d} lang={lang} version={version} me={me} ws={ws}
       onSwitch={id => load(id)}
       onWorkspace={() => load()}
       onLang={async l => { await folio.api('PATCH', '/me', { locale: l }); await load(); }}

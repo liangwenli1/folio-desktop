@@ -15,6 +15,7 @@ test('the activity log says who did what, and each profile shows its recent entr
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await form.getByLabel('Name', { exact: true }).fill('Shop Berlin');
   await form.getByRole('button', { name: 'Save changes' }).click();
+  await detail.getByRole('tab', { name: 'Activity' }).click();
   const recent = detail.getByTestId('recent');
   await expect(recent).toContainText(`${acct.email} changed the name of Shop Berlin #0001`);
   await expect(recent).toContainText(`${acct.email} created Shop-07 #0001`);

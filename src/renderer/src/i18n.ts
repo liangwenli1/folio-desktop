@@ -21,7 +21,9 @@ export const en = {
   login: {
     title: 'Log in to Folio', lead: 'Use the account you created on the Folio website.',
     email: 'Email', password: 'Password', submit: 'Log in',
-    noAccount: 'No account yet?', create: 'Create one on the website', forgot: 'Forgot your password?'
+    noAccount: 'No account yet?', create: 'Sign up on the website', forgot: 'Forgot password?',
+    // The profiles on the brand panel beside the form: name, exit city.
+    demo: [['US-Store-01', 'Seattle'], ['UK-Shop-01', 'London'], ['JP-Social-01', 'Tokyo']] as [string, string][]
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines' },
   groups: {
@@ -40,7 +42,11 @@ export const en = {
     scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
   },
-  user: { language: 'Language', exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out', startup: 'Start with this computer (minimized)' },
+  user: {
+    account: 'Account', manage: 'Manage account', teams: 'Teams', settings: 'Settings', data: 'Data', language: 'Language',
+    exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out',
+    startup: 'Start with this computer', startupHint: 'Opens minimized in the tray, so scheduled tasks run on time.'
+  },
   tray: { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background so scheduled tasks run on time. Quit it from the tray icon.' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }) },
   update: {
@@ -60,20 +66,19 @@ export const en = {
     showing: (shown: number, n: number, running: number) => `Showing ${shown} of ${n} · ${running} running`,
     search: 'Search profiles', searchPh: 'Search name, number, city or tag', new: 'New profile', import: 'Import',
     sum: {
-      running: 'Running now', of: (n: number) => ` of ${n}`, runningSub: 'On this computer',
-      proxy: 'Proxy problems', proxyOk: 'All proxies answering', proxyNote: (down: number, slow: number) => [down && `${down} not answering`, slow && `${slow} slow`].filter(Boolean).join(' · '),
-      fp: 'Fingerprint warnings', fpOk: 'Everything matches its proxy', fpNote: (n: number) => (n === 1 ? 'Doesn’t match its proxy' : `${n} don’t match their proxy`),
-      usage: 'Plan usage', usageOf: (n: number) => ` / ${n} profiles`
+      running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies answering',
+      proxyNote: (down: number, slow: number) => [down && `${down} not answering`, slow && `${slow} slow`].filter(Boolean).join(' · '),
+      risks: 'Link risks', risksOk: 'Nothing links your profiles'
     },
+    views: { label: 'View', list: 'List', cards: 'Cards' },
     filter: { label: 'Status', all: 'All', running: 'Running', issues: 'Needs attention', starred: 'Favourites' }, star: 'Add to favourites', unstar: 'Remove from favourites',
     groupChip: (g: string) => `Group: ${g}`, clearGroup: (g: string) => `Clear group filter ${g}`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
-    cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', last: 'Last opened', status: 'Status' },
+    cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', extensions: 'Extensions', last: 'Last opened', status: 'Status' },
     open: 'Open', stop: 'Stop', openX: (n: string) => `Open ${n}`, stopX: (n: string) => `Stop ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
-    stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Proxy', 'Engine', 'Sign-ins', 'Browser'],
+    stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Engine', 'Proxy', 'Sign-ins', 'Browser'],
     map: {
-      title: 'Exits', legend: { run: 'Running', boot: 'Starting', bad: 'Proxy down' }, count: (exits: number, countries: number) => `${exits === 1 ? '1 exit' : `${exits} exits`} · ${countries === 1 ? '1 country' : `${countries} countries`}`,
       label: 'Where the profiles’ proxies exit', emptyTitle: 'See where your profiles go out', emptyBody: 'Once a proxy is checked, its exit shows on the map with what its profiles are doing.',
       check: 'Check all proxies', add: 'Add a proxy'
     },
@@ -113,9 +118,11 @@ export const en = {
     profile: 'Profile', close: 'Close details',
     meta: (group: string, date: string) => `${group} · Created ${date}`, assignedTo: (who: string) => `Assigned to ${who}`,
     openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
-    card: 'FOLIO · BROWSER PROFILE', notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection', directSub: 'Sites see this computer’s IP',
+    notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection', directSub: 'Sites see this computer’s IP',
+    tabs: { overview: 'Overview', signins: 'Sign-ins', extensions: 'Extensions', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint',
+    verdict: { ok: 'All consistent', warn: 'Needs a look', bad: 'Can’t open' }, noExtensions: 'No extensions in this profile.', noActivity: 'Nothing recorded yet.',
     fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
-    hostTz: 'This computer’s', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `Fingerprint of ${n}`,
+    hostTz: 'This computer’s',
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', todo: 'To do', warn: 'Warning', bad: 'Problem' },
     storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', extensions: 'Extensions', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
     notSaved: 'Nothing saved yet. Sign-ins are saved when the browser closes.', localOnly: 'Kept on the computer that uses it; Folio holds no copy.',
@@ -124,6 +131,20 @@ export const en = {
     exportFailed: (name: string, why: string) => `${name}: ${why}`,
     inUse: 'In use elsewhere', away: (device: string, email: string, since: string) => `Open on ${device} (${email}) since ${since}.`,
     takeover: 'Take over', takeoverNote: 'Their browser closes. Changes made there in the last few minutes are lost.', takeoverDo: 'Take over and open'
+  },
+  // Opening a profile, step by step.
+  opening: {
+    title: 'Opening', of: (i: number, n: number) => `${i} / ${n}`,
+    steps: { engine: 'Preparing the engine', proxy: 'Checking the proxy', restore: 'Restoring sign-ins', browser: 'Opening the browser' },
+    engineReady: (name: string) => `${name} · downloaded`, engineGet: (done: string, total: string) => `Downloading ${done} of ${total}`,
+    checking: 'Finding where it exits…', exit: (place: string, ms: number) => `Exits in ${place} · ${ms} ms`, direct: 'No proxy: this computer’s IP',
+    signins: (c: number, o: number) => `${c} ${c === 1 ? 'cookie' : 'cookies'} · ${o} ${o === 1 ? 'site' : 'sites'}`, fresh: 'Nothing saved yet', local: 'Kept on its own computer',
+    starting: 'Starting the browser…', waiting: 'After the steps above'
+  },
+  // Opening several profiles at once.
+  batchOpen: {
+    title: (n: number) => `Opening ${profilesN(n)}`, done: (k: number, n: number) => `${k} of ${n} done`,
+    opened: 'Opened', waiting: 'Waiting', retry: 'Retry', fold: 'Fold', unfold: 'Show', close: 'Close'
   },
   checks: {
     'proxy-ok': { t: x => `Proxy answering · ${x.ms} ms`, d: x => x.host },
@@ -148,6 +169,9 @@ export const en = {
   fixes: { check: 'Check again', backup: 'Make the backup the main line', 'choose-proxy': 'Choose a proxy', 'follow-tz': 'Follow the proxy', 'follow-lang': 'Follow the proxy', download: 'Download', use: (v: string) => `Use ${v}` },
   form: {
     newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Give it a name.',
+    basic: 'Basics', engineProxy: 'Engine and proxy', more: 'More settings', preview: 'Preview',
+    moreHint: 'Also: fingerprint details, extensions, how sign-ins are kept, who it is assigned to.',
+    versions: (engine: string, n: number) => `${engine} has ${n === 1 ? '1 version' : `${n} versions`} for this computer.`,
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
     engine: 'Engine', os: 'Operating system',
     proxy: 'Proxy', noProxy: 'No proxy (this computer’s IP)', pasteProxy: 'Paste a new proxy…', pastePh: 'socks5://user:pass@host:port',
@@ -463,7 +487,7 @@ export const en = {
     }
   },
   onboarding: {
-    head: 'FOLIO · GETTING STARTED', title: 'Your first profile in three minutes', hide: 'Hide',
+    title: 'Your first profile in three minutes', hide: 'Hide',
     proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
     open: 'Open it', openD: 'The browser starts with the time zone and language of the proxy.', done: 'Done'
   },
@@ -522,7 +546,8 @@ export const zh: Dict = {
   login: {
     title: '登录 Folio', lead: '使用在 Folio 官网注册的账号登录。',
     email: '邮箱', password: '密码', submit: '登录',
-    noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？'
+    noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？',
+    demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][]
   },
   nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', engines: '内核' },
   groups: {
@@ -541,7 +566,11 @@ export const zh: Dict = {
     scheduled: (plan: string, date: string) => `${date} 起变更为${plan}`,
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
   },
-  user: { language: '语言', exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录', startup: '开机自动启动（最小化）' },
+  user: {
+    account: '账户', manage: '管理账号', teams: '团队', settings: '设置', data: '数据', language: '语言',
+    exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录',
+    startup: '开机自动启动', startupHint: '开机后最小化到托盘，定时任务照常运行。'
+  },
   tray: { open: '打开 Folio', quit: '退出 Folio', background: 'Folio 将在后台运行，以确保定时任务按时执行。如需退出，请使用托盘图标。' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} 已掉线` : `${names.length} 个环境已掉线`, body: `${task}：${names.join('、')}` }) },
   update: {
@@ -561,20 +590,19 @@ export const zh: Dict = {
     showing: (shown: number, n: number, running: number) => `显示 ${shown} / ${n} 个 · ${running} 个运行中`,
     search: '搜索环境', searchPh: '搜索名称、编号、城市或标签', new: '新建环境', import: '导入',
     sum: {
-      running: '正在运行', of: (n: number) => ` / ${n}`, runningSub: '本机',
-      proxy: '代理异常', proxyOk: '全部代理响应正常', proxyNote: (down: number, slow: number) => [down && `${down} 个无响应`, slow && `${slow} 个较慢`].filter(Boolean).join(' · '),
-      fp: '指纹警告', fpOk: '全部与代理一致', fpNote: (n: number) => `${n} 个与代理不一致`,
-      usage: '套餐用量', usageOf: (n: number) => ` / ${n} 个环境`
+      running: '运行中', proxy: '代理异常', proxyOk: '全部代理响应正常',
+      proxyNote: (down: number, slow: number) => [down && `${down} 个无响应`, slow && `${slow} 个较慢`].filter(Boolean).join(' · '),
+      risks: '关联风险', risksOk: '未发现关联风险'
     },
+    views: { label: '视图', list: '列表', cards: '卡片' },
     filter: { label: '状态', all: '全部', running: '运行中', issues: '需处理', starred: '收藏' }, star: '收藏', unstar: '取消收藏',
     groupChip: (g: string) => `分组：${g}`, clearGroup: (g: string) => `清除分组筛选 ${g}`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
-    cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', last: '最近打开', status: '状态' },
+    cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', extensions: '扩展', last: '最近打开', status: '状态' },
     open: '打开', stop: '停止', openX: (n: string) => `打开 ${n}`, stopX: (n: string) => `停止 ${n}`, starting: '启动中…', inUse: '正在使用',
     st: { idle: '未运行', running: '运行中', proxyDown: '代理异常' }, checkProxy: '检测代理',
-    stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['代理', '内核', '登录', '浏览器'],
+    stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['内核', '代理', '登录', '浏览器'],
     map: {
-      title: '出口分布', legend: { run: '运行中', boot: '启动中', bad: '代理异常' }, count: (exits: number, countries: number) => `${exits} 个出口 · ${countries} 个国家`,
       label: '各环境代理的出口位置', emptyTitle: '查看环境从哪里出网', emptyBody: '检测代理后，地图将标出每个出口的位置及其环境的状态。',
       check: '检测全部代理', add: '添加代理'
     },
@@ -614,9 +642,11 @@ export const zh: Dict = {
     profile: '环境', close: '关闭详情',
     meta: (group: string, date: string) => `${group} · ${date} 创建`, assignedTo: (who: string) => `负责人：${who}`,
     openProfile: '打开环境', edit: '编辑', trash: '移至回收站',
-    card: 'FOLIO · BROWSER PROFILE', notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连', directSub: '网站获取的是本机 IP',
+    notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连', directSub: '网站获取的是本机 IP',
+    tabs: { overview: '概览', signins: '登录状态', extensions: '扩展', activity: '记录' }, more: '更多操作', fingerprint: '指纹',
+    verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' }, noExtensions: '该环境未安装扩展。', noActivity: '暂无记录。',
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
-    hostTz: '跟随本机', stamps: { ok: 'ISOLATED', warn: 'REVIEW', bad: 'OFFLINE' }, cardLabel: (n: string) => `${n} 的指纹`,
+    hostTz: '跟随本机',
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', todo: '待处理', warn: '警告', bad: '问题' },
     storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', extensions: '扩展', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
     notSaved: '尚未保存。浏览器关闭时将自动保存登录状态。', localOnly: '仅保存在使用该环境的电脑上，Folio 不保留副本。',
@@ -625,6 +655,18 @@ export const zh: Dict = {
     exportFailed: (name: string, why: string) => `${name}：${why}`,
     inUse: '正在其他电脑上使用', away: (device: string, email: string, since: string) => `${since} 起在 ${device}（${email}）上打开。`,
     takeover: '收回', takeoverNote: '对方的浏览器将被关闭，其最近几分钟内的改动将丢失。', takeoverDo: '收回并打开'
+  },
+  opening: {
+    title: '正在打开', of: (i: number, n: number) => `${i} / ${n}`,
+    steps: { engine: '准备内核', proxy: '检查代理', restore: '恢复登录', browser: '打开浏览器' },
+    engineReady: (name: string) => `${name} · 已下载`, engineGet: (done: string, total: string) => `正在下载 ${done} / ${total}`,
+    checking: '正在检测出口…', exit: (place: string, ms: number) => `出口 ${place} · ${ms} ms`, direct: '无代理，使用本机 IP',
+    signins: (c: number, o: number) => `${c} 个 Cookie · ${o} 个站点`, fresh: '暂无已保存的登录状态', local: '保存在使用该环境的电脑上',
+    starting: '正在启动浏览器…', waiting: '待上述步骤完成'
+  },
+  batchOpen: {
+    title: (n: number) => `正在打开 ${n} 个环境`, done: (k: number, n: number) => `已完成 ${k} / ${n}`,
+    opened: '已打开', waiting: '等待中', retry: '重试', fold: '收起', unfold: '展开', close: '关闭'
   },
   checks: {
     'proxy-ok': { t: x => `代理正常 · ${x.ms} ms`, d: x => x.host },
@@ -649,6 +691,9 @@ export const zh: Dict = {
   fixes: { check: '重新检测', backup: '将备用线路设为主线路', 'choose-proxy': '选择代理', 'follow-tz': '跟随代理', 'follow-lang': '跟随代理', download: '下载', use: (v: string) => `改用 ${v}` },
   form: {
     newTitle: '新建环境', editTitle: '编辑环境', name: '名称', defaultName: (n: number) => `环境 ${n}`, nameErr: '请填写名称。',
+    basic: '基本信息', engineProxy: '内核与代理', more: '更多设置', preview: '预览',
+    moreHint: '还可设置：指纹细节、扩展、登录状态的保存方式、负责人。',
+    versions: (engine: string, n: number) => `${engine} 在本机有 ${n} 个版本可用。`,
     group: '分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组名称',
     engine: '内核', os: '操作系统',
     proxy: '代理', noProxy: '不使用代理（本机 IP）', pasteProxy: '粘贴新代理…', pastePh: 'socks5://用户名:密码@主机:端口',
@@ -964,7 +1009,7 @@ export const zh: Dict = {
     }
   },
   onboarding: {
-    head: 'FOLIO · GETTING STARTED', title: '三分钟完成首个环境配置', hide: '隐藏',
+    title: '三分钟完成首个环境配置', hide: '隐藏',
     proxy: '添加代理', proxyD: '支持直接粘贴常见格式。', profile: '新建环境', profileD: '选择系统后自动生成指纹。',
     open: '打开环境', openD: '浏览器将以代理所在地的时区与语言启动。', done: '已完成'
   },
@@ -1018,6 +1063,8 @@ export const zh: Dict = {
 };
 
 export const dicts: Record<Lang, Dict> = { en, zh };
+// Each language by its own name, for the switches between them.
+export const LANG_NAMES: Record<Lang, string> = { en: 'English', zh: '简体中文' };
 
 const locale = (lang: Lang) => (lang === 'zh' ? 'zh-CN' : 'en-US');
 export const day = (iso: string, lang: Lang) =>

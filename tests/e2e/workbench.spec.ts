@@ -40,7 +40,7 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   const r = row(win, 'US-Store-01');
   await expect(r).toContainText('Seattle', { timeout: 20_000 });
   await r.getByRole('button', { name: 'US-Store-01', exact: true }).click();
-  await expect(detail(win).getByTestId('stamp')).toContainText('ISOLATED');
+  await expect(detail(win).getByTestId('verdict')).toHaveText('All consistent');
 
   await detail(win).getByRole('button', { name: 'Open profile' }).click();
   await expect(r.locator('.run')).toBeVisible({ timeout: 90_000 });
@@ -178,12 +178,36 @@ test('the consistency check fixes a hand-set time zone and moves a dead line to 
 
   await row(win, 'Fix-Me').getByRole('button', { name: 'Fix-Me', exact: true }).click();
   const card = detail(win);
-  await expect(card.getByTestId('stamp')).toContainText('REVIEW');
+  await expect(card.getByTestId('verdict')).toHaveText('Needs a look');
   await expect(card.locator('[data-check="proxy-backup"]')).toBeVisible();
   await card.locator('[data-check="tz-mismatch"]').getByRole('button', { name: 'Follow the proxy' }).click();
   await expect(card.locator('[data-check="tz-ok"]')).toContainText('America/Los_Angeles');
   await card.locator('[data-check="proxy-backup"]').getByRole('button', { name: 'Make the backup the main line' }).click();
   await expect(card.locator('[data-check="proxy-ok"]')).toContainText('spare.example.net');
-  await expect(card.getByTestId('stamp')).toContainText('ISOLATED');
+  await expect(card.getByTestId('verdict')).toHaveText('All consistent');
+  await app.close();
+});
+
+test('the list switches to cards and stays that way; profiles opened together show their progress in a tray', async () => {
+  test.skip(!hasKernels, 'browser engines are not unpacked here');
+  const acct = await account({ buy: STUDIO });
+  for (const n of ['Tray-1', 'Tray-2']) await acct.api.post(`/workspaces/${acct.workspaceId}/profiles`, { data: chromiumProfile(n) });
+  const app = await launch(dataDir(), ENGINE_ENV);
+  const win = await logIn(app, acct.email);
+  const views = win.getByRole('group', { name: 'View' });
+  await views.getByRole('button', { name: 'Cards' }).click();
+  await expect(win.locator('li.pcard')).toHaveCount(2);
+  await win.reload();
+  await expect(win.locator('li.pcard')).toHaveCount(2);
+  await views.getByRole('button', { name: 'List' }).click();
+
+  for (const n of ['Tray-1', 'Tray-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
+  await win.getByTestId('bulk').getByRole('button', { name: 'Open' }).click();
+  const tray = win.getByRole('status', { name: 'Opening 2 profiles' });
+  await expect(tray.locator('li')).toHaveCount(2);
+  await expect(tray).toContainText('2 of 2 done', { timeout: 90_000 });
+  await expect(tray.locator('li.run')).toHaveCount(2);
+  // Everything opened: the tray goes by itself.
+  await expect(tray).toBeHidden({ timeout: 10_000 });
   await app.close();
 });

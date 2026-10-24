@@ -6,12 +6,12 @@ import type { KernelKind } from '@shared/bridge';
 import { folio, isApiError, type Extension, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
+import { ENGINES } from './checks';
 import { Icon, Modal, useToast } from './ui';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
 const SHIELD = 'M8 1.8 13 3.6v4.1c0 3-2.1 5.5-5 6.5-2.9-1-5-3.5-5-6.5V3.6zM5.6 8l1.7 1.7 3.2-3.4';
 
-const engine = (k: KernelKind) => (k === 'chromium' ? 'Chromium' : 'Firefox');
 
 export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: WorkspaceData }){
   const X = d.extensions;
@@ -47,7 +47,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
                 <span className="shield" title={X.signedNote}><svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={SHIELD} /></svg>{X.signed}</span>
               </div>
               <dl className="ext-facts">
-                <div><dt>{X.cols.engine}</dt><dd><span className={`eng-dot ${e.kernel}`} aria-hidden="true" />{engine(e.kernel)}</dd></div>
+                <div><dt>{X.cols.engine}</dt><dd><span className={`eng-dot ${e.kernel}`} aria-hidden="true" />{ENGINES[e.kernel]}</dd></div>
                 <div><dt>{X.cols.version}</dt><dd className="mono">{e.version}</dd></div>
                 <div><dt>{X.cols.profiles}</dt><dd>{e.profiles}</dd></div>
                 <div><dt>{X.cols.updated}</dt><dd>{ago(e.updatedAt, d)}</dd></div>
@@ -108,7 +108,7 @@ function ExtensionDialog({ d, ws, data, ext, onClose }: { d: Dict; ws: Workspace
         {!ext && (
           <div className="field"><span className="label">{X.cols.engine}</span>
             <div className="seg" role="group" aria-label={X.cols.engine}>
-              {(['chromium', 'firefox'] as const).map(k => <button key={k} type="button" aria-pressed={kernel === k} onClick={() => { setKernel(k); setFile(null); }}>{engine(k)}</button>)}
+              {(['chromium', 'firefox'] as const).map(k => <button key={k} type="button" aria-pressed={kernel === k} onClick={() => { setKernel(k); setFile(null); }}>{ENGINES[k]}</button>)}
             </div>
           </div>
         )}

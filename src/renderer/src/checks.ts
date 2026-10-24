@@ -79,7 +79,8 @@ export function health(p: Profile, proxies: Map<string, Proxy>, kernels: KernelS
   return { checks, level, proxy: state, mismatch: tzMismatch || langMismatch, px, backup, line, geo };
 }
 
-export const engineName = (kind: Profile['kernel'], version: string) => `${kind === 'chromium' ? 'Chromium' : 'Firefox'} ${version.split('.')[0]}`;
+export const ENGINES: Record<Profile['kernel'], string> = { chromium: 'Chromium', firefox: 'Firefox' };
+export const engineName = (kind: Profile['kernel'], version: string) => `${ENGINES[kind]} ${version.split('.')[0]}`;
 
 // What a fingerprint pins down, for the passport card and the new-profile dialog. Chromium derives the rest
 // from the seed inside the engine; Camoufox stores every value.

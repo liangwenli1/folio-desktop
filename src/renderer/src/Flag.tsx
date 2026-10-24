@@ -1,8 +1,11 @@
-// A profile's badge: the flag of the country it exits in (a globe until its proxy has been checked), with a corner
-// mark for its engine. Flags are flag-icons' square SVGs (MIT), bundled and loaded as they are needed.
+// A profile's badge: the flag of the country it exits in (a globe until its proxy has been checked), with its engine's
+// logo in the corner. Flags are flag-icons' square SVGs (MIT), bundled and loaded as they are needed.
+// The engine logos (logos/, from svgl) are the projects' trademarks, shown only to say which engine a profile uses.
 import { useEffect, useState } from 'react';
 import type { KernelKind } from '@shared/bridge';
 import { Icon } from './ui';
+import chromium from './logos/chromium.svg?url';
+import firefox from './logos/firefox.svg?url';
 
 const FLAGS = import.meta.glob<string>('../../../node_modules/flag-icons/flags/1x1/*.svg', { query: '?url', import: 'default' });
 const loaded = new Map<string, string>();
@@ -20,12 +23,15 @@ function useFlag(cc: string | null){
   return url;
 }
 
+export const EngineLogo = ({ kernel, size = 16 }: { kernel: KernelKind; size?: number }) =>
+  <img className="logo" src={kernel === 'chromium' ? chromium : firefox} width={size} height={size} alt="" aria-hidden="true" />;
+
 export function Flag({ country, kernel, size = 'sm' }: { country: string | null; kernel: KernelKind; size?: 'sm' | 'lg' }){
   const url = useFlag(country);
   return (
     <span className={`flag-badge ${size}`} aria-hidden="true">
       {url ? <img src={url} alt="" /> : <span className="globe"><Icon name="proxies" /></span>}
-      <span className={`eng ${kernel}`}>{kernel === 'chromium' ? 'C' : 'F'}</span>
+      <span className="eng"><EngineLogo kernel={kernel} /></span>
     </span>
   );
 }

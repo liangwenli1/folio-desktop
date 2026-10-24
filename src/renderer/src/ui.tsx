@@ -29,7 +29,14 @@ const PATHS = {
   upload: 'M8 10.5v-8M4.5 6 8 2.5 11.5 6M3 13.5h10',
   pause: 'M6 4.5v7M10 4.5v7',
   monitor: 'M2.5 3.5h11v7h-11zM6 13.5h4M8 10.5v3',
-  stop: 'M4.5 4.5h7v7h-7z'
+  stop: 'M4.5 4.5h7v7h-7z',
+  chevR: 'M6.5 5 9.5 8l-3 3',
+  logout: 'M6.5 2.5h-3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3M10.5 11l3-3-3-3M13.5 8H6',
+  list: 'M5.5 4h8M5.5 8h8M5.5 12h8M2.5 4h.01M2.5 8h.01M2.5 12h.01',
+  grid: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z',
+  more: 'M3.5 8h.01M8 8h.01M12.5 8h.01',
+  refresh: 'M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3',
+  lang: 'M2.5 3.5h7M6 2v1.5M8 3.5c-.5 2.5-2.5 4.5-5 5.5M4.5 5.5c.8 1.5 2 2.6 3.5 3.3M9 13.5l2.5-6 2.5 6M9.8 11.5h3.4'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -64,6 +71,22 @@ export function useOutsideClose(open: boolean, close: () => void){
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open, close]);
   return ref;
+}
+
+// How a page shows its items (rows, cards, a calendar), remembered on this computer.
+export function useView<T extends string>(page: string, initial: T){
+  const key = `folio.view.${page}`;
+  const [view, setView] = useState<T>(() => { try { return (localStorage.getItem(key) as T | null) ?? initial; } catch { return initial; } });
+  const set = (v: T) => { setView(v); try { localStorage.setItem(key, v); } catch { /* this session only */ } };
+  return [view, set] as const;
+}
+// The switch between those views, at the right of a page's filters: an icon per view.
+export function ViewSwitch<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: [T, IconName, string][]; onChange(v: T): void }){
+  return (
+    <span className="views" role="group" aria-label={label}>
+      {options.map(([v, icon, name]) => <button key={v} type="button" aria-pressed={value === v} aria-label={name} title={name} onClick={() => onChange(v)}><Icon name={icon} /></button>)}
+    </span>
+  );
 }
 
 // The current time, ticking every second while `on` (for run timers).
@@ -109,8 +132,9 @@ export function Toasts({ children }: { children: ReactNode }){
 }
 
 // A dialog. `icon` makes it a short one (a confirmation, a one-step import): the icon on top, the title and the content
-// centred, the buttons side by side; its content goes straight in. A long one (a form) brings its own .m-body.
-export function Modal({ title, closeLabel, onClose, foot, icon, tone, children }: { title: string; closeLabel: string; onClose(): void; foot?: ReactNode; icon?: IconName; tone?: 'bad' | 'good'; children: ReactNode }){
+// centred, the buttons side by side; its content goes straight in. A long one (a form) brings its own .m-body; `wide`
+// gives a big form room for a preview beside it.
+export function Modal({ title, closeLabel, onClose, foot, icon, tone, wide, children }: { title: string; closeLabel: string; onClose(): void; foot?: ReactNode; icon?: IconName; tone?: 'bad' | 'good'; wide?: boolean; children: ReactNode }){
   const id = useId();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -120,7 +144,7 @@ export function Modal({ title, closeLabel, onClose, foot, icon, tone, children }
   return (
     <>
       <div className="scrim modal-scrim" onClick={onClose} />
-      <div className={`modal${icon ? ' short' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id}>
+      <div className={`modal${icon ? ' short' : wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id}>
         {icon ? <>
           <button className="icon-btn bare sm m-close" type="button" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
           <div className="m-body"><span className={`m-icon${tone ? ` ${tone}` : ''}`} aria-hidden="true"><Icon name={icon} /></span><h2 id={id}>{title}</h2>{children}</div>
@@ -136,6 +160,9 @@ export function Modal({ title, closeLabel, onClose, foot, icon, tone, children }
     </>
   );
 }
+
+// An extension's own icon (a jigsaw piece when it has none).
+export const ExtIcon = ({ src }: { src?: string | null }) => <span className="ext-ic">{src ? <img src={src} alt="" /> : <Icon name="extensions" />}</span>;
 
 // What to do with the rows ticked on a page: how many, the actions, and a cross that clears the selection.
 export function BulkBar({ n, label, clearLabel, onClear, children }: { n: number; label: string; clearLabel: string; onClear(): void; children: ReactNode }){

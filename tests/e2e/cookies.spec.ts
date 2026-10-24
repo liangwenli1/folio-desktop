@@ -16,6 +16,7 @@ const saveTo = (app: ElectronApplication, path: string) => app.evaluate(({ dialo
   dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;
 }, path);
 async function importFile(win: Page, text: string){
+  await detail(win).getByRole('tab', { name: 'Sign-ins' }).click();
   await detail(win).getByTestId('storage').locator('input[type=file]').setInputFiles({ name: 'cookies.json', mimeType: 'application/json', buffer: Buffer.from(text) });
 }
 
@@ -25,6 +26,7 @@ test('cookies come in from a file and go out as JSON; kept on one computer, Foli
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await win.getByRole('button', { name: 'Shop-07', exact: true }).click();
+  await detail(win).getByRole('tab', { name: 'Sign-ins' }).click();
   const storage = detail(win).getByTestId('storage');
   await expect(storage).toContainText('Nothing saved yet');
 

@@ -63,11 +63,11 @@ function updateTray(){
 onScheduled(updateTray);
 
 // The title bar takes the app's colours: Windows keeps its own minimize, maximize and close buttons over a strip the
-// workbench draws (36 px, see --tb in styles.css), macOS keeps its traffic lights. Linux keeps the system frame.
-const TITLE_BAR = 36;
+// workbench draws (44 px, see --tb in styles.css), macOS keeps its traffic lights. Linux keeps the system frame.
+const TITLE_BAR = 44;
 const overlay = () => ({ color: '#00000000', symbolColor: nativeTheme.shouldUseDarkColors ? '#ECEBF2' : '#1D1C2B', height: TITLE_BAR });
 const frame = process.platform === 'win32' ? { titleBarStyle: 'hidden' as const, titleBarOverlay: overlay() }
-  : process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 14, y: 11 } } : {};
+  : process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 15 } } : {};
 nativeTheme.on('updated', () => { if (process.platform === 'win32') BrowserWindow.getAllWindows().forEach(w => w.setTitleBarOverlay(overlay())); });
 
 function createWindow(){

@@ -3,7 +3,7 @@ import type { ProfileStatus, Update } from '@shared/bridge';
 import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
-import { errorText, type Dict, type Lang } from './i18n';
+import { LANG_NAMES, errorText, type Dict, type Lang } from './i18n';
 import { isPaid, planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
@@ -18,13 +18,13 @@ import { WindowSyncPage } from './WindowSync';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
-import { Icon, Mark, Toasts, useOutsideClose, useToast, type IconName } from './ui';
+import { Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Flag } from './Flag';
 import { health } from './checks';
 
 interface Props {
-  d: Dict; lang: Lang; me: Me; ws: Workspace;
+  d: Dict; lang: Lang; version: string; me: Me; ws: Workspace;
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
@@ -35,7 +35,7 @@ export function Workbench(props: Props){
   return <Toasts><Shell {...props} /></Toasts>;
 }
 
-function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Props){
+function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Props){
   const toast = useToast();
   const s = ws.subscription;
   const site = `/${lang}`;
@@ -48,7 +48,6 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
   const userRef = useOutsideClose(userOpen, () => setUserOpen(false));
   const manager = ws.role !== 'member';
   const limit = s.entitlements.profiles;
-  const initials = me.user.email.slice(0, 2).toUpperCase();
 
   const data = useWorkspaceData(ws.id, ws.role, {
     workspace: onWorkspace,
@@ -154,23 +153,7 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
           </button>
           {wsOpen && (
             <ul className="menu" role="listbox" aria-label={d.ws.switch}>
-              {me.workspaces.map(w => (
-                <li key={w.id} role="option" aria-selected={w.id === ws.id}>
-                  <button type="button" onClick={() => { setWsOpen(false); go('profiles'); onSwitch(w.id); }}>
-                    <span>{w.name}</span><small>{d.plans[w.plan]} · {d.roles[w.role]}</small>
-                  </button>
-                </li>
-              ))}
-              {invites.length > 0 && <li className="menu-t" role="presentation">{d.team.invites}</li>}
-              {invites.map(i => (
-                <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
-                  <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', d.roles[i.role])}</small></span>
-                  <span className="invite-acts">
-                    <button type="button" className="btn btn-xs btn-primary" onClick={() => void answer(i, true)}>{d.team.join}</button>
-                    <button type="button" className="btn btn-xs btn-text" onClick={() => void answer(i, false)}>{d.team.decline}</button>
-                  </span>
-                </li>
-              ))}
+              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setWsOpen(false); go('profiles'); onSwitch(w); }} onAnswer={answer} />
             </ul>
           )}
         </div>
@@ -202,46 +185,76 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
         )}
 
         <section className="plan" aria-label={d.plans[s.plan]}>
-          <p><b data-testid="plan-name">{d.plans[s.plan]}</b></p>
-          {planStatus(s, d, lang) && <p className="muted" data-testid="plan-status">{planStatus(s, d, lang)}</p>}
-          <p data-testid="plan-usage">{d.plan.usage(used, limit)}</p>
+          <b data-testid="plan-name">{d.plans[s.plan]}</b>
+          <span data-testid="plan-usage">{d.plan.usage(used, limit)}</span>
+          {planStatus(s, d, lang) && <span data-testid="plan-status">{planStatus(s, d, lang)}</span>}
           <span className="meter"><i style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></span>
-          {manager && (
-            <div className="plan-actions">
-              <button className="linkish" type="button" data-testid="plan-buy" onClick={() => folio.openSite(`${site}/checkout/?ws=${ws.id}`)}>
-                {isPaid(s) ? d.plan.addProfiles : d.plan.upgrade}
-              </button>
-              <button className="linkish muted" type="button" onClick={() => folio.openSite(`${site}/account/?ws=${ws.id}`)}>{d.plan.manage}</button>
-            </div>
-          )}
         </section>
+      </aside>
 
+      <header className="top">
         <div className="me-wrap" ref={userRef}>
-          <button className="me" type="button" aria-haspopup="menu" aria-expanded={userOpen} onClick={() => setUserOpen(o => !o)}>
-            <span className="av" aria-hidden="true">{initials}</span>
-            <span className="me-text"><b>{me.user.email}</b><small>{d.roles[ws.role]}</small></span>
+          <button className="me" type="button" aria-haspopup="dialog" aria-expanded={userOpen} aria-label={d.user.account} onClick={() => setUserOpen(o => !o)}>
+            <span className="av" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>{me.user.email}
+            {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
+            <Icon name="chev" />
           </button>
           {userOpen && (
-            <div className="menu up" role="menu">
-              <div className="menu-row">
-                <span>{d.user.language}</span>
-                <div className="seg">
-                  {(['en', 'zh'] as const).map(l => (
-                    <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{l === 'en' ? 'English' : '简体中文'}</button>
-                  ))}
-                </div>
+            <section className="account" role="dialog" aria-label={d.user.account}>
+              <header className="acc-h">
+                <span className="av lg" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
+                <div><b>{me.user.email}</b><small>{ws.name} · {d.roles[ws.role]}</small></div>
+                <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/account/`)}>{d.user.manage}<Icon name="chevR" /></button>
+              </header>
+              <div className="acc-two">
+                <section aria-label={d.user.teams}>
+                  <p className="acc-t">{d.user.teams}</p>
+                  <ul className="acc-list" role="listbox" aria-label={d.ws.switch}>
+                    <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setUserOpen(false); go('profiles'); onSwitch(w); }} onAnswer={answer} />
+                  </ul>
+                  <div className="acc-plan">
+                    <b>{d.plans[s.plan]}</b>
+                    <span>{[d.plan.usage(used, limit), planStatus(s, d, lang)].filter(Boolean).join(' · ')}</span>
+                    <span className="meter"><i style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></span>
+                    {manager && <>
+                      <button className="linkish" type="button" data-testid="plan-buy" onClick={() => folio.openSite(`${site}/checkout/?ws=${ws.id}`)}>
+                        {isPaid(s) ? d.plan.addProfiles : d.plan.upgrade} ›
+                      </button>
+                      <button className="linkish" type="button" onClick={() => folio.openSite(`${site}/account/?ws=${ws.id}`)}>{d.plan.manage} ›</button>
+                    </>}
+                  </div>
+                </section>
+                <section aria-label={d.user.settings}>
+                  <p className="acc-t">{d.user.settings}</p>
+                  <div className="acc-row">
+                    <span><Icon name="proxies" />{d.user.language}</span>
+                    <div className="seg fill">
+                      {(['zh', 'en'] as const).map(l => (
+                        <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{LANG_NAMES[l]}</button>
+                      ))}
+                    </div>
+                  </div>
+                  {startup?.supported && (
+                    <div className="acc-switch">
+                      <Switch label={d.user.startup} checked={startup.enabled} onChange={on => void folio.setStartup(on).then(() => folio.startup()).then(setStartup)} />
+                      <p className="hint">{d.user.startupHint}</p>
+                    </div>
+                  )}
+                  {manager && <>
+                    <p className="acc-t">{d.user.data}</p>
+                    <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}><Icon name="upload" />{d.user.exportAll}</button>
+                    <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}><Icon name="download" />{d.user.importAll}</button>
+                  </>}
+                </section>
               </div>
-              {startup?.supported && (
-                <button className="menu-item menu-check" type="button" role="menuitemcheckbox" aria-checked={startup.enabled}
-                  onClick={() => void folio.setStartup(!startup.enabled).then(() => folio.startup()).then(setStartup)}>{d.user.startup}</button>
-              )}
-              {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}>{d.user.exportAll}</button>}
-              {manager && <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}>{d.user.importAll}</button>}
-              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}>{d.user.logout}</button>
-            </div>
+              <footer className="acc-f">
+                <span>Folio {version}</span>
+                <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}><Icon name="logout" />{d.user.logout}</button>
+              </footer>
+            </section>
           )}
         </div>
-      </aside>
+      </header>
 
       {shown === 'profiles' && (
         <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} onPalette={() => setPalette(true)}
@@ -277,9 +290,34 @@ function Shell({ d, lang, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Pro
 function NavItem({ icon, label, count, badge, active, onClick }: { icon: IconName; label: string; count?: number; badge?: string; active: boolean; onClick(): void }){
   return (
     <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
-      <Icon name={icon} />{label}{count !== undefined && <span className="cnt">{count}</span>}{badge && <span className="cnt on">{badge}</span>}
+      <span className="ni"><Icon name={icon} /></span>{label}{count !== undefined && <span className="cnt">{count}</span>}{badge && <span className="cnt on">{badge}</span>}
     </button>
   );
+}
+
+// The workspaces this account is in, and invitations to others: in the sidebar's switcher and the account panel.
+function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onPick(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void }){
+  return <>
+    {me.workspaces.map(w => (
+      <li key={w.id} role="option" aria-selected={w.id === ws.id} className="ws-item">
+        <button type="button" className="acc-ws" aria-current={w.id === ws.id} onClick={() => onPick(w.id)}>
+          <span className="ws-av" aria-hidden="true">{[...w.name][0]?.toUpperCase()}</span>
+          <span><b>{w.name}</b><small>{d.plans[w.plan]} · {d.roles[w.role]}</small></span>
+          {w.id === ws.id && <Icon name="check" />}
+        </button>
+      </li>
+    ))}
+    {invites.length > 0 && <li className="menu-t" role="presentation">{d.team.invites}</li>}
+    {invites.map(i => (
+      <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
+        <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', d.roles[i.role])}</small></span>
+        <span className="invite-acts">
+          <button type="button" className="btn btn-xs btn-primary" onClick={() => onAnswer(i, true)}>{d.team.join}</button>
+          <button type="button" className="btn btn-xs btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>
+        </span>
+      </li>
+    ))}
+  </>;
 }
 
 // Groups in the sidebar: filter the profile list, add, rename and delete.
