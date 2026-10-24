@@ -180,7 +180,7 @@ export const en = {
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
     engine: 'Engine', os: 'Operating system',
     proxy: 'Proxy', noProxy: 'No proxy (this computer’s IP)', pasteProxy: 'Paste a new proxy…', pastePh: 'socks5://user:pass@host:port',
-    proxyAdded: 'Added to Proxies.', proxyBad: 'That doesn’t look like a proxy address.',
+    proxyBad: 'That doesn’t look like a proxy address.',
     proxyOk: (place: string, ms: number) => `Answers in ${ms} ms, exits in ${place}`, proxyDown: 'The proxy didn’t answer.',
     tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint', regen: 'Regenerate', fpHint: 'Time zone, language and geolocation follow the proxy.',
     regenWarn: 'Sites will see a new device; logged-in sites may ask you to verify again.', fpErr: 'Couldn’t make a fingerprint.',
@@ -272,7 +272,7 @@ export const en = {
   },
   team: {
     title: 'Team', sub: (n: number, seats: number | null) => `${n === 1 ? '1 person' : `${n} people`}${seats === null ? '' : ` · ${seats} ${seats === 1 ? 'seat' : 'seats'} on the plan`}`,
-    invite: 'Invite', you: 'you', remove: 'Remove', leave: 'Leave team', removeX: (e: string) => `Remove ${e}`, roleOf: (e: string) => `Role of ${e}`,
+    invite: 'Invite', you: 'you', remove: 'Remove', leave: 'Leave team', removeX: (e: string) => `Remove ${e}`,
     cols: { person: 'Person', role: 'Role', departments: 'Departments', profiles: 'Profiles', recent: 'Latest activity', joined: 'Joined' },
     search: 'Search people', meTag: '(you)', moreX: (e: string) => `More for ${e}`, makeRole: (r: string) => `Change role to ${r}`,
     deptSum: (people: number, n: number) => `${people === 1 ? '1 person' : `${people} people`} · ${profilesN(n)}`,
@@ -287,9 +287,9 @@ export const en = {
     heir: 'Give their profiles to', removeDo: 'Remove from team', removed: (e: string) => `${e} was removed`,
     leaveTitle: (ws: string) => `Leave ${ws}?`, leaveLead: 'Your profiles there go to the owner, and you lose access to the workspace.', leaveDo: 'Leave',
     removedYou: (ws: string) => `You’re no longer in ${ws}. Its profiles were closed and removed from this computer.`,
-    depts: 'Departments', deptAdd: 'New department', deptName: 'Department name', deptNone: 'No departments yet.',
+    depts: 'Departments', deptAdd: 'New department', deptName: 'Department name',
     deptHelp: 'Members see the profiles of their departments as well as their own.', deptCompany: 'Departments come with the Company plan.',
-    deptMembers: 'Members', deptDelete: 'Delete', deptDeleteConfirm: (n: string) => `Delete “${n}”? Its profiles stay, without a department.`, deptProfiles: (n: number) => profilesN(n),
+    deptMembers: 'Members', deptDelete: 'Delete', deptDeleteConfirm: (n: string) => `Delete “${n}”? Its profiles stay, without a department.`,
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
   },
   activity: {
@@ -766,7 +766,7 @@ export const zh: Dict = {
     group: '分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组名称',
     engine: '内核', os: '操作系统',
     proxy: '代理', noProxy: '不使用代理（本机 IP）', pasteProxy: '粘贴新代理…', pastePh: 'socks5://用户名:密码@主机:端口',
-    proxyAdded: '已加入代理列表。', proxyBad: '无法识别该代理地址。',
+    proxyBad: '无法识别该代理地址。',
     proxyOk: (place: string, ms: number) => `响应 ${ms} ms，出口位于 ${place}`, proxyDown: '代理无响应。',
     tags: '标签', tagsPh: '用逗号分隔', fp: '指纹', regen: '重新生成', fpHint: '时区、语言与地理位置将跟随代理。',
     regenWarn: '网站会将其识别为新设备，已登录的网站可能要求重新验证。', fpErr: '指纹生成失败。',
@@ -857,7 +857,7 @@ export const zh: Dict = {
   },
   team: {
     title: '团队', sub: (n: number, seats: number | null) => `${n} 人${seats === null ? '' : ` · 套餐含 ${seats} 个席位`}`,
-    invite: '邀请', you: '我', remove: '移除', leave: '退出团队', removeX: (e: string) => `移除 ${e}`, roleOf: (e: string) => `${e} 的角色`,
+    invite: '邀请', you: '我', remove: '移除', leave: '退出团队', removeX: (e: string) => `移除 ${e}`,
     cols: { person: '成员', role: '角色', departments: '部门', profiles: '环境', recent: '最近活动', joined: '加入时间' },
     search: '搜索成员', meTag: '（我）', moreX: (e: string) => `${e} 的更多操作`, makeRole: (r: string) => `改为${r}`,
     deptSum: (people: number, n: number) => `${people} 人 · ${n} 个环境`,
@@ -872,9 +872,9 @@ export const zh: Dict = {
     heir: '环境转交给', removeDo: '移出团队', removed: (e: string) => `已移除 ${e}`,
     leaveTitle: (ws: string) => `退出「${ws}」？`, leaveLead: '您在此团队的环境将转交给所有者，此后将无法访问该团队。', leaveDo: '退出',
     removedYou: (ws: string) => `您已不在「${ws}」中，其环境已在本机关闭并删除。`,
-    depts: '部门', deptAdd: '新建部门', deptName: '部门名称', deptNone: '暂无部门。',
+    depts: '部门', deptAdd: '新建部门', deptName: '部门名称',
     deptHelp: '成员除自己的环境外，还可查看所在部门的环境。', deptCompany: '部门功能属于公司版。',
-    deptMembers: '成员', deptDelete: '删除', deptDeleteConfirm: (n: string) => `删除「${n}」？其环境将保留并变为无部门。`, deptProfiles: (n: number) => `${n} 个环境`,
+    deptMembers: '成员', deptDelete: '删除', deptDeleteConfirm: (n: string) => `删除「${n}」？其环境将保留并变为无部门。`,
     invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请您成为${role}`
   },
   activity: {
