@@ -329,7 +329,7 @@ export const en = {
     empty: 'No flows yet. A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string) => `${n} deleted`, copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
-    back: '← Flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
+    back: 'Flows', backLabel: 'Back to flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
     leave: 'Leave without saving your changes?', keepEditing: 'Keep editing', discard: 'Discard changes',
     readOnly: 'Only whoever created this flow, admins and the owner can change it. Duplicate it to make your own version.',
     stale: 'Someone saved this flow while you were editing. Save again to replace their version with yours.',
@@ -344,7 +344,16 @@ export const en = {
     start: { title: 'A flow is a list of steps', body: 'It does what you would do by hand: open a page, click, type, read what it shows. Add steps from the menu, then try them on a profile on the right.', template: 'Start from the sign-in check' },
     types: { open: 'Open URL', click: 'Click', type: 'Type', press: 'Press key', wait: 'Wait', scroll: 'Scroll', extract: 'Extract', set: 'Set variable', if: 'If', loop: 'Repeat', screenshot: 'Screenshot', script: 'Run script', signedIn: 'Check signed in' } satisfies Record<Step['type'], string>,
     up: (p: string) => `Move step ${p} up`, down: (p: string) => `Move step ${p} down`, copyStep: (p: string) => `Duplicate step ${p}`, remove: (p: string) => `Remove step ${p}`,
-    then: 'Then', else: 'Otherwise', each: 'Each time',
+    then: 'When true', else: 'Otherwise', each: 'Each time', end: 'End',
+    settings: 'Step settings', pick: 'Pick a step in the chart to change it.', stepN: (p: string) => `Step ${p}`, upToDate: 'Saved',
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out',
+    // A step in one line, on its node in the chart.
+    sum: {
+      secs: (a: number, b: number | null) => (b ? `${a}–${b} s` : `${a} s`), until: (what: string, sel: string, s: number) => `${what} ${sel} · up to ${s} s`,
+      pixels: (n: number) => `${n} px`, into: (sel: string, what: string, v: string) => `${sel} ${what} → {{${v}}}`,
+      contains: (sel: string, t: string) => `${sel} contains “${t}”`, exists: (sel: string) => `${sel} is there`,
+      times: (n: number) => (n === 1 ? 'Once' : `${n} times`), each: (sel: string) => `Each ${sel}`, empty: 'Not filled in yet'
+    },
     issue: { url: 'Enter the address to open.', selector: 'Say which element.', key: 'Name the key.', variable: 'Variable names use letters, digits and _, and don’t start with a digit.', pixels: 'Enter how far to scroll.', times: 'Repeat at least once.', code: 'Write the script.', attribute: 'Name the attribute.' },
     f: {
       selector: 'Element', selectorPh: '#login, .price, text=Sign in', variable: 'Variable', url: 'Address', text: 'Text', slow: 'Type one character at a time, like a person',
@@ -376,7 +385,15 @@ export const en = {
   tasks: {
     title: 'Scheduled tasks', sub: (n: number) => (n === 1 ? '1 task' : `${n} tasks`), new: 'New task', needFlow: 'Make a flow first, on the Flows page.',
     empty: 'No tasks yet. A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
-    cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
+    cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', on: 'Runs on', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
+    views: { label: 'View', list: 'List', calendar: 'Calendar' },
+    here: 'This computer', starter: 'Whoever runs it', made: (flow: string, who: string) => `${flow} · made by ${who}`, n: (n: number) => String(n),
+    latest: (task: string) => `Latest run · ${task}`, took: (s: number) => (s < 60 ? `took ${s} s` : `took ${Math.floor(s / 60)} min ${s % 60} s`),
+    calendar: {
+      prev: 'Previous week', next: 'Next week', thisWeek: 'This week', local: 'In this computer’s time', none: 'No scheduled times this week.',
+      range: (a: Date, b: Date) => `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', a.getMonth() === b.getMonth() ? { day: 'numeric' } : { month: 'short', day: 'numeric' })}, ${b.getFullYear()}`,
+      at: (time: string, n: number) => `${time} · ${n}`
+    },
     never: 'Not run yet', manual: 'By hand', next: (at: string) => `Next: ${at}`, done: 'Its time has passed', on: (device: string) => `On ${device}`,
     once: (at: string) => `Once, ${at}`, everyDay: 'Every day', weekdays: 'Weekdays', weekends: 'Weekends', dayNames: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     onlyOpen: 'Scheduled tasks run on their computer while Folio is open and logged in there; times missed are recorded, not run late.', enableStartup: 'Start Folio with this computer',
@@ -387,7 +404,7 @@ export const en = {
     status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted', missed: 'Missed', busy: 'Skipped' },
     progress: (done: number, all: number) => `${done} of ${all} done`, elsewhere: (where: string) => `on ${where}`,
     counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} done`, c.signed_out && `${c.signed_out} signed out`, c.failed && `${c.failed} failed`, c.skipped && `${c.skipped} skipped`, c.canceled && `${c.canceled} not run`].filter(Boolean).join(' · ') || 'Nothing ran',
-    back: '← Tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
+    back: 'Tasks', backLabel: 'Back to tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
     runs: 'Runs', noRuns: 'No runs yet.', triggers: { manual: 'Manual', rerun: 'Rerun', schedule: 'Scheduled' }, result: 'Run results',
     missedNote: (at: string, device: string) => `Nothing ran at ${at}: Folio wasn’t open and logged in on ${device || 'its computer'}, or the computer was asleep.`,
     busyNote: (at: string) => `Nothing ran at ${at}: the run before was still going.`, runNow: 'Run it now',
@@ -886,7 +903,7 @@ export const zh: Dict = {
     empty: '暂无流程。流程由一系列步骤组成（打开网页、点击、输入、提取等），可在一个或多个环境中运行。',
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制后修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     inUse: (tasks: string) => `正被 ${tasks} 使用，无法删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string) => `已删除 ${n}`, copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
-    back: '← 流程', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
+    back: '流程', backLabel: '返回流程列表', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
     leave: '修改尚未保存，确定离开？', keepEditing: '继续编辑', discard: '放弃修改',
     readOnly: '仅流程创建者、管理员和所有者可修改，可复制一份后修改。',
     stale: '编辑期间该流程已被他人保存。再次保存将以当前版本覆盖对方的修改。',
@@ -901,7 +918,15 @@ export const zh: Dict = {
     start: { title: '流程由步骤组成', body: '按顺序完成手动操作：打开页面、点击、输入、读取内容。从菜单中添加步骤，再在右侧选择环境试运行。', template: '从登录检查模板开始' },
     types: { open: '打开网址', click: '点击', type: '输入', press: '按键', wait: '等待', scroll: '滚动', extract: '提取', set: '设置变量', if: '条件判断', loop: '循环', screenshot: '截图', script: '执行脚本', signedIn: '确认已登录' } satisfies Record<Step['type'], string>,
     up: (p: string) => `第 ${p} 步上移`, down: (p: string) => `第 ${p} 步下移`, copyStep: (p: string) => `复制第 ${p} 步`, remove: (p: string) => `删除第 ${p} 步`,
-    then: '满足时', else: '否则', each: '每一次',
+    then: '满足时', else: '否则', each: '每一次', end: '结束',
+    settings: '步骤设置', pick: '在流程图中选择步骤后即可修改。', stepN: (p: string) => `第 ${p} 步`, upToDate: '已保存',
+    zoomIn: '放大', zoomOut: '缩小',
+    sum: {
+      secs: (a: number, b: number | null) => (b ? `${a}–${b} 秒` : `${a} 秒`), until: (what: string, sel: string, s: number) => `${what} ${sel} · 最多 ${s} 秒`,
+      pixels: (n: number) => `${n} 像素`, into: (sel: string, what: string, v: string) => `${sel} 的${what} → {{${v}}}`,
+      contains: (sel: string, t: string) => `${sel} 包含「${t}」`, exists: (sel: string) => `存在 ${sel}`,
+      times: (n: number) => `${n} 次`, each: (sel: string) => `每个 ${sel}`, empty: '尚未填写'
+    },
     issue: { url: '请填写网址。', selector: '请指定元素。', key: '请填写按键。', variable: '变量名仅可包含字母、数字和下划线，且不能以数字开头。', pixels: '请填写滚动距离。', times: '至少重复一次。', code: '请填写脚本。', attribute: '请填写属性名。' },
     f: {
       selector: '元素', selectorPh: '#login、.price、text=登录', variable: '变量', url: '网址', text: '文字', slow: '逐字输入，模拟真人打字',
@@ -933,7 +958,15 @@ export const zh: Dict = {
   tasks: {
     title: '定时任务', sub: (n: number) => `${n} 个任务`, new: '新建任务', needFlow: '请先在「流程」页创建流程。',
     empty: '暂无任务。任务将流程分批运行在一组环境上，并保留每次运行的结果。',
-    cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
+    cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', on: '运行在', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
+    views: { label: '视图', list: '列表', calendar: '日历' },
+    here: '本机', starter: '启动者的电脑', made: (flow: string, who: string) => `流程「${flow}」· ${who} 创建`, n: (n: number) => `${n} 个`,
+    latest: (task: string) => `最近一次运行 · ${task}`, took: (s: number) => (s < 60 ? `用时 ${s} 秒` : `用时 ${Math.floor(s / 60)} 分 ${s % 60} 秒`),
+    calendar: {
+      prev: '上一周', next: '下一周', thisWeek: '本周', local: '按本机时间', none: '本周没有定时运行。',
+      range: (a: Date, b: Date) => `${a.getFullYear()}年${a.getMonth() + 1}月${a.getDate()}日 – ${a.getMonth() === b.getMonth() ? '' : `${b.getMonth() + 1}月`}${b.getDate()}日`,
+      at: (time: string, n: number) => `${time} · ${n} 个`
+    },
     never: '尚未运行', manual: '手动', next: (at: string) => `下次：${at}`, done: '时间已过', on: (device: string) => `在 ${device} 上运行`,
     once: (at: string) => `一次：${at}`, everyDay: '每天', weekdays: '工作日', weekends: '周末', dayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     onlyOpen: '定时任务在其所属电脑上运行，需该电脑的 Folio 处于运行并已登录状态；错过的执行时间将被记录，不会自动补运行。', enableStartup: '开机自动启动 Folio',
@@ -944,7 +977,7 @@ export const zh: Dict = {
     status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断', missed: '错过', busy: '跳过' },
     progress: (done: number, all: number) => `已完成 ${done} / ${all}`, elsewhere: (where: string) => `在 ${where} 上`,
     counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} 个成功`, c.signed_out && `${c.signed_out} 个掉线`, c.failed && `${c.failed} 个失败`, c.skipped && `${c.skipped} 个跳过`, c.canceled && `${c.canceled} 个未运行`].filter(Boolean).join(' · ') || '均未运行',
-    back: '← 任务', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
+    back: '任务', backLabel: '返回任务列表', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
     runs: '运行记录', noRuns: '暂无运行记录。', triggers: { manual: '手动', rerun: '重新运行', schedule: '定时' }, result: '运行结果',
     missedNote: (at: string, device: string) => `${at} 未运行：${device || '所属电脑'}上的 Folio 未运行或未登录，或电脑处于睡眠状态。`,
     busyNote: (at: string) => `${at} 未运行：上一轮尚未完成。`, runNow: '补运行',

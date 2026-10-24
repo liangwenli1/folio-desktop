@@ -137,3 +137,36 @@ test('stopping a run closes what is open and leaves the rest not run', async () 
   await app.close();
   await site.close();
 });
+
+test('the week calendar places a daily task on its days, and the page remembers the calendar', async () => {
+  const owner = await account();
+  const base = `/workspaces/${owner.workspaceId}`;
+  await owner.api.post(`${base}/profiles`, { data: chromiumProfile('Cal-1') });
+  await owner.api.post(`${base}/flows`, { data: { name: 'Look', steps: [{ type: 'open', url: 'https://example.com' }] } });
+  const app = await launch(dataDir());
+  const win = await logIn(app, owner.email);
+  await nav(win, 'Scheduled tasks').click();
+  await win.getByRole('button', { name: 'New task' }).click();
+  const form = win.getByRole('dialog', { name: 'New task' });
+  await form.getByLabel('Name').fill('Twice a week');
+  await form.getByLabel('Select all shown').check();
+  await form.getByRole('group', { name: 'When it runs' }).getByRole('button', { name: 'Daily' }).click();
+  await form.getByLabel('Time', { exact: true }).fill('09:00');
+  // Weekdays come picked; keep Monday and Wednesday.
+  for (const day of ['Tue', 'Thu', 'Fri']) await form.getByRole('group', { name: 'Days' }).getByRole('button', { name: day }).click();
+  await form.getByRole('button', { name: 'Create task' }).click();
+  await win.getByRole('button', { name: 'Back to tasks' }).click();
+
+  await win.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Calendar' }).click();
+  const events = win.locator('.cal-ev[data-task="Twice a week"]');
+  await expect(events).toHaveCount(2);
+  await expect(win.locator('.cal-day').nth(0).locator('.cal-ev')).toContainText('09:00');
+  await expect(win.locator('.cal-day').nth(2).locator('.cal-ev')).toContainText('09:00');
+  await expect(win.locator('.cal-day').nth(1).locator('.cal-ev')).toHaveCount(0);
+  await win.getByRole('button', { name: 'Next week' }).click();
+  await expect(events).toHaveCount(2);
+  await win.reload();
+  await nav(win, 'Scheduled tasks').click();
+  await expect(win.locator('.cal-ev[data-task="Twice a week"]')).toHaveCount(2);
+  await app.close();
+});
