@@ -36,7 +36,10 @@ const PATHS = {
   grid: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z',
   more: 'M3.5 8h.01M8 8h.01M12.5 8h.01',
   refresh: 'M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3',
-  lang: 'M2.5 3.5h7M6 2v1.5M8 3.5c-.5 2.5-2.5 4.5-5 5.5M4.5 5.5c.8 1.5 2 2.6 3.5 3.3M9 13.5l2.5-6 2.5 6M9.8 11.5h3.4'
+  lang: 'M2.5 3.5h7M6 2v1.5M8 3.5c-.5 2.5-2.5 4.5-5 5.5M4.5 5.5c.8 1.5 2 2.6 3.5 3.3M9 13.5l2.5-6 2.5 6M9.8 11.5h3.4',
+  pointer: 'M4 2.5 12 8l-3.6.9 2.1 4.2-1.6.8-2.1-4.2L4 12.5z',
+  keyboard: 'M2 4.5h12v7H2zM4.5 7h.01M7 7h.01M9.5 7h.01M12 7h.01M5 9.5h6',
+  scrollV: 'M8 2v12M5 5l3-3 3 3M5 11l3 3 3-3'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;

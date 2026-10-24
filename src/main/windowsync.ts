@@ -2,39 +2,100 @@
 // in the leader's tabs reports clicks, mouse moves, scrolling, keys and typed text; it runs in an
 // isolated world the page's own JavaScript can't see (Chromium: one made through CDP on every page load; Firefox:
 // Camoufox keeps Playwright's scripts and bindings out of the page). Followers replay through Playwright's mouse
-// and keyboard, which give trusted events in both engines. Tabs are matched by position; the tab the leader works
-// in comes to the front in the followers (pages under Playwright always report themselves visible, so a tab switch
-// shows only once something is done in the tab). Opening an address, going back or forward, and opening or
-// closing a tab are seen in the browser itself and repeated too.
+// and keyboard, which give trusted events in both engines, each after a short random pause. Tabs are matched by
+// position; the tab the leader works in comes to the front in the followers (pages under Playwright always report
+// themselves visible, so a tab switch shows only once something is done in the tab). Opening an address, going back
+// or forward, and opening or closing a tab are seen in the browser itself and repeated too. Clicks, typing and
+// scrolling can each be left out; what was repeated, and where it went wrong, goes into a log of the last 50.
+import { app, nativeImage } from 'electron';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { BrowserContext, CDPSession, Frame, Page } from 'playwright-core';
 import { browserOf, isRunning, open } from './launcher';
-import type { WindowSync } from '../shared/bridge';
+import type { SyncAction, SyncIssue, SyncLogEntry, SyncOptions, WindowSync } from '../shared/bridge';
 
-interface Member { id: string; kernel: 'chromium' | 'firefox'; ctx: BrowserContext; pages: Page[]; queue: Promise<void>; issue: WindowSync['members'][number]['issue']; off: (() => void)[] }
+interface Member { id: string; kernel: 'chromium' | 'firefox'; ctx: BrowserContext; pages: Page[]; queue: Promise<void>; issue: WindowSync['members'][number]['issue']; label: string | null; off: (() => void)[] }
 interface Session { leader: Member; followers: Member[]; lastInput: number; active: number }
 type Event =
-  | { t: 'click'; button: number; detail: number; x: number; y: number; sel: string | null; ox: number; oy: number }
+  | { t: 'click'; button: number; detail: number; x: number; y: number; sel: string | null; ox: number; oy: number; label: string | null }
   | { t: 'move'; x: number; y: number }
-  | { t: 'scroll'; sel: string | null; rx: number; ry: number }
+  | { t: 'scroll'; sel: string | null; rx: number; ry: number; top: number }
   | { t: 'key'; key: string }
   | { t: 'text'; data: string };
+// How a follower did with one log entry: cleanly, or the problem it had (the worst one, when the entry merges several).
+type Result = 'ok' | SyncIssue;
+interface Entry extends SyncLogEntry { results: Map<string, { result: Result; label: string | null }> }
 
 // A navigation this soon after a click or key came from it, and the followers' own click or key repeats it.
 const INPUT_MS = 1500;
+// Typing or scrolling this soon after the last of it goes into the same log entry.
+const MERGE_MS = 2000;
+const LOG = 50, THUMB_MS = 2000, THUMB_WIDTH = 480;
 
 let session: Session | null = null;
 let notify: (s: WindowSync | null) => void = () => {};
 export const onWindowSync = (fn: typeof notify) => { notify = fn; };
-// Something the leader did was repeated in a follower's window (the page draws it travelling down the line).
-let pulse: (id: string) => void = () => {};
-export const onSyncPulse = (fn: typeof pulse) => { pulse = fn; };
 export const windowSync = (): WindowSync | null => session && {
-  leader: session.leader.id, members: [session.leader, ...session.followers].map(m => ({ id: m.id, issue: m.issue }))
+  leader: session.leader.id, members: [session.leader, ...session.followers].map(m => ({ id: m.id, issue: m.issue, label: m.label }))
 };
 const changed = () => notify(windowSync());
 
+// What is repeated, and how long a follower waits before it repeats something.
+const DEFAULTS: SyncOptions = { click: true, typing: true, scroll: true, delay: [0.1, 0.5] };
+let options: SyncOptions = DEFAULTS;
+const optionsFile = () => join(app.getPath('userData'), 'window-sync.json');
+const clean = (o: SyncOptions): SyncOptions => {
+  const [a, b] = o.delay.map(n => Math.min(5, Math.max(0, Math.round(Number(n) * 10) / 10 || 0)));
+  return { click: !!o.click, typing: !!o.typing, scroll: !!o.scroll, delay: [Math.min(a, b), Math.max(a, b)] };
+};
+export async function loadSyncOptions(){
+  options = clean({ ...DEFAULTS, ...JSON.parse(await readFile(optionsFile(), 'utf8').catch(() => '{}')) });
+}
+export const syncOptions = () => options;
+export async function setSyncOptions(change: Partial<SyncOptions>){
+  options = clean({ ...options, ...change });
+  await writeFile(optionsFile(), JSON.stringify(options, null, 2));
+  return options;
+}
+const pause = () => {
+  const [a, b] = options.delay;
+  return new Promise(r => setTimeout(r, (a + Math.random() * (b - a)) * 1000));
+};
+
+// The log, newest first; the page hears of changes (a burst of them at most every 150 ms).
+let log: Entry[] = [];
+let seq = 0, pushing: NodeJS.Timeout | null = null;
+let heard: (log: SyncLogEntry[]) => void = () => {};
+export const onSyncLog = (fn: typeof heard) => { heard = fn; };
+export const syncLog = (): SyncLogEntry[] => log.map(({ results: _r, ...e }) => e);
+const push = () => { pushing ??= setTimeout(() => { pushing = null; heard(syncLog()); }, 150); };
+function record(action: SyncAction, of: number){
+  const last = log[0], now = Date.now();
+  if (last && now - last.at < MERGE_MS && last.of === of && ((last.action.t === 'text' && action.t === 'text') || (last.action.t === 'scroll' && action.t === 'scroll'))){
+    if (last.action.t === 'text' && action.t === 'text') last.action.text += action.text;
+    else last.action = action;
+    last.at = now;
+    push();
+    return last;
+  }
+  const entry: Entry = { id: ++seq, at: now, action, of, ok: 0, problems: [], results: new Map() };
+  log = [entry, ...log].slice(0, LOG);
+  push();
+  return entry;
+}
+const WORSE: Result[] = ['ok', 'coords', 'failed'];
+function settle(entry: Entry, m: Member, result: Result){
+  const was = entry.results.get(m.id);
+  if (!was || WORSE.indexOf(result) > WORSE.indexOf(was.result)) entry.results.set(m.id, { result, label: result === 'coords' ? m.label : null });
+  const all = [...entry.results];
+  entry.ok = all.filter(([, r]) => r.result === 'ok').length;
+  entry.problems = all.flatMap(([id, r]) => (r.result === 'ok' ? [] : [{ id, issue: r.result, label: r.label }]));
+  push();
+}
+
 // The listener, run once per document in the isolated world. Positions are fractions of the window, so a
-// follower of another size lands in the same place; clicks also name the element, which is tried first.
+// follower of another size lands in the same place; clicks also name the element, which is tried first, and say
+// what it reads (for the log).
 const SCRIPT = `(() => {
   if (globalThis.__folioSync) return;
   globalThis.__folioSync = true;
@@ -56,9 +117,14 @@ const SCRIPT = `(() => {
     }
     return unique(path.join(' > '));
   };
+  const labelOf = t => {
+    const el = t instanceof Element ? t.closest('button,a,[role=button],input,textarea,select,label') || t : null;
+    const s = el && (el.getAttribute('aria-label') || el.getAttribute('placeholder') || (el.localName === 'input' ? el.value : '') || el.textContent || '').replace(/\\s+/g, ' ').trim();
+    return s ? s.slice(0, 40) : null;
+  };
   const at = e => {
     const r = e.target instanceof Element ? e.target.getBoundingClientRect() : null;
-    return { x: e.clientX / innerWidth, y: e.clientY / innerHeight, sel: selectorOf(e.target),
+    return { x: e.clientX / innerWidth, y: e.clientY / innerHeight, sel: selectorOf(e.target), label: labelOf(e.target),
       ox: r && r.width ? (e.clientX - r.left) / r.width : 0.5, oy: r && r.height ? (e.clientY - r.top) / r.height : 0.5 };
   };
   addEventListener('click', e => { if (e.isTrusted) send({ t: 'click', button: 0, detail: e.detail, ...at(e) }); }, true);
@@ -70,7 +136,7 @@ const SCRIPT = `(() => {
   addEventListener('scroll', e => {
     const el = e.target === document ? document.scrollingElement : e.target;
     if (!(el instanceof Element)) return;
-    const report = () => { scrolled = Date.now(); pending = null; send({ t: 'scroll', sel: el === document.scrollingElement ? null : selectorOf(el),
+    const report = () => { scrolled = Date.now(); pending = null; send({ t: 'scroll', sel: el === document.scrollingElement ? null : selectorOf(el), top: Math.round(el.scrollTop),
       rx: el.scrollWidth > el.clientWidth ? el.scrollLeft / (el.scrollWidth - el.clientWidth) : 0, ry: el.scrollHeight > el.clientHeight ? el.scrollTop / (el.scrollHeight - el.clientHeight) : 0 }); };
     clearTimeout(pending);
     if (Date.now() - scrolled > 100) report(); else pending = setTimeout(report, 100);
@@ -85,6 +151,11 @@ const SCRIPT = `(() => {
   addEventListener('compositionend', e => { if (e.data) send({ t: 'text', data: e.data }); }, true);
 })();`;
 
+// Which option turns each kind of event off (mouse moves go with clicks).
+const KIND = { click: 'click', move: 'click', key: 'typing', text: 'typing', scroll: 'scroll' } as const;
+const action = (e: Exclude<Event, { t: 'move' }>): SyncAction =>
+  e.t === 'click' ? { t: 'click', label: e.label } : e.t === 'scroll' ? { t: 'scroll', px: e.top } : e.t === 'key' ? { t: 'key', key: e.key } : { t: 'text', text: e.data };
+
 // Firefox pages keep their binding and script for their whole life; one dispatcher serves every session.
 const watched = new WeakSet<Page>();
 function dispatch(page: Page, raw: string){
@@ -92,12 +163,16 @@ function dispatch(page: Page, raw: string){
   const i = s ? s.leader.pages.indexOf(page) : -1;
   if (!s || i < 0) return;
   const e = JSON.parse(raw) as Event;
+  // Left out: not repeated; an address it leads to is then repeated as one.
+  if (!options[KIND[e.t]]) return;
   if (e.t === 'click' || e.t === 'key' || e.t === 'text') s.lastInput = Date.now();
   if (i !== s.active){
     s.active = i;
-    for (const f of s.followers) run(f, async () => { await f.pages[i]?.bringToFront(); });
+    const entry = record({ t: 'tab', tab: 'switch', n: i + 1 }, s.followers.length);
+    for (const f of s.followers) run(f, async () => { await f.pages[i]?.bringToFront(); }, entry);
   }
-  for (const f of s.followers) replay(f, i, e);
+  const entry = e.t === 'move' ? undefined : record(action(e), s.followers.length);
+  for (const f of s.followers) replay(f, i, e, entry);
 }
 
 async function capture(m: Member, page: Page){
@@ -132,18 +207,24 @@ async function lead(s: Session){
     const nav = (frame: Frame) => {
       if (frame !== page.mainFrame() || Date.now() - s.lastInput < INPUT_MS) return;
       const i = m.pages.indexOf(page), url = frame.url();
-      if (i >= 0 && /^https?:/.test(url)) for (const f of s.followers) run(f, async () => { const p = f.pages[i]; if (p && p.url() !== url) await p.goto(url); });
+      if (i < 0 || !/^https?:/.test(url)) return;
+      const entry = record({ t: 'goto', url }, s.followers.length);
+      for (const f of s.followers) run(f, async () => { const p = f.pages[i]; if (p && p.url() !== url) await p.goto(url); }, entry);
     };
     page.on('framenavigated', nav);
     m.off.push(() => page.off('framenavigated', nav));
   };
   const opened = (page: Page) => {
     void watch(page);
-    if (Date.now() - s.lastInput >= INPUT_MS) for (const f of s.followers) run(f, async () => { await f.ctx.newPage(); });
+    if (Date.now() - s.lastInput < INPUT_MS) return;
+    const entry = record({ t: 'tab', tab: 'open', n: m.pages.length }, s.followers.length);
+    for (const f of s.followers) run(f, async () => { await f.ctx.newPage(); }, entry);
   };
   const closed = (page: Page) => {
     const i = m.pages.indexOf(page);
-    if (i >= 0) for (const f of s.followers) run(f, async () => { await f.pages[i]?.close(); });
+    if (i < 0) return;
+    const entry = record({ t: 'tab', tab: 'close', n: i + 1 }, s.followers.length);
+    for (const f of s.followers) run(f, async () => { await f.pages[i]?.close(); }, entry);
   };
   m.ctx.on('page', opened);
   m.off.push(() => m.ctx.off('page', opened));
@@ -157,13 +238,20 @@ async function lead(s: Session){
   m.off.push(() => m.ctx.off('page', closeLater));
 }
 
-// Each follower replays in order. Mouse moves are too many to show.
-function run(f: Member, op: () => Promise<void>, shown = true){
-  f.queue = f.queue.then(op).then(() => { if (shown) pulse(f.id); }).catch(() => { if (f.issue !== 'failed'){ f.issue = 'failed'; changed(); } });
+// Each follower replays in order, each logged action after the random pause. Mouse moves are too many to log or wait for.
+function run(f: Member, op: () => Promise<Result | void>, entry?: Entry){
+  f.queue = f.queue.then(async () => {
+    if (entry) await pause();
+    const r = await op();
+    if (entry) settle(entry, f, r ?? 'ok');
+  }).catch(() => {
+    if (f.issue !== 'failed'){ f.issue = 'failed'; changed(); }
+    if (entry) settle(entry, f, 'failed');
+  });
 }
 const size = (p: Page) => p.evaluate(() => [innerWidth, innerHeight] as [number, number]);
 
-function replay(f: Member, i: number, e: Event){
+function replay(f: Member, i: number, e: Event, entry?: Entry){
   run(f, async () => {
     const page = f.pages[i];
     if (!page) return;
@@ -185,17 +273,18 @@ function replay(f: Member, i: number, e: Event){
       if (!matched){ x = e.x * w; y = e.y * h; }
     }
     const issue = matched || !e.sel ? f.issue === 'coords' ? null : f.issue : 'coords';
-    if (issue !== f.issue){ f.issue = issue; changed(); }
+    if (issue !== f.issue || (issue === 'coords' && f.label !== e.label)){ f.issue = issue; f.label = issue === 'coords' ? e.label : null; changed(); }
     const button = (['left', 'middle', 'right'] as const)[e.button] ?? 'left';
     if (e.detail >= 2){ await page.mouse.move(x, y); await page.mouse.down({ button, clickCount: e.detail }); await page.mouse.up({ button, clickCount: e.detail }); }
     else await page.mouse.click(x, y, { button });
-  }, e.t !== 'move');
+    return matched || !e.sel ? 'ok' : 'coords';
+  }, entry);
 }
 
 function member(id: string): Member | null {
   const b = browserOf(id);
   if (!b) return null;
-  const m: Member = { id, kernel: b.kernel, ctx: b.ctx, pages: b.ctx.pages().filter(p => !p.isClosed()), queue: Promise.resolve(), issue: null, off: [] };
+  const m: Member = { id, kernel: b.kernel, ctx: b.ctx, pages: b.ctx.pages().filter(p => !p.isClosed()), queue: Promise.resolve(), issue: null, label: null, off: [] };
   // A closed tab leaves the list after the close has been mirrored, which needs its position.
   const drop = (p: Page) => p.once('close', () => queueMicrotask(() => { m.pages = m.pages.filter(x => x !== p); }));
   const add = (p: Page) => { m.pages.push(p); drop(p); };
@@ -205,7 +294,8 @@ function member(id: string): Member | null {
   return m;
 }
 
-// Starts (or restarts) syncing these profiles, opening the ones not open yet. The first is the leader.
+// Starts (or restarts) syncing these profiles, opening the ones not open yet. The first is the leader. A new sync
+// starts a new log.
 export async function startWindowSync(ids: string[], leader = ids[0]){
   stopWindowSync();
   const order = [leader, ...ids.filter(id => id !== leader)];
@@ -213,6 +303,8 @@ export async function startWindowSync(ids: string[], leader = ids[0]){
   const members = order.map(member).filter((m): m is Member => !!m);
   if (members.length < 2 || members[0].id !== leader){ members.forEach(m => m.off.forEach(f => f())); return windowSync(); }
   session = { leader: members[0], followers: members.slice(1), lastInput: 0, active: 0 };
+  log = [];
+  push();
   await lead(session);
   changed();
   return windowSync();
@@ -234,7 +326,8 @@ export async function setLeader(id: string){
 export function syncGoto(url: string){
   if (!session) return;
   const u = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`;
-  for (const m of [session.leader, ...session.followers]) run(m, async () => { const p = m.pages[0] ?? await m.ctx.newPage(); await p.goto(u); });
+  const all = [session.leader, ...session.followers], entry = record({ t: 'goto', url: u }, all.length);
+  for (const m of all) run(m, async () => { const p = m.pages[0] ?? await m.ctx.newPage(); await p.goto(u); }, entry);
 }
 
 // A profile that stopped leaves the sync; the sync ends with its leader or its last follower.
@@ -247,4 +340,28 @@ export function leftWindowSync(id: string){
   f.off.forEach(off => off());
   s.followers = s.followers.filter(x => x !== f);
   changed();
+}
+
+// Pictures of the synced windows (the tab the leader works in), small, while the page asks for them.
+let thumbs: (t: Record<string, string>) => void = () => {};
+export const onSyncThumbs = (fn: typeof thumbs) => { thumbs = fn; };
+let shooting: NodeJS.Timeout | null = null, busy = false;
+async function shoot(){
+  const s = session;
+  if (!s || busy) return;
+  busy = true;
+  const out: Record<string, string> = {};
+  await Promise.all([s.leader, ...s.followers].map(async m => {
+    const page = m.pages[s.active] ?? m.pages[0];
+    // caret: 'initial' leaves the page alone (no style injected to hide the text cursor while someone types).
+    const shot = page && !page.isClosed() ? await page.screenshot({ type: 'jpeg', quality: 70, caret: 'initial', timeout: 1500 }).catch(() => null) : null;
+    if (shot) out[m.id] = `data:image/jpeg;base64,${nativeImage.createFromBuffer(shot).resize({ width: THUMB_WIDTH, quality: 'good' }).toJPEG(70).toString('base64')}`;
+  }));
+  busy = false;
+  if (Object.keys(out).length) thumbs(out);
+}
+export function watchThumbs(on: boolean){
+  if (shooting) clearInterval(shooting);
+  shooting = on ? setInterval(() => void shoot(), THUMB_MS) : null;
+  if (on) void shoot();
 }
