@@ -840,7 +840,64 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .trial-data dd{margin:0;font-family:var(--f-data);font-size:12.5px;overflow-wrap:anywhere}
 @media (max-width:1180px){ .flow-edit{grid-template-columns:minmax(0,1fr) 320px} }
 
-/* tasks */
+/* tasks: the list with each task's last run as a bar, the latest run under it; or the week as a calendar */
+.task-note{display:flex;align-items:center;gap:12px;margin:0 var(--gx) 0;padding:10px 14px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);font-size:13px;color:var(--ink-2);flex:none}
+.task-note > .i{color:var(--ink-3)}
+.task-note p{flex:1;min-width:0}
+.task-note .switch{flex:none;font-size:13px;font-weight:600}
+.task-cell{display:flex;align-items:center;gap:10px}
+.task-ic{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:9px;background:var(--accent-soft);color:var(--accent)}
+.pflags{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.flags{display:inline-flex}
+.flags .flag-badge{width:22px;height:22px;box-shadow:0 0 0 2px var(--card)}
+.flags .flag-badge + .flag-badge{margin-left:-7px}
+.flags .flag-badge .eng{display:none}
+.last-run{display:grid;gap:5px;justify-items:start;padding:0;border:0;background:none;text-align:left;cursor:pointer}
+.last-run:hover .run-line b{text-decoration:underline;text-underline-offset:3px}
+.rbar{display:flex;gap:2px;width:160px;height:7px;border-radius:99px;overflow:hidden;background:var(--seg)}
+.rbar i{display:block;min-width:4px}
+.rbar .ok{background:var(--good)} .rbar .warn{background:var(--warn)} .rbar .bad{background:var(--bad)} .rbar .wait{background:var(--line-2)}
+.run-line{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:13.5px}
+.run-line .muted{font-size:12.5px}
+.st.warn{--c:var(--warn)}
+.latest{display:grid;gap:12px;margin:0 var(--gx) 24px;padding:14px 16px 16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow);flex:none}
+.latest .sec-row b{font-weight:600}
+.latest .sec-row .muted{font-size:12.5px}
+.latest-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.latest-grid li{display:flex;align-items:center;gap:10px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--panel)}
+.latest-grid b{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.latest-grid .st{height:24px;font-size:12px}
+/* the week: tasks on the left, Monday to Sunday across, hours down */
+.cal{display:grid;grid-template-columns:260px minmax(0,1fr);gap:14px;align-items:start;margin:16px var(--gx) 24px}
+.cal-tasks{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.cal-task{--c:var(--info);display:grid;gap:5px;width:100%;padding:12px 14px 12px 16px;border:1px solid var(--line);border-left:4px solid var(--c);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow);text-align:left;cursor:pointer}
+.cal-task:hover{border-color:var(--line-2);border-left-color:var(--c)}
+.cal-task b{font-weight:600}
+.cal-task small{font-size:12px;color:var(--ink-2)}
+.cal-task .rbar{width:100%}
+.tc0{--c:var(--info)} .tc1{--c:var(--good)} .tc2{--c:var(--warn)} .tc3{--c:#7C5CC4} .tc4{--c:var(--bad)} .tc5{--c:#0E8A9A}
+.cal-week{display:grid;gap:10px;padding:12px 14px 14px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow);min-width:0}
+.cal-h{display:flex;align-items:center;gap:6px}
+.cal-h b{font-size:14px;font-weight:600}
+.cal-h .hint{font-size:12px}
+.cal-grid{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));overflow-x:auto}
+.cal-times{position:relative;margin-top:26px}
+.cal-times span{position:absolute;right:8px;transform:translateY(-50%);font:500 11px var(--f-data);color:var(--ink-3)}
+.cal-day{min-width:96px;border-left:1px solid var(--line)}
+.cal-dh{display:block;height:26px;padding-top:2px;text-align:center;font-size:12.5px;color:var(--ink-2)}
+.cal-day.today .cal-dh{color:var(--accent-ink);font-weight:600}
+.cal-day.today .cal-col{background-color:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+.cal-col{position:relative;background-image:linear-gradient(var(--line) 1px,transparent 1px)}
+.cal-ev{position:absolute;display:grid;gap:1px;min-height:34px;margin:0 2px;padding:3px 7px 4px;border:0;border-left:3px solid var(--c);border-radius:7px;background:color-mix(in srgb,var(--c) 14%,var(--card));text-align:left;overflow:hidden;cursor:pointer;box-shadow:0 2px 6px -4px rgba(29,28,43,.4)}
+.cal-ev b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-ev small{font:500 11px var(--f-data);color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-ev.past{opacity:.5}
+.cal-now{position:absolute;left:0;right:0;height:2px;background:var(--bad)}
+.cal-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.cal-none{text-align:center}
+@media (max-width:1180px){ .cal{grid-template-columns:minmax(0,1fr)} }
+/* a task's runs and their results */
+.task-back{padding:0 8px;color:var(--ink-2)}
 .picker-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .picker-bar input[type="search"]{flex:1 1 160px;width:auto !important;height:32px !important;font-size:13px !important}
 .picker-bar .sel{max-width:200px}
@@ -849,23 +906,19 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .picker-list .check-row{color:var(--ink);font-size:13.5px}
 .picker-list .mono{font-size:12px;margin-left:auto}
 .vars-kept{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font-size:13px;font-weight:400}
-.run-line{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:13.5px}
-.run-line .muted{font-size:12.5px}
-.task-detail{flex:1;min-height:0;display:grid;grid-template-columns:280px minmax(0,1fr)}
-.runs{display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;padding:16px 14px 24px var(--gx);border-right:1px solid var(--line)}
+.task-detail{flex:1;min-height:0;display:grid;grid-template-columns:280px minmax(0,1fr);align-items:start;gap:14px;padding:4px var(--gx) 18px}
+.runs{display:flex;flex-direction:column;gap:8px;max-height:100%;min-height:0;overflow-y:auto;padding:12px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow)}
 .runs > *{flex:none}
 .run-list{display:grid;gap:4px;margin:0;padding:0;list-style:none}
 .run-list button{display:grid;gap:3px;width:100%;padding:8px 10px;border:1px solid transparent;border-radius:var(--r);background:transparent;text-align:left;cursor:pointer}
-.run-list button:hover{background:var(--card)}
-.run-list button.cur{background:var(--card);border-color:var(--line);box-shadow:var(--shadow)}
+.run-list button:hover{background:var(--hover)}
+.run-list button.cur{background:var(--sel);border-color:color-mix(in srgb,var(--accent) 30%,transparent)}
 .run-list time{font-size:12px;color:var(--ink-2)}
 .run-list .l2{white-space:normal;overflow-wrap:anywhere}
-.run-detail{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding:16px var(--gx) 24px}
+.run-detail{display:flex;flex-direction:column;gap:12px;max-height:100%;min-height:0;overflow-y:auto}
 .run-detail > *{flex:none}
 .run-detail .tw{margin:0}
 .run-sum{display:grid;gap:2px;font-size:13.5px}
-.item-st{font-size:13px;font-weight:600}
-.item-st.ok{color:var(--good-ink)} .item-st.failed{color:var(--bad)} .item-st.skipped,.item-st.canceled{color:var(--warn-ink)} .item-st.pending,.item-st.running{color:var(--ink-2)}
 .kv{display:inline-block;margin-right:12px;overflow-wrap:anywhere}
 .kv .mono{font-size:12px;color:var(--ink-2)}
 .shots{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px}
@@ -873,8 +926,8 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .sched-daily{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .sched-daily input{width:auto !important}
 .days{display:flex;flex-wrap:wrap;gap:4px}
-.day{height:30px;min-width:44px;padding:0 8px;border:1px solid var(--line-2);border-radius:7px;background:var(--card);font-size:13px;color:var(--ink-2);cursor:pointer}
-.day[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.day{height:30px;min-width:44px;padding:0 8px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);font-size:13px;color:var(--ink-2);cursor:pointer}
+.day[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 
 /* API & scripts */
 .api-page{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:18px var(--gx) 28px;align-items:start}

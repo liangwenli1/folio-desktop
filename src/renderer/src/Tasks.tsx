@@ -1,14 +1,15 @@
 // Tasks: a flow run on a set of profiles, a few at a time, with retries, by hand or on a schedule. Runs happen on
 // the computer of whoever starts them (a schedule's own computer for scheduled runs) and are reported to the server
 // profile by profile, so the team sees each run and its results.
-import { Fragment, useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { nextSlot, type Schedule } from '@shared/schedule';
+import { Fragment, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
+import { nextSlot, weekOf, weekSlots, type Schedule } from '@shared/schedule';
 import { folio, isApiError, type Profile, type Run, type RunItem, type Task, type Workspace } from './api';
 import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Icon, Modal, useToast } from './ui';
+import { Icon, Modal, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
 type Counts = Run['counts'];
@@ -26,13 +27,25 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(focus?.taskId ?? null);
   const [form, setForm] = useState<{ task?: Task } | null>(null);
-  const [confirm, setConfirm] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Task | null>(null);
+  const [view, setView] = useView<'list' | 'calendar'>('tasks', 'list');
+  // The task whose latest run shows under the list (by default, the one that ran last).
+  const [latest, setLatest] = useState<string | null>(null);
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const flowName = new Map(data.flows.map(f => [f.id, f.name]));
   const email = new Map(data.members.map(m => [m.userId, m.email]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const task = open ? data.tasks.find(t => t.id === open) : undefined;
   const scheduledHere = data.tasks.some(t => t.schedule && t.runner?.self);
+  const proxies = new Map(data.proxies.map(p => [p.id, p]));
+  const profiles = new Map((data.profiles ?? []).map(p => [p.id, p]));
+  const flag = (id: string | null) => {
+    const p = id ? profiles.get(id) : undefined;
+    return p && <Flag key={p.id} country={(p.proxyId && proxies.get(p.proxyId)?.lastCheck?.geo?.country) || null} kernel={p.kernel} />;
+  };
+  const ran = (t: Task) => t.lastRun && t.lastRun.status !== 'missed' && t.lastRun.status !== 'busy';
+  const shown = data.tasks.find(t => t.id === latest && ran(t))
+    ?? data.tasks.filter(ran).sort((a, b) => Date.parse(b.lastRun!.startedAt) - Date.parse(a.lastRun!.startedAt))[0];
 
   useEffect(() => { if (focus) setOpen(focus.taskId); }, [focus]);
   useEffect(() => { void folio.startup().then(setStartup); }, []);
@@ -49,8 +62,8 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
     try { await folio.api('DELETE', `/tasks/${t.id}`); toast(T.deleted(t.name)); setOpen(null); } catch (e){ fail(e); }
     data.refresh('tasks');
   }
-  async function enableStartup(){
-    await folio.setStartup(true);
+  async function toggleStartup(on: boolean){
+    await folio.setStartup(on);
     setStartup(await folio.startup());
   }
 
@@ -68,53 +81,68 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
           <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.sub(data.tasks.length)}</p></div>
           <span className="sp" />
           {!data.flows.length && <span className="hint">{T.needFlow}</span>}
+          <ViewSwitch label={T.views.label} value={view} onChange={setView} options={[['list', 'list', T.views.list], ['calendar', 'calendar', T.views.calendar]]} />
           <button className="btn btn-primary" type="button" disabled={!data.flows.length} title={data.flows.length ? undefined : T.needFlow} onClick={() => setForm({})}><Icon name="plus" />{T.new}</button>
         </header>
         {scheduledHere && (
-          <p className="hint page-note">{T.onlyOpen}{' '}
-            {startup?.supported && !startup.enabled && <button type="button" className="linkish" onClick={() => void enableStartup()}>{T.enableStartup}</button>}
-          </p>
+          <div className="task-note">
+            <Icon name="tasks" /><p>{T.onlyOpen}</p>
+            {startup?.supported && <Switch label={T.enableStartup} checked={startup.enabled} onChange={on => void toggleStartup(on)} />}
+          </div>
         )}
-        <div className="tw top-gap">
-          <table>
-            <thead>
-              <tr><th scope="col">{T.cols.task}</th><th scope="col" className="num">{T.cols.profiles}</th><th scope="col">{T.cols.when}</th><th scope="col">{T.cols.last}</th><th scope="col">{T.cols.by}</th><th className="act" scope="col" /></tr>
-            </thead>
-            <tbody>
-              {!data.tasks.length && <tr className="empty"><td colSpan={6}><p>{T.empty}</p></td></tr>}
-              {data.tasks.map(t => {
-                const here = data.active.find(a => a.taskId === t.id);
-                return (
-                  <tr key={t.id} data-task={t.name}>
-                    <td><button type="button" className="rowlink" onClick={() => setOpen(t.id)}>{t.name}</button><span className="l2">{flowName.get(t.flowId)}</span></td>
-                    <td className="num">{t.profileIds.length === t.profiles ? t.profiles : `${t.profileIds.length} / ${t.profiles}`}</td>
-                    <td><ScheduleCell d={d} lang={lang} task={t} /></td>
-                    <td>{t.lastRun ? <RunLine d={d} lang={lang} run={t.lastRun} here={!!here} /> : <span className="muted">{T.never}</span>}</td>
-                    <td>{t.createdBy === meId ? d.flows.you : (t.createdBy && email.get(t.createdBy)) || '—'}</td>
-                    <td className="act"><span className="actin">
-                      {confirm === t.id ? <>
-                        <span className="hint">{T.confirmDelete(t.name)}</span>
-                        <button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                        <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(t)}>{T.delete}</button>
-                      </> : <>
+        {view === 'calendar' ? <TaskCalendar d={d} lang={lang} tasks={data.tasks} onOpen={setOpen} /> : <>
+          <div className="tw top-gap flow">
+            <table>
+              <thead>
+                <tr><th scope="col">{T.cols.task}</th><th scope="col">{T.cols.profiles}</th><th scope="col">{T.cols.when}</th><th scope="col">{T.cols.last}</th><th scope="col">{T.cols.on}</th><th className="act" scope="col" /></tr>
+              </thead>
+              <tbody>
+                {!data.tasks.length && <tr className="empty"><td colSpan={6}><p>{T.empty}</p></td></tr>}
+                {data.tasks.map(t => {
+                  const here = data.active.find(a => a.taskId === t.id);
+                  return (
+                    <tr key={t.id} data-task={t.name} className={t.id === shown?.id ? 'cur' : ''}>
+                      <td><span className="task-cell"><span className="task-ic" aria-hidden="true"><Icon name="tasks" /></span><span>
+                        <button type="button" className="rowlink" onClick={() => setOpen(t.id)}>{t.name}</button>
+                        <span className="l2">{T.made(flowName.get(t.flowId) ?? '—', t.createdBy === meId ? d.flows.you : (t.createdBy && email.get(t.createdBy)) || '—')}</span>
+                      </span></span></td>
+                      <td><span className="pflags"><span className="flags">{t.profileIds.slice(0, 3).map(flag)}</span>{t.profileIds.length === t.profiles ? t.profiles : `${t.profileIds.length} / ${t.profiles}`}</span></td>
+                      <td><ScheduleCell d={d} lang={lang} task={t} /></td>
+                      <td>{t.lastRun
+                        ? <button type="button" className="last-run" title={ran(t) ? T.latest(t.name) : undefined} onClick={() => ran(t) && setLatest(t.id)}>
+                          <ResultBar run={t.lastRun} /><RunLine d={d} lang={lang} run={t.lastRun} here={!!here} />
+                        </button>
+                        : <span className="muted">{T.never}</span>}</td>
+                      <td>{t.schedule ? (t.runner?.self ? T.here : t.runner?.deviceName ?? '—') : <span className="muted">{T.starter}</span>}</td>
+                      <td className="act"><span className="actin">
                         {here
-                          ? <button type="button" className="btn btn-xs btn-secondary" onClick={() => void folio.stopRun(here.runId)}>{T.stop}</button>
+                          ? <button type="button" className="btn btn-xs btn-secondary" onClick={() => void folio.stopRun(here.runId)}><Icon name="stop" />{T.stop}</button>
                           : <button type="button" className="btn btn-xs btn-secondary" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} title={!t.profileIds.length ? T.noProfilesHere : t.lastRun?.status === 'running' ? T.runningElsewhere : undefined} aria-label={T.runX(t.name)} onClick={() => void start(t)}><Icon name="play" />{T.run}</button>}
                         {t.canEdit && <button type="button" className="btn btn-xs btn-text" onClick={() => setForm({ task: t })}>{d.common.edit}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-xs btn-danger" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t.id)}>{T.delete}</button>}
-                      </>}
-                    </span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        {t.canEdit && <button type="button" className="btn btn-xs btn-danger" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t)}>{T.delete}</button>}
+                      </span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {shown && <LatestRun d={d} lang={lang} task={shown} flag={flag} idle={!data.active.some(a => a.taskId === shown.id) && shown.lastRun?.status !== 'running'} runsSeq={data.runsSeq}
+            onRerun={ids => void start(shown, 'rerun', ids)} />}
+        </>}
+        {confirm && (
+          <Modal icon="trash" tone="bad" title={T.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+            <button type="button" className="btn btn-danger solid" onClick={() => void remove(confirm)}>{T.delete}</button>
+          </>}><p>{describeTask(d, lang, confirm)}</p></Modal>
+        )}
       </main>
       {formDialog}
     </div>
   );
 }
+
+const describeTask = (d: Dict, lang: Lang, t: Task) => (t.schedule ? describe(d, lang, t.schedule) : d.tasks.manual);
 
 // When a task runs: by hand, or its schedule with the next time (on this computer) or the computer it runs on.
 function ScheduleCell({ d, lang, task }: { d: Dict; lang: Lang; task: Task }){
@@ -136,6 +164,14 @@ export function describe(d: Dict, lang: Lang, s: Schedule){
   return `${which} ${s.time}${zone}`;
 }
 
+// A run as a bar: done in green, signed out or not run in yellow, failed in red, still to go in grey.
+function ResultBar({ run }: { run: Run }){
+  const c = run.counts, all = total(c);
+  if (!all) return null;
+  const part = (n: number, cls: string) => n > 0 && <i className={cls} style={{ flexGrow: n }} />;
+  return <span className="rbar" aria-hidden="true">{part(c.ok, 'ok')}{part(c.signed_out + c.skipped + c.canceled, 'warn')}{part(c.failed, 'bad')}{part(c.pending + c.running, 'wait')}</span>;
+}
+
 // A run in one line: how far it got, or how it ended.
 function RunLine({ d, lang, run, here }: { d: Dict; lang: Lang; run: Run; here: boolean }){
   const T = d.tasks, c = run.counts;
@@ -148,6 +184,122 @@ function RunLine({ d, lang, run, here }: { d: Dict; lang: Lang; run: Run; here: 
       <span className="muted">{run.status === 'running' ? (here ? T.progress(finished(c), total(c)) : T.elsewhere(run.deviceName ?? run.startedBy ?? ''))
         : nothing ? when(run.scheduledFor ?? run.startedAt, lang) : T.counts(c)}</span>
     </span>
+  );
+}
+
+// A run item's result as a status label.
+const ITEM_ST: Record<RunItem['status'], [string, IconName | null]> = {
+  ok: ['run', 'check'], failed: ['bad', 'alert'], signed_out: ['warn', 'alert'], skipped: ['idle', 'pause'], canceled: ['idle', 'pause'], pending: ['idle', 'pause'], running: ['boot', null]
+};
+const ItemStatus = ({ d, status }: { d: Dict; status: RunItem['status'] }) => {
+  const [cls, icon] = ITEM_ST[status];
+  return <span className={`st ${cls}`}>{icon ? <Icon name={icon} /> : <span className="spin" aria-hidden="true" />}{d.tasks.item[status]}</span>;
+};
+
+// The latest run of a task, profile by profile, with the ones that didn't finish to run again.
+function LatestRun({ d, lang, task, flag, idle, runsSeq, onRerun }: {
+  d: Dict; lang: Lang; task: Task; flag(id: string | null): ReactNode; idle: boolean; runsSeq: number; onRerun(ids: string[]): void;
+}){
+  const T = d.tasks, run = task.lastRun!;
+  const [items, setItems] = useState<RunItem[]>([]);
+  useEffect(() => {
+    void folio.api<{ items: RunItem[] }>('GET', `/runs/${run.id}`).then(r => setItems(r.items), () => setItems([]));
+  }, [run.id, runsSeq]);
+  const again = items.filter(i => i.profileId && ['failed', 'signed_out', 'skipped', 'canceled'].includes(i.status)).map(i => i.profileId!);
+  const took = run.finishedAt ? Math.round((Date.parse(run.finishedAt) - Date.parse(run.startedAt)) / 1000) : null;
+  return (
+    <section className="latest" aria-label={T.latest(task.name)}>
+      <header className="sec-row">
+        <span><b>{T.latest(task.name)}</b><span className="muted"> {when(run.scheduledFor ?? run.startedAt, lang)}{took !== null && ` · ${T.took(took)}`}</span></span>
+        {run.status !== 'running' && idle && again.length > 0 && <button type="button" className="btn btn-xs btn-secondary" onClick={() => onRerun(again)}>{T.rerun(again.length)}</button>}
+      </header>
+      <ul className="latest-grid">
+        {items.map(i => (
+          <li key={i.profileNumber} data-item={i.profileName} title={i.error ? itemError(d, i) : undefined}>
+            {flag(i.profileId)}<b>{i.profileName}</b><ItemStatus d={d} status={i.status} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const PALETTE = 6;
+const minutes = (t: number) => { const x = new Date(t); return x.getHours() * 60 + x.getMinutes(); };
+
+// The week's scheduled runs: the tasks on the left, the days across, each time where it falls (this computer's time).
+function TaskCalendar({ d, lang, tasks, onOpen }: { d: Dict; lang: Lang; tasks: Task[]; onOpen(id: string): void }){
+  const T = d.tasks, C = T.calendar, locale = lang === 'zh' ? 'zh-CN' : 'en-US';
+  const [monday, setMonday] = useState(() => weekOf(Date.now()));
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(t); }, []);
+  const days = Array.from({ length: 7 }, (_, k) => new Date(new Date(monday).setDate(new Date(monday).getDate() + k)));
+  const slots = weekSlots(tasks.map(t => t.schedule), monday);
+  // 07:00 to 22:00, widened to whatever falls outside it.
+  const from = Math.min(7, ...slots.map(s => Math.floor(minutes(s.at) / 60))), to = Math.max(22, ...slots.map(s => Math.floor(minutes(s.at) / 60) + 1));
+  const HOUR = 44;
+  const y = (t: number) => ((minutes(t) - from * 60) / 60) * HOUR;
+  const range = C.range(days[0], days[6]);
+  const today = (day: Date) => new Date(now).toDateString() === day.toDateString();
+  const time = (t: number) => new Date(t).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+  // Times close together on a day sit side by side.
+  const placed = days.map(day => {
+    const own = slots.filter(s => new Date(s.at).toDateString() === day.toDateString());
+    const out: { i: number; at: number; col: number; cols: number }[] = [];
+    let group: typeof out = [];
+    for (const s of own){
+      if (group.length && s.at - group[0].at >= 45 * 60_000){ group.forEach(g => (g.cols = group.length)); group = []; }
+      const e = { ...s, col: group.length, cols: 1 };
+      group.push(e); out.push(e);
+    }
+    group.forEach(g => (g.cols = group.length));
+    return out;
+  });
+  const step = (by: number) => setMonday(m => { const x = new Date(m); x.setDate(x.getDate() + by * 7); return x.getTime(); });
+
+  return (
+    <div className="cal">
+      <ul className="cal-tasks">
+        {tasks.map((t, i) => (
+          <li key={t.id}>
+            <button type="button" className={`cal-task tc${i % PALETTE}`} onClick={() => onOpen(t.id)}>
+              <b>{t.name}</b><small>{describeTask(d, lang, t)} · {T.n(t.profileIds.length)}</small>
+              {t.lastRun && <><ResultBar run={t.lastRun} /><small>{t.lastRun.status === 'missed' || t.lastRun.status === 'busy' ? T.status[t.lastRun.status] : T.counts(t.lastRun.counts)}</small></>}
+              {!t.lastRun && <small>{T.never}</small>}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <section className="cal-week" aria-label={range}>
+        <header className="cal-h">
+          <button type="button" className="icon-btn sm bare" aria-label={C.prev} title={C.prev} onClick={() => step(-1)}><Icon name="back" /></button>
+          <b>{range}</b>
+          <button type="button" className="icon-btn sm bare" aria-label={C.next} title={C.next} onClick={() => step(1)}><Icon name="chevR" /></button>
+          {monday !== weekOf(now) && <button type="button" className="btn btn-xs btn-text" onClick={() => setMonday(weekOf(Date.now()))}>{C.thisWeek}</button>}
+          <span className="sp" /><span className="hint">{C.local}</span>
+        </header>
+        <div className="cal-grid">
+          <div className="cal-times" style={{ height: (to - from) * HOUR }}>
+            {Array.from({ length: to - from }, (_, h) => <span key={h} style={{ top: h * HOUR }}>{String(from + h).padStart(2, '0')}:00</span>)}
+          </div>
+          {days.map((day, k) => (
+            <div key={k} className={`cal-day${today(day) ? ' today' : ''}`}>
+              <span className="cal-dh">{T.dayNames[k]} {day.getDate()}</span>
+              <div className="cal-col" style={{ height: (to - from) * HOUR, backgroundSize: `100% ${HOUR}px` }}>
+                {placed[k].map(e => (
+                  <button key={`${e.i}-${e.at}`} type="button" className={`cal-ev tc${e.i % PALETTE}${e.at < now ? ' past' : ''}`} data-task={tasks[e.i].name}
+                    style={{ top: y(e.at), left: `${(e.col / e.cols) * 100}%`, width: `calc(${100 / e.cols}% - 4px)` }} onClick={() => onOpen(tasks[e.i].id)}>
+                    <b>{tasks[e.i].name}</b><small>{C.at(time(e.at), tasks[e.i].profileIds.length)}</small>
+                  </button>
+                ))}
+                {today(day) && minutes(now) >= from * 60 && minutes(now) < to * 60 && <i className="cal-now" style={{ top: y(now) }} />}
+              </div>
+            </div>
+          ))}
+        </div>
+        {!slots.length && <p className="hint cal-none">{C.none}</p>}
+      </section>
+    </div>
   );
 }
 
@@ -193,7 +345,8 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
     <div className="page">
       <main className="main">
         <header className="bar">
-          <button type="button" className="btn btn-text btn-sm" onClick={onBack}>{T.back}</button>
+          <button type="button" className="btn btn-text btn-sm task-back" aria-label={T.backLabel} onClick={onBack}><Icon name="back" />{T.back}</button>
+          <span className="vsep" aria-hidden="true" />
           <div className="ttl"><h1>{task.name}</h1>
             <p className="sub">{T.about(flowName, task.profileIds.length, task.concurrency, task.retries)}{task.schedule ? ` · ${describe(d, lang, task.schedule)}` : ''}</p></div>
           <span className="sp" />
@@ -243,7 +396,7 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
                         <Fragment key={key}>
                           <tr data-item={i.profileName} className={isOpen ? 'cur' : ''}>
                             <td><button type="button" className="rowlink" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : key)}>{i.profileName}</button><span className="l2 mono">#{pad(i.profileNumber)}</span></td>
-                            <td><span className={`item-st ${i.status}`}>{T.item[i.status]}</span></td>
+                            <td><ItemStatus d={d} status={i.status} /></td>
                             <td className="num">{i.attempts || ''}</td>
                             <td className="num">{i.startedAt && i.finishedAt ? d.flows.trial.ms(Date.parse(i.finishedAt) - Date.parse(i.startedAt)) : ''}</td>
                             <td className="result">{i.error ? <span className="err">{itemError(d, i)}</span>

@@ -365,7 +365,15 @@ export const en = {
   tasks: {
     title: 'Scheduled tasks', sub: (n: number) => (n === 1 ? '1 task' : `${n} tasks`), new: 'New task', needFlow: 'Make a flow first, on the Flows page.',
     empty: 'No tasks yet. A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
-    cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
+    cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', on: 'Runs on', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
+    views: { label: 'View', list: 'List', calendar: 'Calendar' },
+    here: 'This computer', starter: 'Whoever runs it', made: (flow: string, who: string) => `${flow} · made by ${who}`, n: (n: number) => String(n),
+    latest: (task: string) => `Latest run · ${task}`, took: (s: number) => (s < 60 ? `took ${s} s` : `took ${Math.floor(s / 60)} min ${s % 60} s`),
+    calendar: {
+      prev: 'Previous week', next: 'Next week', thisWeek: 'This week', local: 'In this computer’s time', none: 'No scheduled times this week.',
+      range: (a: Date, b: Date) => `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', a.getMonth() === b.getMonth() ? { day: 'numeric' } : { month: 'short', day: 'numeric' })}, ${b.getFullYear()}`,
+      at: (time: string, n: number) => `${time} · ${n}`
+    },
     never: 'Not run yet', manual: 'By hand', next: (at: string) => `Next: ${at}`, done: 'Its time has passed', on: (device: string) => `On ${device}`,
     once: (at: string) => `Once, ${at}`, everyDay: 'Every day', weekdays: 'Weekdays', weekends: 'Weekends', dayNames: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     onlyOpen: 'Scheduled tasks run on their computer while Folio is open and logged in there; times missed are recorded, not run late.', enableStartup: 'Start Folio with this computer',
@@ -376,7 +384,7 @@ export const en = {
     status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted', missed: 'Missed', busy: 'Skipped' },
     progress: (done: number, all: number) => `${done} of ${all} done`, elsewhere: (where: string) => `on ${where}`,
     counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} done`, c.signed_out && `${c.signed_out} signed out`, c.failed && `${c.failed} failed`, c.skipped && `${c.skipped} skipped`, c.canceled && `${c.canceled} not run`].filter(Boolean).join(' · ') || 'Nothing ran',
-    back: '← Tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
+    back: 'Tasks', backLabel: 'Back to tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
     runs: 'Runs', noRuns: 'No runs yet.', triggers: { manual: 'Manual', rerun: 'Rerun', schedule: 'Scheduled' }, result: 'Run results',
     missedNote: (at: string, device: string) => `Nothing ran at ${at}: Folio wasn’t open and logged in on ${device || 'its computer'}, or the computer was asleep.`,
     busyNote: (at: string) => `Nothing ran at ${at}: the run before was still going.`, runNow: 'Run it now',
@@ -895,7 +903,15 @@ export const zh: Dict = {
   tasks: {
     title: '定时任务', sub: (n: number) => `${n} 个任务`, new: '新建任务', needFlow: '请先在「流程」页创建流程。',
     empty: '暂无任务。任务将流程分批运行在一组环境上，并保留每次运行的结果。',
-    cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
+    cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', on: '运行在', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
+    views: { label: '视图', list: '列表', calendar: '日历' },
+    here: '本机', starter: '启动者的电脑', made: (flow: string, who: string) => `流程「${flow}」· ${who} 创建`, n: (n: number) => `${n} 个`,
+    latest: (task: string) => `最近一次运行 · ${task}`, took: (s: number) => (s < 60 ? `用时 ${s} 秒` : `用时 ${Math.floor(s / 60)} 分 ${s % 60} 秒`),
+    calendar: {
+      prev: '上一周', next: '下一周', thisWeek: '本周', local: '按本机时间', none: '本周没有定时运行。',
+      range: (a: Date, b: Date) => `${a.getFullYear()}年${a.getMonth() + 1}月${a.getDate()}日 – ${a.getMonth() === b.getMonth() ? '' : `${b.getMonth() + 1}月`}${b.getDate()}日`,
+      at: (time: string, n: number) => `${time} · ${n} 个`
+    },
     never: '尚未运行', manual: '手动', next: (at: string) => `下次：${at}`, done: '时间已过', on: (device: string) => `在 ${device} 上运行`,
     once: (at: string) => `一次：${at}`, everyDay: '每天', weekdays: '工作日', weekends: '周末', dayNames: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
     onlyOpen: '定时任务在其所属电脑上运行，需该电脑的 Folio 处于运行并已登录状态；错过的执行时间将被记录，不会自动补运行。', enableStartup: '开机自动启动 Folio',
@@ -906,7 +922,7 @@ export const zh: Dict = {
     status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断', missed: '错过', busy: '跳过' },
     progress: (done: number, all: number) => `已完成 ${done} / ${all}`, elsewhere: (where: string) => `在 ${where} 上`,
     counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} 个成功`, c.signed_out && `${c.signed_out} 个掉线`, c.failed && `${c.failed} 个失败`, c.skipped && `${c.skipped} 个跳过`, c.canceled && `${c.canceled} 个未运行`].filter(Boolean).join(' · ') || '均未运行',
-    back: '← 任务', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
+    back: '任务', backLabel: '返回任务列表', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
     runs: '运行记录', noRuns: '暂无运行记录。', triggers: { manual: '手动', rerun: '重新运行', schedule: '定时' }, result: '运行结果',
     missedNote: (at: string, device: string) => `${at} 未运行：${device || '所属电脑'}上的 Folio 未运行或未登录，或电脑处于睡眠状态。`,
     busyNote: (at: string) => `${at} 未运行：上一轮尚未完成。`, runNow: '补运行',
