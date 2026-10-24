@@ -18,6 +18,20 @@ test('the plan bought on the website shows up after logging in', async () => {
   await app.close();
 });
 
+test('the sign-in page plays the walkthrough, which pauses with its button', async () => {
+  const app = await launch(dataDir());
+  const win = await app.firstWindow();
+  const demo = win.getByRole('group', { name: /^Workbench walkthrough/ });
+  await expect(demo).toHaveAttribute('data-state', 'playing');
+  await expect(demo).not.toHaveAttribute('data-frame', '0', { timeout: 15_000 });
+  await demo.getByRole('button', { name: 'Pause walkthrough' }).click();
+  await expect(demo).toHaveAttribute('data-state', 'paused');
+  const at = await demo.getAttribute('data-frame');
+  await win.waitForTimeout(4000);
+  await expect(demo).toHaveAttribute('data-frame', at!);
+  await app.close();
+});
+
 test('a wrong password explains what went wrong', async () => {
   const { email } = await account();
   const app = await launch(dataDir());

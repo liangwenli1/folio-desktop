@@ -16,6 +16,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "demo:capture": "playwright test -c demo",
     "api:types": "openapi-typescript ${API_URL:-http://localhost:47110}/openapi.json -o src/shared/api-schema.d.ts"
   },
   "dependencies": {

@@ -26,7 +26,9 @@ export const en = {
     email: 'Email', password: 'Password', submit: 'Log in',
     noAccount: 'No account yet?', create: 'Sign up on the website', forgot: 'Forgot password?',
     // The profiles on the brand panel beside the form: name, exit city.
-    demo: [['US-Store-01', 'Seattle'], ['UK-Shop-01', 'London'], ['JP-Social-01', 'Tokyo']] as [string, string][]
+    demo: [['US-Store-01', 'Seattle'], ['UK-Shop-01', 'London'], ['JP-Social-01', 'Tokyo']] as [string, string][],
+    walkthrough: 'Workbench walkthrough: checking proxies, opening a browser profile, restoring tabs, a health check, installing an extension, batch opening, window sync and teamwork.',
+    pause: 'Pause walkthrough', play: 'Play walkthrough'
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines' },
   groups: {
@@ -612,7 +614,9 @@ export const zh: Dict = {
     title: '登录 Folio', lead: '使用在 Folio 官网注册的账号登录。',
     email: '邮箱', password: '密码', submit: '登录',
     noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？',
-    demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][]
+    demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][],
+    walkthrough: '工作台操作演示：检查代理、打开浏览器环境、恢复标签页、体检、安装扩展、批量打开、窗口同步与团队协作。',
+    pause: '暂停演示', play: '播放演示'
   },
   nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', engines: '内核' },
   groups: {
