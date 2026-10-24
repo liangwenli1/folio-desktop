@@ -36,7 +36,10 @@ const PATHS = {
   grid: 'M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z',
   more: 'M3.5 8h.01M8 8h.01M12.5 8h.01',
   refresh: 'M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3',
-  lang: 'M2.5 3.5h7M6 2v1.5M8 3.5c-.5 2.5-2.5 4.5-5 5.5M4.5 5.5c.8 1.5 2 2.6 3.5 3.3M9 13.5l2.5-6 2.5 6M9.8 11.5h3.4'
+  lang: 'M2.5 3.5h7M6 2v1.5M8 3.5c-.5 2.5-2.5 4.5-5 5.5M4.5 5.5c.8 1.5 2 2.6 3.5 3.3M9 13.5l2.5-6 2.5 6M9.8 11.5h3.4',
+  back: 'M9.5 5 6.5 8l3 3',
+  copy: 'M5.5 5.5h7v8h-7zM3.5 10.5v-8h7',
+  down: 'M8 3v9.5M4 8.5l4 4 4-4'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;

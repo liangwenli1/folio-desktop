@@ -309,7 +309,7 @@ export const en = {
     empty: 'No flows yet. A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string) => `${n} deleted`, copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
-    back: '← Flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
+    back: 'Flows', backLabel: 'Back to flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
     leave: 'Leave without saving your changes?', keepEditing: 'Keep editing', discard: 'Discard changes',
     readOnly: 'Only whoever created this flow, admins and the owner can change it. Duplicate it to make your own version.',
     stale: 'Someone saved this flow while you were editing. Save again to replace their version with yours.',
@@ -324,7 +324,16 @@ export const en = {
     start: { title: 'A flow is a list of steps', body: 'It does what you would do by hand: open a page, click, type, read what it shows. Add steps from the menu, then try them on a profile on the right.', template: 'Start from the sign-in check' },
     types: { open: 'Open URL', click: 'Click', type: 'Type', press: 'Press key', wait: 'Wait', scroll: 'Scroll', extract: 'Extract', set: 'Set variable', if: 'If', loop: 'Repeat', screenshot: 'Screenshot', script: 'Run script', signedIn: 'Check signed in' } satisfies Record<Step['type'], string>,
     up: (p: string) => `Move step ${p} up`, down: (p: string) => `Move step ${p} down`, copyStep: (p: string) => `Duplicate step ${p}`, remove: (p: string) => `Remove step ${p}`,
-    then: 'Then', else: 'Otherwise', each: 'Each time',
+    then: 'When true', else: 'Otherwise', each: 'Each time', end: 'End',
+    settings: 'Step settings', pick: 'Pick a step in the chart to change it.', stepN: (p: string) => `Step ${p}`, upToDate: 'Saved',
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out',
+    // A step in one line, on its node in the chart.
+    sum: {
+      secs: (a: number, b: number | null) => (b ? `${a}–${b} s` : `${a} s`), until: (what: string, sel: string, s: number) => `${what} ${sel} · up to ${s} s`,
+      pixels: (n: number) => `${n} px`, into: (sel: string, what: string, v: string) => `${sel} ${what} → {{${v}}}`,
+      contains: (sel: string, t: string) => `${sel} contains “${t}”`, exists: (sel: string) => `${sel} is there`,
+      times: (n: number) => (n === 1 ? 'Once' : `${n} times`), each: (sel: string) => `Each ${sel}`, empty: 'Not filled in yet'
+    },
     issue: { url: 'Enter the address to open.', selector: 'Say which element.', key: 'Name the key.', variable: 'Variable names use letters, digits and _, and don’t start with a digit.', pixels: 'Enter how far to scroll.', times: 'Repeat at least once.', code: 'Write the script.', attribute: 'Name the attribute.' },
     f: {
       selector: 'Element', selectorPh: '#login, .price, text=Sign in', variable: 'Variable', url: 'Address', text: 'Text', slow: 'Type one character at a time, like a person',
@@ -831,7 +840,7 @@ export const zh: Dict = {
     empty: '暂无流程。流程由一系列步骤组成（打开网页、点击、输入、提取等），可在一个或多个环境中运行。',
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制后修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     inUse: (tasks: string) => `正被 ${tasks} 使用，无法删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string) => `已删除 ${n}`, copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
-    back: '← 流程', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
+    back: '流程', backLabel: '返回流程列表', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
     leave: '修改尚未保存，确定离开？', keepEditing: '继续编辑', discard: '放弃修改',
     readOnly: '仅流程创建者、管理员和所有者可修改，可复制一份后修改。',
     stale: '编辑期间该流程已被他人保存。再次保存将以当前版本覆盖对方的修改。',
@@ -846,7 +855,15 @@ export const zh: Dict = {
     start: { title: '流程由步骤组成', body: '按顺序完成手动操作：打开页面、点击、输入、读取内容。从菜单中添加步骤，再在右侧选择环境试运行。', template: '从登录检查模板开始' },
     types: { open: '打开网址', click: '点击', type: '输入', press: '按键', wait: '等待', scroll: '滚动', extract: '提取', set: '设置变量', if: '条件判断', loop: '循环', screenshot: '截图', script: '执行脚本', signedIn: '确认已登录' } satisfies Record<Step['type'], string>,
     up: (p: string) => `第 ${p} 步上移`, down: (p: string) => `第 ${p} 步下移`, copyStep: (p: string) => `复制第 ${p} 步`, remove: (p: string) => `删除第 ${p} 步`,
-    then: '满足时', else: '否则', each: '每一次',
+    then: '满足时', else: '否则', each: '每一次', end: '结束',
+    settings: '步骤设置', pick: '在流程图中选择步骤后即可修改。', stepN: (p: string) => `第 ${p} 步`, upToDate: '已保存',
+    zoomIn: '放大', zoomOut: '缩小',
+    sum: {
+      secs: (a: number, b: number | null) => (b ? `${a}–${b} 秒` : `${a} 秒`), until: (what: string, sel: string, s: number) => `${what} ${sel} · 最多 ${s} 秒`,
+      pixels: (n: number) => `${n} 像素`, into: (sel: string, what: string, v: string) => `${sel} 的${what} → {{${v}}}`,
+      contains: (sel: string, t: string) => `${sel} 包含「${t}」`, exists: (sel: string) => `存在 ${sel}`,
+      times: (n: number) => `${n} 次`, each: (sel: string) => `每个 ${sel}`, empty: '尚未填写'
+    },
     issue: { url: '请填写网址。', selector: '请指定元素。', key: '请填写按键。', variable: '变量名仅可包含字母、数字和下划线，且不能以数字开头。', pixels: '请填写滚动距离。', times: '至少重复一次。', code: '请填写脚本。', attribute: '请填写属性名。' },
     f: {
       selector: '元素', selectorPh: '#login、.price、text=登录', variable: '变量', url: '网址', text: '文字', slow: '逐字输入，模拟真人打字',

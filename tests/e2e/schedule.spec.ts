@@ -105,7 +105,8 @@ test('a sign-in check that finds a profile signed out sends a notification that 
   await nav(win, 'Flows').click();
   await win.getByRole('button', { name: 'Sign-in check template' }).click();
   await expect(win.getByLabel('Flow name')).toHaveValue('Sign-in check');
-  const check = win.locator('li[data-step="1"]');
+  // The template's step is the one the panel shows.
+  const check = win.getByRole('region', { name: 'Step settings' });
   await check.getByLabel('Address').fill(`${site.url}account?p={{profile.number}}`);
   await check.getByLabel('Element', { exact: true }).fill('#avatar');
   await win.getByRole('button', { name: 'Save', exact: true }).click();

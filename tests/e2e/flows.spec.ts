@@ -7,10 +7,13 @@ import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logI
 test.setTimeout(180_000);
 const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
 const step = (win: Page, path: string) => win.locator(`li[data-step="${path}"]`);
+// The chart's node for a step, and the panel beside the chart where the picked step is changed.
+const node = (win: Page, path: string) => step(win, path).locator(':scope > .fnode');
+const panel = (win: Page) => win.getByRole('region', { name: 'Step settings' });
 
 async function addStep(win: Page, type: string, scope = win.getByRole('region', { name: 'Steps' })){
   await scope.getByRole('button', { name: 'Add step' }).last().click();
-  await scope.getByRole('menu', { name: 'Add step' }).getByRole('menuitem', { name: type, exact: true }).click();
+  await win.getByRole('menu', { name: 'Add step' }).getByRole('menuitem', { name: type, exact: true }).click();
 }
 
 // A sign-in page: typing a name and pressing the button greets that name.
@@ -32,18 +35,26 @@ test('a flow is built step by step, saved for the team, and read-only for member
   await win.getByRole('button', { name: 'New flow' }).click();
   await win.getByLabel('Flow name').fill('Morning check');
 
+  // A step just added is the one the panel shows.
   await addStep(win, 'Open URL');
-  await step(win, '1').getByLabel('Address').fill('https://shop.example/login');
+  await panel(win).getByLabel('Address').fill('https://shop.example/login');
   await addStep(win, 'If');
   await expect(win.getByText('1 step needs filling in before saving.')).toBeVisible();
   await expect(win.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
-  await step(win, '2').getByLabel('Element', { exact: true }).fill('text=Welcome');
-  await addStep(win, 'Extract', step(win, '2').locator('.sub-steps').first());
-  await step(win, '2.1').getByLabel('Element', { exact: true }).fill('.balance');
-  await step(win, '2.1').getByLabel('Into variable').fill('balance');
+  await panel(win).getByLabel('Element', { exact: true }).fill('text=Welcome');
+  // The condition's two branches, side by side under it.
+  await expect(step(win, '2').getByRole('group', { name: 'When true' })).toBeVisible();
+  await expect(step(win, '2').getByRole('group', { name: 'Otherwise' })).toBeVisible();
+  await addStep(win, 'Extract', step(win, '2').getByRole('group', { name: 'When true' }));
+  await panel(win).getByLabel('Element', { exact: true }).fill('.balance');
+  await panel(win).getByLabel('Into variable').fill('balance');
+  await expect(node(win, '2.1')).toContainText('.balance');
   await addStep(win, 'Wait');
-  await step(win, '3').getByRole('button', { name: 'Move step 3 up' }).click();
+  await panel(win).getByRole('button', { name: 'Move step 3 up' }).click();
   await expect(step(win, '2')).toHaveAttribute('aria-label', '2 Wait');
+  // Another node picked: the panel shows its settings.
+  await node(win, '1').click();
+  await expect(panel(win).getByLabel('Address')).toHaveValue('https://shop.example/login');
   await win.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Flow saved' })).toBeVisible();
 
@@ -54,7 +65,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
     { type: 'wait', until: 'time', seconds: 2, maxSeconds: null, selector: null },
     { type: 'if', test: { kind: 'exists', selector: 'text=Welcome' }, then: [{ type: 'extract', selector: '.balance', attribute: null, variable: 'balance' }], else: [] }
   ]);
-  await win.getByRole('button', { name: '← Flows' }).click();
+  await win.getByRole('button', { name: 'Back to flows' }).click();
   await expect(win.locator('tr[data-flow="Morning check"]')).toContainText('4');
 
   // A member sees it but can't change it; duplicating gives them their own copy to edit.
@@ -71,13 +82,13 @@ test('a flow is built step by step, saved for the team, and read-only for member
   await expect(row).toContainText(owner.email);
   await row.getByRole('button', { name: 'View' }).click();
   await expect(win2.getByText('Only whoever created this flow')).toBeVisible();
-  await expect(step(win2, '1').getByLabel('Address')).toBeDisabled();
+  await expect(panel(win2).getByLabel('Address')).toBeDisabled();
   await win2.getByRole('button', { name: 'Duplicate to edit' }).click();
   await expect(win2.getByLabel('Flow name')).toHaveValue('Morning check (copy)');
-  await expect(step(win2, '1').getByLabel('Address')).toBeEnabled();
+  await expect(panel(win2).getByLabel('Address')).toBeEnabled();
 
   // A change made elsewhere shows up in the list without reloading.
-  await win2.getByRole('button', { name: '← Flows' }).click();
+  await win2.getByRole('button', { name: 'Back to flows' }).click();
   await owner.api.patch(`/flows/${flow.id}`, { data: { version: 0, name: 'Evening check' } });
   await expect(win2.locator('tr[data-flow="Evening check"]')).toBeVisible();
   await app2.close();
@@ -113,9 +124,9 @@ for (const kernel of ['chromium', 'firefox'] as const){
 
     // A failing step is named in the log; the profile stays open for another try.
     await addStep(win, 'Wait');
-    await step(win, '5').getByRole('button', { name: 'Element to appear' }).click();
-    await step(win, '5').getByLabel('Element', { exact: true }).fill('#never');
-    await step(win, '5').getByLabel('Give up after (s)').fill('1');
+    await panel(win).getByRole('button', { name: 'Element to appear' }).click();
+    await panel(win).getByLabel('Element', { exact: true }).fill('#never');
+    await panel(win).getByLabel('Give up after (s)').fill('1');
     await trial.getByRole('button', { name: 'Run' }).click();
     await expect(trial.getByRole('status')).toContainText('Stopped at a failed step: Timed out', { timeout: 60_000 });
     await expect(trial.locator('.run-log li.bad')).toContainText('#never');
