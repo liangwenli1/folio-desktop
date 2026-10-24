@@ -42,8 +42,19 @@ export interface ImportPreview { workspace: string; exportedAt: string; profiles
 export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
 export type ExtensionSource = { file: Uint8Array } | { store: string };
 // The window sync under way: the leader and every window in it. `coords`: a follower didn't have the element the
-// leader clicked and got the click at the same place in its window; `failed`: something couldn't be repeated there.
-export interface WindowSync { leader: string; members: { id: string; issue: null | 'coords' | 'failed' }[] }
+// leader clicked (`label`, what it said) and got the click at the same place in its window; `failed`: something
+// couldn't be repeated there.
+export type SyncIssue = 'coords' | 'failed';
+export interface WindowSync { leader: string; members: { id: string; issue: null | SyncIssue; label?: string | null }[] }
+// What the followers repeat (navigation and tabs always), and the random pause before each repeat, in seconds.
+// Kept on this computer.
+export interface SyncOptions { click: boolean; typing: boolean; scroll: boolean; delay: [number, number] }
+// One thing the leader did, as the recent sync log shows it: how many followers repeated it cleanly out of `of`, and
+// what went wrong in the others. Consecutive typing or scrolling makes one entry.
+export type SyncAction =
+  | { t: 'click'; label: string | null } | { t: 'text'; text: string } | { t: 'key'; key: string } | { t: 'scroll'; px: number }
+  | { t: 'goto'; url: string } | { t: 'tab'; tab: 'open' | 'close' | 'switch'; n: number };
+export interface SyncLogEntry { id: number; at: number; action: SyncAction; of: number; ok: number; problems: { id: string; issue: SyncIssue; label: string | null }[] }
 // Tiling the synced windows: how many moved, and why the others didn't (`unsupported`: Firefox on Linux;
 // `permission`: macOS hasn't allowed Folio to move other apps' windows).
 export interface Tiled { moved: number; missed: number; why: null | 'unsupported' | 'permission' | 'failed' }
@@ -132,8 +143,14 @@ export interface FolioBridge {
   // Lays the synced windows out in a grid on the screen Folio is on, the leader top left.
   tileWindows(): Promise<Tiled | null>;
   onWindowSync(cb: (s: WindowSync | null) => void): () => void;
-  // Each time something the leader did is repeated in a follower (by the follower's profile id).
-  onSyncPulse(cb: (id: string) => void): () => void;
+  syncOptions(): Promise<SyncOptions>;
+  setSyncOptions(change: Partial<SyncOptions>): Promise<SyncOptions>;
+  // The last 50 things repeated in this sync, newest first, and each change to them.
+  syncLog(): Promise<SyncLogEntry[]>;
+  onSyncLog(cb: (log: SyncLogEntry[]) => void): () => void;
+  // Small pictures of the synced windows (by profile id, as data URLs) every 2 s, while asked for.
+  watchSyncThumbs(on: boolean): Promise<void>;
+  onSyncThumbs(cb: (thumbs: Record<string, string>) => void): () => void;
   // The local API: turn it on or off, change its port, and make or revoke tokens (a new token is shown once).
   localApi(): Promise<LocalApi>;
   setLocalApi(change: { enabled?: boolean; port?: number }): Promise<LocalApi>;

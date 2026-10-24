@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, screen, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import type { ExtensionSource, KernelKind, Labels, Method, Os, Step } from '../shared/bridge';
+import type { ExtensionSource, KernelKind, Labels, Method, Os, Step, SyncOptions } from '../shared/bridge';
 import { SITE_URL, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
@@ -19,7 +19,7 @@ import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stop
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
 import { createApiToken, loadLocalApi, localApi, onLocalApi, revokeApiToken, setLocalApi } from './local-api';
 import { fromStore } from './extensions';
-import { leftWindowSync, onSyncPulse, onWindowSync, setLeader, startWindowSync, stopWindowSync, syncGoto, windowSync } from './windowsync';
+import { leftWindowSync, loadSyncOptions, onSyncLog, onSyncThumbs, onWindowSync, setLeader, setSyncOptions, startWindowSync, stopWindowSync, syncGoto, syncLog, syncOptions, watchThumbs, windowSync } from './windowsync';
 import { tile } from './tile';
 import { installUpdate, onUpdate, startUpdates, update } from './update';
 
@@ -217,7 +217,8 @@ ipcMain.handle('folio:watch', (_e, workspaceId: string | null) => {
 
 onStatus(s => { send('profile:status', s); if (s.state === 'stopped' || s.state === 'error') leftWindowSync(s.id); });
 onWindowSync(s => send('sync:state', s));
-onSyncPulse(id => send('sync:pulse', id));
+onSyncLog(l => send('sync:log', l));
+onSyncThumbs(t => send('sync:thumbs', t));
 onLocalApi(() => void localApi().then(s => send('api:state', s)));
 onUpdate(u => send('app:update', u));
 ipcMain.handle('folio:update', () => update());
@@ -227,6 +228,14 @@ ipcMain.handle('folio:stopWindowSync', () => stopWindowSync());
 ipcMain.handle('folio:setSyncLeader', (_e, id: string) => setLeader(String(id)));
 ipcMain.handle('folio:syncGoto', (_e, url: string) => syncGoto(String(url)));
 ipcMain.handle('folio:windowSync', () => windowSync());
+ipcMain.handle('folio:syncOptions', () => syncOptions());
+ipcMain.handle('folio:setSyncOptions', (_e, change: Partial<SyncOptions>) => setSyncOptions({
+  ...(typeof change?.click === 'boolean' ? { click: change.click } : {}), ...(typeof change?.typing === 'boolean' ? { typing: change.typing } : {}),
+  ...(typeof change?.scroll === 'boolean' ? { scroll: change.scroll } : {}),
+  ...(Array.isArray(change?.delay) && change.delay.length === 2 ? { delay: [Number(change.delay[0]), Number(change.delay[1])] as [number, number] } : {})
+}));
+ipcMain.handle('folio:syncLog', () => syncLog());
+ipcMain.handle('folio:watchSyncThumbs', (_e, on: boolean) => watchThumbs(!!on));
 ipcMain.handle('folio:tileWindows', e => {
   const s = windowSync(), win = BrowserWindow.fromWebContents(e.sender);
   return s && win ? tile(s.members.map(m => m.id), screen.getDisplayMatching(win.getBounds()).workArea) : null;
@@ -366,6 +375,7 @@ app.whenReady().then(async () => {
   if (BASIC_STORE) safeStorage.setUsePlainTextEncryption(true);
   await loadToken();
   await loadLocalApi();
+  await loadSyncOptions();
   createWindow();
   if (getToken()) startScheduler();
   updateTray();

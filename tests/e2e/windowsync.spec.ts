@@ -8,9 +8,9 @@ import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logI
 
 test.setTimeout(300_000);
 
-// Each window reports what happened in it, under the name it was given.
+// Each window reports what happened in it, under the name it was given, and when that first arrived.
 async function startSite(){
-  const logs = new Map<string, string[]>();
+  const logs = new Map<string, string[]>(), times = new Map<string, number>();
   const page = `<!doctype html><title>sync</title>
     <button id="go" style="position:absolute;left:40px;top:40px">Go</button>
     <input id="q" style="position:absolute;left:40px;top:90px">
@@ -24,12 +24,20 @@ async function startSite(){
     </script>`;
   const server = http.createServer((req, res) => {
     const u = new URL(req.url!, 'http://x');
-    if (u.pathname === '/log'){ const who = u.searchParams.get('who')!; logs.set(who, [...(logs.get(who) ?? []), u.searchParams.get('e')!]); return res.end(); }
+    if (u.pathname === '/log'){
+      const who = u.searchParams.get('who')!, e = u.searchParams.get('e')!;
+      logs.set(who, [...(logs.get(who) ?? []), e]);
+      if (!times.has(`${who} ${e}`)) times.set(`${who} ${e}`, Date.now());
+      return res.end();
+    }
     res.setHeader('content-type', 'text/html');
     res.end(page);
   });
   await new Promise<void>(r => server.listen(0, '127.0.0.1', () => r()));
-  return { url: `http://localhost:${(server.address() as AddressInfo).port}/`, logs: (who: string) => logs.get(who) ?? [], close: () => new Promise<void>(r => server.close(() => r())) };
+  return {
+    url: `http://localhost:${(server.address() as AddressInfo).port}/`, logs: (who: string) => logs.get(who) ?? [], when: (who: string, e: string) => times.get(`${who} ${e}`) ?? NaN,
+    close: () => new Promise<void>(r => server.close(() => r()))
+  };
 }
 
 type Running = { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> };
@@ -153,14 +161,15 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   const now = win.getByRole('region', { name: 'Syncing now' });
   await now.locator('[data-sync="Shop-A"]').getByRole('button', { name: 'Make leader' }).click();
   await expect(win.locator('.ttl .sub')).toHaveText('Shop-A leads and 1 window follows.');
+  await expect(now.locator('article.lead')).toHaveAttribute('data-sync', 'Shop-A');
   // Tiling side by side, the new leader on the left.
-  await now.getByRole('button', { name: 'Tile windows' }).click();
+  await win.getByRole('button', { name: 'Tile windows' }).click();
   await expect(now.getByRole('status')).toHaveText('Arranged 2 windows in a grid.');
   const area = await workArea(app);
   const s = (await win.evaluate(() => window.folio.windowSync()))!;
   expect(await bounds(app, s.leader)).toEqual([area.x, area.y, Math.floor(area.width / 2), area.height]);
   expect(await bounds(app, s.members[1].id)).toEqual([area.x + Math.floor(area.width / 2), area.y, Math.floor(area.width / 2), area.height]);
-  await now.getByRole('button', { name: 'Stop sync' }).click();
+  await win.getByRole('button', { name: 'Stop sync' }).click();
   await expect(win.getByRole('region', { name: 'Pick the windows' })).toBeVisible();
   await app.close();
 
@@ -176,4 +185,54 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   await win2.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Window sync/ }).click();
   await expect(win2.getByText('Window sync comes with the Studio and Company plans.')).toBeVisible();
   await app2.close();
+});
+
+test('only the chosen operations repeat, each after the pause; the log counts them and the page shows the windows', async () => {
+  test.skip(!hasKernels, 'browser engines are not unpacked here');
+  const site = await startSite();
+  const acct = await account({ buy: { plan: 'studio', period: 'monthly' } });
+  const base = `/workspaces/${acct.workspaceId}`;
+  const dir = dataDir();
+  const app = await launch(dir, ENGINE_ENV);
+  const win = await logIn(app, acct.email);
+  await expect(win.getByTestId('plan-name')).toBeVisible();
+  const lead = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Lead') })).json();
+  const f = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Follower') })).json();
+  for (const [p, who] of [[lead, 'lead'], [f, 'f']] as const){
+    expect(await opened(win, p.id)).toMatchObject({ state: 'running' });
+    await name(app, p.id, `${site.url}?n=0`, who);
+  }
+  // Scrolling left out, a pause of 1–1.2 s before each repeat.
+  expect(await win.evaluate(() => window.folio.setSyncOptions({ scroll: false, delay: [1.2, 1] }))).toEqual({ click: true, typing: true, scroll: false, delay: [1, 1.2] });
+  await win.evaluate(ids => window.folio.startWindowSync(ids), [lead.id, f.id]);
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Window sync/ }).click();
+  const now = win.getByRole('region', { name: 'Syncing now' });
+  await expect(now.getByRole('group', { name: 'Repeat' }).getByRole('button', { name: 'Scrolling' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(now.getByRole('group', { name: 'Repeat' }).getByRole('button', { name: 'Clicks' })).toHaveAttribute('aria-pressed', 'true');
+  // A picture of each window, while the page is open.
+  await expect(now.locator('img.thumb')).toHaveCount(2, { timeout: 20_000 });
+  await expect(now.locator('img.thumb').first()).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
+
+  await inLeader(app, lead.id, 'click');
+  await expect.poll(() => site.logs('f').at(-1), { timeout: 15_000 }).toBe('click:?n=0');
+  expect(site.when('f', 'click:?n=0') - site.when('lead', 'click:?n=0')).toBeGreaterThanOrEqual(900);
+  await inLeader(app, lead.id, 'scroll');
+  await expect.poll(() => site.logs('lead').at(-1)).toMatch(/^scroll:/);
+  await new Promise(r => setTimeout(r, 3000));
+  expect(site.logs('f').filter(e => e.startsWith('scroll'))).toEqual([]);
+
+  const log = await win.evaluate(() => window.folio.syncLog());
+  expect(log.find(e => e.action.t === 'click')).toMatchObject({ action: { t: 'click', label: 'Go' }, of: 1, ok: 1, problems: [] });
+  expect(log.some(e => e.action.t === 'scroll')).toBe(false);
+  const row = now.getByRole('region', { name: 'Recent sync' }).locator('li[data-entry="click"]');
+  await expect(row).toContainText('Clicked “Go”');
+  await expect(row).toContainText('1 / 1');
+  await win.evaluate(() => window.folio.stopWindowSync());
+  await app.close();
+
+  // The choice stays on this computer.
+  const again = await launch(dir);
+  expect(await (await again.firstWindow()).evaluate(() => window.folio.syncOptions())).toEqual({ click: true, typing: true, scroll: false, delay: [1, 1.2] });
+  await again.close();
+  await site.close();
 });

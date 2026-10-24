@@ -452,14 +452,28 @@ export const en = {
     failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
   },
   windowSync: {
-    title: 'Window sync', sub: 'Work in one window; the others do the same.', on: 'Window sync is on.', onBadge: 'On',
+    title: 'Window sync', sub: 'Work in the leader window; the selected windows do the same.', on: 'Window sync is on.', onBadge: 'On',
     summary: (leader: string, n: number) => `${leader} leads and ${n === 1 ? '1 window follows' : `${n} windows follow`}.`,
     leaderTag: 'Leader', followerTag: 'Sync', makeLeader: 'Make leader', stop: 'Stop sync', current: 'Syncing now',
     address: 'Address for every window', addressPh: 'Open an address in every window', open: 'Open',
     pick: 'Pick the windows', pickHelp: 'Clicks, typing, keys, scrolling, addresses and tabs in the leader repeat in the others. Profiles that aren’t open yet open first.',
     running: 'Open', start: (n: number) => (n < 2 ? 'Pick at least two' : `Sync ${n} windows`), starting: 'Starting…',
     limits: 'Not repeated: file pickers, drag and drop, and the browser’s own menus. A window whose page differs (signed out, say) does what the leader did on its own page.',
-    issues: { coords: 'Didn’t have the element the leader clicked, so the click went to the same place in its window.', failed: 'Something couldn’t be repeated here; look at this window.' },
+    ops: { label: 'Repeat', click: 'Clicks', typing: 'Typing', scroll: 'Scrolling' },
+    delay: 'Random pause', seconds: 's', delayMin: 'Shortest pause, in seconds', delayMax: 'Longest pause, in seconds',
+    synced: (n: number, bad: number) => `${n === 1 ? '1 window' : `${n} windows`} in sync${bad ? ` · ${bad} with a problem` : ''}`,
+    workHere: 'Work here', inSync: 'In sync', shotWait: 'Waiting for a picture…',
+    notFound: (label: string | null) => (label ? `Couldn’t find “${label}”` : 'Element not found'), failed: 'Couldn’t repeat',
+    issues: {
+      coords: (label: string | null) => `${label ? `Couldn’t find “${label}”` : 'Couldn’t find the element the leader clicked'}, so the click went to the same place in this window.`,
+      failed: () => 'Something couldn’t be repeated here; look at this window.'
+    },
+    log: 'Recent sync', logLead: (leader: string, n: number) => `${leader} leads ${n === 1 ? '1 window' : `${n} windows`}`, logEmpty: 'What happens in the leader window is listed here.',
+    did: {
+      click: (label: string | null) => (label ? `Clicked “${label}”` : 'Clicked'), text: (t: string) => `Typed “${t}”`, key: (k: string) => `Pressed ${k}`,
+      scroll: (px: number) => `Scrolled to ${px.toLocaleString('en-US')} px`, goto: (url: string) => `Opened ${url}`,
+      tab: { open: (n: number) => `Opened tab ${n}`, close: (n: number) => `Closed tab ${n}`, switch: (n: number) => `Went to tab ${n}` }
+    },
     upgrade: 'Window sync comes with the Studio and Company plans.',
     upsell: {
       title: 'Do it once, in every window', lead: 'Pick a leader window: its clicks, typing, keys, scrolling, addresses and tabs repeat in the other windows as you work.',
@@ -995,14 +1009,28 @@ export const zh: Dict = {
     failedCheck: (profile: string, names: string[]) => `${profile} 已打开，但 ${names.join('、')} 未通过完整性校验，未安装。`
   },
   windowSync: {
-    title: '窗口同步', sub: '在一个窗口中操作，其他窗口同步执行。', on: '窗口同步已开启。', onBadge: '开启',
+    title: '窗口同步', sub: '在主控窗口中操作，所选窗口同步执行。', on: '窗口同步已开启。', onBadge: '开启',
     summary: (leader: string, n: number) => `${leader} 主控，${n} 个窗口跟随。`,
     leaderTag: '主控', followerTag: '同步', makeLeader: '设为主控', stop: '停止同步', current: '同步中',
     address: '所有窗口一起打开的网址', addressPh: '在所有窗口中打开网址', open: '打开',
     pick: '选择窗口', pickHelp: '主控窗口中的点击、输入、按键、滚动、网址与标签页操作，将在其他窗口同步执行。未打开的环境将先行打开。',
     running: '已打开', start: (n: number) => (n < 2 ? '至少选择两个' : `同步 ${n} 个窗口`), starting: '正在启动…',
     limits: '不同步：文件选择对话框、拖放操作、浏览器自身菜单。页面状态不同的窗口（如未登录）将在各自页面上执行。',
-    issues: { coords: '未找到主控点击的元素，已在窗口相同位置点击。', failed: '部分操作未能同步执行，请检查该窗口。' },
+    ops: { label: '同步', click: '点击', typing: '输入', scroll: '滚动' },
+    delay: '随机延迟', seconds: '秒', delayMin: '最短延迟（秒）', delayMax: '最长延迟（秒）',
+    synced: (n: number, bad: number) => `已同步 ${n} 个窗口${bad ? ` · ${bad} 个出错` : ''}`,
+    workHere: '在此操作', inSync: '同步中', shotWait: '正在获取窗口画面…',
+    notFound: (label: string | null) => (label ? `未找到「${label}」` : '未找到元素'), failed: '同步失败',
+    issues: {
+      coords: (label: string | null) => `${label ? `未找到「${label}」` : '未找到主控点击的元素'}，已在窗口相同位置点击。`,
+      failed: () => '部分操作未能同步执行，请检查该窗口。'
+    },
+    log: '最近同步', logLead: (leader: string, n: number) => `主控 ${leader} → ${n} 个窗口`, logEmpty: '主控窗口中的操作将记录在此。',
+    did: {
+      click: (label: string | null) => (label ? `点击「${label}」` : '点击'), text: (t: string) => `输入「${t}」`, key: (k: string) => `按键 ${k}`,
+      scroll: (px: number) => `滚动至 ${px} 像素`, goto: (url: string) => `打开 ${url}`,
+      tab: { open: (n: number) => `新建第 ${n} 个标签页`, close: (n: number) => `关闭第 ${n} 个标签页`, switch: (n: number) => `切换至第 ${n} 个标签页` }
+    },
     upgrade: '窗口同步属于工作室版和公司版。',
     upsell: {
       title: '一次操作，多窗口同步完成', lead: '指定一个主控窗口，其中的点击、输入、按键、滚动、地址与标签页操作实时同步到其他窗口。',
