@@ -84,7 +84,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   // Chromium through the profile form, Firefox through the bulk actions (which pass over the Chromium profile).
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^Profiles/ }).click();
   await win.getByRole('button', { name: 'Shop-CR', exact: true }).click();
-  await win.getByRole('complementary', { name: 'Profile' }).getByRole('button', { name: 'Edit' }).click();
+  await win.getByRole('dialog', { name: 'Profile', exact: true }).getByRole('button', { name: 'Edit' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await form.getByRole('group', { name: 'Extensions' }).getByLabel('Shop Helper').check();
   await form.getByRole('button', { name: 'Save changes' }).click();

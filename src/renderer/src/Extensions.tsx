@@ -7,7 +7,7 @@ import { folio, isApiError, type Extension, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { BulkBar, ExtIcon, Icon, Modal, ViewSwitch, useOutsideClose, useToast, useView } from './ui';
+import { BulkBar, ExtIcon, Icon, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
@@ -53,7 +53,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{X.title}</h1><p className="sub">{X.sub(data.extensions.length)}</p></div>
+          <div className="ttl"><h1>{X.title}</h1></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{X.search}</span>
             <input type="search" placeholder={X.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
@@ -112,36 +112,20 @@ const Shield = ({ d }: { d: Dict }) => <span className="shield" title={d.extensi
 const source = (d: Dict, e: Extension) => (e.source === 'store' ? e.storeId : d.extensions.uploaded);
 
 // The manager's own actions on an extension: a new version, or deleting it.
-function More({ d, onUpdate, onDelete }: { d: Dict; onUpdate(): void; onDelete(): void }){
-  const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(open, () => setOpen(false));
-  return (
-    <div className="d-more" ref={ref}>
-      <button type="button" className="icon-btn bare sm" aria-label={d.detail.more} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="more" /></button>
-      {open && (
-        <div className="menu" role="menu">
-          <button className="menu-item" type="button" role="menuitem" onClick={() => { setOpen(false); onUpdate(); }}>{d.extensions.update}</button>
-          <button className="menu-item danger" type="button" role="menuitem" onClick={() => { setOpen(false); onDelete(); }}>{d.extensions.delete}</button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function ExtCard({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, onDelete }: ExtItem){
   const X = d.extensions;
   return (
     <li className="ext-card" data-extension={e.name}>
       <div className="ext-top">
         <ExtIcon src={e.icon} />
-        <span className="ext-name"><b>{e.name}</b><span className="l2 mono">{e.version} · {source(d, e)}</span></span>
+        <span className="ext-name"><b>{e.name}</b><span className="l2 mono">{e.version}</span></span>
         <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(e.name)} />
       </div>
-      <p className="ext-tags"><EngineLogo kernel={e.kernel} /><Shield d={d} /><span className="muted">{ago(e.updatedAt, d)}</span></p>
+      <p className="ext-tags"><EngineLogo kernel={e.kernel} /><Shield d={d} /></p>
       <div className="ext-foot">
         {users}
         <span className="sp" />
-        {manager && <More d={d} onUpdate={onUpdate} onDelete={onDelete} />}
+        {manager && <MoreMenu label={d.detail.more} items={[{ label: d.extensions.update, onClick: onUpdate }, { label: d.extensions.delete, onClick: onDelete, danger: true }]} />}
         <button type="button" className="btn btn-xs btn-secondary" onClick={onInstall}>{X.install}</button>
       </div>
     </li>
@@ -160,7 +144,7 @@ function ExtRow({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, 
       <td>{ago(e.updatedAt, d)}</td>
       <td className="act"><span className="actin">
         <button type="button" className="btn btn-xs btn-secondary" onClick={onInstall}>{d.extensions.install}</button>
-        {manager && <More d={d} onUpdate={onUpdate} onDelete={onDelete} />}
+        {manager && <MoreMenu label={d.detail.more} items={[{ label: d.extensions.update, onClick: onUpdate }, { label: d.extensions.delete, onClick: onDelete, danger: true }]} />}
       </span></td>
     </tr>
   );

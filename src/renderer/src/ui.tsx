@@ -85,6 +85,30 @@ export function useOutsideClose(open: boolean, close: () => void){
   return ref;
 }
 
+// A round initial for a person or a profile, in one of six colours picked by the text.
+const hue = (text: string) => [...text].reduce((n, c) => n + c.charCodeAt(0), 0) % 6;
+export const Avatar = ({ text, small, title }: { text: string; small?: boolean; title?: string }) => (
+  <span className={`pav c${hue(text)}${small ? ' xs' : ''}`} title={title} aria-hidden={title ? undefined : true}>{[...text.trim()][0]?.toUpperCase() ?? '?'}</span>
+);
+
+// The ⋯ button and its menu.
+export function MoreMenu({ label, items }: { label: string; items: { label: string; onClick(): void; danger?: boolean; disabled?: boolean }[] }){
+  const [open, setOpen] = useState(false);
+  const ref = useOutsideClose(open, () => setOpen(false));
+  return (
+    <div className="d-more" ref={ref}>
+      <button type="button" className="icon-btn bare sm" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="more" /></button>
+      {open && (
+        <div className="menu" role="menu">
+          {items.map(i => (
+            <button key={i.label} className={`menu-item${i.danger ? ' danger' : ''}`} type="button" role="menuitem" disabled={i.disabled} onClick={() => { setOpen(false); i.onClick(); }}>{i.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // How a page shows its items (rows, cards, a calendar), remembered on this computer.
 export function useView<T extends string>(page: string, initial: T){
   const key = `folio.view.${page}`;

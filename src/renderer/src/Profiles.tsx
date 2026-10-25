@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { folio, isApiError, type Extension, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
-import { ago, errorText, runTime, type Dict, type Lang } from './i18n';
+import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
-import { useActivity } from './Activity';
-import { BulkBar, ExtIcon, Icon, Modal, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { dayLabel, time, useActivity } from './Activity';
+import { Avatar, BulkBar, Icon, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Select } from './Select';
 import { ExitMap, type Pin, type PinState } from './ExitMap';
 import { Flag, SEARCH_LOGOS } from './Flag';
@@ -37,7 +37,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const [view, setView] = useView<'list' | 'cards'>('profiles', 'list');
   const [sel, setSel] = useState<Set<string>>(() => new Set());
   const [cur, setCur] = useState<string | null>(null);
-  const [drawer, setDrawer] = useState(false);
+  const [detail, setDetail] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [tagging, setTagging] = useState(false);
   const [tag, setTag] = useState('');
@@ -51,11 +51,11 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const [batchFail, setBatchFail] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!drawer) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal')) setDrawer(false); };
+    if (!detail) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal')) setDetail(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [drawer]);
+  }, [detail]);
 
   const all = useMemo(() => data.profiles ?? [], [data.profiles]);
   const proxies = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
@@ -100,8 +100,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
   const ids = [...sel].filter(id => all.some(p => p.id === id));
   const shownSel = list.filter(p => sel.has(p.id)).length;
-  // The drawer shows only while a profile is picked.
-  const curProfile = (drawer && all.find(p => p.id === cur)) || null;
+  // The details dialog shows only while a profile is picked.
+  const curProfile = (detail && all.find(p => p.id === cur)) || null;
   const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 10, !!curProfile);
   const filtered = group !== 'all' || status !== 'all' || !!q || !!only;
 
@@ -109,7 +109,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const why = (w: 'kernel_missing' | 'download_failed') => (w === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed);
   async function open(p: Profile){
     const w = await data.launch(p);
-    if (w === 'kernel_missing'){ setCur(p.id); setDrawer(true); toast(d.profiles.done.failed(p.name, why(w)), undefined, 'bad'); }
+    if (w === 'kernel_missing'){ setCur(p.id); setDetail(true); toast(d.profiles.done.failed(p.name, why(w)), undefined, 'bad'); }
     else if (w) toast(why(w), undefined, 'bad');
   }
   // Several at once: their progress goes to the tray instead of toasts.
@@ -156,7 +156,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     try {
       const n = await data.batch('trash', targets);
       setSel(new Set());
-      if (targets.includes(cur ?? '')){ setCur(null); setDrawer(false); }
+      if (targets.includes(cur ?? '')){ setCur(null); setDetail(false); }
       toast(P.done.trashed(n), { label: d.common.undo, fn: () => { data.batch('restore', targets).catch(fail); } });
     } catch (e){ fail(e); }
   }
@@ -187,7 +187,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     if (shownSel === list.length) list.forEach(p => n.delete(p.id)); else list.forEach(p => n.add(p.id));
     return n;
   });
-  const pick = (id: string) => { setCur(id); setDrawer(true); };
+  const pick = (id: string) => { setCur(id); setDetail(true); };
 
   const h = [...healthOf.values()];
   const down = h.filter(x => x.proxy === 'down').length, slow = h.filter(x => x.proxy === 'slow').length;
@@ -217,12 +217,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const hideOnboarding = () => { setOnboardingHidden(true); try { localStorage.setItem(ONBOARDING_KEY(ws.id), 'hidden'); } catch { /* per-session only */ } };
 
   const item = (p: Profile): ItemProps => ({
-    d, p, h: healthOf.get(p.id)!, group: groupLabel(p), now, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id),
-    exts: p.extensionIds.map(id => extensions.get(id)).filter((x): x is Extension => !!x),
+    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), manager,
+    owner: p.ownerId ? email.get(p.ownerId) ?? null : null,
     sync: data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null,
     status: data.status[p.id], progress: data.progress[kernelKey(p.kernel, p.kernelVersion)], checking: !!p.proxyId && data.checking.has(p.proxyId),
     onToggle: () => toggle(p.id), onView: () => pick(p.id), onOpen: () => void open(p), onStop: () => void stop(p), onStar: () => void star(p),
-    onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }
+    onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }, onEdit: () => onEdit(p.id), onTrash: () => void trash([p.id])
   });
   const empty = data.profiles !== null && !list.length && (all.length
     ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
@@ -233,15 +233,14 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl">
-            <h1>{P.title}</h1>
-            <p className="sub" data-testid="profiles-sub">{filtered ? P.showing(list.length, all.length, running) : P.sub(all.length, running)}</p>
-          </div>
+          <div className="ttl"><h1>{P.title}</h1></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{P.search}</span>
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
             <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
           </label>
+          <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => setGroup(v as GroupFilter)}
+            options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name })), { value: 'none', label: d.groups.none }]} /></span>
           {manager && <button className="btn btn-secondary" type="button" onClick={onImport}>{P.import}</button>}
           <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
         </header>
@@ -250,26 +249,23 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
 
         <section className="cards" aria-label={P.title}>
           <button type="button" className="kc" onClick={() => setStatus('running')}>
-            <span className="kic good"><Icon name="play" /></span><small>{P.sum.running}</small><b>{running}</b>
+            <span className="kc-h"><span className="kic good"><Icon name="play" /></span><small>{P.sum.running}</small></span><b>{running}</b>
           </button>
           <button type="button" className="kc" onClick={() => setStatus('issues')} title={P.sum.proxyNote(down, slow) || P.sum.proxyOk}>
-            <span className="kic bad"><Icon name="proxies" /></span><small>{P.sum.proxy}</small><b>{down + slow}</b>
+            <span className="kc-h"><span className="kic bad"><Icon name="proxies" /></span><small>{P.sum.proxy}</small></span><b>{down + slow}</b>
           </button>
           <button type="button" className="kc" onClick={() => setRiskOpen(o => !o)} title={shown.length ? d.risks.title(shown.length) : P.sum.risksOk}>
-            <span className="kic warn"><Icon name="alert" /></span><small>{P.sum.risks}</small><b>{shown.length}</b>
+            <span className="kc-h"><span className="kic warn"><Icon name="alert" /></span><small>{P.sum.risks}</small></span><b>{shown.length}</b>
           </button>
           <section className="map-card" aria-label={P.map.label}>
-            {pins.length > 0
-              ? <ExitMap pins={pins} links={links} label={P.map.label} onPick={key => setQ(key)} />
-              : (
-                <div className="map-empty">
-                  <b>{P.map.emptyTitle}</b>
-                  <p className="hint">{P.map.emptyBody}</p>
-                  {manager && (data.proxies.length
-                    ? <button type="button" className="btn btn-xs btn-secondary" disabled={data.checking.size > 0} onClick={() => void data.check(data.proxies.map(p => p.id))}>{P.map.check}</button>
-                    : <button type="button" className="btn btn-xs btn-secondary" onClick={onAddProxy}>{P.map.add}</button>)}
-                </div>
-              )}
+            <ExitMap pins={pins} links={links} label={P.map.label} onPick={key => setQ(key)} />
+            {!pins.length && manager && (
+              <div className="map-empty">
+                {data.proxies.length
+                  ? <button type="button" className="btn btn-xs btn-secondary" disabled={data.checking.size > 0} onClick={() => void data.check(data.proxies.map(p => p.id))}>{P.map.check}</button>
+                  : <button type="button" className="btn btn-xs btn-secondary" onClick={onAddProxy}>{P.map.add}</button>}
+              </div>
+            )}
           </section>
         </section>
 
@@ -300,11 +296,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             {(['all', 'running', 'issues', 'starred'] as const).map(s => <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)}>{P.filter[s]} <small>{counts[s]}</small></button>)}
           </div>
           {only && <button type="button" className="chip" onClick={() => setOnly(null)}>{d.risks.clear} <span aria-hidden="true">×</span></button>}
-          {group !== 'all' && (
-            <button type="button" className="chip" aria-label={P.clearGroup(group === 'none' ? d.groups.none : groupName.get(group) ?? '')} onClick={() => setGroup('all')}>
-              {P.groupChip(group === 'none' ? d.groups.none : groupName.get(group) ?? '')} <span aria-hidden="true">×</span>
-            </button>
-          )}
           <span className="sort"><span id="pf-sort">{P.sort}</span>
             <Select variant="sm" labelledBy="pf-sort" value={sort} onChange={v => setSort(v as Sort)} options={(['recent', 'name', 'latency'] as const).map(s => ({ value: s, label: P.sorts[s] }))} />
           </span>
@@ -322,13 +313,13 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                     <input type="checkbox" aria-label={d.common.selectAll} checked={list.length > 0 && shownSel === list.length}
                       ref={el => { if (el) el.indeterminate = shownSel > 0 && shownSel < list.length; }} onChange={toggleAll} />
                   </th>
-                  <th scope="col">{P.cols.profile}</th><th scope="col">{P.cols.proxy}</th><th scope="col">{P.cols.fingerprint}</th><th scope="col">{P.cols.extensions}</th>
-                  <th scope="col" className="lastc">{P.cols.last}</th><th className="act" scope="col">{P.cols.status}</th><th aria-hidden="true" />
+                  <th scope="col">{P.cols.profile}</th><th scope="col">{P.cols.fingerprint}</th><th scope="col">{P.cols.proxy}</th>
+                  <th scope="col" className="lastc">{P.cols.last}</th><th scope="col">{P.cols.member}</th><th scope="col">{P.cols.status}</th><th className="act" scope="col">{P.cols.actions}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.profiles === null && Array.from({ length: 5 }, (_, i) => (
-                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /><i /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td><td /></tr>
+                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td><td /></tr>
                 ))}
                 {empty && <tr className="empty"><td colSpan={8}>{empty}</td></tr>}
                 {list.map(p => <Row key={p.id} {...item(p)} />)}
@@ -415,70 +406,80 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
         onRetry={launch} onClose={() => setBatch(null)} />}
 
       {curProfile && <>
-        <div className="scrim drawer-scrim" onClick={() => setDrawer(false)} />
-        <aside className="detail" aria-label={d.detail.profile}>
+        <div className="scrim" onClick={() => setDetail(false)} />
+        <div className="detail" role="dialog" aria-modal="true" aria-label={d.detail.profile}>
           <ProfileDetail
             d={d} lang={lang} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
             status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
             size={data.kernels.find(k => k.kind === curProfile.kernel && k.version === curProfile.kernelVersion)?.size ?? null} failed={data.failed[curProfile.id]}
             risks={riskOf.get(curProfile.id) ?? []} others={all} onStar={() => void star(curProfile)}
-            group={groupLabel(curProfile)} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
+            owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
             extensions={curProfile.extensionIds.map(id => extensions.get(id)).filter((x): x is Extension => !!x)}
             activity={recent.entries ?? []}
-            onClose={() => setDrawer(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
+            onClose={() => setDetail(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
             onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
             canTakeOver={manager} canTrash={manager} canExport={manager} onTakeover={() => void takeover(curProfile)}
             onExport={format => void exportCookies([curProfile], format)} onImport={text => void importCookies(curProfile, text)}
             onFix={f => void fix(curProfile, f)}
           />
-        </aside>
+        </div>
       </>}
     </div>
   );
 }
 
 interface ItemProps {
-  d: Dict; p: Profile; h: Health; group: string; now: number; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; exts: Extension[];
+  d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; manager: boolean;
   status?: ProfileStatus; progress?: Progress; checking: boolean; risky: boolean;
-  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void; onStar(): void;
+  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void;
 }
 
-// What the profile is doing (a status label), and the one thing to do about it.
-function state({ d, p, h, now, status, progress, checking, onOpen, onStop, onCheck }: ItemProps): [ReactNode, ReactNode] {
-  const P = d.profiles;
-  const away = elsewhere(p);
+// What the profile is doing: a coloured dot and a word.
+function Status({ d, p, h, status, progress }: ItemProps){
+  const P = d.profiles, away = elsewhere(p);
   const downloading = progress && !progress.finished && !progress.error;
-  // Opening: engine, proxy, sign-ins, browser, in turn.
-  const opening = (at: number, label: string) => (
-    <span className="st boot" role="status"><span className="spin" aria-hidden="true" />{label}<span className="sub">{at + 1} / {P.stages.length}</span></span>
-  );
-  if (status?.state === 'running') return [
-    <span className="st run"><Icon name="play" />{P.st.running}<span className="sub">{runTime(now - (status.startedAt ?? now))}</span></span>,
-    <button type="button" className="btn btn-xs btn-secondary" aria-label={P.stopX(p.name)} onClick={onStop}><Icon name="stop" />{P.stop}</button>
-  ];
-  if (status?.state === 'saving') return [<span className="st boot"><span className="spin" aria-hidden="true" />{busyLabel(d, status.state)}</span>, null];
-  if (status) return [status.state === 'restoring' ? opening(2, P.stage.restore) : status.stage === 'launch' ? opening(3, P.stage.launch) : opening(1, P.stage.proxy),
-    <button type="button" className="btn btn-xs btn-secondary" disabled>{P.starting}</button>];
-  if (downloading) return [opening(0, P.downloading(percent(progress))), null];
-  if (away) return [<span className="st away" title={away.email}><Icon name="monitor" />{P.inUseOn(away.deviceName ?? away.email)}</span>, null];
-  if (h.checks[0]?.id === 'proxy-down') return [
-    <span className="st bad"><Icon name="alert" />{P.st.proxyDown}</span>,
-    <button type="button" className="btn btn-xs btn-secondary" disabled={checking} onClick={onCheck}>{checking && <span className="spin" aria-hidden="true" />}{P.checkProxy}</button>
-  ];
-  return [
-    <span className="st idle"><Icon name="pause" />{P.st.idle}</span>,
-    <button type="button" className="btn btn-xs btn-primary" aria-label={P.openX(p.name)} onClick={onOpen}><Icon name="play" />{P.open}</button>
-  ];
+  const [tone, text] = status?.state === 'running' ? ['run', P.st.running]
+    : status ? ['boot', status.state === 'saving' ? busyLabel(d, status.state) : status.state === 'restoring' ? P.stage.restore : status.stage === 'launch' ? P.stage.launch : P.stage.proxy]
+    : downloading ? ['boot', P.downloading(percent(progress))]
+    : away ? ['away', P.inUseOn(away.deviceName ?? away.email)]
+    : h.checks[0]?.id === 'proxy-down' ? ['bad', P.st.proxyDown]
+    : ['idle', P.st.idle];
+  return <span className={`dot-st ${tone}`} title={away?.email} role={tone === 'boot' ? 'status' : undefined}>{text}</span>;
 }
 
-// The extensions installed in a profile: their icons, three at most.
-function ExtIcons({ exts }: { exts: Extension[] }){
-  if (!exts.length) return <span className="muted">—</span>;
+// Everything to do with the profile, in its ⋯ menu.
+function Actions({ d, p, h, status, progress, checking, manager, onOpen, onStop, onCheck, onEdit, onTrash }: ItemProps){
+  const P = d.profiles, busy = !!status && status.state !== 'running';
+  return <MoreMenu label={P.actionsX(p.name)} items={[
+    status?.state === 'running' ? { label: P.stop, onClick: onStop } : { label: P.open, onClick: onOpen, disabled: busy || !!(progress && !progress.finished && !progress.error) || !!elsewhere(p) },
+    ...(h.checks[0]?.id === 'proxy-down' ? [{ label: P.checkProxy, onClick: onCheck, disabled: checking }] : []),
+    { label: d.detail.edit, onClick: onEdit },
+    ...(manager ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
+  ]} />;
+}
+
+// Its proxy: where it exits (country and IP, once checked) and the line's type; or none.
+function ProxyCell({ d, h }: ItemProps){
+  if (!h.px) return <span className="l1 muted">{d.profiles.noProxy}</span>;
+  const ip = h.px.lastCheck?.ip, cc = h.geo?.country;
+  return <>
+    <span className="l1 px-exit"><Flag country={cc ?? null} size="xs" />{ip ? `${cc ?? ''} ${ip}`.trim() : h.px.name}</span>
+    <span className="l2">{h.px.type.toUpperCase()}</span>
+  </>;
+}
+
+// When it was last opened: the time today or yesterday, else the date.
+function lastOpened(iso: string | null, d: Dict, lang: Lang){
+  if (!iso) return '—';
+  const label = dayLabel(iso, d, lang);
+  return label === d.activity.today || label === d.activity.yesterday ? `${label} ${time(iso, lang)}` : new Date(iso).toLocaleDateString('sv-SE');
+}
+
+function Name({ d, p, risky, onView, onStar }: ItemProps){
   return (
-    <span className="exts" title={exts.map(x => x.name).join(', ')}>
-      {exts.slice(0, 3).map(x => <ExtIcon key={x.id} src={x.icon} />)}
-      {exts.length > 3 && <em>+{exts.length - 3}</em>}
-    </span>
+    <span className="prof-cell"><Avatar text={p.name} /><span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><Star d={d} p={p} onStar={onStar} />
+      {risky && <span className="risk-flag" title={d.risks.flag}><Icon name="alert" /><span className="sr">{d.risks.flag}</span></span>}
+      {p.tags.map(t => <span key={t} className="tag">{t}</span>)}</span></span>
   );
 }
 
@@ -488,59 +489,32 @@ function Star({ d, p, onStar }: { d: Dict; p: Profile; onStar(): void }){
 }
 
 function Row(props: ItemProps){
-  const { d, p, h, group, now, cur, checked, sync, exts, status, risky, onToggle, onView, onStar } = props;
-  const P = d.profiles;
-  const geo = h.geo;
-  const [st, act] = state(props);
+  const { d, lang, p, h, cur, checked, sync, owner, onToggle, onView } = props;
   return (
-    <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a')) onView(); }}>
+    <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) onView(); }}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
-      <td className="prof">
-        <span className="prof-cell"><Flag country={geo?.country ?? null} kernel={p.kernel} /><span>
-          <span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><Star d={d} p={p} onStar={onStar} />
-            {risky && <span className="risk-flag" title={d.risks.flag}><Icon name="alert" /><span className="sr">{d.risks.flag}</span></span>}
-            {p.tags.map(t => <span key={t} className="tag">{t}</span>)}</span>
-          <span className="l2"><span className="mono">#{number(p)}</span> · {group}</span>
-        </span></span>
-      </td>
-      <td className="pxc">
-        <span className="l1">{h.px ? h.px.name : P.noProxy}</span>
-        <span className="l2">{h.px && <span className={`d ${h.proxy === 'ok' ? 'good' : h.proxy === 'slow' ? 'warn' : h.proxy === 'down' ? 'bad' : ''}`} aria-hidden="true" />}{geo ? geo.city ?? geo.countryName : h.px ? (h.proxy === 'down' ? P.noResponse : P.unchecked) : d.detail.directSub}</span>
-      </td>
-      <td className="fpc">
-        <span className="os-cell"><Icon name={p.os} /><span>
-          <span className="l1">{d.os[p.os]}</span>
-          <span className="l2">{h.mismatch ? <span className="flag warn">{P.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span>
-        </span></span>
-      </td>
-      <td><ExtIcons exts={exts} /></td>
-      <td className="lastc"><span className="who">{status || elsewhere(p) ? P.inUse : ago(p.lastOpenedAt, d, now)}</span></td>
-      <td className="act">{st}{sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}</td>
-      <td className="act go">{act}</td>
+      <td className="prof"><Name {...props} /></td>
+      <td><span className="l1">{d.os[p.os]}</span><span className="l2">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span></td>
+      <td><ProxyCell {...props} /></td>
+      <td className="lastc mono">{lastOpened(p.lastOpenedAt, d, lang)}</td>
+      <td>{owner ? <Avatar text={owner} small title={owner} /> : <span className="muted">—</span>}</td>
+      <td><Status {...props} />{sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}</td>
+      <td className="act"><Actions {...props} /></td>
     </tr>
   );
 }
 
 function Card(props: ItemProps){
-  const { d, p, h, cur, checked, exts, risky, onToggle, onView, onStar } = props;
-  const P = d.profiles;
-  const geo = h.geo;
-  const [st, act] = state(props);
+  const { d, p, h, cur, checked, onToggle, onView } = props;
   return (
-    <li className={`pcard${cur ? ' cur' : ''}`} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a')) onView(); }}>
+    <li className={`pcard${cur ? ' cur' : ''}`} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) onView(); }}>
       <div className="pc-top">
-        <Flag country={geo?.country ?? null} kernel={p.kernel} />
-        <span>
-          <span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><Star d={d} p={p} onStar={onStar} />
-            {risky && <span className="risk-flag" title={d.risks.flag}><Icon name="alert" /><span className="sr">{d.risks.flag}</span></span>}</span>
-          <span className="l2 mono">#{number(p)}</span>
-        </span>
-        <ExtIcons exts={exts} />
+        <Name {...props} />
         <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} />
       </div>
-      <div className="pc-city"><b>{geo ? geo.city ?? geo.countryName : h.px ? (h.proxy === 'down' ? d.detail.noExit : d.detail.notChecked) : d.detail.direct}</b><span>{h.px ? h.px.name : P.noProxy}</span></div>
-      <p className="pc-fp"><Icon name={p.os} />{d.os[p.os]} · {h.mismatch ? <span className="flag warn">{P.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</p>
-      <div className="pc-foot">{st}{act}</div>
+      <div className="pc-px"><ProxyCell {...props} /></div>
+      <p className="pc-fp">{d.os[p.os]} · {h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</p>
+      <div className="pc-foot"><Status {...props} /><Actions {...props} /></div>
     </li>
   );
 }
@@ -605,7 +579,7 @@ function Onboarding({ d, data, onAddProxy, onNew, onOpen, onHide }: { d: Dict; d
         {steps.map((s, i) => (
           <li key={s.key} className={s.done ? 'done' : s === next ? 'next' : ''} data-step={s.key}>
             <span className="num" aria-hidden="true">{s.done ? <Icon name="check" /> : i + 1}</span>
-            <div><b>{s.title}</b><p className="muted">{s.done ? O.done : s.body}</p></div>
+            <div><b>{s.title}</b></div>
             {s === next && s.action && <button type="button" className="btn btn-primary btn-sm" onClick={s.action}>{s.title}</button>}
           </li>
         ))}

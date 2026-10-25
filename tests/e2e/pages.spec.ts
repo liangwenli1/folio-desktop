@@ -75,7 +75,8 @@ test('a waiting invitation’s link can be copied again, which replaces the old 
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await nav(win, /^Team/);
-  await win.getByRole('region', { name: 'Invitations waiting' }).getByRole('button', { name: 'Copy link' }).click();
+  await win.locator('tr[data-invitation]').getByRole('button', { name: /^More for / }).click();
+  await win.getByRole('menuitem', { name: 'Copy link' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'A new invitation link was copied' })).toBeVisible();
   expect((await acct.api.get(`/invitations/by-token/${token}`)).status()).toBe(404);
   const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
@@ -99,7 +100,7 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
 
   const row = win.locator('tr[data-id]', { hasText: 'Shop-2' });
   await row.getByRole('button', { name: 'Shop-2', exact: true }).click();
-  const detail = win.getByRole('complementary', { name: 'Profile' });
+  const detail = win.getByRole('dialog', { name: 'Profile', exact: true });
   await expect(detail).toContainText('Search engineBaidu');
   await expect(detail).toContainText('On openingOpens the Baidu home page');
   await detail.getByRole('button', { name: 'Close details' }).click();

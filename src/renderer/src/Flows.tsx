@@ -106,7 +106,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{F.title}</h1><p className="sub">{F.sub(data.flows.length)}</p></div>
+          <div className="ttl"><h1>{F.title}</h1></div>
           <span className="sp" />
           <button className="btn btn-secondary" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
           <button className="btn btn-primary" type="button" onClick={() => setOpen({ id: null })}><Icon name="plus" />{F.new}</button>
@@ -399,7 +399,6 @@ function StepPanel({ d, steps, loc, readOnly, onChange, onEdit }: {
             onClick={() => onEdit(l => l.filter((_, k) => k !== i), null)}><Icon name="trash" /></button>
         </span>}
       </header>
-      <p className="hint">{F.about[s.type]}</p>
       <fieldset className="step-body" disabled={readOnly}>
         <StepFields d={d} s={s} onChange={onChange} />
       </fieldset>
@@ -544,7 +543,6 @@ function Trial({ d, profiles, steps, disabled }: { d: Dict; profiles: Profile[];
   return (
     <aside className="fcard trial" aria-label={F.title}>
       <h2>{F.title}</h2>
-      <p className="hint">{F.lead}</p>
       <SelectField label={F.profile} value={profile?.id ?? ''} onChange={setProfileId} disabled={!!token || !profiles.length} placeholder={F.noProfiles} searchPh={d.form.searchPh}
         options={profiles.map(p => ({ value: p.id, label: p.name, hint: `#${String(p.number).padStart(4, '0')}` }))} />
       <Field label={F.vars}><textarea className="mono-in" rows={2} value={varsText} placeholder="email=me@example.com" spellCheck={false} onChange={e => setVarsText(e.target.value)} /></Field>

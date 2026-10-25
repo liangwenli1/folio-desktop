@@ -10,7 +10,7 @@ test('the activity log says who did what, and each profile shows its recent entr
   const win = await logIn(app, acct.email);
 
   await win.getByRole('button', { name: 'Shop-07', exact: true }).click();
-  const detail = win.getByRole('complementary', { name: 'Profile' });
+  const detail = win.getByRole('dialog', { name: 'Profile', exact: true });
   await detail.getByRole('button', { name: 'Edit' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await form.getByLabel('Name', { exact: true }).fill('Shop Berlin');
@@ -22,7 +22,6 @@ test('the activity log says who did what, and each profile shows its recent entr
   await win.keyboard.press('Escape');
 
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^Activity log/ }).click();
-  await expect(win.getByText('Kept for 7 days on this plan')).toBeVisible();
   const items = win.locator('tr[data-action]');
   await expect(items).toHaveCount(3);
   await expect(items.first()).toContainText('changed the name of Shop Berlin');

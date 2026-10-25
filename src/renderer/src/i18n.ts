@@ -32,7 +32,7 @@ export const en = {
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines' },
   groups: {
-    title: 'Groups', all: 'All profiles', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
+    title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
     rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`
   },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
@@ -67,8 +67,6 @@ export const en = {
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
   profiles: {
     title: 'Profiles', count: profilesN,
-    sub: (n: number, running: number) => `${profilesN(n)} · ${running} running`,
-    showing: (shown: number, n: number, running: number) => `Showing ${shown} of ${n} · ${running} running`,
     search: 'Search profiles', searchPh: 'Search name, number, city or tag', new: 'New profile', import: 'Import',
     sum: {
       running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies answering',
@@ -77,14 +75,13 @@ export const en = {
     },
     views: { label: 'View', list: 'List', cards: 'Cards' },
     filter: { label: 'Status', all: 'All', running: 'Running', issues: 'Needs attention', starred: 'Favourites' }, star: 'Add to favourites', unstar: 'Remove from favourites',
-    groupChip: (g: string) => `Group: ${g}`, clearGroup: (g: string) => `Clear group filter ${g}`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
-    cols: { profile: 'Profile', proxy: 'Proxy', fingerprint: 'Fingerprint', extensions: 'Extensions', last: 'Last opened', status: 'Status' },
-    open: 'Open', stop: 'Stop', openX: (n: string) => `Open ${n}`, stopX: (n: string) => `Stop ${n}`, starting: 'Starting…', inUse: 'In use now',
+    cols: { profile: 'Profile', fingerprint: 'Fingerprint', proxy: 'Proxy', last: 'Last opened', member: 'Assigned to', status: 'Status', actions: 'Actions' },
+    open: 'Open', stop: 'Stop', actionsX: (n: string) => `Actions for ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
     stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Engine', 'Proxy', 'Sign-ins', 'Browser'],
     map: {
-      label: 'Where the profiles’ proxies exit', emptyTitle: 'See where your profiles go out', emptyBody: 'Once a proxy is checked, its exit shows on the map with what its profiles are doing.',
+      label: 'Where the profiles’ proxies exit',
       check: 'Check all proxies', add: 'Add a proxy'
     },
     palette: 'Search everything',
@@ -121,9 +118,8 @@ export const en = {
   } as Record<string, string>,
   detail: {
     profile: 'Profile', close: 'Close details',
-    meta: (group: string, date: string) => `${group} · Created ${date}`, assignedTo: (who: string) => `Assigned to ${who}`,
     openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
-    notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection', directSub: 'Sites see this computer’s IP',
+    notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection',
     tabs: { overview: 'Overview', signins: 'Sign-ins', extensions: 'Extensions', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint',
     verdict: { ok: 'All consistent', warn: 'Needs a look', bad: 'Can’t open' }, noExtensions: 'No extensions in this profile.', noActivity: 'Nothing recorded yet.',
     fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
@@ -131,7 +127,7 @@ export const en = {
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', todo: 'To do', warn: 'Warning', bad: 'Problem' },
     storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', extensions: 'Extensions', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
     notSaved: 'Nothing saved yet. Sign-ins are saved when the browser closes.', localOnly: 'Kept on the computer that uses it; Folio holds no copy.',
-    exportCookies: 'Export cookies', importCookies: 'Import cookies', json: 'JSON', netscape: 'cookies.txt',
+    exportAs: (format: string) => `Export ${format}`, importCookies: 'Import cookies', json: 'JSON', netscape: 'cookies.txt',
     exported: (n: number, path: string) => `${profilesN(n)} exported to ${path}`, imported: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} imported`,
     exportFailed: (name: string, why: string) => `${name}: ${why}`,
     inUse: 'In use elsewhere', away: (device: string, email: string, since: string) => `Open on ${device} (${email}) since ${since}.`,
@@ -175,14 +171,12 @@ export const en = {
   form: {
     newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Give it a name.',
     basic: 'Basics', engineProxy: 'Engine and proxy', more: 'More settings', preview: 'Preview',
-    moreHint: 'Also: fingerprint details, extensions, how sign-ins are kept, who it is assigned to.',
-    versions: (engine: string, n: number) => `${engine} has ${n === 1 ? '1 version' : `${n} versions`} for this computer.`,
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
     engine: 'Engine', os: 'Operating system',
     proxy: 'Proxy', noProxy: 'No proxy (this computer’s IP)', pasteProxy: 'Paste a new proxy…', pastePh: 'socks5://user:pass@host:port',
     proxyBad: 'That doesn’t look like a proxy address.',
     proxyOk: (place: string, ms: number) => `Answers in ${ms} ms, exits in ${place}`, proxyDown: 'The proxy didn’t answer.',
-    tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint', regen: 'Regenerate', fpHint: 'Time zone, language and geolocation follow the proxy.',
+    tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint', regen: 'Regenerate',
     regenWarn: 'Sites will see a new device; logged-in sites may ask you to verify again.', fpErr: 'Couldn’t make a fingerprint.',
     firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy', custom: 'Set by hand',
@@ -195,8 +189,8 @@ export const en = {
   },
   // A profile's search engine and the pages it opens with.
   browser: {
-    title: 'Browser', search: 'Search engine', name: enSearch, searchHint: 'For text typed in the address bar. With none, the text is opened as an address.',
-    restore: 'Restore last tabs', restoreHint: 'When off, and the first time, it opens the search engine’s home page, or a blank page without one.',
+    title: 'Browser', search: 'Search engine', name: enSearch,
+    restore: 'Restore last tabs',
     start: 'On opening', startTabs: 'Restores the last tabs', startHome: (name: string) => `Opens the ${name} home page`, startBlank: 'Opens a blank page',
     bulk: 'Browser…', on: 'On', off: 'Off',
     searchSet: (n: number, name: string) => `Search engine set to ${name} on ${profilesN(n)}`,
@@ -213,7 +207,7 @@ export const en = {
     done: (n: number) => `${profilesN(n)} imported`
   },
   proxies: {
-    title: 'Proxies', count: proxiesN, sub: (n: number, down: number) => `${proxiesN(n)}${down ? ` · ${down} not answering` : ''}`,
+    title: 'Proxies', count: proxiesN,
     search: 'Search proxies', searchPh: 'Search name, host or city', add: 'Add proxy', import: 'Import', checkAll: 'Check all',
     cols: { proxy: 'Proxy', exit: 'Exit', latency: 'Latency · last 20 checks', uptime: 'Uptime', profiles: 'Profiles', status: 'Status' },
     labels: { latency: 'Latency', uptime: 'Uptime', profiles: 'Profiles' }, backupOf: (n: string) => `backup ${n}`, noExit: 'Exit unknown',
@@ -232,30 +226,28 @@ export const en = {
     badLines: 'These lines couldn’t be read:', line: (n: number) => `Line ${n}`
   },
   trash: {
-    title: 'Trash', sub: (n: number) => `${profilesN(n)} · not counted toward the plan`, empty: 'The Trash is empty.',
+    title: 'Trash', empty: 'The Trash is empty.',
     restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete forever', purgeAll: 'Empty Trash',
-    note: 'A restored profile goes back to its group with its sign-ins and fingerprint; one deleted forever can’t be brought back.',
     cols: { profile: 'Profile', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by' },
     sites: (n: number) => (n ? `${n} ${n === 1 ? 'site' : 'sites'}` : 'None'), byAt: (who: string, when: string) => `${who} deleted it ${when}`,
     confirmPurge: (n: number) => `Delete ${profilesN(n)} forever?`, confirmNote: 'Their fingerprints and settings can’t be recovered.',
     restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} deleted forever`
   },
   engines: {
-    title: 'Engines', sub: 'Each profile keeps the engine version it was made with, so sites see the same browser until you upgrade it.',
+    title: 'Engines',
     recommended: 'Recommended', installed: 'Downloaded', download: (size: string) => `Download · ${size}`, failed: 'The download failed.',
     usedBy: (n: number) => (n ? `${profilesN(n)} here use it` : 'No profiles here use it'), everywhere: (n: number) => `${profilesN(n)} in all workspaces`,
     remove: 'Delete from this computer', removeBusy: 'Close the profiles that use it first.', removed: (v: string) => `${v} deleted from this computer`,
     retired: 'No longer in the catalog', none: 'No version of this engine is built for this computer.',
     outdated: (n: number, kernel: string) => `${profilesN(n)} use the older ${kernel}`, upgrade: (v: string) => `Upgrade to ${v}`,
     upgradeNote: (v: string) => `After the upgrade to ${v}, sites see the same fingerprint as before.`,
-    desc: { chromium: 'Based on fingerprint-chromium · the widest site compatibility', firefox: 'Based on Camoufox · built for privacy' } as Record<string, string>,
     recommendedVersion: 'Recommended version', released: (date: string) => `Released ${date}`, downloaded: (size: string) => (size ? `Downloaded · ${size}` : 'Downloaded'),
     downloadingOf: (size: string) => `Downloading · ${size}`, paused: (pct: number) => `Paused at ${pct}%`, pause: 'Pause', resume: 'Resume',
     disk: (size: string) => `Engines on this computer take ${size}`, cleanup: 'Delete unused versions', nothingToClean: 'Every downloaded version is in use or recommended.',
     cleanupTitle: (n: number) => `Delete ${n === 1 ? '1 unused version' : `${n} unused versions`}?`, cleanupNote: (size: string) => `Frees ${size}. A version downloads again if a profile needs it.`,
     cleaned: (n: number) => `${n === 1 ? '1 version' : `${n} versions`} deleted from this computer`,
-    settings: 'Download settings', autoDownload: 'Download the recommended version automatically', autoDownloadHint: 'New recommended versions download in the background, so opening a profile doesn’t wait.',
-    idleOnly: 'Download only while idle', idleOnlyHint: 'Background downloads pause while profiles are open, leaving the proxies’ bandwidth to them.',
+    settings: 'Download settings', autoDownload: 'Download the recommended version automatically',
+    idleOnly: 'Download only while idle',
     history: 'Update history', historyAdded: (v: string) => `${v} added`, historyRecommended: (v: string) => `${v} made recommended`, historyNone: 'Nothing yet.',
     upgraded: (n: number, v: string) => `${profilesN(n)} now use ${v}`,
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple silicon', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
@@ -271,14 +263,16 @@ export const en = {
     }
   },
   team: {
-    title: 'Team', sub: (n: number, seats: number | null) => `${n === 1 ? '1 person' : `${n} people`}${seats === null ? '' : ` · ${seats} ${seats === 1 ? 'seat' : 'seats'} on the plan`}`,
-    invite: 'Invite', you: 'you', remove: 'Remove', leave: 'Leave team', removeX: (e: string) => `Remove ${e}`,
-    cols: { person: 'Person', role: 'Role', departments: 'Departments', profiles: 'Profiles', recent: 'Latest activity', joined: 'Joined' },
-    search: 'Search people', meTag: '(you)', moreX: (e: string) => `More for ${e}`, makeRole: (r: string) => `Change role to ${r}`,
+    title: 'Team',
+    invite: 'Invite people', you: 'you', remove: 'Remove from team', leave: 'Leave team',
+    tabs: { members: 'Members', depts: 'Departments' },
+    cols: { person: 'Person', role: 'Role', scope: 'Can see', status: 'Status' },
+    scopeAll: 'All profiles', scopeOwn: 'Profiles assigned to them', joined: 'Joined', invited: 'Invited',
+    search: 'Search people', meTag: '(you)', moreX: (e: string) => `More for ${e}`, roleOf: (e: string) => `Role of ${e}`,
     deptSum: (people: number, n: number) => `${people === 1 ? '1 person' : `${people} people`} · ${profilesN(n)}`,
     copiedNew: 'A new invitation link was copied; the earlier one no longer works.',
     roleHelp: { admin: 'Sees and manages every profile, proxy and person.', member: 'Sees and opens the profiles assigned to them; can create and edit, not delete.' },
-    pending: 'Invitations waiting', invitedBy: (who: string) => `Invited by ${who}`, expires: (date: string) => `expires ${date}`,
+    expires: (date: string) => `Expires ${date}`,
     copyLink: 'Copy link', copied: 'Invitation link copied', resend: 'Send again', withdraw: 'Withdraw', withdrawn: 'Invitation withdrawn',
     inviteTitle: 'Invite to the team', email: 'Email', emailErr: 'Enter an email address.', role: 'Role', departments: 'Departments',
     send: 'Send invitation', sent: (e: string) => `Invitation sent to ${e}.`, notSent: 'The email couldn’t be sent. Copy the link and pass it on yourself.',
@@ -288,12 +282,11 @@ export const en = {
     leaveTitle: (ws: string) => `Leave ${ws}?`, leaveLead: 'Your profiles there go to the owner, and you lose access to the workspace.', leaveDo: 'Leave',
     removedYou: (ws: string) => `You’re no longer in ${ws}. Its profiles were closed and removed from this computer.`,
     depts: 'Departments', deptAdd: 'New department', deptName: 'Department name',
-    deptHelp: 'Members see the profiles of their departments as well as their own.', deptCompany: 'Departments come with the Company plan.',
     deptMembers: 'Members', deptDelete: 'Delete', deptDeleteConfirm: (n: string) => `Delete “${n}”? Its profiles stay, without a department.`,
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
   },
   activity: {
-    title: 'Activity log', sub: (days: number) => `Kept for ${days} days on this plan`, person: 'Person', everyone: 'Everyone', kind: 'Showing',
+    title: 'Activity log', person: 'Person', everyone: 'Everyone', kind: 'Showing',
     search: 'Search profiles, people or actions', cols: { time: 'Time', person: 'Person', what: 'What happened', kind: 'Kind', device: 'Computer' },
     kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
     export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
@@ -338,7 +331,7 @@ export const en = {
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}`
   },
   flows: {
-    title: 'Flows', sub: (n: number) => (n === 1 ? '1 flow · shared with the team' : `${n} flows · shared with the team`), new: 'New flow',
+    title: 'Flows', new: 'New flow',
     template: 'Sign-in check template', templateName: 'Sign-in check',
     cols: { name: 'Flow', steps: 'Steps', by: 'Created by', updated: 'Changed' },
     empty: 'No flows yet. A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
@@ -398,14 +391,14 @@ export const en = {
     }
   },
   tasks: {
-    title: 'Scheduled tasks', sub: (n: number) => (n === 1 ? '1 task' : `${n} tasks`), new: 'New task', needFlow: 'Make a flow first, on the Flows page.',
+    title: 'Scheduled tasks', new: 'New task', needFlow: 'Make a flow first, on the Flows page.',
     empty: 'No tasks yet. A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
     cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', on: 'Runs on', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
     views: { label: 'View', list: 'List', calendar: 'Calendar' },
-    here: 'This computer', starter: 'Whoever runs it', made: (flow: string, who: string) => `${flow} · made by ${who}`, n: (n: number) => String(n),
+    here: 'This computer', starter: 'Whoever runs it', n: (n: number) => String(n),
     latest: (task: string) => `Latest run · ${task}`, took: (s: number) => (s < 60 ? `took ${s} s` : `took ${Math.floor(s / 60)} min ${s % 60} s`),
     calendar: {
-      prev: 'Previous week', next: 'Next week', thisWeek: 'This week', local: 'In this computer’s time', none: 'No scheduled times this week.',
+      prev: 'Previous week', next: 'Next week', thisWeek: 'This week', none: 'No scheduled times this week.',
       range: (a: Date, b: Date) => `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', a.getMonth() === b.getMonth() ? { day: 'numeric' } : { month: 'short', day: 'numeric' })}, ${b.getFullYear()}`,
       at: (time: string, n: number) => `${time} · ${n}`
     },
@@ -446,24 +439,22 @@ export const en = {
     }
   },
   apiPage: {
-    title: 'API & scripts', sub: 'Let scripts on this computer open profiles and drive them with Playwright, Puppeteer or Selenium.', reference: 'API reference',
+    title: 'API & scripts', reference: 'API reference',
     server: 'Local API', enable: 'On', listening: 'Listening on', off: 'Off. Turn it on to let scripts on this computer use it.', copy: 'Copy', copied: 'Copied',
     errors: { port_in_use: 'Another program uses this port. Pick another one.', listen_failed: 'The API couldn’t start on this port. Pick another one.' },
     port: 'Port', limit: 'Up to 60 requests a minute (starting, stopping, looking things up). What scripts send to the browser itself isn’t counted. Company is unthrottled.',
     unthrottled: 'Company plan: no limit on requests.',
     security: 'The debugging address has no password: while a profile opened through the API is running, any program on this computer can control it. Profiles you open yourself have no debugging address.',
-    tokens: 'Tokens', tokensHelp: 'Scripts send one as Authorization: Bearer <token>. A token belongs to you and this workspace, works only on this computer, and can do what you can.',
+    tokens: 'Tokens',
     newToken: 'Copy this token now; it isn’t shown again.', done: 'Done', tokenName: 'Name, e.g. order sync', createToken: 'Make a token', defaultName: 'Token',
     made: (date: string) => `Made ${date}`, used: (date: string) => `last used ${date}`, unused: 'not used yet', revoke: 'Revoke', revokeX: (n: string) => `Revoke ${n}`, otherWorkspace: 'Another workspace',
     examples: 'Examples', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox profiles' },
-    chromiumNote: 'Chromium profiles answer with a CDP address: Playwright, Puppeteer, Selenium (with chromedriver for Chromium 150) or any CDP client can take over.',
-    firefoxNote: 'Firefox profiles answer with a WebDriver BiDi address: Puppeteer or another WebDriver BiDi client can take over. Playwright and Selenium can’t attach to a running Firefox. While a script drives one, tasks skip it.',
-    copyAddress: 'Copy address', limitTitle: 'Request limit', callsLead: 'Live · the last 50', limited: 'over the limit',
-    prefilled: 'The token you just made is filled in, ready to copy and run.', placeholder: 'Replace <token> with one of your tokens; a token is shown only when it is made.',
+    copyAddress: 'Copy address', limited: 'over the limit',
+    placeholder: 'Replace <token> with one of your tokens; a token is shown only when it is made.',
     calls: 'Recent calls', noCalls: 'No script has called it yet. Calls show up here as they happen.', noToken: 'No valid token'
   },
   extensions: {
-    title: 'Extensions', sub: (n: number) => (n === 1 ? '1 extension · Chromium and Firefox kept apart' : `${n} extensions · Chromium and Firefox kept apart`), add: 'Add extension',
+    title: 'Extensions', add: 'Add extension',
     memberNote: 'Owners and admins keep the library. You can install its extensions in your own profiles, from the profile form or the bulk actions.',
     empty: 'No extensions yet. Add one from a file or its store, then install it in profiles.',
     cols: { name: 'Extension', engine: 'Engine', version: 'Version', signature: 'Signature', profiles: 'Profiles', updated: 'Changed' },
@@ -484,13 +475,12 @@ export const en = {
     failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
   },
   windowSync: {
-    title: 'Window sync', sub: 'Work in the leader window; the selected windows do the same.', on: 'Window sync is on.', onBadge: 'On',
+    title: 'Window sync', on: 'Window sync is on.', onBadge: 'On',
     summary: (leader: string, n: number) => `${leader} leads and ${n === 1 ? '1 window follows' : `${n} windows follow`}.`,
     leaderTag: 'Leader', followerTag: 'Sync', makeLeader: 'Make leader', stop: 'Stop sync', current: 'Syncing now',
     address: 'Address for every window', addressPh: 'Open an address in every window', open: 'Open',
-    pick: 'Pick the windows', pickHelp: 'Clicks, typing, keys, scrolling, addresses and tabs in the leader repeat in the others. Profiles that aren’t open yet open first.',
+    pick: 'Pick the windows',
     running: 'Open', start: (n: number) => (n < 2 ? 'Pick at least two' : `Sync ${n} windows`), starting: 'Starting…',
-    limits: 'Not repeated: file pickers, drag and drop, and the browser’s own menus. A window whose page differs (signed out, say) does what the leader did on its own page.',
     ops: { label: 'Repeat', click: 'Clicks', typing: 'Typing', scroll: 'Scrolling' },
     delay: 'Random pause', seconds: 's', delayMin: 'Shortest pause, in seconds', delayMax: 'Longest pause, in seconds',
     synced: (n: number, bad: number) => `${n === 1 ? '1 window' : `${n} windows`} in sync${bad ? ` · ${bad} with a problem` : ''}`,
@@ -500,7 +490,7 @@ export const en = {
       coords: (label: string | null) => `${label ? `Couldn’t find “${label}”` : 'Couldn’t find the element the leader clicked'}, so the click went to the same place in this window.`,
       failed: () => 'Something couldn’t be repeated here; look at this window.'
     },
-    log: 'Recent sync', logLead: (leader: string, n: number) => `${leader} leads ${n === 1 ? '1 window' : `${n} windows`}`, logEmpty: 'What happens in the leader window is listed here.',
+    log: 'Recent sync', logEmpty: 'What happens in the leader window is listed here.',
     did: {
       click: (label: string | null) => (label ? `Clicked “${label}”` : 'Clicked'), text: (t: string) => `Typed “${t}”`, key: (k: string) => `Pressed ${k}`,
       scroll: (px: number) => `Scrolled to ${px.toLocaleString('en-US')} px`, goto: (url: string) => `Opened ${url}`,
@@ -620,7 +610,7 @@ export const zh: Dict = {
   },
   nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', engines: '内核' },
   groups: {
-    title: '分组', all: '全部环境', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
+    title: '分组', all: '全部分组', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
     rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组内环境将保留并变为未分组。`
   },
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
@@ -655,8 +645,6 @@ export const zh: Dict = {
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
   profiles: {
     title: '环境', count: (n: number) => `${n} 个环境`,
-    sub: (n: number, running: number) => `${n} 个环境 · ${running} 个运行中`,
-    showing: (shown: number, n: number, running: number) => `显示 ${shown} / ${n} 个 · ${running} 个运行中`,
     search: '搜索环境', searchPh: '搜索名称、编号、城市或标签', new: '新建环境', import: '导入',
     sum: {
       running: '运行中', proxy: '代理异常', proxyOk: '全部代理响应正常',
@@ -665,14 +653,13 @@ export const zh: Dict = {
     },
     views: { label: '视图', list: '列表', cards: '卡片' },
     filter: { label: '状态', all: '全部', running: '运行中', issues: '需处理', starred: '收藏' }, star: '收藏', unstar: '取消收藏',
-    groupChip: (g: string) => `分组：${g}`, clearGroup: (g: string) => `清除分组筛选 ${g}`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
-    cols: { profile: '环境', proxy: '代理', fingerprint: '指纹', extensions: '扩展', last: '最近打开', status: '状态' },
-    open: '打开', stop: '停止', openX: (n: string) => `打开 ${n}`, stopX: (n: string) => `停止 ${n}`, starting: '启动中…', inUse: '正在使用',
+    cols: { profile: '环境名称', fingerprint: '指纹配置', proxy: '代理', last: '最近打开', member: '成员', status: '状态', actions: '操作' },
+    open: '打开', stop: '停止', actionsX: (n: string) => `${n} 的操作`, starting: '启动中…', inUse: '正在使用',
     st: { idle: '未运行', running: '运行中', proxyDown: '代理异常' }, checkProxy: '检测代理',
     stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['内核', '代理', '登录', '浏览器'],
     map: {
-      label: '各环境代理的出口位置', emptyTitle: '查看环境从哪里出网', emptyBody: '检测代理后，地图将标出每个出口的位置及其环境的状态。',
+      label: '各环境代理的出口位置',
       check: '检测全部代理', add: '添加代理'
     },
     palette: '全局搜索',
@@ -709,9 +696,8 @@ export const zh: Dict = {
   } as Record<string, string>,
   detail: {
     profile: '环境', close: '关闭详情',
-    meta: (group: string, date: string) => `${group} · ${date} 创建`, assignedTo: (who: string) => `负责人：${who}`,
     openProfile: '打开环境', edit: '编辑', trash: '移至回收站',
-    notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连', directSub: '网站获取的是本机 IP',
+    notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连',
     tabs: { overview: '概览', signins: '登录状态', extensions: '扩展', activity: '记录' }, more: '更多操作', fingerprint: '指纹',
     verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' }, noExtensions: '该环境未安装扩展。', noActivity: '暂无记录。',
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
@@ -719,7 +705,7 @@ export const zh: Dict = {
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', todo: '待处理', warn: '警告', bad: '问题' },
     storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', extensions: '扩展', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
     notSaved: '尚未保存。浏览器关闭时将自动保存登录状态。', localOnly: '仅保存在使用该环境的电脑上，Folio 不保留副本。',
-    exportCookies: '导出 Cookie', importCookies: '导入 Cookie', json: 'JSON', netscape: 'cookies.txt',
+    exportAs: (format: string) => `导出 ${format}`, importCookies: '导入 Cookie', json: 'JSON', netscape: 'cookies.txt',
     exported: (n: number, path: string) => `已导出 ${n} 个环境到 ${path}`, imported: (n: number) => `已导入 ${n} 个 Cookie`,
     exportFailed: (name: string, why: string) => `${name}：${why}`,
     inUse: '正在其他电脑上使用', away: (device: string, email: string, since: string) => `${since} 起在 ${device}（${email}）上打开。`,
@@ -761,14 +747,12 @@ export const zh: Dict = {
   form: {
     newTitle: '新建环境', editTitle: '编辑环境', name: '名称', defaultName: (n: number) => `环境 ${n}`, nameErr: '请填写名称。',
     basic: '基本信息', engineProxy: '内核与代理', more: '更多设置', preview: '预览',
-    moreHint: '还可设置：指纹细节、扩展、登录状态的保存方式、负责人。',
-    versions: (engine: string, n: number) => `${engine} 在本机有 ${n} 个版本可用。`,
     group: '分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组名称',
     engine: '内核', os: '操作系统',
     proxy: '代理', noProxy: '不使用代理（本机 IP）', pasteProxy: '粘贴新代理…', pastePh: 'socks5://用户名:密码@主机:端口',
     proxyBad: '无法识别该代理地址。',
     proxyOk: (place: string, ms: number) => `响应 ${ms} ms，出口位于 ${place}`, proxyDown: '代理无响应。',
-    tags: '标签', tagsPh: '用逗号分隔', fp: '指纹', regen: '重新生成', fpHint: '时区、语言与地理位置将跟随代理。',
+    tags: '标签', tagsPh: '用逗号分隔', fp: '指纹', regen: '重新生成',
     regenWarn: '网站会将其识别为新设备，已登录的网站可能要求重新验证。', fpErr: '指纹生成失败。',
     firefoxMissing: '需先下载 Firefox 内核才能生成该指纹。', download: '下载', downloading: (pct: number) => `正在下载… ${pct}%`,
     create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理', custom: '手动设置',
@@ -780,8 +764,8 @@ export const zh: Dict = {
     stale: '编辑期间该环境已被他人修改。再次保存将覆盖对方的修改，取消则保留对方的修改。'
   },
   browser: {
-    title: '浏览器', search: '搜索引擎', name: zhSearch, searchHint: '用于在地址栏输入文字搜索。选「无」时，输入的文字按网址打开。',
-    restore: '恢复上次的标签页', restoreHint: '关闭此项或首次打开时，打开所选搜索引擎的首页；未选搜索引擎则打开空白页。',
+    title: '浏览器', search: '搜索引擎', name: zhSearch,
+    restore: '恢复上次的标签页',
     start: '打开时', startTabs: '恢复上次的标签页', startHome: (name: string) => `打开${name}首页`, startBlank: '打开空白页',
     bulk: '浏览器设置…', on: '开启', off: '关闭',
     searchSet: (n: number, name: string) => `已将 ${n} 个环境的搜索引擎设为${name}`,
@@ -798,7 +782,7 @@ export const zh: Dict = {
     done: (n: number) => `已导入 ${n} 个环境`
   },
   proxies: {
-    title: '代理', count: (n: number) => `${n} 个代理`, sub: (n: number, down: number) => `${n} 个代理${down ? ` · ${down} 个无响应` : ''}`,
+    title: '代理', count: (n: number) => `${n} 个代理`,
     search: '搜索代理', searchPh: '搜索名称、主机或城市', add: '添加代理', import: '导入', checkAll: '全部检测',
     cols: { proxy: '代理', exit: '出口', latency: '延迟 · 最近 20 次', uptime: '可用率', profiles: '环境', status: '状态' },
     labels: { latency: '延迟', uptime: '可用率', profiles: '环境' }, backupOf: (n: string) => `备用 ${n}`, noExit: '出口未知',
@@ -817,30 +801,28 @@ export const zh: Dict = {
     badLines: '以下行无法识别：', line: (n: number) => `第 ${n} 行`
   },
   trash: {
-    title: '回收站', sub: (n: number) => `${n} 个环境 · 不占套餐额度`, empty: '回收站为空。',
+    title: '回收站', empty: '回收站为空。',
     restore: '恢复', restoreAll: '全部恢复', purge: '彻底删除', purgeAll: '清空回收站',
-    note: '恢复后环境回到原分组，登录状态与指纹保持不变；彻底删除后无法找回。',
     cols: { profile: '环境', fingerprint: '指纹', signins: '登录状态', deleted: '删除时间', by: '删除人' },
     sites: (n: number) => (n ? `${n} 个站点` : '无'), byAt: (who: string, when: string) => `${who} 删除于 ${when}`,
     confirmPurge: (n: number) => `彻底删除 ${n} 个环境？`, confirmNote: '其指纹与设置将无法恢复。',
     restored: (n: number) => `已恢复 ${n} 个环境`, purged: (n: number) => `已彻底删除 ${n} 个环境`
   },
   engines: {
-    title: '内核', sub: '每个环境固定使用创建时的内核版本，升级前网站看到的浏览器保持不变。',
+    title: '内核',
     recommended: '推荐', installed: '已下载', download: (size: string) => `下载 · ${size}`, failed: '下载失败。',
     usedBy: (n: number) => (n ? `本工作区 ${n} 个环境在用` : '本工作区暂无环境使用'), everywhere: (n: number) => `全平台 ${n} 个环境在用`,
     remove: '删除本机文件', removeBusy: '请先关闭使用该版本的环境。', removed: (v: string) => `已从本机删除 ${v}`,
     retired: '已从目录下架', none: '该内核暂无适用于本机系统的版本。',
     outdated: (n: number, kernel: string) => `${n} 个环境使用旧版本 ${kernel}`, upgrade: (v: string) => `升级到 ${v}`,
     upgradeNote: (v: string) => `升级到推荐的 ${v} 后，网站看到的指纹保持不变。`,
-    desc: { chromium: '基于 fingerprint-chromium · 兼容性最好', firefox: '基于 Camoufox · 注重隐私' } as Record<string, string>,
     recommendedVersion: '推荐版本', released: (date: string) => `发布于 ${date}`, downloaded: (size: string) => (size ? `已下载 · ${size}` : '已下载'),
     downloadingOf: (size: string) => `正在下载 · ${size}`, paused: (pct: number) => `已暂停 · ${pct}%`, pause: '暂停', resume: '继续',
     disk: (size: string) => `本机内核共占用 ${size}`, cleanup: '清理未使用的版本', nothingToClean: '已下载的版本均在使用中或为推荐版本。',
     cleanupTitle: (n: number) => `清理 ${n} 个未使用的版本？`, cleanupNote: (size: string) => `可释放 ${size}，环境需要时将重新下载。`,
     cleaned: (n: number) => `已从本机删除 ${n} 个版本`,
-    settings: '下载设置', autoDownload: '自动下载推荐版本', autoDownloadHint: '有新的推荐版本时在后台下载，打开环境时无需等待。',
-    idleOnly: '只在空闲时下载', idleOnlyHint: '有环境运行时暂停后台下载，不占用代理带宽。',
+    settings: '下载设置', autoDownload: '自动下载推荐版本',
+    idleOnly: '只在空闲时下载',
     history: '更新记录', historyAdded: (v: string) => `${v} 上架`, historyRecommended: (v: string) => `${v} 设为推荐`, historyNone: '暂无记录。',
     upgraded: (n: number, v: string) => `已将 ${n} 个环境升级到 ${v}`,
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple 芯片', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
@@ -856,14 +838,16 @@ export const zh: Dict = {
     }
   },
   team: {
-    title: '团队', sub: (n: number, seats: number | null) => `${n} 人${seats === null ? '' : ` · 套餐含 ${seats} 个席位`}`,
-    invite: '邀请', you: '我', remove: '移除', leave: '退出团队', removeX: (e: string) => `移除 ${e}`,
-    cols: { person: '成员', role: '角色', departments: '部门', profiles: '环境', recent: '最近活动', joined: '加入时间' },
-    search: '搜索成员', meTag: '（我）', moreX: (e: string) => `${e} 的更多操作`, makeRole: (r: string) => `改为${r}`,
+    title: '团队',
+    invite: '邀请成员', you: '我', remove: '移出团队', leave: '退出团队',
+    tabs: { members: '团队成员', depts: '部门' },
+    cols: { person: '成员', role: '角色', scope: '权限范围', status: '状态' },
+    scopeAll: '全部环境', scopeOwn: '分配给自己的环境', joined: '已加入', invited: '待接受',
+    search: '搜索成员', meTag: '（我）', moreX: (e: string) => `${e} 的更多操作`, roleOf: (e: string) => `${e} 的角色`,
     deptSum: (people: number, n: number) => `${people} 人 · ${n} 个环境`,
     copiedNew: '已复制新的邀请链接，原链接已失效。',
     roleHelp: { admin: '可查看和管理全部环境、代理与成员。', member: '仅可查看和打开分配给自己的环境；可新建和编辑，不可删除。' },
-    pending: '待接受的邀请', invitedBy: (who: string) => `${who} 邀请`, expires: (date: string) => `${date} 过期`,
+    expires: (date: string) => `${date} 过期`,
     copyLink: '复制链接', copied: '邀请链接已复制', resend: '重新发送', withdraw: '撤回', withdrawn: '邀请已撤回',
     inviteTitle: '邀请加入团队', email: '邮箱', emailErr: '请填写邮箱地址。', role: '角色', departments: '部门',
     send: '发送邀请', sent: (e: string) => `邀请已发送到 ${e}。`, notSent: '邮件发送失败，请复制链接发送给对方。',
@@ -873,12 +857,11 @@ export const zh: Dict = {
     leaveTitle: (ws: string) => `退出「${ws}」？`, leaveLead: '您在此团队的环境将转交给所有者，此后将无法访问该团队。', leaveDo: '退出',
     removedYou: (ws: string) => `您已不在「${ws}」中，其环境已在本机关闭并删除。`,
     depts: '部门', deptAdd: '新建部门', deptName: '部门名称',
-    deptHelp: '成员除自己的环境外，还可查看所在部门的环境。', deptCompany: '部门功能属于公司版。',
     deptMembers: '成员', deptDelete: '删除', deptDeleteConfirm: (n: string) => `删除「${n}」？其环境将保留并变为无部门。`,
     invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请您成为${role}`
   },
   activity: {
-    title: '操作日志', sub: (days: number) => `当前套餐保留 ${days} 天`, person: '成员', everyone: '所有人', kind: '显示',
+    title: '操作日志', person: '成员', everyone: '所有人', kind: '显示',
     search: '搜索环境、成员或操作', cols: { time: '时间', person: '成员', what: '操作', kind: '类别', device: '电脑' },
     kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
     export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '暂无记录。', someone: '有人', recent: '最近活动',
@@ -923,7 +906,7 @@ export const zh: Dict = {
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个含登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组${r.extensions ? `、${r.extensions} 个扩展` : ''}`
   },
   flows: {
-    title: '流程', sub: (n: number) => `${n} 个流程 · 团队共享`, new: '新建流程',
+    title: '流程', new: '新建流程',
     template: '登录检查模板', templateName: '登录检查',
     cols: { name: '流程', steps: '步骤', by: '创建人', updated: '修改时间' },
     empty: '暂无流程。流程由一系列步骤组成（打开网页、点击、输入、提取等），可在一个或多个环境中运行。',
@@ -982,14 +965,14 @@ export const zh: Dict = {
     }
   },
   tasks: {
-    title: '定时任务', sub: (n: number) => `${n} 个任务`, new: '新建任务', needFlow: '请先在「流程」页创建流程。',
+    title: '定时任务', new: '新建任务', needFlow: '请先在「流程」页创建流程。',
     empty: '暂无任务。任务将流程分批运行在一组环境上，并保留每次运行的结果。',
     cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', on: '运行在', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
     views: { label: '视图', list: '列表', calendar: '日历' },
-    here: '本机', starter: '启动者的电脑', made: (flow: string, who: string) => `流程「${flow}」· ${who} 创建`, n: (n: number) => `${n} 个`,
+    here: '本机', starter: '启动者的电脑', n: (n: number) => `${n} 个`,
     latest: (task: string) => `最近一次运行 · ${task}`, took: (s: number) => (s < 60 ? `用时 ${s} 秒` : `用时 ${Math.floor(s / 60)} 分 ${s % 60} 秒`),
     calendar: {
-      prev: '上一周', next: '下一周', thisWeek: '本周', local: '按本机时间', none: '本周没有定时运行。',
+      prev: '上一周', next: '下一周', thisWeek: '本周', none: '本周没有定时运行。',
       range: (a: Date, b: Date) => `${a.getFullYear()}年${a.getMonth() + 1}月${a.getDate()}日 – ${a.getMonth() === b.getMonth() ? '' : `${b.getMonth() + 1}月`}${b.getDate()}日`,
       at: (time: string, n: number) => `${time} · ${n} 个`
     },
@@ -1030,24 +1013,22 @@ export const zh: Dict = {
     }
   },
   apiPage: {
-    title: 'API 与脚本', sub: '本机脚本可通过 API 打开环境，并由 Playwright、Puppeteer 或 Selenium 接管。', reference: 'API 参考',
+    title: 'API 与脚本', reference: 'API 参考',
     server: '本机 API', enable: '开启', listening: '正在监听', off: '已关闭。开启后本机脚本方可调用。', copy: '复制', copied: '已复制',
     errors: { port_in_use: '该端口已被其他程序占用，请更换端口。', listen_failed: '该端口启动失败，请更换端口。' },
     port: '端口', limit: '每分钟最多 60 次请求（含打开、关闭与查询），脚本直接发送给浏览器的指令不计入；公司版不限速。',
     unthrottled: '公司版：请求不限速。',
     security: '调试地址没有密码保护：通过 API 打开的环境运行期间，本机任何程序均可控制该环境。手动打开的环境不开启调试地址。',
-    tokens: '令牌', tokensHelp: '脚本需在请求头中携带 Authorization: Bearer <令牌>。令牌归属于当前账号与团队，仅在本机有效，权限与当前账号一致。',
+    tokens: '令牌',
     newToken: '请立即复制该令牌，关闭后将不再显示。', done: '完成', tokenName: '名称，例如订单同步', createToken: '生成令牌', defaultName: '令牌',
     made: (date: string) => `${date} 生成`, used: (date: string) => `最后使用于 ${date}`, unused: '尚未使用', revoke: '作废', revokeX: (n: string) => `作废 ${n}`, otherWorkspace: '另一个团队',
     examples: '示例', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox 环境' },
-    chromiumNote: 'Chromium 环境返回 CDP 地址，支持 Playwright、Puppeteer、Selenium（需配合 Chromium 150 对应版本的 chromedriver）及其他支持 CDP 的工具接管。',
-    firefoxNote: 'Firefox 环境返回 WebDriver BiDi 地址，支持 Puppeteer 及其他支持 WebDriver BiDi 的工具接管。Playwright 与 Selenium 目前无法接管已运行的 Firefox。脚本控制期间，定时任务将跳过该环境。',
-    copyAddress: '复制地址', limitTitle: '请求限额', callsLead: '实时 · 最近 50 次', limited: '超出限额',
-    prefilled: '刚生成的令牌已填入，复制即可运行。', placeholder: '请将 <token> 替换为您的令牌；令牌仅在生成时显示一次。',
+    copyAddress: '复制地址', limited: '超出限额',
+    placeholder: '请将 <token> 替换为您的令牌；令牌仅在生成时显示一次。',
     calls: '最近调用', noCalls: '暂无脚本调用，调用发生时将在此实时显示。', noToken: '令牌无效'
   },
   extensions: {
-    title: '扩展', sub: (n: number) => `${n} 个扩展 · Chromium 和 Firefox 分开管理`, add: '添加扩展',
+    title: '扩展', add: '添加扩展',
     memberNote: '扩展库由所有者和管理员维护。成员可在环境编辑或批量操作中，为自己的环境安装库中的扩展。',
     empty: '暂无扩展。可从文件或商店添加，再安装到环境中。',
     cols: { name: '扩展', engine: '内核', version: '版本', signature: '签名', profiles: '环境', updated: '修改时间' },
@@ -1068,13 +1049,12 @@ export const zh: Dict = {
     failedCheck: (profile: string, names: string[]) => `${profile} 已打开，但 ${names.join('、')} 未通过完整性校验，未安装。`
   },
   windowSync: {
-    title: '窗口同步', sub: '在主控窗口中操作，所选窗口同步执行。', on: '窗口同步已开启。', onBadge: '开启',
+    title: '窗口同步', on: '窗口同步已开启。', onBadge: '开启',
     summary: (leader: string, n: number) => `${leader} 主控，${n} 个窗口跟随。`,
     leaderTag: '主控', followerTag: '同步', makeLeader: '设为主控', stop: '停止同步', current: '同步中',
     address: '所有窗口一起打开的网址', addressPh: '在所有窗口中打开网址', open: '打开',
-    pick: '选择窗口', pickHelp: '主控窗口中的点击、输入、按键、滚动、网址与标签页操作，将在其他窗口同步执行。未打开的环境将先行打开。',
+    pick: '选择窗口',
     running: '已打开', start: (n: number) => (n < 2 ? '至少选择两个' : `同步 ${n} 个窗口`), starting: '正在启动…',
-    limits: '不同步：文件选择对话框、拖放操作、浏览器自身菜单。页面状态不同的窗口（如未登录）将在各自页面上执行。',
     ops: { label: '同步', click: '点击', typing: '输入', scroll: '滚动' },
     delay: '随机延迟', seconds: '秒', delayMin: '最短延迟（秒）', delayMax: '最长延迟（秒）',
     synced: (n: number, bad: number) => `已同步 ${n} 个窗口${bad ? ` · ${bad} 个出错` : ''}`,
@@ -1084,7 +1064,7 @@ export const zh: Dict = {
       coords: (label: string | null) => `${label ? `未找到「${label}」` : '未找到主控点击的元素'}，已在窗口相同位置点击。`,
       failed: () => '部分操作未能同步执行，请检查该窗口。'
     },
-    log: '最近同步', logLead: (leader: string, n: number) => `主控 ${leader} → ${n} 个窗口`, logEmpty: '主控窗口中的操作将记录在此。',
+    log: '最近同步', logEmpty: '主控窗口中的操作将记录在此。',
     did: {
       click: (label: string | null) => (label ? `点击「${label}」` : '点击'), text: (t: string) => `输入「${t}」`, key: (k: string) => `按键 ${k}`,
       scroll: (px: number) => `滚动至 ${px} 像素`, goto: (url: string) => `打开 ${url}`,

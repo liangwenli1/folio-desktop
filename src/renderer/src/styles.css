@@ -256,7 +256,6 @@ html[data-platform="win32"] .top{padding-right:150px}
 .grp-item .nav-i{padding-right:30px}
 .grp-item .grp-more{position:absolute;right:3px;opacity:0}
 .grp-item:hover .grp-more,.grp-item .grp-more:focus-visible,.grp-item .grp-more[aria-expanded="true"]{opacity:1}
-.grp-item:hover .cnt{visibility:hidden}
 .grp-form input{width:100%;height:30px;padding:0 10px;border:1px solid var(--ink-3);border-radius:var(--r);background:var(--card);font-size:13px}
 .grp-confirm{position:absolute;z-index:11;left:0;right:0;top:calc(100% + 4px);display:grid;gap:8px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);font-size:13px}
 .grp-confirm div{display:flex;justify-content:flex-end;gap:6px}
@@ -340,18 +339,19 @@ html[data-platform="win32"] .top{padding-right:150px}
 .kc{display:grid;align-content:start;gap:2px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow);text-align:left;color:var(--ink)}
 button.kc{cursor:pointer}
 button.kc:hover{border-color:var(--line-2)}
+.kc-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .kc small{font-size:12.5px;color:var(--ink-2)}
 .kc b{font:600 26px/1.2 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .kc b small{margin-left:4px;font:500 12px var(--f-body);letter-spacing:0;color:var(--ink-3)}
 .kic{display:grid;place-items:center;width:28px;height:28px;margin-bottom:6px;border-radius:9px;background:var(--seg);color:var(--ink-2)}
+.kc-h .kic{margin:0}
 .kic .i{width:14px;height:14px}
 .kic.good{background:var(--good-soft);color:var(--good)} .kic.bad{background:var(--bad-soft);color:var(--bad)} .kic.warn{background:var(--warn-soft);color:var(--warn)}
 .map-card{position:relative;display:grid;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
 .map-card .exit-map{display:grid;align-items:center}
 .map-card .exit-map svg{max-height:104px}
-.map-empty{display:grid;justify-items:start;align-content:center;gap:4px;padding:4px 6px}
-.map-empty b{font-size:13.5px;font-weight:600}
-.map-empty .hint{font-size:12.5px}
+/* before any check: the map without pins, and the button that fills it */
+.map-empty{position:absolute;inset:0;display:grid;place-items:center}
 @media (max-width:1180px){ .cards{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto} .map-card{display:none} }
 
 /* the profile list: rows or cards */
@@ -360,12 +360,9 @@ button.kc:hover{border-color:var(--line-2)}
 .views button{display:grid;place-items:center;width:28px;height:26px;border:0;border-radius:7px;background:transparent;color:var(--ink-3);cursor:pointer}
 .views button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .views .i{width:14px;height:14px}
-.exts{display:inline-flex;align-items:center}
 .ext-ic{display:grid;place-items:center;width:22px;height:22px;flex:none;border-radius:7px;background:var(--card);border:1px solid var(--line);box-shadow:0 2px 4px -2px rgba(29,28,43,.25);overflow:hidden;color:var(--ink-3)}
 .ext-ic img{width:15px;height:15px;object-fit:contain}
 .ext-ic .i{width:12px;height:12px}
-.exts .ext-ic + .ext-ic{margin-left:-5px}
-.exts em{margin-left:5px;padding:0 6px;height:20px;line-height:20px;border-radius:99px;background:var(--seg);font:600 11px var(--f-data);font-style:normal;color:var(--ink-2)}
 @media (max-width:1280px){ .tw .lastc{display:none} }
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:0 var(--gx) 18px;padding:0;list-style:none}
 .main:has(.bulk) .pgrid{margin-bottom:76px}
@@ -376,9 +373,6 @@ button.kc:hover{border-color:var(--line-2)}
 .pc-top > span:nth-child(2){display:grid;flex:1;min-width:0}
 .pc-top .rowlink{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pc-top input{margin-top:2px}
-.pc-city{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:var(--r);background:var(--panel)}
-.pc-city b{font:var(--w-display) 18px/1.2 var(--f-display);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pc-city span{font-size:12px;color:var(--ink-2);white-space:nowrap}
 .pc-fp{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
 .pc-fp .i{width:13px;height:13px}
 .pc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -446,7 +440,6 @@ button.kc:hover{border-color:var(--line-2)}
 .tag.first{margin-left:0;margin-right:6px}
 .cc{font-family:var(--f-data);font-size:12px;font-weight:500;letter-spacing:.04em;padding:0 5px;border:1px solid var(--line-2);border-radius:5px;color:var(--ink-2)}
 .flag.warn{color:var(--warn-ink);font-weight:500}
-.who{display:flex;align-items:center;gap:8px;white-space:nowrap;color:var(--ink-2);font-size:13px}
 .actin{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:4px 8px}
 /* status labels (S1-2): a white raised capsule, an icon that says what is going on, dark text. A state's colour
    only tints its icon and the capsule's shadow. */
@@ -485,6 +478,8 @@ button.kc:hover{border-color:var(--line-2)}
 .flag-badge .globe{display:grid;place-items:center;color:var(--ink-3)}
 .flag-badge .eng{position:absolute;right:-4px;bottom:-4px;display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .flag-badge .eng img{width:12px;height:12px}
+.flag-badge.xs{width:18px;height:18px;box-shadow:0 0 0 1px var(--line)}
+.flag-badge.xs .globe .i{width:12px;height:12px}
 .flag-badge.lg{width:44px;height:44px}
 .flag-badge.lg .eng{width:21px;height:21px}
 .flag-badge.lg .eng img{width:14px;height:14px}
@@ -515,9 +510,7 @@ tr.empty b{color:var(--ink)}
 .onboard{display:grid;gap:12px;margin:0 var(--gx) 14px;padding:14px 18px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);flex:none}
 .onboard h2{font-family:var(--f-display);font-weight:var(--w-display);font-size:19px;line-height:1.2;letter-spacing:-.015em}
 .onboard ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0;padding:0;list-style:none}
-.onboard li{display:grid;grid-template-columns:26px minmax(0,1fr);align-content:start;gap:4px 10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
-.onboard li .btn{grid-column:2;justify-self:start;margin-top:6px}
-.onboard li p{font-size:13px}
+.onboard li{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
 .onboard .num{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line-2);font-family:var(--f-data);font-size:12px;color:var(--ink-2)}
 .onboard .num .i{width:13px;height:13px;stroke-width:2.4}
 .onboard li.done .num{background:var(--good);border-color:var(--good);color:#fff}
@@ -525,11 +518,8 @@ tr.empty b{color:var(--ink)}
 .onboard li.next .num{border-color:var(--accent);color:var(--accent)}
 
 /* the picked profile's details: a drawer from the right */
-@keyframes slide-in{from{transform:translateX(24px);opacity:0}}
-.detail{position:fixed;z-index:30;top:var(--tb);right:0;bottom:0;width:min(440px,100%);display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto;padding:14px 18px 28px;background:var(--bg);box-shadow:-20px 0 40px -20px rgba(29,28,43,.35);animation:slide-in .2s ease-out}
-.drawer-scrim{background:color-mix(in srgb,var(--overlay) 55%,transparent);top:var(--tb)}
-.d-top{display:flex;align-items:center;gap:4px;min-height:28px}
-.d-top .mono{margin-right:auto;font-size:12px;color:var(--ink-3)}
+.detail{position:fixed;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100% - 48px));max-height:calc(100% - 64px);display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding:10px 22px 24px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-pop)}
+.d-top{display:flex;align-items:center;justify-content:flex-end;gap:4px;min-height:28px}
 /* the profile's identity card, in the brand gradient */
 .idcard{position:relative;flex:none;display:grid;gap:10px;padding:16px 18px;border-radius:16px;background:var(--grad);color:#fff;box-shadow:0 16px 30px -18px rgba(156,45,72,.75)}
 .idc-top{display:flex;align-items:center;gap:12px;min-width:0}
@@ -616,8 +606,6 @@ body:has(.tray) .bulk{left:calc(50% + 114px - 188px);max-width:calc(100% - 228px
 .tray.folded .tray-h{border-bottom:0}
 
 /* the Trash: a note above the list, facts on each card, a danger button with an outline */
-.note-line{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:8px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:13px;color:var(--ink-2)}
-.note-line .i{width:13px;height:13px;color:var(--ink-3)}
 .btn-danger.outline{border-color:color-mix(in srgb,var(--bad) 40%,transparent)}
 .tr-facts{display:grid;gap:6px;margin:0;padding:10px 12px;list-style:none;border-radius:var(--r);background:var(--panel);font-size:12.5px;color:var(--ink-2)}
 .tr-facts li{display:flex;align-items:center;gap:7px}
@@ -746,16 +734,6 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .role{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:99px;background:var(--seg);font-size:12px;font-weight:600;color:var(--ink-2)}
 .role .i{width:12px;height:12px}
 .role.owner{background:var(--accent-soft);color:var(--accent-ink)} .role.admin{background:var(--info-soft);color:var(--info)}
-td.recent{max-width:340px;font-size:13px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-td.recent time{margin-right:6px;font-size:12px;color:var(--ink-3)}
-.invites{display:grid;gap:4px;margin:0 var(--gx) 24px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow)}
-.invites ul{display:grid;margin:0;padding:0;list-style:none}
-.invites li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
-.invites li:first-child{border-top:0}
-.invites li > span:nth-child(2){display:grid;min-width:0}
-.invites b{font-weight:600}
-.invites small{font-size:12.5px;color:var(--ink-2)}
-.invites .kic{margin:0}
 .tw.flow{flex:none;min-height:0;overflow:visible;margin-bottom:14px}
 
 /* activity: a table with a row per entry and a band per day */
@@ -765,6 +743,7 @@ td.recent time{margin-right:6px;font-size:12px;color:var(--ink-3)}
 .who-cell,.kind-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
 .who-cell b{font-weight:600}
 .pav.sm{width:22px;height:22px;font-size:11px;background:var(--accent);box-shadow:none}
+.pav.xs{width:24px;height:24px;font-size:11px;box-shadow:none}
 .kic.sm{width:24px;height:24px;margin:0;border-radius:8px}
 .kic.sm .i{width:13px;height:13px}
 .older{align-self:flex-start;margin:0 var(--gx) 24px}
@@ -1221,3 +1200,14 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none !important;transition:none !important}
 }
+
+/* profiles list: the status as a coloured dot and a word, where the proxy exits, the group picker */
+.dot-st{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+.dot-st::before{content:'';width:7px;height:7px;flex:none;border-radius:50%;background:var(--ink-3)}
+.dot-st.run{color:var(--good-ink)} .dot-st.run::before{background:var(--good)}
+.dot-st.boot{color:var(--warn-ink)} .dot-st.boot::before{background:var(--warn)}
+.dot-st.away{color:var(--info)} .dot-st.away::before{background:var(--info)}
+.dot-st.bad{color:var(--bad)} .dot-st.bad::before{background:var(--bad)}
+.px-exit{display:flex;align-items:center;gap:7px}
+.grp-pick{flex:none;min-width:150px}
+.pc-px{display:grid;gap:2px}

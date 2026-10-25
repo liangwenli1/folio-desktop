@@ -10,7 +10,7 @@ const cookies = JSON.stringify([
   { domain: '.shop.example', expirationDate: 1893456000, hostOnly: false, httpOnly: true, name: 'sid', path: '/', sameSite: 'lax', secure: true, session: false, value: 'abc' },
   { domain: 'shop.example', hostOnly: true, httpOnly: false, name: 'pref', path: '/', sameSite: 'strict', secure: false, session: true, value: 'dark' }
 ]);
-const detail = (win: Page) => win.getByRole('complementary', { name: 'Profile' });
+const detail = (win: Page) => win.getByRole('dialog', { name: 'Profile', exact: true });
 // Saving goes where the test says, instead of asking.
 const saveTo = (app: ElectronApplication, path: string) => app.evaluate(({ dialog }, path) => {
   dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;

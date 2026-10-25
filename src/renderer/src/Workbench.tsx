@@ -159,17 +159,17 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         </div>
 
         <nav className="nav" aria-label="Main">
-          <NavItem icon="profiles" label={d.nav.profiles} count={used} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
-          {manager && <NavItem icon="proxies" label={d.nav.proxies} count={data.proxies.length} active={shown === 'proxies'} onClick={() => go('proxies')} />}
-          <NavItem icon="extensions" label={d.nav.extensions} count={data.extensions.length || undefined} active={shown === 'extensions'} onClick={() => go('extensions')} />
-          <NavItem icon="team" label={d.nav.team} count={data.members.length || undefined} active={shown === 'team'} onClick={() => go('team')} />
+          <NavItem icon="profiles" label={d.nav.profiles} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
+          {manager && <NavItem icon="proxies" label={d.nav.proxies} active={shown === 'proxies'} onClick={() => go('proxies')} />}
+          <NavItem icon="extensions" label={d.nav.extensions} active={shown === 'extensions'} onClick={() => go('extensions')} />
+          <NavItem icon="team" label={d.nav.team} active={shown === 'team'} onClick={() => go('team')} />
           <NavItem icon="sync" label={d.nav.sync} badge={data.sync ? d.windowSync.onBadge : undefined} active={shown === 'sync'} onClick={() => go('sync')} />
-          <NavItem icon="flows" label={d.nav.flows} count={data.flows.length || undefined} active={shown === 'flows'} onClick={() => go('flows')} />
-          <NavItem icon="tasks" label={d.nav.tasks} count={data.active.length || data.tasks.length || undefined} active={shown === 'tasks'} onClick={() => go('tasks')} />
+          <NavItem icon="flows" label={d.nav.flows} active={shown === 'flows'} onClick={() => go('flows')} />
+          <NavItem icon="tasks" label={d.nav.tasks} active={shown === 'tasks'} onClick={() => go('tasks')} />
           <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
           <NavItem icon="engines" label={d.nav.engines} active={shown === 'engines'} onClick={() => go('engines')} />
           <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
-          {manager && <NavItem icon="trash" label={d.nav.trash} count={data.trash?.length || undefined} active={shown === 'trash'} onClick={() => go('trash')} />}
+          {manager && <NavItem icon="trash" label={d.nav.trash} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
 
         <Groups d={d} data={data} manager={manager} group={shown === 'profiles' ? group : null} onPick={g => go('profiles', g)} />
@@ -266,7 +266,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'extensions' && <ExtensionsPage d={d} ws={ws} data={data} />}
       {shown === 'sync' && <WindowSyncPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
-      {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} focus={focus} />}
+      {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} data={data} focus={focus} />}
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'engines' && <EnginesPage d={d} lang={lang} data={data} admin={me.admin} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
@@ -287,10 +287,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   );
 }
 
-function NavItem({ icon, label, count, badge, active, onClick }: { icon: IconName; label: string; count?: number; badge?: string; active: boolean; onClick(): void }){
+function NavItem({ icon, label, badge, active, onClick }: { icon: IconName; label: string; badge?: string; active: boolean; onClick(): void }){
   return (
     <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
-      <span className="ni"><Icon name={icon} /></span>{label}{count !== undefined && <span className="cnt">{count}</span>}{badge && <span className="cnt on">{badge}</span>}
+      <span className="ni"><Icon name={icon} /></span>{label}{badge && <span className="cnt on">{badge}</span>}
     </button>
   );
 }
@@ -367,7 +367,7 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
         {data.groups.map(g => renaming === g.id ? <div key={g.id}>{form}</div> : (
           <div key={g.id} className="grp-item" ref={menu === g.id ? menuRef : undefined}>
             <button type="button" className={`nav-i${group === g.id ? ' active' : ''}`} aria-current={group === g.id ? 'true' : undefined} onClick={() => onPick(g.id)}>
-              <span className="sq" aria-hidden="true" />{g.name}<span className="cnt">{g.profiles}</span>
+              <span className="sq" aria-hidden="true" />{g.name}
             </button>
             {manager && <button type="button" className="grp-more" aria-label={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>}
             {menu === g.id && (
@@ -387,7 +387,7 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
         ))}
         {data.groups.length > 0 && ungrouped > 0 && (
           <button type="button" className={`nav-i${group === 'none' ? ' active' : ''}`} onClick={() => onPick('none')}>
-            <span className="sq" aria-hidden="true" />{G.none}<span className="cnt">{ungrouped}</span>
+            <span className="sq" aria-hidden="true" />{G.none}
           </button>
         )}
         {adding && form}

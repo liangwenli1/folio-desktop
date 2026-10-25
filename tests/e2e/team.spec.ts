@@ -54,7 +54,7 @@ test('a member removed from the team loses the profile they have open, and its c
   // Removed: the browser closes, the folder goes, the workspace disappears from their workbench.
   await nav(winO, /^Team/).click();
   await winO.getByRole('button', { name: `More for ${member.email}` }).click();
-  await winO.getByRole('menuitem', { name: `Remove ${member.email}` }).click();
+  await winO.getByRole('menuitem', { name: 'Remove from team' }).click();
   await winO.getByRole('dialog', { name: `Remove ${member.email}` }).getByRole('button', { name: 'Remove from team' }).click();
   await expect.poll(async () => (await lastStatus(winM, p.id))?.state, { timeout: 15_000 }).toBe('stopped');
   await expect(winM.getByRole('status').filter({ hasText: 'You’re no longer in Larkspur Trading' })).toBeVisible();
@@ -92,7 +92,7 @@ test('members work with their own profiles only, and can leave', async () => {
   await winM.getByRole('checkbox', { name: 'Select Member-1' }).check();
   await expect(winM.getByTestId('bulk').getByRole('button', { name: 'Delete' })).toHaveCount(0);
   await winM.getByRole('button', { name: 'Member-1', exact: true }).click();
-  await expect(winM.getByTestId('assigned')).toHaveText(`Assigned to ${member.email}`);
+  await expect(winM.getByTestId('assigned')).toHaveText(member.email);
   await winM.keyboard.press('Escape');
 
   // The owner sees both, with who each belongs to.

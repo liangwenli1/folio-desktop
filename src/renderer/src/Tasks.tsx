@@ -22,7 +22,7 @@ const when = (iso: string | number, lang: Lang) => new Intl.DateTimeFormat(lang 
 // The run to show, when a notification about it is clicked.
 export interface Focus { taskId: string; runId: string }
 
-export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: Lang; ws: Workspace; meId: string; data: WorkspaceData; focus: Focus | null }){
+export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; focus: Focus | null }){
   const T = d.tasks;
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(focus?.taskId ?? null);
@@ -33,7 +33,6 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
   const [latest, setLatest] = useState<string | null>(null);
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const flowName = new Map(data.flows.map(f => [f.id, f.name]));
-  const email = new Map(data.members.map(m => [m.userId, m.email]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const task = open ? data.tasks.find(t => t.id === open) : undefined;
   const scheduledHere = data.tasks.some(t => t.schedule && t.runner?.self);
@@ -78,7 +77,7 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.sub(data.tasks.length)}</p></div>
+          <div className="ttl"><h1>{T.title}</h1></div>
           <span className="sp" />
           {!data.flows.length && <span className="hint">{T.needFlow}</span>}
           <ViewSwitch label={T.views.label} value={view} onChange={setView} options={[['list', 'list', T.views.list], ['calendar', 'calendar', T.views.calendar]]} />
@@ -104,7 +103,6 @@ export function TasksPage({ d, lang, ws, meId, data, focus }: { d: Dict; lang: L
                     <tr key={t.id} data-task={t.name} className={t.id === shown?.id ? 'cur' : ''}>
                       <td><span className="task-cell"><span className="task-ic" aria-hidden="true"><Icon name="tasks" /></span><span>
                         <button type="button" className="rowlink" onClick={() => setOpen(t.id)}>{t.name}</button>
-                        <span className="l2">{T.made(flowName.get(t.flowId) ?? '—', t.createdBy === meId ? d.flows.you : (t.createdBy && email.get(t.createdBy)) || '—')}</span>
                       </span></span></td>
                       <td><span className="pflags"><span className="flags">{t.profileIds.slice(0, 3).map(flag)}</span>{t.profileIds.length === t.profiles ? t.profiles : `${t.profileIds.length} / ${t.profiles}`}</span></td>
                       <td><ScheduleCell d={d} lang={lang} task={t} /></td>
@@ -276,7 +274,6 @@ function TaskCalendar({ d, lang, tasks, onOpen }: { d: Dict; lang: Lang; tasks: 
           <b>{range}</b>
           <button type="button" className="icon-btn sm bare" aria-label={C.next} title={C.next} onClick={() => step(1)}><Icon name="chevR" /></button>
           {monday !== weekOf(now) && <button type="button" className="btn btn-xs btn-text" onClick={() => setMonday(weekOf(Date.now()))}>{C.thisWeek}</button>}
-          <span className="sp" /><span className="hint">{C.local}</span>
         </header>
         <div className="cal-grid">
           <div className="cal-times" style={{ height: (to - from) * HOUR }}>

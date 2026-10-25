@@ -82,7 +82,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     const row = winA.locator('tr[data-id]', { hasText: 'Shop' });
     await expect(row).toContainText('In use on');
     await row.getByRole('button', { name: 'Shop', exact: true }).click();
-    const detail = winA.getByRole('complementary', { name: 'Profile' });
+    const detail = winA.getByRole('dialog', { name: 'Profile', exact: true });
     await expect(detail.getByTestId('away')).toContainText(acct.email);
     await detail.getByRole('button', { name: 'Take over', exact: true }).click();
     await detail.getByRole('button', { name: 'Take over and open' }).click();

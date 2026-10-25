@@ -158,7 +158,6 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
 
   return (
     <Modal wide title={edit ? f.editTitle : f.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      {!edit && <p className="hint">{f.moreHint}</p>}
       <span className="sp" />
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
       <button className="btn btn-primary" type="submit" form="profile-form" disabled={busy || fp.state !== 'ready'}>{edit ? f.save : f.create}</button>
@@ -197,7 +196,6 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                     <button key={k} type="button" aria-pressed={kernel === k} disabled={edit && kernel !== k} onClick={() => { setKernel(k); setKernelVersion(''); }}><EngineLogo kernel={k} />{ENGINES[k]}</button>
                   ))}
                 </div>
-                <p className="hint">{f.versions(ENGINES[kernel], versions.length)}</p>
               </div>
               <SelectField label={f.engineVersion} value={edit ? kernelVersion : target} onChange={setKernelVersion} placeholder="—"
                 options={[...(edit && !versions.some(k => k.version === kernelVersion) ? [{ value: kernelVersion, label: kernelVersion }] : []),
@@ -234,11 +232,10 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
           <section className="pf-sec">
             <h3><span className="n">3</span>{d.browser.title}</h3>
             <div className="row2">
-              <SelectField label={d.browser.search} value={searchEngine} onChange={v => setSearchEngine(v as SearchEngine)} hint={d.browser.searchHint}
+              <SelectField label={d.browser.search} value={searchEngine} onChange={v => setSearchEngine(v as SearchEngine)}
                 options={SEARCH_IDS.map(id => ({ value: id, label: d.browser.name(id), ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) }))} />
               <div className="field pf-switch">
                 <Switch label={d.browser.restore} checked={restoreTabs} onChange={setRestoreTabs} />
-                <p className="hint">{d.browser.restoreHint}</p>
               </div>
             </div>
           </section>
@@ -327,7 +324,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 {facts.gpu && tile('monitor', d.detail.fields.gpu, facts.gpu, true)}
               </div>
             )}
-            <p className="hint">{regenerated ? f.regenWarn : f.fpHint}</p>
+            {regenerated && <p className="hint">{f.regenWarn}</p>}
           </section>
         </aside>
       </form>

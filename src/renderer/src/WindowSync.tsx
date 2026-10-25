@@ -53,7 +53,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{W.title}</h1><p className="sub">{s ? W.summary(name.get(s.leader) ?? '', s.members.length - 1) : W.sub}</p></div>
+          <div className="ttl"><h1>{W.title}</h1></div>
           {s && ws.subscription.plan !== 'free' && <>
             <span className="sp" />
             <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void tile()}><Icon name="grid" />{busy ? W.tiling : W.tile}</button>
@@ -88,12 +88,10 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
             </form>
             <Windows d={d} sync={s} profiles={profiles} country={country} />
             <Log d={d} lang={lang} sync={s} name={id => name.get(id) ?? ''} />
-            <p className="hint">{W.limits}</p>
           </section>
         ) : (
           <section className="sync-pick" aria-label={W.pick}>
             <h2>{W.pick}</h2>
-            <p className="hint">{W.pickHelp}</p>
             <ul>
               {order.map(p => (
                 <li key={p.id} className={picked.includes(p.id) ? 'on' : ''}>
@@ -108,7 +106,6 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
             </ul>
             {opts && <div className="wbar plain"><Options d={d} opts={opts} onChange={change} /></div>}
             <div className="d-actions"><button type="button" className="btn btn-primary" disabled={picked.length < 2 || busy} onClick={() => void start()}>{busy ? W.starting : W.start(picked.length)}</button></div>
-            <p className="hint">{W.limits}</p>
           </section>
         )}
       </main>
@@ -184,7 +181,7 @@ function Log({ d, lang, sync, name }: { d: Dict; lang: Lang; sync: WindowSync; n
     : a.t === 'key' ? W.did.key(a.key) : a.t === 'scroll' ? W.did.scroll(a.px) : a.t === 'goto' ? W.did.goto(short(a.url)) : W.did.tab[a.tab](a.n));
   return (
     <section className="sync-log" aria-label={W.log}>
-      <header className="sec-row"><h2>{W.log}</h2><span className="hint">{W.logLead(name(sync.leader), sync.members.length - 1)}</span></header>
+      <header className="sec-row"><h2>{W.log}</h2></header>
       {log.length ? (
         <ol>
           {log.map(e => (

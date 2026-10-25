@@ -8,7 +8,7 @@ test.setTimeout(120_000);
 const STUDIO = { plan: 'studio', period: 'monthly' };
 const seattle = { country: 'US', countryName: 'United States', region: 'Washington', city: 'Seattle', lat: 47.6, lon: -122.3, timezone: 'America/Los_Angeles', locale: 'en-US' };
 const row = (win: Page, name: string) => win.locator('tr[data-id]', { has: win.getByRole('button', { name, exact: true }) });
-const detail = (win: Page) => win.getByRole('complementary', { name: 'Profile' });
+const detail = (win: Page) => win.getByRole('dialog', { name: 'Profile', exact: true });
 
 test('a first profile behind a SOCKS5 proxy with a password, set up and opened from the getting-started steps', async () => {
   test.skip(!hasKernels, 'browser engines are not unpacked here');
@@ -38,7 +38,7 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
 
   // The proxy check (started when the proxy was saved) puts the exit in the row and on the card.
   const r = row(win, 'US-Store-01');
-  await expect(r).toContainText('Seattle', { timeout: 20_000 });
+  await expect(r).toContainText('US 127.0.0.1', { timeout: 20_000 });
   await r.getByRole('button', { name: 'US-Store-01', exact: true }).click();
   await expect(detail(win).getByTestId('verdict')).toHaveText('All consistent');
 
@@ -100,8 +100,10 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await win.getByRole('checkbox', { name: 'Select P-2' }).check();
   const bulk = win.getByTestId('bulk');
   await choose(bulk.getByRole('combobox', { name: 'Move to group…' }), 'US stores');
-  await expect(row(win, 'P-1')).toContainText('US stores');
-  await expect(row(win, 'P-2')).toContainText('US stores');
+  const groups = win.getByRole('combobox', { name: 'Groups' });
+  await choose(groups, 'US stores');
+  await expect(win.locator('tr[data-id]')).toHaveText([/P-1/, /P-2/]);
+  await choose(groups, 'All groups');
   await bulk.getByRole('button', { name: 'Tag' }).click();
   await bulk.getByRole('textbox', { name: 'Tag name' }).fill('vip');
   await bulk.getByRole('button', { name: 'Add tag' }).click();
@@ -155,10 +157,11 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await expect(ci.getByRole('status')).toContainText('Row 3');
   await csv.fill('name,group,tags,os,proxy\nCSV-01,Imported,a|b,macos,socks5://a:b@one.example.net:1080\nCSV-02,Imported,,windows,');
   await ci.getByRole('button', { name: 'Import 2 profiles' }).click();
-  await expect(row(win, 'CSV-01')).toContainText('Imported');
   await expect(row(win, 'CSV-01')).toContainText('macOS');
+  await choose(win.getByRole('combobox', { name: 'Groups' }), 'Imported');
+  await expect(win.locator('tr[data-id]')).toHaveText([/CSV-0/, /CSV-0/]);
   await expect(win.locator('.groups')).toContainText('Imported');
-  await expect(win.getByRole('button', { name: /^Proxies/ })).toContainText('2');
+  expect((await (await acct.api.get(`/workspaces/${acct.workspaceId}/proxies`)).json()).proxies).toHaveLength(2);
   await app.close();
 });
 
@@ -182,9 +185,11 @@ test('the consistency check fixes a hand-set time zone and moves a dead line to 
   await expect(card.getByTestId('verdict')).toHaveText('Needs a look');
   await expect(card.locator('[data-check="proxy-backup"]')).toBeVisible();
   await card.locator('[data-check="tz-mismatch"]').getByRole('button', { name: 'Follow the proxy' }).click();
-  await expect(card.locator('[data-check="tz-ok"]')).toContainText('America/Los_Angeles');
+  await expect(card.locator('[data-check="tz-ok"]')).toBeVisible();
+  await expect(card.locator('.kvl')).toContainText('America/Los_Angeles');
   await card.locator('[data-check="proxy-backup"]').getByRole('button', { name: 'Make the backup the main line' }).click();
-  await expect(card.locator('[data-check="proxy-ok"]')).toContainText('spare.example.net');
+  await expect(card.locator('[data-check="proxy-ok"]')).toBeVisible();
+  await expect(card.locator('.kvl')).toContainText('spare.example.net');
   await expect(card.getByTestId('verdict')).toHaveText('All consistent');
   await app.close();
 });

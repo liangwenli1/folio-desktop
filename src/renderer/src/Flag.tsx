@@ -41,7 +41,7 @@ export const EngineLogo = ({ kernel, size = 16 }: { kernel: KernelKind; size?: n
 export const SearchLogo = ({ engine, size = 16 }: { engine: SearchEngine; size?: number }) =>
   engine === 'none' ? null : <img className="logo" src={SEARCH_LOGOS[engine]} width={size} height={size} alt="" aria-hidden="true" />;
 
-export function Flag({ country, kernel, size = 'sm' }: { country: string | null; kernel?: KernelKind; size?: 'sm' | 'lg' }){
+export function Flag({ country, kernel, size = 'sm' }: { country: string | null; kernel?: KernelKind; size?: 'xs' | 'sm' | 'lg' }){
   const url = useFlag(country);
   return (
     <span className={`flag-badge ${size}`} aria-hidden="true">

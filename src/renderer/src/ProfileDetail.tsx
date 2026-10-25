@@ -3,14 +3,14 @@ import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import { folio, isApiError, type ActivityEntry, type Extension, type Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
 import { ENGINES, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
-import { day, errorText, runTime, type Dict, type Lang } from './i18n';
+import { errorText, runTime, type Dict, type Lang } from './i18n';
 import { ExtIcon, Icon, Progress, bytes, percent, useOutsideClose, useToast, type IconName } from './ui';
 import { EngineLogo, Flag, SearchLogo } from './Flag';
 import { ReportDialog, buildReport, passed, type Report } from './Checkup';
 import type { Risk } from './risks';
 
 interface Props {
-  d: Dict; lang: Lang; p: Profile; h: Health; status?: ProfileStatus; progress?: KernelProgress; group: string; now: number;
+  d: Dict; lang: Lang; p: Profile; h: Health; status?: ProfileStatus; progress?: KernelProgress; now: number;
   // The download size of the profile's engine version, when the catalog has it; why its last launch here failed.
   size: number | null; failed?: string;
   // What could tie it to other profiles; the team's profiles, for the health check's comparisons.
@@ -29,7 +29,7 @@ export const busyLabel = (d: Dict, state: string) => (state === 'restoring' ? d.
 const IC: Record<CheckLevel, IconName> = { ok: 'check', todo: 'download', warn: 'alert', bad: 'x' };
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 
-export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, risks, others, onStar, group, owner, extensions, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, risks, others, onStar, owner, extensions, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
   const [tab, setTab] = useState<Tab>('overview');
   const [more, setMore] = useState(false);
   const moreRef = useOutsideClose(more, () => setMore(false));
@@ -49,7 +49,6 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
       setReport({ ...r, at: new Date().toISOString() });
     } catch (e){ toast(errorText(d, isApiError(e) && e.code ? e.code : 'checkup_failed'), undefined, 'bad'); } finally { setChecking(false); }
   }
-  const num = String(p.number).padStart(4, '0');
   const away = elsewhere(p);
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
   const tz = p.timezoneOverride ?? geo?.timezone ?? null, locale = p.localeOverride ?? geo?.locale ?? null;
@@ -91,7 +90,6 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
         <span className="ic" aria-hidden="true"><Icon name={IC[c.level]} /></span>
         <div>
           <span><span className="sr">{d.detail.status[c.level]}: </span>{text.t(vars)}</span>
-          {text.d(vars) && <span className="ck-d">{text.d(vars)}</span>}
           {c.fix && (
             <button type="button" className="btn btn-xs btn-secondary" disabled={busy === fixKey(c.fix)} onClick={() => onFix(c.fix!)}>
               {busy === fixKey(c.fix) && <span className="spin" aria-hidden="true" />}{fixLabel(c.fix)}
@@ -105,18 +103,17 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
   return (
     <>
       <div className="d-top">
-        <span className="mono">#{num}</span>
         <button type="button" className={`icon-btn bare sm star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
         <button type="button" className="icon-btn bare sm" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>
       </div>
       <article className="idcard" aria-label={p.name}>
         <div className="idc-top">
           <Flag country={geo?.country ?? null} kernel={p.kernel} size="lg" />
-          <div><h2 data-testid="detail-name">{p.name}</h2><span className="mono">#{num} · {group}</span></div>
+          <div><h2 data-testid="detail-name">{p.name}</h2></div>
         </div>
         <div className="idc-city">
           <b>{geo ? geo.city ?? geo.countryName : px ? (h.proxy === 'down' ? d.detail.noExit : d.detail.notChecked) : d.detail.direct}</b>
-          <span className="mono">{px?.lastCheck?.ip ?? (px ? '' : d.detail.directSub)}</span>
+          <span className="mono">{px?.lastCheck?.ip ?? ''}</span>
         </div>
         {chip}
       </article>
@@ -175,9 +172,8 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
             <dt>{facts.seed ? d.detail.fields.seed : d.detail.fields.screen}</dt><dd className="mono">{facts.seed ?? facts.screen ?? '—'}</dd>
             <dt>{d.detail.fields.cores}</dt><dd>{facts.cores ?? '—'}</dd>
             {facts.gpu && <><dt>{d.detail.fields.gpu}</dt><dd>{facts.gpu}</dd></>}
+            <dt>{d.form.owner}</dt><dd data-testid="assigned">{owner ?? P.unassigned}</dd>
           </dl>
-          <p className="hint">{d.detail.meta(group, day(p.createdAt, lang))}</p>
-          <p className="hint" data-testid="assigned">{owner ? d.detail.assignedTo(owner) : P.unassigned}</p>
         </section>
         <section className="sec" aria-label={d.detail.checksTitle}>
           <div className="sec-row"><h3>{d.detail.checksTitle}</h3><span className={`verdict ${h.level}`} data-testid="verdict">{d.detail.verdict[h.level]}</span></div>
@@ -191,13 +187,11 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
             {h.checks.map(row)}
             {risks.map((r, i) => {
               const level = r.level === 'info' ? 'todo' : r.level;
-              const with_ = r.ids.filter(id => id !== p.id).map(id => others.find(o => o.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
               return (
                 <li key={`r${i}`} className={level} data-risk={r.kind}>
                   <span className="ic" aria-hidden="true"><Icon name={r.level === 'info' ? 'alert' : IC[level]} /></span>
                   <div>
                     <span><span className="sr">{d.detail.status[level]}: </span>{d.risks.kinds[r.kind].t(r.ids.length, r.what)}</span>
-                    <span className="ck-d">{[with_, d.risks.kinds[r.kind].fix].filter(Boolean).join(' · ')}</span>
                   </div>
                 </li>
               );
@@ -221,9 +215,8 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
           </> : <p className="hint">{d.detail.notSaved}</p>}
           <div className="d-actions">
             {canExport && p.data && p.syncMode === 'cloud' && <>
-              <span className="hint">{d.detail.exportCookies}</span>
-              <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('json')}>{d.detail.json}</button>
-              <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('netscape')}>{d.detail.netscape}</button>
+              <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('json')}>{d.detail.exportAs(d.detail.json)}</button>
+              <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('netscape')}>{d.detail.exportAs(d.detail.netscape)}</button>
               <span className="sp" />
             </>}
             <label className="btn btn-xs btn-secondary file-btn">{d.detail.importCookies}

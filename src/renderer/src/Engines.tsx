@@ -80,7 +80,7 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{E.title}</h1><p className="sub">{E.sub}</p></div>
+          <div className="ttl"><h1>{E.title}</h1></div>
           <span className="sp" />
           {admin && <button type="button" className="btn btn-secondary" onClick={() => setUploading(true)}><Icon name="upload" />{E.admin.upload}</button>}
         </header>
@@ -101,7 +101,7 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
               <section key={kind} className="engine-card" aria-label={ENGINES[kind]} data-engine={kind}>
                 <header className="en-h">
                   <EngineLogo kernel={kind} size={40} />
-                  <span><h2>{ENGINES[kind]}</h2><small>{E.desc[kind]}</small></span>
+                  <span><h2>{ENGINES[kind]}</h2></span>
                   {rec && <span className="en-rec"><small>{E.recommendedVersion}</small><b className="mono">{rec.version}</b></span>}
                 </header>
                 {!versions.length && <p className="hint">{E.none}</p>}
@@ -160,8 +160,8 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
           <section className="engine-card" aria-label={E.settings}>
             <h3 className="en-t">{E.settings}</h3>
             {settings && <>
-              <div className="en-set"><Switch label={E.autoDownload} checked={settings.autoDownload} onChange={on => change({ autoDownload: on })} /><small>{E.autoDownloadHint}</small></div>
-              <div className="en-set"><Switch label={E.idleOnly} checked={settings.idleOnly} disabled={!settings.autoDownload} onChange={on => change({ idleOnly: on })} /><small>{E.idleOnlyHint}</small></div>
+              <div className="en-set"><Switch label={E.autoDownload} checked={settings.autoDownload} onChange={on => change({ autoDownload: on })} /></div>
+              <div className="en-set"><Switch label={E.idleOnly} checked={settings.idleOnly} disabled={!settings.autoDownload} onChange={on => change({ idleOnly: on })} /></div>
             </>}
           </section>
           <section className="engine-card" aria-label={E.history}>

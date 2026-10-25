@@ -135,7 +135,6 @@ test('Studio allows 60 requests a minute, Company is unthrottled, and a revoked 
   app = await launch(dataDir());
   win = await logIn(app, company.email);
   token = await apiToken(win);
-  await expect(win.getByText('Company plan: no limit on requests.')).toBeVisible();
   for (let i = 0; i < 80; i++) expect((await local('GET', '/api/v1/profiles', token)).status).toBe(200);
   await app.close();
 });

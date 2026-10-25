@@ -160,7 +160,6 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Window sync/ }).click();
   const now = win.getByRole('region', { name: 'Syncing now' });
   await now.locator('[data-sync="Shop-A"]').getByRole('button', { name: 'Make leader' }).click();
-  await expect(win.locator('.ttl .sub')).toHaveText('Shop-A leads and 1 window follows.');
   await expect(now.locator('article.lead')).toHaveAttribute('data-sync', 'Shop-A');
   // Tiling side by side, the new leader on the left.
   await win.getByRole('button', { name: 'Tile windows' }).click();

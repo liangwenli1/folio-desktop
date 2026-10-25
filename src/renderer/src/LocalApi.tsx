@@ -34,7 +34,6 @@ export function ApiPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Worksp
   const [name, setName] = useState('');
   const [fresh, setFresh] = useState<string | null>(null);
   const [example, setExample] = useState<Example>('playwright');
-  const company = ws.subscription.plan === 'company';
   const wsName = new Map([[ws.id, ws.name]]);
   const sample = data.profiles?.[0];
   const ref = sample ? String(sample.number).padStart(4, '0') : '0001';
@@ -104,7 +103,7 @@ await page.goto('https://example.com');`
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.sub}</p></div>
+          <div className="ttl"><h1>{A.title}</h1></div>
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/docs/api/`)}><Icon name="api" />{A.reference}</button>
         </header>
@@ -126,7 +125,6 @@ await page.goto('https://example.com');`
                   <label className="field"><span>{A.port}</span><input type="number" min={1024} max={65535} value={port} onChange={e => setPort(e.target.value)} /></label>
                   {Number(port) !== state.port && <button type="submit" className="btn btn-secondary btn-sm">{d.common.save}</button>}
                 </form>
-                <p><b>{A.limitTitle}</b><span className="hint">{company ? A.unthrottled : A.limit}</span></p>
               </div>
               <p className="api-warn"><Icon name="alert" />{A.security}</p>
             </section>
@@ -139,7 +137,6 @@ await page.goto('https://example.com');`
                   <button type="submit" className="btn btn-sm btn-primary"><Icon name="plus" />{A.createToken}</button>
                 </form>
               </div>
-              <p className="hint">{A.tokensHelp}</p>
               {fresh && (
                 <div className="token-new" role="status">
                   <span>{A.newToken}</span>
@@ -174,11 +171,10 @@ await page.goto('https://example.com');`
                 <pre className="code"><code>{highlight(shown)}</code></pre>
                 <button type="button" className="btn btn-xs btn-secondary copy" onClick={() => copy(shown)}>{A.copy}</button>
               </div>
-              <p className="hint">{fresh ? A.prefilled : A.placeholder} {example === 'firefox' ? A.firefoxNote : A.chromiumNote}</p>
             </section>
 
             <section className="api-card" aria-label={A.calls}>
-              <div className="sec-row"><b>{A.calls}</b><span className="hint">{A.callsLead}</span></div>
+              <div className="sec-row"><b>{A.calls}</b></div>
               {!state.enabled ? <p className="hint">{A.off}</p> : !state.calls.length ? <p className="hint">{A.noCalls}</p> : (
                 <ol className="calls">
                   {state.calls.map(c => (

@@ -25,7 +25,7 @@ test('profiles sharing a proxy are flagged and can be shown together; favourites
   await expect(win.locator('tr[data-id]')).toHaveCount(3);
   const row = (name: string) => win.locator('tr[data-id]', { has: win.getByRole('button', { name, exact: true }) });
   await win.getByRole('button', { name: 'Alpha', exact: true }).click();
-  await expect(win.getByRole('complementary', { name: 'Profile' }).locator('[data-risk="same-proxy"]')).toContainText('Bravo');
+  await expect(win.getByRole('dialog', { name: 'Profile', exact: true }).locator('[data-risk="same-proxy"]')).toContainText('2 profiles share the proxy Shared line');
   await win.keyboard.press('Escape');
 
   // A favourite goes to the top, and has a filter of its own.
@@ -49,7 +49,7 @@ test('the health check reads the profile from inside its browser and passes a we
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
   await win.locator('tr[data-id]', { hasText: 'Checked' }).click();
-  const detail = win.getByRole('complementary', { name: 'Profile' });
+  const detail = win.getByRole('dialog', { name: 'Profile', exact: true });
   await detail.getByRole('button', { name: 'Health check' }).click();
   const report = win.getByRole('dialog', { name: 'Health check · Checked' });
   await expect(report.getByTestId('report')).toContainText('PASSED', { timeout: 120_000 });

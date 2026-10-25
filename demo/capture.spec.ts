@@ -132,7 +132,7 @@ for (const lang of ['en', 'zh'] as const){
     expect(await opened(win, ids['US-Store-01'])).toMatchObject({ state: 'running' });
     const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: new RegExp(`^${name}`) });
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
-    const drawer = win.getByRole('complementary', { name: d.detail.profile });
+    const drawer = win.getByRole('dialog', { name: d.detail.profile, exact: true });
 
     const frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[] = [];
     const pictures: { file: string; light: Buffer; dark: Buffer }[] = [];
@@ -168,7 +168,7 @@ for (const lang of ['en', 'zh'] as const){
     }
 
     // 1. The list; the three opening cards land on their rows.
-    await expect(row('US-Store-01').locator('.st.run')).toBeVisible();
+    await expect(row('US-Store-01').locator('.dot-st.run')).toBeVisible();
     const cards = [await box(row('US-Store-01')), await box(row('UK-Shop-01')), await box(row('JP-Social-01'))];
     await snap('list');
     // 2. Proxies, checked all at once.
@@ -187,7 +187,7 @@ for (const lang of ['en', 'zh'] as const){
     await expect(drawer.locator('.opening .step-r').nth(2)).toHaveClass(/now/, { timeout: 60_000 });
     await snap('opening', { focus: [drawer.locator('.opening')] });
     // 4. Its three tabs come back.
-    await expect(row('UK-Shop-01').locator('.st.run')).toBeVisible({ timeout: 90_000 });
+    await expect(row('UK-Shop-01').locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
     await drawer.getByRole('button', { name: d.detail.close }).click();
     await expect.poll(() => app.evaluate((_e, id) => (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages().length, ids['UK-Shop-01'])).toBe(3);
     const browser = await app.evaluate(async (_e, id) => {
@@ -249,7 +249,7 @@ for (const lang of ['en', 'zh'] as const){
     expect((await mateDesk.post(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } })).ok()).toBe(true);
     await expect(row('JP-Social-01')).toContainText(who.device, { timeout: 30_000 });
     await row('JP-Social-01').scrollIntoViewIfNeeded();
-    await snap('team', { focus: [row('JP-Social-01').locator('.st.away')] });
+    await snap('team', { focus: [row('JP-Social-01').locator('.dot-st.away')] });
 
     await mateDesk.delete(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } });
 
