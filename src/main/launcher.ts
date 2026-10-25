@@ -17,7 +17,7 @@ import { startForwarder, type Forwarder } from './forwarder';
 import { resolve as resolveKernel } from './kernels';
 import { echoThrough, type ProxySecret } from './proxy-check';
 import { collectExtensionData, prepareExtensions, writeExtensionData, type Extension } from './extensions';
-import { chromiumSearch, withFirefoxSearch } from './search';
+import { chromiumSearchDue, setChromiumSearch, withFirefoxSearch } from './search';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, CheckupFacts, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
 import type { Cookie } from '../shared/cookies';
@@ -68,7 +68,8 @@ const testOnly = () => [
   ...(process.env.FOLIO_PROXY_LOOPBACK ? ['--proxy-bypass-list=<-loopback>'] : [])
 ];
 
-async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean, extensions: string[]){
+// `start`: the page it opens on (a blank one without).
+async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean, extensions: string[], start = 'about:blank'){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'chromium' }>;
   // Only our own switches: Playwright's defaults include --disable-extensions, --force-color-profile and others
   // that change behaviour a site can see (see docs/kernel-evaluation.md).
@@ -78,7 +79,7 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
     `--lang=${locale}`, `--accept-lang=${locale},${locale.split('-')[0]}`, `--timezone=${tz}`,
     `--proxy-server=http://127.0.0.1:${port}`, '--disable-non-proxied-udp',
     ...(extensions.length ? [`--load-extension=${extensions.join(',')}`] : []),
-    ...testOnly(), 'about:blank'
+    ...testOnly(), start
   ];
   return chromium.launchPersistentContext(dir, {
     executablePath: exe, headless: false, viewport: null, ignoreDefaultArgs: true, args,
@@ -154,13 +155,14 @@ async function restore(p: LaunchProfile, exe: string, dir: string, state: Storag
   try { await ctx.setStorageState({ cookies: state.cookies, origins: state.origins }); } finally { await ctx.close(); }
 }
 
-// The browser starts on a blank tab: the first page goes there, the rest into new tabs, all loading in the background.
-async function openTabs(ctx: BrowserContext, urls: string[]){
+// Start pages, each in a new tab in order, loading in the background; `intoFirst`: the first goes into the tab the
+// browser started with (Firefox starts on a blank one; Chromium opens the first start page itself).
+async function openTabs(ctx: BrowserContext, urls: string[], intoFirst: boolean){
   for (const [i, url] of urls.entries()){
-    const page = (i === 0 && ctx.pages()[0]) || await ctx.newPage();
+    const page = (intoFirst && i === 0 && ctx.pages()[0]) || await ctx.newPage();
     void page.goto(url).catch(() => {});
   }
-  if (urls.length > 1) await ctx.pages()[0]?.bringToFront().catch(() => {});
+  if (urls.length) await ctx.pages()[0]?.bringToFront().catch(() => {});
 }
 // The open tabs, or once the browser has closed, the last ones to close.
 function tabsOf(r: Running){
@@ -246,23 +248,32 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     const port = fwd.port;
     if (opts.api) await rm(join(dir, 'DevToolsActivePort'), { force: true });
     const bidiPort = opts.api && profile.kernel === 'firefox' ? await freePort() : null;
-    if (profile.kernel === 'chromium') await chromiumSearch(dir, profile.searchEngine);
+    // A changed search engine is set first, in the engine without a window.
+    if (profile.kernel === 'chromium' && await chromiumSearchDue(dir, profile.searchEngine)){
+      const hidden = await offline(profile, exe, dir);
+      try { await setChromiumSearch(hidden, profile.searchEngine); } finally { await hidden.close(); }
+    }
+    const keptTabs = (profile.syncMode === 'cloud' ? saved?.tabs : local.tabs) ?? [];
+    const engine = profile.searchEngine === 'none' ? null : SEARCH_ENGINES[profile.searchEngine];
+    const start = !opts.tabs ? [] : profile.restoreTabs && keptTabs.length ? keptTabs : engine ? [engine.home] : [];
     const ctx = profile.kernel === 'chromium'
-      ? await launchChromium(exe, dir, profile, port, tz, locale, geo, !!opts.api, ext.dirs)
+      ? await launchChromium(exe, dir, profile, port, tz, locale, geo, !!opts.api, ext.dirs, start[0])
       : await withFirefoxSearch(exe, profile.searchEngine, () => launchFirefox(exe, dir, profile, port, tz, locale, geo, check?.ip ?? null, bidiPort, ext));
     const debug: Debugging | null = !opts.api ? null
       : bidiPort ? { protocol: 'webdriver-bidi', wsEndpoint: `ws://127.0.0.1:${bidiPort}/session` } : await cdpAddress(dir);
 
     const visited = new Set<string>();
-    const keptTabs = (profile.syncMode === 'cloud' ? saved?.tabs : local.tabs) ?? [];
     const tabs = opts.tabs ? new Map<Page, Tab>() : null;
     const track = (page: Page) => {
       const tab: Tab = { url: '', closedAt: null };
       tabs?.set(page, tab);
-      page.on('framenavigated', f => {
-        const u = f === page.mainFrame() ? URL.parse(f.url()) : null;
+      // Chromium's start pages may have loaded before this.
+      const seen = (url: string) => {
+        const u = URL.parse(url);
         if (u?.protocol === 'http:' || u?.protocol === 'https:'){ visited.add(u.origin); tab.url = u.href; }
-      });
+      };
+      seen(page.url());
+      page.on('framenavigated', f => { if (f === page.mainFrame()) seen(f.url()); });
       // Tabs closed earlier than that are forgotten.
       page.on('close', () => {
         tab.closedAt = Date.now();
@@ -271,8 +282,7 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     };
     ctx.pages().forEach(track);
     ctx.on('page', track);
-    const engine = profile.searchEngine === 'none' ? null : SEARCH_ENGINES[profile.searchEngine];
-    await openTabs(ctx, !opts.tabs ? [] : profile.restoreTabs && keptTabs.length ? keptTabs : engine ? [engine.home] : []);
+    await (profile.kernel === 'chromium' ? openTabs(ctx, start.slice(1), false) : openTabs(ctx, start, true));
     const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo, ...(ext.failed.length ? { extensionErrors: ext.failed } : {}) };
     const entry: Running = {
       ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug, extensions, tabs, keptTabs,

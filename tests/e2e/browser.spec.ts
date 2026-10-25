@@ -81,9 +81,17 @@ async function setup(){
   return { upstream, probe, app, win, folder, create, close, edit, connects, done: async () => { await app.close(); await upstream.close(); await probe.close(); } };
 }
 
-test('chromium: the chosen search engine, its home page the first time, then the tabs it was closed with', async () => {
+test('chromium: a used profile changed to Baidu searches with it and opens its home page, then the tabs it was closed with', async () => {
   const t = await setup();
-  const p = await t.create('Search-01', 'chromium', { searchEngine: 'baidu' });
+  const p = await t.create('Search-01', 'chromium', {});
+  // No search engine: as the engine ships, on a blank page.
+  expect(await opened(t.win, p.id)).toMatchObject({ state: 'running' });
+  expect(await tabsOf(t.app, p.id)).toEqual(['about:blank']);
+  expect(await chromiumEngine(t.app, p.id)).toBe('No Search');
+  await t.close(p.id);
+
+  // Changed afterwards (Chromium keeps the choice itself, signed on Windows and macOS): its home page, straight away.
+  await t.edit(p.id, { searchEngine: 'baidu' });
   expect(await opened(t.win, p.id)).toMatchObject({ state: 'running' });
   await expect.poll(() => t.connects('www.baidu.com')).toBeGreaterThan(0);
   expect(await chromiumEngine(t.app, p.id)).toBe('Baidu');
@@ -96,6 +104,7 @@ test('chromium: the chosen search engine, its home page the first time, then the
   expect(await opened(t.win, p.id)).toMatchObject({ state: 'running' });
   await expect.poll(() => tabsOf(t.app, p.id)).toEqual([a, b]);
   expect(t.connects('www.baidu.com')).toBe(homes);
+  expect(await chromiumEngine(t.app, p.id)).toBe('Baidu');
 
   // Restoring turned off: the home page again, and the tabs are still kept for later.
   await t.close(p.id);
@@ -103,7 +112,7 @@ test('chromium: the chosen search engine, its home page the first time, then the
   expect(await opened(t.win, p.id)).toMatchObject({ state: 'running' });
   await expect.poll(() => t.connects('www.baidu.com')).toBeGreaterThan(homes);
 
-  // No search engine: as the engine ships, on a blank page.
+  // Back to none: No Search again, on a blank page.
   await t.close(p.id);
   await t.edit(p.id, { searchEngine: 'none' });
   const before = t.connects('www.baidu.com');
@@ -111,8 +120,6 @@ test('chromium: the chosen search engine, its home page the first time, then the
   expect(await tabsOf(t.app, p.id)).toEqual(['about:blank']);
   expect(await chromiumEngine(t.app, p.id)).toBe('No Search');
   expect(t.connects('www.baidu.com')).toBe(before);
-  const prefs = JSON.parse(readFileSync(join(t.folder(p.id), 'Default', 'Preferences'), 'utf8'));
-  expect(prefs.default_search_provider_data).toBeUndefined();
   await t.done();
 });
 
