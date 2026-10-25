@@ -4,11 +4,11 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import type { CheckResult } from '@shared/bridge';
 import { folio, isApiError, type Profile, type Proxy, type ProxyImport } from './api';
-import { SLOW_MS, proxyState } from './checks';
+import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { Avatar, BulkBar, CopyBtn, DetailDialog, Icon, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { BulkBar, CopyBtn, DetailDialog, Icon, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -182,6 +182,8 @@ function downNote(d: Dict, p: Proxy){
   return d.proxies.downNote(n, lastOk ? ago(lastOk.at, d) : null);
 }
 const latency = (d: Dict, p: Proxy) => (p.lastCheck?.ok ? d.profiles.ms(p.lastCheck.ms ?? 0) : '—');
+// The colour of its latency; none before its first check.
+const tone = (p: Proxy) => (p.lastCheck ? latencyTone(p.lastCheck.ok ? p.lastCheck.ms : null) : '');
 // The profiles on it: a number that opens them in the profile list.
 const Count = ({ p, onShow }: ProxyItem) => (p.profiles ? <button type="button" className="count-link" onClick={onShow}>{p.profiles}</button> : <span className="muted">0</span>);
 
@@ -207,7 +209,7 @@ function ProxyCard(props: ProxyItem){
       <div className="pxc-bars" title={X.history(p.history.length)}><Bars history={p.history} /></div>
       {s === 'down' && <p className="pxc-down"><Icon name="alert" />{downNote(d, p)}</p>}
       <div className="pxc-f">
-        <span><small>{X.labels.latency}</small><b className="mono">{latency(d, p)}</b></span>
+        <span><small>{X.labels.latency}</small><b className={`lat ${tone(p)}`}>{latency(d, p)}</b></span>
         <span><small>{X.labels.uptime}</small><b className="mono">{up === null ? '—' : `${up}%`}</b></span>
         <span><small>{X.labels.profiles}</small><b><Count {...props} /></b></span>
         <span className="sp" />
@@ -228,7 +230,7 @@ function ProxyRow(props: ProxyItem){
       <td><span className="addr mono">{p.host}:{p.port}<CopyBtn text={`${p.host}:${p.port}`} label={d.common.copy} done={d.common.copied} /></span></td>
       <td>{ex?.geo ? <><span className="l1 px-exit"><Flag country={ex.geo.country} size="xs" />{ex.geo.city ?? ex.geo.countryName}</span><span className="l2 mono">{ex.ip}</span></> : <span className="muted">—</span>}</td>
       <td data-testid="proxy-check"><ProxyState d={d} p={p} busy={busy} /></td>
-      <td><b className={`lat ${proxyState(p)}`}>{latency(d, p)}</b></td>
+      <td><b className={`lat ${tone(p)}`}>{latency(d, p)}</b></td>
       <td><Count {...props} /></td>
       <td className="act"><Actions {...props} /></td>
     </tr>
@@ -242,7 +244,7 @@ function Bars({ history }: { history: Proxy['history'] }){
   const slots = [...Array<null>(Math.max(0, 20 - history.length)).fill(null), ...history.slice(-20)];
   return (
     <span className="bars" aria-hidden="true">
-      {slots.map((h, i) => <i key={i} className={!h ? 'none' : !h.ok ? 'miss' : (h.ms ?? 0) > SLOW_MS ? 'slow' : 'ok'} style={h?.ok ? { height: `${35 + (65 * (h.ms ?? 0)) / top}%` } : undefined} />)}
+      {slots.map((h, i) => <i key={i} className={!h ? 'none' : !h.ok ? 'miss' : (h.ms ?? 0) > VERY_SLOW_MS ? 'vslow' : (h.ms ?? 0) > SLOW_MS ? 'slow' : 'ok'} style={h?.ok ? { height: `${35 + (65 * (h.ms ?? 0)) / top}%` } : undefined} />)}
     </span>
   );
 }
@@ -267,7 +269,7 @@ function ProxyDetail(props: ProxyItem & { lang: Lang; data: WorkspaceData; profi
     <dl className="dstats">
       <div><dt>{D.exitIp}</dt><dd className="mono">{ex?.ip ?? '—'}{ex?.ip && <CopyBtn text={ex.ip} label={d.common.copy} done={d.common.copied} />}</dd></div>
       <div><dt>{D.region}</dt><dd title={ex?.geo ? place(ex.geo) : undefined}>{ex?.geo ? <><Flag country={ex.geo.country} size="xs" />{ex.geo.city ?? ex.geo.countryName}</> : '—'}</dd></div>
-      <div><dt>{D.latency}</dt><dd className={`lat ${s}`}>{p.lastCheck?.ok ? latency(d, p) : s === 'down' ? X.states.down : '—'}</dd></div>
+      <div><dt>{D.latency}</dt><dd className={`lat ${tone(p)}`}>{p.lastCheck?.ok ? latency(d, p) : s === 'down' ? X.states.down : '—'}</dd></div>
       <div><dt>{D.profiles}</dt><dd>{profiles.length}</dd></div>
     </dl>
     {ex?.geo && <p className="attrib">{d.common.attribution}</p>}
@@ -289,7 +291,7 @@ function ProxyDetail(props: ProxyItem & { lang: Lang; data: WorkspaceData; profi
           <Bars history={p.history} />
           <ol className="ck-log" data-testid="check-log">
             {[...p.history].reverse().slice(0, 6).map(h => (
-              <li key={h.at}><time>{dayLabel(h.at, d, lang)} {time(h.at, lang)}</time><span className={`dot-st ${h.ok ? 'run' : 'bad'}`}>{h.ok ? D.ok(h.ms ?? 0) : D.failed}</span></li>
+              <li key={h.at}><time>{dayLabel(h.at, d, lang)} {time(h.at, lang)}</time><span className={`dot-st ${({ good: 'run', warn: 'boot', bad: 'bad' })[latencyTone(h.ok ? h.ms : null)]}`}>{h.ok ? D.ok(h.ms ?? 0) : D.failed}</span></li>
             ))}
           </ol>
         </> : <p className="hint">{D.noHistory}</p>}
@@ -303,7 +305,7 @@ function ProxyDetail(props: ProxyItem & { lang: Lang; data: WorkspaceData; profi
             const run = data.status[x.id]?.state === 'running';
             return (
               <li key={x.id}>
-                <Avatar text={x.name} small /><button type="button" className="rowlink" onClick={() => onOpenProfile(x.id)}>{x.name}</button>
+                <button type="button" className="rowlink" onClick={() => onOpenProfile(x.id)}>{x.name}</button>
                 <span className="muted">{x.groupId ? groups.get(x.groupId) ?? d.groups.none : d.groups.none}</span>
                 <span className={`dot-st ${run ? 'run' : 'idle'}`}>{run ? d.profiles.st.running : d.profiles.st.idle}</span>
               </li>
@@ -325,7 +327,7 @@ export function CheckCard({ d, r }: { d: Dict; r: CheckResult }){
         <dl>
           <div><dt>{X.detail.exitIp}</dt><dd className="mono">{r.ip}</dd></div>
           <div><dt>{X.detail.region}</dt><dd>{r.geo ? <><Flag country={r.geo.country} size="xs" />{place(r.geo)}</> : '—'}</dd></div>
-          <div><dt>{X.detail.latency}</dt><dd className="mono">{d.profiles.ms(r.ms ?? 0)}</dd></div>
+          <div><dt>{X.detail.latency}</dt><dd className={`mono lat ${latencyTone(r.ms)}`}>{d.profiles.ms(r.ms ?? 0)}</dd></div>
         </dl>
       )}
     </div>

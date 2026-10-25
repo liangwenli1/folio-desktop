@@ -84,7 +84,7 @@ for (const lang of ['en', 'zh'] as const){
     expect((await mate.post(`/invitations/${invite.invitation.id}/accept`)).ok()).toBe(true);
 
     const groups = [];
-    for (const name of who.groups) groups.push((await (await owner.post(`/workspaces/${ws}/groups`, { data: { name } })).json()).id as string);
+    for (const [i, name] of who.groups.entries()) groups.push((await (await owner.post(`/workspaces/${ws}/groups`, { data: { name, color: (['blue', 'teal', 'purple'] as const)[i] } })).json()).id as string);
     const proxy = {} as Record<ExitKey, string>;
     for (const [i, x] of EXITS.entries()){
       proxy[x.key] = (await (await owner.post(`/workspaces/${ws}/proxies`, { data: { name: PROXY_NAMES[x.key], type: 'http', host: hostOf(x.key), port: PORT + i } })).json()).id;

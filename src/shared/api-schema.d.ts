@@ -1695,12 +1695,18 @@ export interface paths {
                                     kind: "chromium";
                                     seed: number;
                                     hardwareConcurrency: number;
+                                    /** @enum {string} */
+                                    canvas?: "noise" | "real";
+                                    /** @enum {string} */
+                                    webgl?: "spoof" | "real";
                                 } | {
                                     /** @enum {string} */
                                     kind: "firefox";
                                     config: {
                                         [key: string]: unknown;
                                     };
+                                    /** @enum {string} */
+                                    webrtc?: "replace" | "block";
                                 };
                                 proxyId: string | null;
                                 timezoneOverride: string | null;
@@ -1813,12 +1819,18 @@ export interface paths {
                             kind: "chromium";
                             seed: number;
                             hardwareConcurrency: number;
+                            /** @enum {string} */
+                            canvas?: "noise" | "real";
+                            /** @enum {string} */
+                            webgl?: "spoof" | "real";
                         } | {
                             /** @enum {string} */
                             kind: "firefox";
                             config: {
                                 [key: string]: unknown;
                             };
+                            /** @enum {string} */
+                            webrtc?: "replace" | "block";
                         };
                         /** Format: uuid */
                         proxyId?: string | null;
@@ -1860,12 +1872,18 @@ export interface paths {
                                 kind: "chromium";
                                 seed: number;
                                 hardwareConcurrency: number;
+                                /** @enum {string} */
+                                canvas?: "noise" | "real";
+                                /** @enum {string} */
+                                webgl?: "spoof" | "real";
                             } | {
                                 /** @enum {string} */
                                 kind: "firefox";
                                 config: {
                                     [key: string]: unknown;
                                 };
+                                /** @enum {string} */
+                                webrtc?: "replace" | "block";
                             };
                             proxyId: string | null;
                             timezoneOverride: string | null;
@@ -1992,12 +2010,18 @@ export interface paths {
                                 kind: "chromium";
                                 seed: number;
                                 hardwareConcurrency: number;
+                                /** @enum {string} */
+                                canvas?: "noise" | "real";
+                                /** @enum {string} */
+                                webgl?: "spoof" | "real";
                             } | {
                                 /** @enum {string} */
                                 kind: "firefox";
                                 config: {
                                     [key: string]: unknown;
                                 };
+                                /** @enum {string} */
+                                webrtc?: "replace" | "block";
                             };
                             /** Format: uuid */
                             proxyId?: string | null;
@@ -2041,12 +2065,18 @@ export interface paths {
                                     kind: "chromium";
                                     seed: number;
                                     hardwareConcurrency: number;
+                                    /** @enum {string} */
+                                    canvas?: "noise" | "real";
+                                    /** @enum {string} */
+                                    webgl?: "spoof" | "real";
                                 } | {
                                     /** @enum {string} */
                                     kind: "firefox";
                                     config: {
                                         [key: string]: unknown;
                                     };
+                                    /** @enum {string} */
+                                    webrtc?: "replace" | "block";
                                 };
                                 proxyId: string | null;
                                 timezoneOverride: string | null;
@@ -2177,12 +2207,18 @@ export interface paths {
                             kind: "chromium";
                             seed: number;
                             hardwareConcurrency: number;
+                            /** @enum {string} */
+                            canvas?: "noise" | "real";
+                            /** @enum {string} */
+                            webgl?: "spoof" | "real";
                         } | {
                             /** @enum {string} */
                             kind: "firefox";
                             config: {
                                 [key: string]: unknown;
                             };
+                            /** @enum {string} */
+                            webrtc?: "replace" | "block";
                         };
                         timezoneOverride?: string | null;
                         localeOverride?: string | null;
@@ -2222,12 +2258,18 @@ export interface paths {
                                 kind: "chromium";
                                 seed: number;
                                 hardwareConcurrency: number;
+                                /** @enum {string} */
+                                canvas?: "noise" | "real";
+                                /** @enum {string} */
+                                webgl?: "spoof" | "real";
                             } | {
                                 /** @enum {string} */
                                 kind: "firefox";
                                 config: {
                                     [key: string]: unknown;
                                 };
+                                /** @enum {string} */
+                                webrtc?: "replace" | "block";
                             };
                             proxyId: string | null;
                             timezoneOverride: string | null;
@@ -2579,12 +2621,18 @@ export interface paths {
                                     kind: "chromium";
                                     seed: number;
                                     hardwareConcurrency: number;
+                                    /** @enum {string} */
+                                    canvas?: "noise" | "real";
+                                    /** @enum {string} */
+                                    webgl?: "spoof" | "real";
                                 } | {
                                     /** @enum {string} */
                                     kind: "firefox";
                                     config: {
                                         [key: string]: unknown;
                                     };
+                                    /** @enum {string} */
+                                    webrtc?: "replace" | "block";
                                 };
                                 proxyId: string | null;
                                 timezoneOverride: string | null;
@@ -4384,12 +4432,18 @@ export interface paths {
                                     kind: "chromium";
                                     seed: number;
                                     hardwareConcurrency: number;
+                                    /** @enum {string} */
+                                    canvas?: "noise" | "real";
+                                    /** @enum {string} */
+                                    webgl?: "spoof" | "real";
                                 } | {
                                     /** @enum {string} */
                                     kind: "firefox";
                                     config: {
                                         [key: string]: unknown;
                                     };
+                                    /** @enum {string} */
+                                    webrtc?: "replace" | "block";
                                 };
                                 timezoneOverride?: string | null;
                                 localeOverride?: string | null;
@@ -4477,12 +4531,18 @@ export interface paths {
                                 kind: "chromium";
                                 seed: number;
                                 hardwareConcurrency: number;
+                                /** @enum {string} */
+                                canvas?: "noise" | "real";
+                                /** @enum {string} */
+                                webgl?: "spoof" | "real";
                             } | {
                                 /** @enum {string} */
                                 kind: "firefox";
                                 config: {
                                     [key: string]: unknown;
                                 };
+                                /** @enum {string} */
+                                webrtc?: "replace" | "block";
                             };
                             timezoneOverride?: string | null;
                             localeOverride?: string | null;

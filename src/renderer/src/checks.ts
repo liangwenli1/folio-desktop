@@ -4,7 +4,9 @@
 import type { KernelState } from '@shared/bridge';
 import type { Geo, Profile, Proxy } from './api';
 
-export const SLOW_MS = 800;
+export const SLOW_MS = 800, VERY_SLOW_MS = 2000;
+// How a latency reads: green up to SLOW_MS, yellow up to VERY_SLOW_MS, red beyond it or without an answer.
+export const latencyTone = (ms: number | null) => (ms === null ? 'bad' : ms <= SLOW_MS ? 'good' : ms <= VERY_SLOW_MS ? 'warn' : 'bad');
 export type Level = 'ok' | 'warn' | 'bad';
 // `todo`: something to do on this computer (a download) that is not a problem with the profile.
 export type CheckLevel = Level | 'todo';
@@ -12,10 +14,10 @@ export type ProxyState = 'none' | 'unchecked' | 'ok' | 'slow' | 'down';
 export type Fix =
   | { kind: 'check'; proxyId: string } | { kind: 'backup'; proxyId: string } | { kind: 'choose-proxy' }
   | { kind: 'follow-tz' } | { kind: 'follow-lang' }
-  | { kind: 'download'; version: string } | { kind: 'use-engine'; version: string };
+  | { kind: 'download'; version: string } | { kind: 'use-engine'; version: string } | { kind: 'edit' };
 export type CheckId =
   | 'proxy-ok' | 'proxy-slow' | 'proxy-down' | 'proxy-backup' | 'proxy-none' | 'proxy-unchecked'
-  | 'tz-ok' | 'tz-host' | 'tz-pending' | 'tz-mismatch' | 'lang-ok' | 'lang-mismatch' | 'geo' | 'rtc'
+  | 'tz-ok' | 'tz-host' | 'tz-pending' | 'tz-mismatch' | 'lang-ok' | 'lang-mismatch' | 'geo' | 'rtc' | 'rtc-off' | 'fp-real'
   | 'engine-ok' | 'engine-older' | 'engine-missing' | 'engine-unavailable';
 export interface Check { id: CheckId; level: CheckLevel; fix?: Fix }
 
@@ -61,7 +63,10 @@ export function health(p: Profile, proxies: Map<string, Proxy>, kernels: KernelS
   const langMismatch = !!(geo && region && region !== geo.country);
   if (langMismatch) checks.push({ id: 'lang-mismatch', level: 'warn', fix: { kind: 'follow-lang' } });
   else if (geo || p.localeOverride) checks.push({ id: 'lang-ok', level: 'ok' });
-  if (geo) checks.push({ id: 'geo', level: 'ok' }, { id: 'rtc', level: 'ok' });
+  const fp = p.fingerprint;
+  if (geo) checks.push({ id: 'geo', level: 'ok' }, { id: fp.kind === 'firefox' && fp.webrtc === 'block' ? 'rtc-off' : 'rtc', level: 'ok' });
+  // This computer's own Canvas or GPU is the same in every profile on it.
+  if (fp.kind === 'chromium' && (fp.canvas === 'real' || fp.webgl === 'real')) checks.push({ id: 'fp-real', level: 'warn', fix: { kind: 'edit' } });
 
   // Engines are a fact about this computer: a missing download is not a problem with the profile. A version the
   // catalog no longer has still opens where it is downloaded; elsewhere the profile moves to the recommended one.
@@ -82,14 +87,23 @@ export function health(p: Profile, proxies: Map<string, Proxy>, kernels: KernelS
 export const ENGINES: Record<Profile['kernel'], string> = { chromium: 'Chromium', firefox: 'Firefox' };
 export const engineName = (kind: Profile['kernel'], version: string) => `${ENGINES[kind]} ${version.split('.')[0]}`;
 
-// What a fingerprint pins down, for the passport card and the new-profile dialog. Chromium derives the rest
-// from the seed inside the engine; Camoufox stores every value.
+// A GPU as people name it, from the renderer string a browser reports.
+export const gpuName = (renderer: string) => renderer.replace(/, or similar$/, '')
+  .replace(/^ANGLE \([^,]+, (.+?)(?: \(0x[0-9A-Fa-f]+\))? (?:Direct3D|OpenGL|Vulkan|Metal).*$/, '$1');
+
+// What a fingerprint pins down, for the new-profile preview and a profile's details. Chromium derives the rest from
+// the seed inside the engine, and its screen is this computer's; Camoufox stores every value, but its Canvas is up to
+// the engine. `webrtc`: 'udp' blocks what doesn't go through the proxy, 'replace' shows the exit IP, 'block' turns it off.
 export function fingerprintFacts(fp: Profile['fingerprint']){
-  if (fp.kind === 'chromium') return { seed: fp.seed.toString(16).padStart(8, '0'), cores: fp.hardwareConcurrency, screen: null, gpu: null };
+  if (fp.kind === 'chromium') return {
+    seed: fp.seed.toString(16).padStart(8, '0'), cores: fp.hardwareConcurrency, screen: null, gpu: null,
+    webrtc: 'udp' as const, webgl: fp.webgl ?? 'spoof', canvas: fp.canvas ?? 'noise'
+  };
   const c = fp.config, num = (k: string) => (typeof c[k] === 'number' ? c[k] as number : null);
   return {
     seed: null, cores: num('navigator.hardwareConcurrency'),
     screen: num('screen.width') && num('screen.height') ? `${num('screen.width')} × ${num('screen.height')}` : null,
-    gpu: typeof c['webGl:renderer'] === 'string' ? c['webGl:renderer'] : null
+    gpu: typeof c['webGl:renderer'] === 'string' ? gpuName(c['webGl:renderer']) : null,
+    webrtc: fp.webrtc ?? 'replace', webgl: 'spoof' as const, canvas: 'engine' as const
   };
 }

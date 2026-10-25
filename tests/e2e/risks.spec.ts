@@ -32,7 +32,8 @@ test('profiles sharing a proxy are flagged and can be shown together; favourites
   await row('Charlie').hover();
   await row('Charlie').getByRole('button', { name: 'Add to favourites' }).click();
   await expect(win.locator('tr[data-id]').first()).toContainText('Charlie');
-  await win.getByRole('group', { name: 'Status' }).getByRole('button', { name: 'Favourites' }).click();
+  await win.getByRole('combobox', { name: 'Status', exact: true }).click();
+  await win.getByRole('listbox').getByRole('option', { name: /^Favourites/ }).click();
   await expect(win.locator('tr[data-id]')).toHaveCount(1);
   const listed = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; starred: boolean }[];
   expect(listed.find(p => p.name === 'Charlie')!.starred).toBe(true);

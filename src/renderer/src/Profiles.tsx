@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { folio, isApiError, type Extension, type Profile, type Workspace } from './api';
+import { folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
@@ -14,7 +14,10 @@ import { mod } from './CommandPalette';
 import { byProfile, risks, type Risk } from './risks';
 
 export type GroupFilter = 'all' | 'none' | string;
-type Status = 'all' | 'running' | 'issues' | 'starred';
+type Status = 'all' | 'running' | 'stopped' | 'issues' | 'starred';
+// An engine and its major version ('chromium:150'), or every one.
+type Engine = 'all' | `${Profile['kernel']}:${string}`;
+const engineOf = (p: Profile): Engine => `${p.kernel}:${p.kernelVersion.split('.')[0]}`;
 type Sort = 'recent' | 'name' | 'latency';
 type ProfileStatus = WorkspaceData['status'][string];
 type Progress = WorkspaceData['progress'][string];
@@ -33,6 +36,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const P = d.profiles;
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<Status>('all');
+  const [engine, setEngine] = useState<Engine>('all');
+  // The profile whose group is being picked from its ⋯ menu.
+  const [moving, setMoving] = useState<Profile | null>(null);
   const [sort, setSort] = useState<Sort>('recent');
   const [view, setView] = useView<'list' | 'cards'>('profiles', 'list');
   const [sel, setSel] = useState<Set<string>>(() => new Set());
@@ -62,13 +68,18 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
   const issue = (p: Profile) => healthOf.get(p.id)!.level !== 'ok' || risky(p.id);
   const running = all.filter(p => data.status[p.id]?.state === 'running').length;
-  const counts: Record<Status, number> = { all: all.length, running: all.filter(p => data.status[p.id]).length, issues: all.filter(issue).length, starred: all.filter(p => p.starred).length };
+  const counts: Record<Status, number> = {
+    all: all.length, running: all.filter(p => data.status[p.id]).length, stopped: all.filter(p => !data.status[p.id]).length,
+    issues: all.filter(issue).length, starred: all.filter(p => p.starred).length
+  };
+  const engines = [...new Set(all.map(engineOf))].sort();
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const h = (p: Profile) => healthOf.get(p.id)!;
-    let out = all.filter(p => (group === 'all' || (group === 'none' ? !p.groupId : p.groupId === group)) && (!only || only.has(p.id)));
+    let out = all.filter(p => (group === 'all' || (group === 'none' ? !p.groupId : p.groupId === group)) && (!only || only.has(p.id)) && (engine === 'all' || engineOf(p) === engine));
     if (status === 'running') out = out.filter(p => data.status[p.id]);
+    if (status === 'stopped') out = out.filter(p => !data.status[p.id]);
     if (status === 'issues') out = out.filter(issue);
     if (status === 'starred') out = out.filter(p => p.starred);
     if (needle) out = out.filter(p => {
@@ -87,14 +98,14 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     };
     // Favourites first, then the chosen order.
     return out.sort((a, b) => Number(b.starred) - Number(a.starred) || by[sort](a, b));
-  }, [all, group, status, q, sort, healthOf, data.status, lang, groupName, d, only, riskOf]);
+  }, [all, group, engine, status, q, sort, healthOf, data.status, lang, groupName, d, only, riskOf]);
 
   const ids = [...sel].filter(id => all.some(p => p.id === id));
   const shownSel = list.filter(p => sel.has(p.id)).length;
   // The details dialog shows only while a profile is picked.
   const curProfile = (detail && all.find(p => p.id === cur)) || null;
   const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 10, !!curProfile);
-  const filtered = group !== 'all' || status !== 'all' || !!q || !!only;
+  const filtered = group !== 'all' || engine !== 'all' || status !== 'all' || !!q || !!only;
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const why = (w: 'kernel_missing' | 'download_failed') => (w === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed);
@@ -205,16 +216,20 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const names = (r: Risk) => r.ids.map(id => all.find(p => p.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
 
   const item = (p: Profile): ItemProps => ({
-    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), manager,
+    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), manager, group: data.groups.find(g => g.id === p.groupId) ?? null,
     owner: p.ownerId ? email.get(p.ownerId) ?? null : null,
     sync: data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null,
     status: data.status[p.id], progress: data.progress[kernelKey(p.kernel, p.kernelVersion)], checking: !!p.proxyId && data.checking.has(p.proxyId),
     onToggle: () => toggle(p.id), onView: () => pick(p.id), onOpen: () => void open(p), onStop: () => void stop(p), onStar: () => void star(p),
-    onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }, onEdit: () => onEdit(p.id), onTrash: () => void trash([p.id])
+    onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }, onEdit: () => onEdit(p.id), onTrash: () => void trash([p.id]), onMove: () => setMoving(p)
   });
+  async function move(p: Profile, groupId: string | null){
+    setMoving(null);
+    try { await data.batch('move', [p.id], { groupId }); toast(P.done.moved(1, groupId ? groupName.get(groupId) ?? '' : d.groups.none)); } catch (e){ fail(e); }
+  }
   const empty = data.profiles !== null && !list.length && (all.length
     ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
-      <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
+      <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setEngine('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
     : <p><b>{P.emptyNone}</b></p>);
 
   return (
@@ -227,8 +242,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
             <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
           </label>
-          <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => setGroup(v as GroupFilter)}
-            options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} /></span>
           {manager && <button className="btn btn-secondary" type="button" onClick={onImport}>{P.import}</button>}
           <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
         </header>
@@ -278,9 +291,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
         )}
 
         <div className="filters">
-          <div className="seg" role="group" aria-label={P.filter.label}>
-            {(['all', 'running', 'issues', 'starred'] as const).map(s => <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)}>{P.filter[s]} <small>{counts[s]}</small></button>)}
-          </div>
+          <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => setGroup(v as GroupFilter)}
+            options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} /></span>
+          <span className="grp-pick"><Select label={P.filter.engine} value={engine} onChange={v => setEngine(v as Engine)}
+            options={[{ value: 'all', label: P.filter.engines }, ...engines.map(e => { const [k, v] = e.split(':'); return { value: e, label: `${ENGINES[k as Profile['kernel']]} ${v}` }; })]} /></span>
+          <span className="grp-pick"><Select label={P.filter.label} value={status} onChange={v => setStatus(v as Status)}
+            options={(['all', 'running', 'stopped', 'issues', 'starred'] as const).map(s => ({ value: s, label: s === 'all' ? P.filter.states : P.filter[s], hint: String(counts[s]) }))} /></span>
           {only && <button type="button" className="chip" onClick={() => setOnly(null)}>{d.risks.clear} <span aria-hidden="true">×</span></button>}
           <span className="sort"><span id="pf-sort">{P.sort}</span>
             <Select variant="sm" labelledBy="pf-sort" value={sort} onChange={v => setSort(v as Sort)} options={(['recent', 'name', 'latency'] as const).map(s => ({ value: s, label: P.sorts[s] }))} />
@@ -299,15 +315,15 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                     <input type="checkbox" aria-label={d.common.selectAll} checked={list.length > 0 && shownSel === list.length}
                       ref={el => { if (el) el.indeterminate = shownSel > 0 && shownSel < list.length; }} onChange={toggleAll} />
                   </th>
-                  <th scope="col">{P.cols.profile}</th><th scope="col">{P.cols.fingerprint}</th><th scope="col">{P.cols.proxy}</th>
+                  <th scope="col">{P.cols.profile}</th><th scope="col">{P.cols.group}</th><th scope="col">{P.cols.fingerprint}</th><th scope="col">{P.cols.proxy}</th>
                   <th scope="col" className="lastc">{P.cols.last}</th><th scope="col">{P.cols.member}</th><th scope="col">{P.cols.status}</th><th className="act" scope="col">{P.cols.actions}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.profiles === null && Array.from({ length: 5 }, (_, i) => (
-                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td><td /></tr>
+                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /></td><td><i className="w3" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td><td /></tr>
                 ))}
-                {empty && <tr className="empty"><td colSpan={8}>{empty}</td></tr>}
+                {empty && <tr className="empty"><td colSpan={9}>{empty}</td></tr>}
                 {list.map(p => <Row key={p.id} {...item(p)} />)}
               </tbody>
             </table>
@@ -331,12 +347,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
               </>
             ) : (
               <>
-                <button type="button" className="bb" onClick={() => openMany(all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)))}><Icon name="play" />{P.bulk.open}</button>
-                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
-                <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={!syncAllowed ? d.windowSync.upgrade : ids.length < 2 ? P.bulk.syncTwo : undefined} onClick={() => void startSync()}><Icon name="sync" />{P.bulk.sync}</button>
                 <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" searchPh={d.form.searchPh}
                   options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]}
                   onChange={v => { const g = v === 'none' ? null : v; void batchAction('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none)); }} />
+                <button type="button" className="bb" onClick={() => openMany(all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)))}><Icon name="play" />{P.bulk.open}</button>
+                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
+                <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={!syncAllowed ? d.windowSync.upgrade : ids.length < 2 ? P.bulk.syncTwo : undefined} onClick={() => void startSync()}><Icon name="sync" />{P.bulk.sync}</button>
                 <Select variant="bar" action label={P.bulk.proxy} placeholder={P.bulk.proxy} value="" searchPh={d.form.searchPh}
                   options={[...data.proxies.map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined })), { value: 'none', label: P.noProxy }]}
                   onChange={v => void batchAction('set-proxy', { proxyId: v === 'none' ? null : v }, P.done.proxySet)} />
@@ -386,6 +402,19 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
             <button type="button" className="btn btn-danger solid" onClick={() => void trash(ids)}>{P.bulk.doTrash}</button>
           </>}><p>{P.bulk.confirmNote}</p></Modal>
         )}
+        {moving && (
+          <Modal title={P.moveTitle(moving.name)} closeLabel={d.common.close} onClose={() => setMoving(null)}>
+            <ul className="m-body move-list">
+              {[...data.groups.map(g => ({ id: g.id as string | null, name: g.name, color: g.color })), { id: null, name: d.groups.none, color: null }].map(g => (
+                <li key={g.id ?? 'none'}>
+                  <button type="button" className="move-to" aria-current={moving.groupId === g.id} onClick={() => void move(moving, g.id)}>
+                    <span className={g.color ? `sq gc-${g.color}` : 'sq'} aria-hidden="true" />{g.name}{moving.groupId === g.id && <Icon name="check" />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Modal>
+        )}
       </main>
 
       {batch && <Tray d={d} data={data} profiles={batch.map(id => all.find(p => p.id === id)).filter((p): p is Profile => !!p)} failed={batchFail}
@@ -415,8 +444,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
 
 interface ItemProps {
   d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; manager: boolean;
-  status?: ProfileStatus; progress?: Progress; checking: boolean; risky: boolean;
-  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void;
+  group: Group | null; status?: ProfileStatus; progress?: Progress; checking: boolean; risky: boolean;
+  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void;
 }
 
 // What the profile is doing: a coloured dot and a word.
@@ -433,12 +462,12 @@ function Status({ d, p, h, status, progress }: ItemProps){
 }
 
 // Everything to do with the profile, in its ⋯ menu.
-function Actions({ d, p, h, status, progress, checking, manager, onOpen, onStop, onCheck, onEdit, onTrash }: ItemProps){
+function Actions({ d, p, h, status, progress, checking, manager, onOpen, onStop, onCheck, onEdit, onMove, onTrash }: ItemProps){
   const P = d.profiles, busy = !!status && status.state !== 'running';
   return <MoreMenu label={P.actionsX(p.name)} items={[
     status?.state === 'running' ? { label: P.stop, onClick: onStop } : { label: P.open, onClick: onOpen, disabled: busy || !!(progress && !progress.finished && !progress.error) || !!elsewhere(p) },
     ...(h.checks[0]?.id === 'proxy-down' ? [{ label: P.checkProxy, onClick: onCheck, disabled: checking }] : []),
-    { label: d.detail.edit, onClick: onEdit },
+    { label: d.detail.edit, onClick: onEdit }, { label: P.move, onClick: onMove },
     ...(manager ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
   ]} />;
 }
@@ -462,11 +491,14 @@ function lastOpened(iso: string | null, d: Dict, lang: Lang){
 
 function Name({ d, p, risky, onView, onStar }: ItemProps){
   return (
-    <span className="prof-cell"><Avatar text={p.name} /><span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><Star d={d} p={p} onStar={onStar} />
+    <span className="prof-cell"><span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><Star d={d} p={p} onStar={onStar} />
       {risky && <span className="risk-flag" title={d.risks.flag}><Icon name="alert" /><span className="sr">{d.risks.flag}</span></span>}
       {p.tags.map(t => <span key={t} className="tag">{t}</span>)}</span></span>
   );
 }
+
+// Its group as a tag in the group's colour.
+const GroupTag = ({ group }: ItemProps) => (group ? <span className={`gtag gc-${group.color}`}>{group.name}</span> : <span className="muted">—</span>);
 
 function Star({ d, p, onStar }: { d: Dict; p: Profile; onStar(): void }){
   const P = d.profiles;
@@ -479,6 +511,7 @@ function Row(props: ItemProps){
     <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) onView(); }}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
       <td className="prof"><Name {...props} /></td>
+      <td><GroupTag {...props} /></td>
       <td><span className="l1">{d.os[p.os]}</span><span className="l2">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span></td>
       <td><ProxyCell {...props} /></td>
       <td className="lastc mono">{lastOpened(p.lastOpenedAt, d, lang)}</td>
@@ -497,6 +530,7 @@ function Card(props: ItemProps){
         <Name {...props} />
         <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} />
       </div>
+      {props.group && <div><GroupTag {...props} /></div>}
       <div className="pc-px"><ProxyCell {...props} /></div>
       <p className="pc-fp">{d.os[p.os]} · {h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</p>
       <div className="pc-foot"><Status {...props} /><Actions {...props} /></div>

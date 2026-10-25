@@ -1,6 +1,6 @@
 // The workbench as people use it: proxies and profiles made in the UI, live sync between two computers,
 // bulk actions with the Trash, imports, and the one-click fixes of the consistency check.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
 import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, inBrowser, launch, logIn, startProbe } from './helpers';
 
@@ -195,6 +195,7 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
 
   const rows = win.locator('tr[data-id]');
   await expect(rows).toHaveCount(2);
+  await expect(rows.filter({ hasText: 'US-Line' }).locator('.lat')).toHaveClass(/good/);
   await win.getByRole('button', { name: /^Unused/ }).click();
   await expect(rows).toHaveText([/Dead-Line/]);
   await choose(win.getByRole('combobox', { name: 'Status' }), 'All statuses');
@@ -213,6 +214,60 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
   await expect(win.locator('tr[data-id]')).toHaveText([/On-US/]);
   await win.getByRole('button', { name: 'Show all profiles' }).click();
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
+  await app.close();
+});
+
+test('fingerprint choices when creating a profile; filters by engine; a profile moved to a group from its menu', async () => {
+  test.skip(!hasKernels, 'browser engines are not unpacked here');
+  test.setTimeout(180_000);
+  const acct = await account({ buy: STUDIO });
+  const base = `/workspaces/${acct.workspaceId}`;
+  await acct.api.post(`${base}/groups`, { data: { name: 'EU shops', color: 'teal' } });
+  const app = await launch(dataDir(), ENGINE_ENV);
+  const win = await logIn(app, acct.email);
+  const create = async (name: string, pick: (form: Locator) => Promise<void>) => {
+    await win.getByRole('button', { name: 'New profile' }).click();
+    const form = win.getByRole('dialog', { name: 'New profile' });
+    await form.getByLabel('Name', { exact: true }).fill(name);
+    await pick(form);
+    await expect(form.getByRole('button', { name: 'Create profile' })).toBeEnabled({ timeout: 60_000 });
+    await form.getByRole('button', { name: 'Create profile' }).click();
+    await expect(form).toBeHidden();
+  };
+  const saved = async (name: string) => ((await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; fingerprint: Record<string, unknown> }[]).find(p => p.name === name)!.fingerprint;
+
+  // Chromium: the screen is this computer's; Canvas and the GPU can show this computer's own values.
+  await create('Real-GPU', async form => {
+    await expect(form.getByRole('combobox', { name: 'Screen resolution' })).toBeDisabled();
+    await choose(form.getByRole('combobox', { name: 'Canvas' }), 'This computer’s');
+    await choose(form.getByRole('combobox', { name: 'WebGL' }), 'This computer’s GPU');
+  });
+  expect(await saved('Real-GPU')).toMatchObject({ kind: 'chromium', canvas: 'real', webgl: 'real' });
+  await row(win, 'Real-GPU').getByRole('button', { name: 'Real-GPU', exact: true }).click();
+  await expect(detail(win).getByRole('region', { name: 'Fingerprint' })).toContainText('This computer’s GPU');
+  await expect(detail(win).locator('[data-check="fp-real"]')).toContainText('Canvas and WebGL show this computer’s own values');
+  await win.keyboard.press('Escape');
+
+  // Firefox: an exact screen, and WebRTC off.
+  await create('FF-1080', async form => {
+    await form.getByRole('group', { name: 'Engine', exact: true }).getByRole('button', { name: 'Firefox' }).click();
+    await choose(form.getByRole('combobox', { name: 'Screen resolution' }), '1920 × 1080');
+    await choose(form.getByRole('combobox', { name: 'WebRTC' }), 'Off');
+    await expect(form.getByTestId('fingerprint')).toContainText('1920 × 1080', { timeout: 60_000 });
+  });
+  const ff = await saved('FF-1080');
+  expect(ff).toMatchObject({ kind: 'firefox', webrtc: 'block' });
+  expect((ff.config as Record<string, number>)['screen.width']).toBe(1920);
+
+  await choose(win.getByRole('combobox', { name: 'Engine', exact: true }), 'Firefox 156');
+  await expect(win.locator('tr[data-id]')).toHaveText([/FF-1080/]);
+  await choose(win.getByRole('combobox', { name: 'Engine', exact: true }), 'All engines');
+
+  await row(win, 'Real-GPU').getByRole('button', { name: 'Actions for Real-GPU' }).click();
+  await win.getByRole('menuitem', { name: 'Move to group' }).click();
+  await win.getByRole('dialog', { name: 'Move “Real-GPU” to a group' }).getByRole('button', { name: 'EU shops' }).click();
+  await expect(row(win, 'Real-GPU').locator('.gtag')).toHaveText('EU shops');
+  await expect(row(win, 'Real-GPU').locator('.gtag')).toHaveClass(/gc-teal/);
   await app.close();
 });
 

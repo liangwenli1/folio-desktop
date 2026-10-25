@@ -1,11 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, screen, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import type { ExtensionSource, KernelKind, Labels, Method, Os, ProxyDraft, Step, SyncOptions } from '../shared/bridge';
+import type { ExtensionSource, FingerprintAsk, KernelKind, Labels, Method, Os, ProxyDraft, Step, SyncOptions } from '../shared/bridge';
 import { SITE_URL, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
-import { generate } from './fingerprint';
+import { firefoxGpuList, generate } from './fingerprint';
 import { install, list as listKernels, pause as pauseKernel, recommended, remove as removeKernel, resolve as resolveKernel, settings as kernelSettings, setSettings as setKernelSettings, upload as uploadKernel, usage as kernelUsage } from './kernels';
 import { forget } from './account';
 import { addCookies, checkup, discard, focus, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
@@ -294,17 +294,18 @@ ipcMain.handle('folio:setStartup', (_e, on: boolean) => {
   if (startupSupported) app.setLoginItemSettings({ openAtLogin: !!on, args: ['--hidden'] });
 });
 
-ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os, version?: string) => {
+ipcMain.handle('folio:newFingerprint', async (_e, kind: KernelKind, os: Os, version?: string, ask?: FingerprintAsk) => {
   const kernelVersion = version ? String(version) : await recommended(kind);
   if (!kernelVersion) return { ok: false, error: { code: 'kernel_unavailable', message: 'This engine is not available on this computer', status: 400 } };
   try {
     const exe = kind === 'firefox' ? await resolveKernel(kind, kernelVersion) : null;
-    return { ok: true, data: { fingerprint: await generate(kind, os, exe), kernelVersion } };
+    return { ok: true, data: { fingerprint: await generate(kind, os, exe, ask ?? {}), kernelVersion } };
   } catch (e){
     const code = (e as Error).message === 'kernel_missing' ? 'kernel_missing' : 'internal';
     return { ok: false, error: { code, message: String(e), status: 400 } };
   }
 });
+ipcMain.handle('folio:firefoxGpus', (_e, os: Os) => firefoxGpuList(os));
 ipcMain.handle('folio:kernels', () => listKernels());
 // Engine downloads: asked for (the Engines page, a profile that needs one), or in the background, the recommended version
 // of an engine this computer already has. With "only while idle", a background download pauses while a profile is

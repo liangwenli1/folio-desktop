@@ -4,7 +4,7 @@
 // engine, and open its start pages. While it runs, the lock is renewed and cookies are saved every few minutes. When
 // the browser closes (however it closes), its folder is read back with the engine offline, the state (with the tabs
 // it had open) is uploaded and the lock released.
-import { app } from 'electron';
+import { app, screen } from 'electron';
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
@@ -71,11 +71,13 @@ const testOnly = () => [
 // `start`: the page it opens on (a blank one without).
 async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean, extensions: string[], start = 'about:blank'){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'chromium' }>;
+  const real = [fp.canvas === 'real' && 'canvas', fp.webgl === 'real' && 'gpu'].filter(Boolean);
   // Only our own switches: Playwright's defaults include --disable-extensions, --force-color-profile and others
   // that change behaviour a site can see (see docs/kernel-evaluation.md).
   const args = [
     '--remote-debugging-pipe', ...(debug ? ['--remote-debugging-port=0'] : []), `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
     `--fingerprint=${fp.seed}`, `--fingerprint-platform=${p.os}`, '--fingerprint-brand=Chrome', `--fingerprint-hardware-concurrency=${fp.hardwareConcurrency}`,
+    ...(real.length ? [`--disable-spoofing=${real.join(',')}`] : []),
     `--lang=${locale}`, `--accept-lang=${locale},${locale.split('-')[0]}`, `--timezone=${tz}`,
     `--proxy-server=http://127.0.0.1:${port}`, '--disable-non-proxied-udp',
     ...(extensions.length ? [`--load-extension=${extensions.join(',')}`] : []),
@@ -90,17 +92,18 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
 async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, exitIp: string | null, bidiPort: number | null,
   extensions: { dirs: string[]; uuids: Record<string, string> }){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'firefox' }>;
+  const block = fp.webrtc === 'block';
   // Camoufox otherwise shows the host's time zone and the real public IP over WebRTC (P0 evaluation).
-  const config: Record<string, unknown> = {
+  const config: Record<string, unknown> = fitWindow({
     ...fp.config, timezone: tz,
     ...(geo ? { 'geolocation:latitude': geo.lat, 'geolocation:longitude': geo.lon, 'geolocation:accuracy': 50 } : {}),
-    ...(exitIp && !exitIp.includes(':') ? { 'webrtc:ipv4': exitIp } : {})
-  };
+    ...(exitIp && !exitIp.includes(':') && !block ? { 'webrtc:ipv4': exitIp } : {})
+  });
   await prepareFirefox();
   return Camoufox({
     executable_path: exe, persistent_context: true, user_data_dir: dir, headless: false, os: p.os, locale, config,
     // Lets flow scripts that start with mw: see the page's own JavaScript; it does nothing until a script asks.
-    i_know_what_im_doing: true, exclude_addons: ['UBO'], main_world_eval: true, addons: extensions.dirs,
+    i_know_what_im_doing: true, exclude_addons: ['UBO'], main_world_eval: true, addons: extensions.dirs, block_webrtc: block,
     proxy: { server: `http://127.0.0.1:${port}`, ...(process.env.FOLIO_PROXY_LOOPBACK ? {} : { bypass: '127.0.0.1,localhost' }) },
     firefox_user_prefs: {
       ...(process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {}),
@@ -108,6 +111,19 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
     },
     ...(bidiPort ? { args: [`--remote-debugging-port=${bidiPort}`] } : {})
   }) as Promise<BrowserContext>;
+}
+
+// A claimed screen bigger than this computer's keeps its size, but the window shrinks to fit the real one (with the
+// same gap for the browser's own bars), as a window that isn't maximized would.
+function fitWindow(config: Record<string, unknown>){
+  const area = screen.getPrimaryDisplay().workAreaSize;
+  for (const [axis, cap] of [['Width', area.width], ['Height', area.height]] as const){
+    const outer = config[`window.outer${axis}`], inner = config[`window.inner${axis}`];
+    if (typeof outer !== 'number' || outer <= cap) continue;
+    config[`window.outer${axis}`] = cap;
+    if (typeof inner === 'number') config[`window.inner${axis}`] = Math.max(1, cap - Math.max(0, outer - inner));
+  }
+  return config;
 }
 
 // A port nothing listens on right now, for Firefox's WebDriver BiDi server.

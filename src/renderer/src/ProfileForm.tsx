@@ -1,10 +1,10 @@
 // New profile and edit profile. A new profile gets its fingerprint from the main process for the chosen
 // engine and system; an edit keeps it unless the user regenerates it.
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import type { CheckResult, Fingerprint, KernelKind, Os } from '@shared/bridge';
+import type { CheckResult, Fingerprint, FingerprintAsk, KernelKind, Os } from '@shared/bridge';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { folio, isApiError, type Profile, type ProxyImport } from './api';
-import { ENGINES, fingerprintFacts, proxyState } from './checks';
+import { ENGINES, fingerprintFacts, gpuName, latencyTone, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
 import { Icon, Modal, Switch, bytes, percent, type IconName } from './ui';
@@ -14,10 +14,20 @@ import { Select, SelectField, type Opt } from './Select';
 interface Props { d: Dict; wsId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
 
 const NEW_GROUP = '__new';
+// Screens a Firefox identity can be drawn to exactly, per system (others come out at another size).
+const SCREENS: Record<Os, string[]> = {
+  windows: ['1920x1080', '1366x768', '1536x864', '1440x900', '1600x900', '1280x720', '1280x1024', '1680x1050', '1920x1200', '2560x1440', '3840x2160'],
+  linux: ['1920x1080', '1366x768', '1536x864', '1440x900', '1280x1024', '1680x1050', '1920x1200', '2560x1440', '3840x2160'],
+  macos: ['1440x900', '1512x982', '1728x1117', '1920x1080', '2560x1440']
+};
+const screenLabel = (v: string) => v.replace('x', ' × ');
 const ZONES = Intl.supportedValuesOf('timeZone');
 const LANG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
-type PxNote = { state: 'checking' | 'ok' | 'down' | 'bad'; text: string } | null;
+// A check that got through is coloured by its latency: 'ok', 'warn' (slow), 'slow' (very slow); 'bad' is a line that
+// couldn't be read.
+type PxNote = { state: 'checking' | 'ok' | 'warn' | 'slow' | 'down' | 'bad'; text: string } | null;
+const ANSWERED = { good: 'ok', warn: 'warn', bad: 'slow' } as const;
 // A proxy from the library, a new one pasted in (it joins the library), or none.
 type PxMode = 'saved' | 'custom' | 'none';
 type FpState = { state: 'loading' } | { state: 'ready'; fingerprint: Fingerprint; kernelVersion: string } | { state: 'need-firefox'; version: string } | { state: 'error' };
@@ -53,6 +63,22 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [kernelVersion, setKernelVersion] = useState(profile?.kernelVersion ?? '');
   const [fp, setFp] = useState<FpState>(profile ? { state: 'ready', fingerprint: profile.fingerprint, kernelVersion: profile.kernelVersion } : { state: 'loading' });
   const [regenerated, setRegenerated] = useState(false);
+  // Fingerprint choices. Firefox's screen ('' for random, else 'WxH') and GPU ('' for random, else vendor and renderer on
+  // two lines) shape the identity drawn; Chromium's Canvas and GPU switches and Firefox's WebRTC apply at launch.
+  const fp0 = profile?.fingerprint, ff0 = fp0?.kind === 'firefox' ? fp0.config : null;
+  const [screenAsk, setScreenAsk] = useState(ff0 && typeof ff0['screen.width'] === 'number' ? `${ff0['screen.width']}x${ff0['screen.height']}` : '');
+  const [gpuAsk, setGpuAsk] = useState(ff0 && typeof ff0['webGl:renderer'] === 'string' ? `${ff0['webGl:vendor']}\n${ff0['webGl:renderer']}` : '');
+  const [canvas, setCanvas] = useState(fp0?.kind === 'chromium' ? fp0.canvas ?? 'noise' : 'noise');
+  const [webgl, setWebgl] = useState(fp0?.kind === 'chromium' ? fp0.webgl ?? 'spoof' : 'spoof');
+  const [webrtc, setWebrtc] = useState(fp0?.kind === 'firefox' ? fp0.webrtc ?? 'replace' : 'replace');
+  const [gpus, setGpus] = useState<[string, string][]>([]);
+  useEffect(() => { if (kernel === 'firefox') void folio.firefoxGpus(os).then(setGpus); }, [kernel, os]);
+  const ask = (screen: string, gpu: string): FingerprintAsk => ({ screen: screen ? screen.split('x').map(Number) as [number, number] : null, gpu: gpu ? gpu.split('\n') as [string, string] : null });
+  // The fingerprint as it will be saved: the identity drawn plus the choices applied at launch (defaults left out).
+  const withChoices = (x: Fingerprint): Fingerprint => (x.kind === 'chromium'
+    ? { ...x, canvas: canvas === 'real' ? 'real' : undefined, webgl: webgl === 'real' ? 'real' : undefined }
+    : { ...x, webrtc: webrtc === 'block' ? 'block' : undefined });
+  const choicesChanged = fp0?.kind === 'chromium' ? (fp0.canvas ?? 'noise') !== canvas || (fp0.webgl ?? 'spoof') !== webgl : fp0?.kind === 'firefox' && (fp0.webrtc ?? 'replace') !== webrtc;
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -67,8 +93,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
     if (!chosen) return;
     if (kernel === 'firefox' && !chosen.installed){ setFp({ state: 'need-firefox', version: chosen.version }); return; }
     setFp({ state: 'loading' });
-    try { setFp({ state: 'ready', ...await folio.newFingerprint(kernel, os, chosen.version) }); } catch { setFp({ state: 'error' }); }
-  }, [kernel, os, chosen?.version, chosen?.installed]);
+    try { setFp({ state: 'ready', ...await folio.newFingerprint(kernel, os, chosen.version, ask(screenAsk, gpuAsk)) }); } catch { setFp({ state: 'error' }); }
+  }, [kernel, os, chosen?.version, chosen?.installed, screenAsk, gpuAsk]);
 
   useEffect(() => { if (!edit) void generate(); }, [edit, generate]);
 
@@ -88,16 +114,21 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
     setPxNote({ state: 'checking', text: d.common.checking });
     const r: CheckResult = await folio.checkProxy(id);
     const place = r.geo ? [r.geo.city, r.geo.countryName].filter(Boolean).join(', ') : r.ip ?? '';
-    setPxNote(r.ok ? { state: 'ok', text: f.proxyOk(place, r.ms ?? 0) } : { state: 'down', text: f.proxyDown });
+    setPxNote(r.ok ? { state: ANSWERED[latencyTone(r.ms)], text: f.proxyOk(place, r.ms ?? 0) } : { state: 'down', text: f.proxyDown });
   }
 
-  async function regenerate(){
+  async function regenerate(screen: string, gpu: string){
     if (!profile) return;
     setFp({ state: 'loading' });
     try {
-      setFp({ state: 'ready', ...await folio.newFingerprint(profile.kernel, profile.os, kernelVersion) }); setRegenerated(true);
+      setFp({ state: 'ready', ...await folio.newFingerprint(profile.kernel, profile.os, kernelVersion, ask(screen, gpu)) }); setRegenerated(true);
     } catch { setFp({ state: 'error' }); }
   }
+  // A new profile draws again by itself when a choice changes; an edit draws again only when asked.
+  const pickScreen = (v: string) => { setScreenAsk(v); if (edit) void regenerate(v, gpuAsk); };
+  const pickGpu = (v: string) => { setGpuAsk(v); if (edit) void regenerate(screenAsk, v); };
+  // A random identity: Firefox's screen and GPU go back to random too.
+  const randomize = () => { setScreenAsk(''); setGpuAsk(''); if (edit) void regenerate('', ''); else if (!screenAsk && !gpuAsk) void generate(); };
 
   const nameErr = tried && !name.trim() ? f.nameErr : null;
   const pxErr = tried && ((pxMode === 'saved' && !proxyId) || (pxMode === 'custom' && !paste.trim())) ? f.pickErr : null;
@@ -121,11 +152,11 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
         ...(manager ? { ...(ownerId || profile ? { ownerId: ownerId || null } : {}), ...(data.departments.length ? { departmentId: departmentId || null } : {}) } : {})
       };
       if (profile && base){
-        const ok = await data.patch(base, { ...common, kernelVersion, syncMode, ...(regenerated ? { fingerprint: fp.fingerprint } : {}) });
+        const ok = await data.patch(base, { ...common, kernelVersion, syncMode, ...(regenerated || choicesChanged ? { fingerprint: withChoices(fp.fingerprint) } : {}) });
         if (!ok){ setBase(profile); setError(f.stale); return; }
         onDone(profile);
       } else {
-        const p = await folio.api<Profile>('POST', `/workspaces/${wsId}/profiles`, { ...common, kernel, os, kernelVersion: fp.kernelVersion, fingerprint: fp.fingerprint });
+        const p = await folio.api<Profile>('POST', `/workspaces/${wsId}/profiles`, { ...common, kernel, os, kernelVersion: fp.kernelVersion, fingerprint: withChoices(fp.fingerprint) });
         data.refresh('profiles', 'groups');
         onDone(p);
       }
@@ -136,7 +167,10 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
 
   // Extensions from the library made for this engine.
   const usable = data.extensions.filter(x => x.kernel === kernel);
-  const facts = fp.state === 'ready' ? fingerprintFacts(fp.fingerprint) : null;
+  const facts = fp.state === 'ready' ? fingerprintFacts(withChoices(fp.fingerprint)) : null;
+  const F = d.fp;
+  const screens = [...(screenAsk && !SCREENS[os].includes(screenAsk) ? [screenAsk] : []), ...SCREENS[os]];
+  const gpuOpts = [...(gpuAsk && !gpus.some(([v, r]) => `${v}\n${r}` === gpuAsk) ? [gpuAsk.split('\n') as [string, string]] : []), ...gpus];
   // Each proxy with how its last check went and where it exits.
   const proxyOptions = useMemo<Opt[]>(() => data.proxies.map(p => {
     const st = proxyState(p), c = p.lastCheck;
@@ -196,7 +230,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 <span className="label" id="pf-engine">{f.engine}</span>
                 <div className="seg fill" role="group" aria-labelledby="pf-engine">
                   {(['chromium', 'firefox'] as const).map(k => (
-                    <button key={k} type="button" aria-pressed={kernel === k} disabled={edit && kernel !== k} onClick={() => { setKernel(k); setKernelVersion(''); }}><EngineLogo kernel={k} />{ENGINES[k]}</button>
+                    <button key={k} type="button" aria-pressed={kernel === k} disabled={edit && kernel !== k} onClick={() => { setKernel(k); setKernelVersion(''); setScreenAsk(''); setGpuAsk(''); }}><EngineLogo kernel={k} />{ENGINES[k]}</button>
                   ))}
                 </div>
               </div>
@@ -208,7 +242,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               <span className="label" id="pf-os">{f.os}</span>
               <div className="seg fill" role="group" aria-labelledby="pf-os">
                 {(['windows', 'macos', 'linux'] as const).map(o => (
-                  <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => setOs(o)}><Icon name={o} />{d.os[o]}</button>
+                  <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => { setOs(o); setGpuAsk(''); if (!SCREENS[o].includes(screenAsk)) setScreenAsk(''); }}><Icon name={o} />{d.os[o]}</button>
                 ))}
               </div>
             </div>
@@ -230,7 +264,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               {pxErr && !pxNote && <p className="err">{pxErr}</p>}
               {pxNote && (
                 <p className={`pxres ${pxNote.state}`} aria-live="polite">
-                  {pxNote.state === 'checking' ? <span className="spin" aria-hidden="true" /> : <Icon name={pxNote.state === 'ok' ? 'check' : 'alert'} />}
+                  {pxNote.state === 'checking' ? <span className="spin" aria-hidden="true" /> : <Icon name={pxNote.state === 'down' || pxNote.state === 'bad' ? 'alert' : 'check'} />}
                   <span>{pxNote.text}</span>
                 </p>
               )}
@@ -238,13 +272,18 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
           </section>
 
           <section className="pf-sec">
-            <h3><span className="n">3</span>{d.browser.title}</h3>
+            <div className="sec-row">
+              <h3><span className="n">3</span>{F.title}</h3>
+              <button className="btn btn-xs btn-secondary" type="button" onClick={randomize} disabled={fp.state === 'loading' || fp.state === 'need-firefox'}><Icon name="refresh" />{F.random}</button>
+            </div>
             <div className="row2">
-              <SelectField label={d.browser.search} value={searchEngine} onChange={v => setSearchEngine(v as SearchEngine)}
-                options={SEARCH_IDS.map(id => ({ value: id, label: d.browser.name(id), ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) }))} />
-              <div className="field pf-switch">
-                <Switch label={d.browser.restore} checked={restoreTabs} onChange={setRestoreTabs} />
-              </div>
+              {kernel === 'chromium'
+                ? <SelectField label={F.screen} value="host" onChange={() => {}} disabled options={[{ value: 'host', label: F.screenHost }]} />
+                : <SelectField label={F.screen} value={screenAsk} onChange={pickScreen} options={[{ value: '', label: F.screenRandom }, ...screens.map(v => ({ value: v, label: screenLabel(v) }))]} />}
+              {kernel === 'chromium'
+                ? <SelectField label={F.webgl} value={webgl} onChange={v => setWebgl(v as 'spoof' | 'real')} options={(['spoof', 'real'] as const).map(v => ({ value: v, label: F.webglOpts[v] }))} />
+                : <SelectField label={F.webgl} value={gpuAsk} onChange={pickGpu} searchPh={f.searchPh}
+                  options={[{ value: '', label: F.webglOpts.spoof }, ...gpuOpts.map(([v, r]) => ({ value: `${v}\n${r}`, label: gpuName(r) }))]} />}
             </div>
             <div className="row2">
               <SelectField label={f.tz} value={tz} onChange={setTz} options={zoneOptions} search searchPh={f.tzPh} empty={f.tzNone} />
@@ -253,6 +292,25 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 <Select labelledBy="pf-lang" value={langMode} onChange={setLangMode} options={[{ value: 'follow', label: f.follow }, { value: 'custom', label: f.custom }]} />
                 {langMode === 'custom' && <input aria-label={f.lang} placeholder={f.langPh} value={lang} onChange={e => setLang(e.target.value)} aria-invalid={!!langErr} />}
                 {langErr && <p className="err">{langErr}</p>}
+              </div>
+            </div>
+            <div className="row2">
+              {kernel === 'chromium'
+                ? <SelectField label={F.webrtc} value="udp" onChange={() => {}} disabled options={[{ value: 'udp', label: F.webrtcOpts.udp }]} />
+                : <SelectField label={F.webrtc} value={webrtc} onChange={v => setWebrtc(v as 'replace' | 'block')} options={(['replace', 'block'] as const).map(v => ({ value: v, label: F.webrtcOpts[v] }))} />}
+              {kernel === 'chromium'
+                ? <SelectField label={F.canvas} value={canvas} onChange={v => setCanvas(v as 'noise' | 'real')} options={(['noise', 'real'] as const).map(v => ({ value: v, label: F.canvasOpts[v] }))} />
+                : <SelectField label={F.canvas} value="engine" onChange={() => {}} disabled options={[{ value: 'engine', label: F.canvasOpts.engine }]} />}
+            </div>
+          </section>
+
+          <section className="pf-sec">
+            <h3><span className="n">4</span>{d.browser.title}</h3>
+            <div className="row2">
+              <SelectField label={d.browser.search} value={searchEngine} onChange={v => setSearchEngine(v as SearchEngine)}
+                options={SEARCH_IDS.map(id => ({ value: id, label: d.browser.name(id), ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) }))} />
+              <div className="field pf-switch">
+                <Switch label={d.browser.restore} checked={restoreTabs} onChange={setRestoreTabs} />
               </div>
             </div>
           </section>
@@ -308,10 +366,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
             </div>
           </div>
           <section className="fpbox" data-testid="fingerprint">
-            <div className="fpbox-h">
-              <b>{f.fp}</b>
-              {fp.state !== 'need-firefox' && <button className="btn btn-text btn-xs" type="button" onClick={() => void (edit ? regenerate() : generate())} disabled={fp.state === 'loading'}><Icon name="refresh" />{f.regen}</button>}
-            </div>
+            <div className="fpbox-h"><b>{f.fp}</b></div>
             {fp.state === 'loading' && <p className="hint"><span className="spin" aria-hidden="true" /></p>}
             {fp.state === 'error' && <p className="err">{f.fpErr}</p>}
             {fp.state === 'need-firefox' && (
@@ -327,10 +382,12 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 {tile('proxies', d.detail.fields.tz, pxGeo?.timezone ?? f.follow, true)}
                 {tile('lang', d.detail.fields.lang, pxGeo?.locale ?? f.follow)}
                 {tile(profile?.os ?? os, d.detail.fields.os, d.os[profile?.os ?? os])}
-                {facts.seed ? tile('monitor', d.detail.fields.seed, facts.seed) : tile('monitor', d.detail.fields.screen, facts.screen ?? '—')}
                 {tile('engines', d.detail.fields.cores, facts.cores ?? '—')}
+                {tile('monitor', F.canvas, F.canvasOpts[facts.canvas])}
+                {tile('monitor', F.screen, facts.screen ?? F.screenHost, true)}
                 {tile('engines', d.detail.fields.engine, `${ENGINES[kernel]} ${fpVersion}`, true)}
-                {facts.gpu && tile('monitor', d.detail.fields.gpu, facts.gpu, true)}
+                {tile('monitor', F.webgl, facts.gpu ?? F.webglOpts[facts.webgl], true)}
+                {tile('proxies', F.webrtc, F.webrtcOpts[facts.webrtc], true)}
               </div>
             )}
             {regenerated && <p className="hint">{f.regenWarn}</p>}

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import { folio, isApiError, type ActivityEntry, type Extension, type Group, type Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
-import { ENGINES, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
+import { ENGINES, fingerprintFacts, latencyTone, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import { errorText, runTime, type Dict, type Lang } from './i18n';
-import { Avatar, ExtIcon, Icon, MoreMenu, Progress, bytes, percent, useToast, type IconName } from './ui';
+import { ExtIcon, Icon, MoreMenu, Progress, bytes, percent, useToast, type IconName } from './ui';
 import { EngineLogo, Flag, SearchLogo } from './Flag';
 import { ReportDialog, buildReport, passed, type Report } from './Checkup';
 import type { Risk } from './risks';
@@ -56,7 +56,8 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
     ms: px?.lastCheck?.ms ?? 0, host: px ? `${px.type.toUpperCase()} · ${px.host}:${px.port}` : '', city: geo?.city ?? geo?.countryName ?? '',
     tz: geo?.timezone ?? tz ?? '', set: p.timezoneOverride ?? '', setLang: p.localeOverride ?? '',
     lang: locale ? `${locale}, ${locale.split('-')[0]}` : '', country: geo?.countryName ?? '', version: p.kernelVersion,
-    latest: latest && 'version' in latest ? `${kernel} ${latest.version}` : '', size: engineSize ? bytes(engineSize) : '—', kernel
+    latest: latest && 'version' in latest ? `${kernel} ${latest.version}` : '', size: engineSize ? bytes(engineSize) : '—', kernel,
+    real: [facts.canvas === 'real' && 'Canvas', facts.webgl === 'real' && 'WebGL'].filter(Boolean).join(lang === 'zh' ? '、' : ' and ')
   };
   const fixLabel = (f: Fix) => (f.kind === 'use-engine' ? d.fixes.use(`${kernel} ${f.version.split('.')[0]}`) : d.fixes[f.kind]);
   const fixKey = (f: Fix) => `${f.kind}:${'proxyId' in f ? f.proxyId : 'version' in f ? f.version : ''}`;
@@ -102,7 +103,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
   return (
     <>
       <header className="dh">
-        <Avatar text={p.name} />
+        <Flag country={geo?.country ?? null} kernel={p.kernel} size="lg" />
         <div className="dh-t">
           <div className="dh-n">
             <h2 data-testid="detail-name">{p.name}</h2>
@@ -159,7 +160,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
             {px ? <>
               <p className="px-line"><b>{px.name}</b><span className="mono">{px.type.toUpperCase()} · {px.host}:{px.port}</span></p>
               {geo && <p className="px-line"><span><Flag country={geo.country} size="xs" />{[geo.city, geo.countryName].filter(Boolean).join(', ')}</span><span className="mono">{px.lastCheck?.ip}</span></p>}
-              <p className={`pxres ${h.proxy === 'down' ? 'down' : h.proxy === 'ok' || h.proxy === 'slow' ? 'ok' : ''}`}>
+              <p className={`pxres ${h.proxy === 'down' ? 'down' : h.proxy === 'ok' || h.proxy === 'slow' ? { good: 'ok', warn: 'warn', bad: 'slow' }[latencyTone(px.lastCheck?.ms ?? null)] : ''}`}>
                 <Icon name={h.proxy === 'down' ? 'alert' : h.proxy === 'unchecked' ? 'clock' : 'check'} />
                 <span>{h.proxy === 'down' ? D.noExit : h.proxy === 'unchecked' ? D.notChecked : D.answered(px.lastCheck?.ms ?? 0)}</span>
               </p>
@@ -173,9 +174,12 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
             <dl className="kvl">
               <dt>{D.fields.tz}</dt><dd className={`mono${h.checks.some(c => c.id === 'tz-mismatch') ? ' warn' : ''}`}>{tz ?? D.hostTz}</dd>
               <dt>{D.fields.lang}</dt><dd className="mono">{locale ?? D.hostTz}</dd>
-              <dt>{facts.seed ? D.fields.seed : D.fields.screen}</dt><dd className="mono">{facts.seed ?? facts.screen ?? '—'}</dd>
+              <dt>{d.fp.screen}</dt><dd className="mono">{facts.screen ?? d.fp.screenHost}</dd>
+              <dt>{d.fp.webgl}</dt><dd>{facts.gpu ?? d.fp.webglOpts[facts.webgl]}</dd>
+              <dt>{d.fp.webrtc}</dt><dd>{d.fp.webrtcOpts[facts.webrtc]}</dd>
+              <dt>{d.fp.canvas}</dt><dd>{d.fp.canvasOpts[facts.canvas]}</dd>
               <dt>{D.fields.cores}</dt><dd>{facts.cores ?? '—'}</dd>
-              {facts.gpu && <><dt>{D.fields.gpu}</dt><dd>{facts.gpu}</dd></>}
+              {facts.seed && <><dt>{D.fields.seed}</dt><dd className="mono">{facts.seed}</dd></>}
             </dl>
           </section>
           <section className="sec" aria-label={D.dataCard}>

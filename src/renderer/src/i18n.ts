@@ -8,7 +8,7 @@ export type Lang = 'en' | 'zh';
 type CheckText = { t: (x: CheckVars) => string; d: (x: CheckVars) => string };
 // Activity entries: who did it comes first; `p` is the profile ("Shop-07 #0007"), `x` the entry's details.
 type Said = (p: string, x: Record<string, any>) => string;
-export interface CheckVars { ms: number; host: string; city: string; tz: string; set: string; setLang: string; lang: string; country: string; version: string; latest: string; size: string; kernel: string }
+export interface CheckVars { ms: number; host: string; city: string; tz: string; set: string; setLang: string; lang: string; country: string; version: string; latest: string; size: string; kernel: string; real: string }
 
 const profilesN = (n: number) => (n === 1 ? '1 profile' : `${n} profiles`);
 const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
@@ -75,9 +75,10 @@ export const en = {
       risks: 'Link risks', risksOk: 'Nothing links your profiles'
     },
     views: { label: 'View', list: 'List', cards: 'Cards' },
-    filter: { label: 'Status', all: 'All', running: 'Running', issues: 'Needs attention', starred: 'Favourites' }, star: 'Add to favourites', unstar: 'Remove from favourites',
+    filter: { label: 'Status', all: 'All', states: 'All statuses', running: 'Running', stopped: 'Not running', issues: 'Needs attention', starred: 'Favourites', engine: 'Engine', engines: 'All engines' },
+    star: 'Add to favourites', unstar: 'Remove from favourites', move: 'Move to group', moveTitle: (n: string) => `Move “${n}” to a group`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
-    cols: { profile: 'Profile', fingerprint: 'Fingerprint', proxy: 'Proxy', last: 'Last opened', member: 'Assigned to', status: 'Status', actions: 'Actions' },
+    cols: { profile: 'Profile', group: 'Group', fingerprint: 'Fingerprint', proxy: 'Proxy', last: 'Last opened', member: 'Assigned to', status: 'Status', actions: 'Actions' },
     open: 'Open', stop: 'Stop', actionsX: (n: string) => `Actions for ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
     stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Engine', 'Proxy', 'Sign-ins', 'Browser'],
@@ -124,7 +125,7 @@ export const en = {
     notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection',
     tabs: { overview: 'Overview', signins: 'Sign-ins', extensions: 'Extensions', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint',
     verdict: { ok: 'All consistent', warn: 'Needs a look', bad: 'Can’t open' }, noExtensions: 'No extensions in this profile.', noActivity: 'Nothing recorded yet.',
-    fields: { ip: 'Exit IP', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores', screen: 'Screen', gpu: 'WebGL GPU', proxy: 'Proxy' },
+    fields: { lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores' },
     hostTz: 'This computer’s',
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', todo: 'To do', warn: 'Warning', bad: 'Problem' },
     storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', extensions: 'Extensions', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
@@ -164,12 +165,22 @@ export const en = {
     'lang-mismatch': { t: () => 'Language doesn’t match the exit IP', d: x => `Set by hand to ${x.setLang}, but the proxy exits in ${x.country}.` },
     geo: { t: x => `Geolocation set near ${x.city}`, d: () => 'Accuracy about 50 m' },
     rtc: { t: () => 'WebRTC shows the proxy IP only', d: () => 'The real IP of this computer stays hidden' },
+    'rtc-off': { t: () => 'WebRTC is off', d: () => 'Sites that need calls or video don’t work in this profile.' },
+    'fp-real': { t: x => `${x.real} show this computer’s own values`, d: () => 'Profiles on the same computer can be linked by them.' },
     'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => 'The recommended version' },
     'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `${x.latest} is recommended. The fingerprint stays the same when you upgrade.` },
     'engine-missing': { t: x => `${x.kernel} ${x.version} isn’t downloaded yet`, d: x => `${x.size}, once for all profiles. It downloads when you open the profile.` },
     'engine-unavailable': { t: x => `${x.kernel} ${x.version} isn’t built for this computer’s system`, d: x => `Use ${x.latest} for this profile to open it here.` }
   } satisfies Record<CheckId, CheckText>,
-  fixes: { check: 'Check again', backup: 'Make the backup the main line', 'choose-proxy': 'Choose a proxy', 'follow-tz': 'Follow the proxy', 'follow-lang': 'Follow the proxy', download: 'Download', use: (v: string) => `Use ${v}` },
+  fixes: { check: 'Check again', backup: 'Make the backup the main line', 'choose-proxy': 'Choose a proxy', 'follow-tz': 'Follow the proxy', 'follow-lang': 'Follow the proxy', download: 'Download', use: (v: string) => `Use ${v}`, edit: 'Change settings' },
+  // A profile's fingerprint choices, in the profile form and its details.
+  fp: {
+    title: 'Fingerprint', random: 'Random fingerprint',
+    screen: 'Screen resolution', screenRandom: 'Random for the system', screenHost: 'This computer’s screen',
+    webrtc: 'WebRTC', webrtcOpts: { udp: 'Block non-proxied UDP', replace: 'Show the proxy IP', block: 'Off' },
+    webgl: 'WebGL', webglOpts: { spoof: 'Random GPU', real: 'This computer’s GPU' },
+    canvas: 'Canvas', canvasOpts: { noise: 'Noise', real: 'This computer’s', engine: 'Set by the engine' }
+  },
   form: {
     newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Give it a name.',
     basic: 'Basics', engineProxy: 'Engine and proxy', more: 'More settings', preview: 'Preview',
@@ -179,7 +190,7 @@ export const en = {
     pickErr: 'Choose a proxy, or pick No proxy.', pastePh: 'socks5://user:pass@host:port',
     proxyBad: 'That doesn’t look like a proxy address.',
     proxyOk: (place: string, ms: number) => `Connected · ${place} · ${ms} ms`, proxyDown: 'Can’t connect',
-    tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint', regen: 'Regenerate',
+    tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint',
     regenWarn: 'Sites will see a new device; logged-in sites may ask you to verify again.', fpErr: 'Couldn’t make a fingerprint.',
     firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy', custom: 'Set by hand',
@@ -660,9 +671,10 @@ export const zh: Dict = {
       risks: '关联风险', risksOk: '未发现关联风险'
     },
     views: { label: '视图', list: '列表', cards: '卡片' },
-    filter: { label: '状态', all: '全部', running: '运行中', issues: '需处理', starred: '收藏' }, star: '收藏', unstar: '取消收藏',
+    filter: { label: '状态', all: '全部', states: '全部状态', running: '运行中', stopped: '未运行', issues: '需处理', starred: '已收藏', engine: '内核', engines: '全部内核' },
+    star: '收藏', unstar: '取消收藏', move: '移动分组', moveTitle: (n: string) => `将「${n}」移到分组`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
-    cols: { profile: '环境名称', fingerprint: '指纹配置', proxy: '代理', last: '最近打开', member: '成员', status: '状态', actions: '操作' },
+    cols: { profile: '环境名称', group: '分组', fingerprint: '指纹配置', proxy: '代理', last: '最近打开', member: '成员', status: '状态', actions: '操作' },
     open: '打开', stop: '停止', actionsX: (n: string) => `${n} 的操作`, starting: '启动中…', inUse: '正在使用',
     st: { idle: '未运行', running: '运行中', proxyDown: '代理异常' }, checkProxy: '检测代理',
     stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['内核', '代理', '登录', '浏览器'],
@@ -709,7 +721,7 @@ export const zh: Dict = {
     notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连',
     tabs: { overview: '概览', signins: '登录状态', extensions: '扩展', activity: '记录' }, more: '更多操作', fingerprint: '指纹摘要',
     verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' }, noExtensions: '该环境未安装扩展。', noActivity: '暂无记录。',
-    fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
+    fields: { lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数' },
     hostTz: '跟随本机',
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', todo: '待处理', warn: '警告', bad: '问题' },
     storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', extensions: '扩展', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
@@ -747,12 +759,21 @@ export const zh: Dict = {
     'lang-mismatch': { t: () => '语言与出口 IP 不一致', d: x => `手动设置为 ${x.setLang}，但代理出口位于 ${x.country}。` },
     geo: { t: x => `地理位置设在 ${x.city} 附近`, d: () => '精度约 50 米' },
     rtc: { t: () => 'WebRTC 只显示代理 IP', d: () => '本机真实 IP 不会泄露' },
+    'rtc-off': { t: () => 'WebRTC 已禁用', d: () => '需要通话或视频的网站在此环境中无法使用。' },
+    'fp-real': { t: x => `${x.real} 使用本机真实值`, d: () => '同一台电脑上的环境可能因此被关联。' },
     'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => '推荐版本' },
     'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `推荐版本为 ${x.latest}，升级后指纹保持不变。` },
     'engine-missing': { t: x => `${x.kernel} ${x.version} 尚未下载`, d: x => `${x.size}，所有环境共用，仅需下载一次。打开环境时自动下载。` },
     'engine-unavailable': { t: x => `${x.kernel} ${x.version} 不支持本机系统`, d: x => `改用 ${x.latest} 即可在本机打开。` }
   },
-  fixes: { check: '重新检测', backup: '将备用线路设为主线路', 'choose-proxy': '选择代理', 'follow-tz': '跟随代理', 'follow-lang': '跟随代理', download: '下载', use: (v: string) => `改用 ${v}` },
+  fixes: { check: '重新检测', backup: '将备用线路设为主线路', 'choose-proxy': '选择代理', 'follow-tz': '跟随代理', 'follow-lang': '跟随代理', download: '下载', use: (v: string) => `改用 ${v}`, edit: '修改设置' },
+  fp: {
+    title: '指纹配置', random: '生成随机指纹',
+    screen: '分辨率', screenRandom: '随机（按系统）', screenHost: '跟随本机',
+    webrtc: 'WebRTC', webrtcOpts: { udp: '禁用非代理 UDP', replace: '替换为代理 IP', block: '禁用' },
+    webgl: 'WebGL', webglOpts: { spoof: '随机显卡', real: '真实显卡' },
+    canvas: 'Canvas', canvasOpts: { noise: '噪声', real: '真实', engine: '由内核决定' }
+  },
   form: {
     newTitle: '新建环境', editTitle: '编辑环境', name: '名称', defaultName: (n: number) => `环境 ${n}`, nameErr: '请填写名称。',
     basic: '基本信息', engineProxy: '内核与代理', more: '更多设置', preview: '预览',
@@ -762,7 +783,7 @@ export const zh: Dict = {
     pickErr: '请选择代理，或改为不使用代理。', pastePh: 'socks5://用户名:密码@主机:端口',
     proxyBad: '无法识别该代理地址。',
     proxyOk: (place: string, ms: number) => `连接正常 · ${place} · ${ms} ms`, proxyDown: '连接失败',
-    tags: '标签', tagsPh: '用逗号分隔', fp: '指纹', regen: '重新生成',
+    tags: '标签', tagsPh: '用逗号分隔', fp: '指纹',
     regenWarn: '网站会将其识别为新设备，已登录的网站可能要求重新验证。', fpErr: '指纹生成失败。',
     firefoxMissing: '需先下载 Firefox 内核才能生成该指纹。', download: '下载', downloading: (pct: number) => `正在下载… ${pct}%`,
     create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理', custom: '手动设置',

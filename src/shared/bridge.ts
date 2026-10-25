@@ -9,9 +9,13 @@ export interface AppInfo { locale: string; version: string; siteUrl: string; pla
 
 export type KernelKind = 'chromium' | 'firefox';
 export type Os = 'windows' | 'macos' | 'linux';
+// Chromium's `canvas` and `webgl` 'real' show this computer's own values instead of the seed's; Firefox's `webrtc` 'block'
+// turns WebRTC off instead of showing the proxy's exit IP. Left out, they are the defaults.
 export type Fingerprint =
-  | { kind: 'chromium'; seed: number; hardwareConcurrency: number }
-  | { kind: 'firefox'; config: Record<string, unknown> };
+  | { kind: 'chromium'; seed: number; hardwareConcurrency: number; canvas?: 'noise' | 'real'; webgl?: 'spoof' | 'real' }
+  | { kind: 'firefox'; config: Record<string, unknown>; webrtc?: 'replace' | 'block' };
+// What a new Firefox identity is drawn to: an exact screen and a GPU it has records of. Chromium takes neither.
+export interface FingerprintAsk { screen?: [number, number] | null; gpu?: [string, string] | null }
 
 export interface Geo { country: string; countryName: string; region: string | null; city: string | null; lat: number; lon: number; timezone: string; locale: string }
 export interface CheckResult { ok: boolean; ms: number | null; ip: string | null; geo: Geo | null; error: string | null }
@@ -170,7 +174,9 @@ export interface FolioBridge {
   // Checks what is typed into the proxy form, without saving it.
   tryProxy(draft: ProxyDraft): Promise<CheckResult>;
   // For the given engine version (the recommended one by default); Firefox needs that version installed.
-  newFingerprint(kind: KernelKind, os: Os, version?: string): Promise<{ fingerprint: Fingerprint; kernelVersion: string }>;
+  newFingerprint(kind: KernelKind, os: Os, version?: string, ask?: FingerprintAsk): Promise<{ fingerprint: Fingerprint; kernelVersion: string }>;
+  // The GPUs a Firefox identity can claim on this system, as [vendor, renderer].
+  firefoxGpus(os: Os): Promise<[string, string][]>;
   kernels(): Promise<KernelState[]>;
   installKernel(kind: KernelKind, version: string): Promise<void>;
   removeKernel(kind: KernelKind, version: string): Promise<void>;

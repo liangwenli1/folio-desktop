@@ -79,7 +79,8 @@ const bridge: FolioBridge = {
 
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),
   tryProxy: draft => ipcRenderer.invoke('folio:tryProxy', draft),
-  newFingerprint: (kind, os, version) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os, version)),
+  newFingerprint: (kind, os, version, ask) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os, version, ask)),
+  firefoxGpus: os => ipcRenderer.invoke('folio:firefoxGpus', os),
   kernels: () => ipcRenderer.invoke('folio:kernels'),
   installKernel: (kind, version) => ipcRenderer.invoke('folio:installKernel', kind, version),
   removeKernel: (kind, version) => ipcRenderer.invoke('folio:removeKernel', kind, version),
