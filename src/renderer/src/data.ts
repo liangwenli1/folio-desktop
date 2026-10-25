@@ -3,6 +3,7 @@
 // downloads come from the main process.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus, WindowSync } from '@shared/bridge';
+import { GROUP_COLORS } from './ui';
 import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
 type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
@@ -152,12 +153,12 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const ensureGroup = useCallback(async (name: string) => {
     const base = `/workspaces/${wsId}/groups`;
     try {
-      return (await folio.api<Group>('POST', base, { name })).id;
+      return (await folio.api<Group>('POST', base, { name, color: GROUP_COLORS[groups.length % (GROUP_COLORS.length - 1)] })).id;
     } catch (e){
       if (!isApiError(e) || e.code !== 'group_exists') throw e;
       return (await folio.api<{ groups: Group[] }>('GET', base)).groups.find(g => g.name === name.trim())!.id;
     } finally { refresh('groups'); }
-  }, [wsId, refresh]);
+  }, [wsId, refresh, groups.length]);
 
   const check = useCallback(async (ids: string[]) => {
     const queue = [...new Set(ids)];

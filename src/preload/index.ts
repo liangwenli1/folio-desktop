@@ -78,6 +78,7 @@ const bridge: FolioBridge = {
   showFile: path => ipcRenderer.invoke('folio:showFile', path),
 
   checkProxy: id => ipcRenderer.invoke('folio:checkProxy', id),
+  tryProxy: draft => ipcRenderer.invoke('folio:tryProxy', draft),
   newFingerprint: (kind, os, version) => unwrap(ipcRenderer.invoke('folio:newFingerprint', kind, os, version)),
   kernels: () => ipcRenderer.invoke('folio:kernels'),
   installKernel: (kind, version) => ipcRenderer.invoke('folio:installKernel', kind, version),

@@ -48,7 +48,9 @@ const PATHS = {
   back: 'M9.5 5 6.5 8l3 3',
   calendar: 'M2.5 4h11v9.5h-11zM2.5 7h11M5.5 2.5v3M10.5 2.5v3',
   copy: 'M5.5 5.5h7v8h-7zM3.5 10.5v-8h7',
-  down: 'M8 3v9.5M4 8.5l4 4 4-4'
+  down: 'M8 3v9.5M4 8.5l4 4 4-4',
+  eye: 'M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8s-2.4 4.5-6.5 4.5S1.5 8 1.5 8zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
+  eyeOff: 'M2.5 2.5l11 11M6.6 4c.5-.3 1-.5 1.4-.5 4.1 0 6.5 4.5 6.5 4.5s-.6 1.1-1.7 2.3M11 11.6c-.9.6-1.9.9-3 .9-4.1 0-6.5-4.5-6.5-4.5s.8-1.5 2.3-2.8M6.6 6.6a2 2 0 0 0 2.8 2.8'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -85,6 +87,10 @@ export function useOutsideClose(open: boolean, close: () => void){
   return ref;
 }
 
+// The colours a group can have; new groups take them in turn, grey last.
+export const GROUP_COLORS = ['red', 'blue', 'green', 'amber', 'purple', 'teal', 'gray'] as const;
+export type GroupColor = typeof GROUP_COLORS[number];
+
 // A round initial for a person or a profile, in one of six colours picked by the text.
 const hue = (text: string) => [...text].reduce((n, c) => n + c.charCodeAt(0), 0) % 6;
 export const Avatar = ({ text, small, title }: { text: string; small?: boolean; title?: string }) => (
@@ -107,6 +113,25 @@ export function MoreMenu({ label, items }: { label: string; items: { label: stri
       )}
     </div>
   );
+}
+
+// A small button that copies a value, saying so in a toast.
+export function CopyBtn({ text, label, done }: { text: string; label: string; done: string }){
+  const toast = useToast();
+  return <button type="button" className="icon-btn bare copy-btn" aria-label={label} title={label} onClick={() => void navigator.clipboard.writeText(text).then(() => toast(done))}><Icon name="copy" /></button>;
+}
+
+// A record's details in a centred dialog over the page. Escape closes it, unless a dialog opened from it is on top.
+export function DetailDialog({ label, onClose, children }: { label: string; onClose(): void; children: ReactNode }){
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal')) onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return <>
+    <div className="scrim" onClick={onClose} />
+    <div className="detail" role="dialog" aria-modal="true" aria-label={label}>{children}</div>
+  </>;
 }
 
 // How a page shows its items (rows, cards, a calendar), remembered on this computer.
@@ -211,16 +236,6 @@ export function BulkBar({ n, label, clearLabel, onClear, children }: { n: number
   );
 }
 
-// A download as a ring that fills, with the percentage inside.
-export function Ring({ pct, label }: { pct: number; label: string }){
-  const c = 2 * Math.PI * 11;
-  return (
-    <span className="ring" role="progressbar" aria-label={label} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="11" /><circle cx="14" cy="14" r="11" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)} /></svg>
-      <b>{pct}</b>
-    </span>
-  );
-}
 export const bytes = (n: number) => (n < 1024 ** 2 ? `${Math.max(1, Math.round(n / 1024))} KB` : n < 1024 ** 3 ? `${Math.round(n / 1024 ** 2)} MB` : `${(n / 1024 ** 3).toFixed(1)} GB`);
 
 // A download bar for an engine, from the main process's progress events.

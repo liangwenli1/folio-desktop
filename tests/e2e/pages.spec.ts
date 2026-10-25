@@ -58,7 +58,7 @@ test('the engines’ download settings stay on this computer', async () => {
   const settings = win.getByRole('region', { name: 'Download settings' });
   await expect(settings.getByRole('switch', { name: 'Download the recommended version automatically' })).toBeChecked();
   await settings.getByRole('switch', { name: 'Download only while idle' }).check();
-  await expect(win.getByRole('region', { name: 'Update history' })).toContainText('Chromium 150.0.7871.186 added');
+  await expect(win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]')).toContainText('Recommended');
   await app.close();
 
   app = await launch(dir);

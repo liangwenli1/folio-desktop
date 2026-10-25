@@ -173,11 +173,11 @@ for (const lang of ['en', 'zh'] as const){
     await snap('list');
     // 2. Proxies, checked all at once.
     await click(nav(d.nav.proxies));
-    await expect(win.locator('li.pxc[data-id]')).toHaveCount(EXITS.length);
+    await expect(win.locator('tr[data-id]')).toHaveCount(EXITS.length);
     await snap('proxies');
     await click(win.getByRole('button', { name: d.proxies.checkAll }));
     await expect(win.getByRole('button', { name: d.proxies.checkAll }).locator('.spin')).toHaveCount(0, { timeout: 30_000 });
-    await snap('proxies-checked', { focus: [win.locator('li.pxc[data-id]').first()] });
+    await snap('proxies-checked', { focus: [win.locator('tr[data-id]').first()] });
     // 3. Opening UK-Shop-01: proxy, its sign-ins from the other computer, the browser.
     await click(nav(d.nav.profiles));
     await snap('profiles');
@@ -199,6 +199,7 @@ for (const lang of ['en', 'zh'] as const){
     await snap('restored', { browser: true });
     // 5. US-Store-02's health check.
     await click(row('US-Store-02').getByRole('button', { name: 'US-Store-02', exact: true }));
+    await drawer.getByRole('button', { name: d.checkup.run, exact: true }).scrollIntoViewIfNeeded();
     await snap('drawer-check');
     await click(drawer.getByRole('button', { name: d.checkup.run, exact: true }));
     const report = win.getByRole('dialog', { name: d.checkup.title('US-Store-02') });

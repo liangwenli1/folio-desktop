@@ -1526,6 +1526,8 @@ export interface paths {
                             groups: {
                                 id: string;
                                 name: string;
+                                /** @enum {string} */
+                                color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                                 profiles: number;
                             }[];
                         };
@@ -1547,6 +1549,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         name: string;
+                        /** @enum {string} */
+                        color?: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                     };
                 };
             };
@@ -1560,6 +1564,8 @@ export interface paths {
                         "application/json": {
                             id: string;
                             name: string;
+                            /** @enum {string} */
+                            color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                             profiles: number;
                         };
                     };
@@ -1618,7 +1624,9 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        name: string;
+                        name?: string;
+                        /** @enum {string} */
+                        color?: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                     };
                 };
             };
@@ -1632,6 +1640,8 @@ export interface paths {
                         "application/json": {
                             id: string;
                             name: string;
+                            /** @enum {string} */
+                            color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                         };
                     };
                 };

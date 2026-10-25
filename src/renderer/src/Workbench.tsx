@@ -18,7 +18,7 @@ import { WindowSyncPage } from './WindowSync';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
-import { Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type IconName } from './ui';
+import { GROUP_COLORS, Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type GroupColor, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Flag } from './Flag';
 import { health } from './checks';
@@ -41,6 +41,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const site = `/${lang}`;
   const [page, setPage] = useState<Page>('profiles');
   const [group, setGroup] = useState<GroupFilter>('all');
+  // Some profiles picked from elsewhere (the ones on a proxy, or with a risk), and one of them to show the details of.
+  const [only, setOnly] = useState<Set<string> | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [wsOpen, setWsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -69,7 +72,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const editing = dialog?.kind === 'edit' ? data.profiles?.find(p => p.id === dialog.id) : undefined;
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
-  const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); };
+  const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); setOnly(null); setOpenId(null); };
   // Proxies and the Trash are for owners and admins.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash') ? 'profiles' : page;
 
@@ -257,18 +260,19 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       </header>
 
       {shown === 'profiles' && (
-        <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} onPalette={() => setPalette(true)}
+        <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
           onEdit={id => setDialog({ kind: 'edit', id })} onAddProxy={() => setDialog({ kind: 'proxy' })} />
       )}
-      {shown === 'proxies' && <ProxiesPage d={d} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })} />}
+      {shown === 'proxies' && <ProxiesPage d={d} lang={lang} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })}
+        onShowProfiles={(ids, open) => { go('profiles'); setOnly(new Set(ids)); setOpenId(open ?? null); }} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
       {shown === 'extensions' && <ExtensionsPage d={d} ws={ws} data={data} />}
       {shown === 'sync' && <WindowSyncPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'flows' && <FlowsPage d={d} wsId={ws.id} meId={me.user.id} data={data} />}
       {shown === 'tasks' && <TasksPage d={d} lang={lang} ws={ws} data={data} focus={focus} />}
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
-      {shown === 'engines' && <EnginesPage d={d} lang={lang} data={data} admin={me.admin} />}
+      {shown === 'engines' && <EnginesPage d={d} data={data} admin={me.admin} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
 
@@ -344,6 +348,10 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
     } catch (err){ fail(err); }
     data.refresh('groups');
   }
+  async function recolor(id: string, color: GroupColor){
+    try { await folio.api('PATCH', `/groups/${id}`, { color }); } catch (err){ fail(err); }
+    data.refresh('groups');
+  }
   async function remove(id: string){
     setConfirm(null);
     try { await folio.api('DELETE', `/groups/${id}`); } catch (err){ fail(err); }
@@ -367,12 +375,15 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
         {data.groups.map(g => renaming === g.id ? <div key={g.id}>{form}</div> : (
           <div key={g.id} className="grp-item" ref={menu === g.id ? menuRef : undefined}>
             <button type="button" className={`nav-i${group === g.id ? ' active' : ''}`} aria-current={group === g.id ? 'true' : undefined} onClick={() => onPick(g.id)}>
-              <span className="sq" aria-hidden="true" />{g.name}
+              <span className={`sq gc-${g.color}`} aria-hidden="true" />{g.name}
             </button>
             {manager && <button type="button" className="grp-more" aria-label={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>}
             {menu === g.id && (
               <div className="menu" role="menu">
                 <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setRenaming(g.id); setName(g.name); }}>{G.rename}</button>
+                <div className="swatches" role="group" aria-label={G.color}>
+                  {GROUP_COLORS.map(c => <button key={c} type="button" className={`sw gc-${c}`} aria-label={G.colors[c]} title={G.colors[c]} aria-pressed={g.color === c} onClick={() => { setMenu(null); void recolor(g.id, c); }} />)}
+                </div>
                 <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setConfirm(g.id); }}>{G.delete}</button>
               </div>
             )}

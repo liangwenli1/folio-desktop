@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, safeStorage, screen, shell, Tray } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import type { ExtensionSource, KernelKind, Labels, Method, Os, Step, SyncOptions } from '../shared/bridge';
+import type { ExtensionSource, KernelKind, Labels, Method, Os, ProxyDraft, Step, SyncOptions } from '../shared/bridge';
 import { SITE_URL, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
@@ -14,7 +14,7 @@ import { api } from './api';
 import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './transfer';
 import { randomUUID } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
-import { checkById, checkWorkspace } from './proxy-check';
+import { checkById, checkWorkspace, tryProxy } from './proxy-check';
 import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
 import { createApiToken, loadLocalApi, localApi, onLocalApi, revokeApiToken, setLocalApi } from './local-api';
@@ -246,6 +246,7 @@ ipcMain.handle('folio:focusProfile', (_e, id: string) => focus(String(id)));
 ipcMain.handle('folio:checkup', (_e, id: string) => checkup(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());
 ipcMain.handle('folio:checkProxy', (_e, id: string) => checkById(String(id)));
+ipcMain.handle('folio:tryProxy', (_e, draft: ProxyDraft) => tryProxy(draft));
 
 // Trial runs from the flow editor, each by a token its progress events carry.
 const trials = new Map<string, AbortController>();

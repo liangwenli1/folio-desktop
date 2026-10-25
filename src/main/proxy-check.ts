@@ -5,7 +5,7 @@ import { session } from 'electron';
 import { API_URL, api } from './api';
 import { getToken } from './session';
 import { startForwarder, type Upstream } from './forwarder';
-import type { CheckResult, Geo } from '../shared/bridge';
+import type { CheckResult, Geo, ProxyDraft } from '../shared/bridge';
 
 export interface ProxySecret extends Upstream { id: string }
 
@@ -41,6 +41,17 @@ export async function checkById(id: string): Promise<CheckResult> {
   const r = await api<ProxySecret>('GET', `/proxies/${id}/credentials`);
   if (!r.ok) return { ok: false, ms: null, ip: null, geo: null, error: r.error.code };
   return checkProxy(r.data);
+}
+
+// Details typed into the proxy form, checked before they are saved; nothing is recorded. `passwordOf` uses a saved
+// proxy's password, which the form never sees.
+export async function tryProxy({ type, host, port, username, password, passwordOf }: ProxyDraft): Promise<CheckResult> {
+  if (passwordOf){
+    const r = await api<ProxySecret>('GET', `/proxies/${passwordOf}/credentials`);
+    if (!r.ok) return { ok: false, ms: null, ip: null, geo: null, error: r.error.code };
+    password = r.data.password;
+  }
+  return echoThrough({ type, host: String(host), port: Number(port), username, password });
 }
 
 // Background health check of every proxy in a workspace, two at a time.

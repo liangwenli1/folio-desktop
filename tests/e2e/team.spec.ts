@@ -86,7 +86,7 @@ test('members work with their own profiles only, and can leave', async () => {
   await winM.getByRole('button', { name: 'New profile' }).click();
   const form = winM.getByRole('dialog', { name: 'New profile' });
   await form.getByLabel('Name', { exact: true }).fill('Member-1');
-  await expect(form.getByRole('option', { name: 'Paste a new proxy…' })).toHaveCount(0);
+  await expect(form.getByRole('radio', { name: 'New proxy' })).toHaveCount(0);
   await form.getByRole('button', { name: 'Create profile' }).click();
   await expect(winM.locator('tr[data-id]')).toHaveCount(1);
   await winM.getByRole('checkbox', { name: 'Select Member-1' }).check();

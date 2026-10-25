@@ -4,9 +4,10 @@
 // trigger always shows the placeholder, and picking runs onChange (the bulk bar's "Move to group…").
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon } from './ui';
+import { Icon, type GroupColor } from './ui';
 
-export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle'; img?: string; group?: string }
+// `dot` is a status, or a group's colour.
+export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle' | `gc-${GroupColor}`; img?: string; group?: string }
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
   id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean;

@@ -13,11 +13,13 @@ import { Select, SelectField, type Opt } from './Select';
 
 interface Props { d: Dict; wsId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
 
-const NEW_GROUP = '__new', PASTE = '__paste';
+const NEW_GROUP = '__new';
 const ZONES = Intl.supportedValuesOf('timeZone');
 const LANG = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/;
 
-type PxNote = { state: 'checking' | 'ok' | 'down' | 'bad' | 'added'; text: string } | null;
+type PxNote = { state: 'checking' | 'ok' | 'down' | 'bad'; text: string } | null;
+// A proxy from the library, a new one pasted in (it joins the library), or none.
+type PxMode = 'saved' | 'custom' | 'none';
 type FpState = { state: 'loading' } | { state: 'ready'; fingerprint: Fingerprint; kernelVersion: string } | { state: 'need-firefox'; version: string } | { state: 'error' };
 
 export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onDone }: Props){
@@ -31,6 +33,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [kernel, setKernel] = useState<KernelKind>(profile?.kernel ?? 'chromium');
   const [os, setOs] = useState<Os>(profile?.os ?? 'windows');
   const [proxyId, setProxyId] = useState(profile?.proxyId ?? '');
+  const [pxMode, setPxMode] = useState<PxMode>((profile ? profile.proxyId : data.proxies.length) ? 'saved' : 'none');
   // Owners and admins choose who it is assigned to (new profiles default to whoever creates them) and its department.
   const manager = data.role !== 'member';
   const [ownerId, setOwnerId] = useState(profile ? profile.ownerId ?? '' : '');
@@ -70,15 +73,17 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   useEffect(() => { if (!edit) void generate(); }, [edit, generate]);
 
   const pickProxy = (id: string) => { setProxyId(id); setPxNote(null); };
+  const pickMode = (m: PxMode) => { setPxMode(m); setPxNote(null); };
+  // A pasted proxy joins the library and becomes the profile's choice; undefined when it can't be read.
+  async function addPasted(){
+    const r = await folio.api<ProxyImport>('POST', `/workspaces/${wsId}/proxies/import`, { text: paste.trim(), defaultType: 'http' }).catch(() => null);
+    if (!r?.proxies.length){ setPxNote({ state: 'bad', text: f.proxyBad }); return undefined; }
+    const id = r.proxies[0].id;
+    setProxyId(id); setPxMode('saved'); setPaste(''); data.refresh('proxies');
+    return id;
+  }
   async function check(){
-    let id = proxyId;
-    if (id === PASTE){
-      if (!paste.trim()) return;
-      const r = await folio.api<ProxyImport>('POST', `/workspaces/${wsId}/proxies/import`, { text: paste.trim(), defaultType: 'http' }).catch(() => null);
-      if (!r?.proxies.length){ setPxNote({ state: 'bad', text: f.proxyBad }); return; }
-      id = r.proxies[0].id;
-      setProxyId(id); setPaste(''); data.refresh('proxies');
-    }
+    const id = pxMode === 'custom' ? paste.trim() && await addPasted() : proxyId;
     if (!id) return;
     setPxNote({ state: 'checking', text: d.common.checking });
     const r: CheckResult = await folio.checkProxy(id);
@@ -95,27 +100,28 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   }
 
   const nameErr = tried && !name.trim() ? f.nameErr : null;
+  const pxErr = tried && ((pxMode === 'saved' && !proxyId) || (pxMode === 'custom' && !paste.trim())) ? f.pickErr : null;
   const langErr = tried && langMode === 'custom' && !LANG.test(lang.trim()) ? f.langErr : null;
 
   async function submit(e: FormEvent){
     e.preventDefault();
     setTried(true);
     if (!name.trim() || (langMode === 'custom' && !LANG.test(lang.trim()))) return;
-    if (fp.state !== 'ready' || proxyId === PASTE) return;
+    if (fp.state !== 'ready' || (pxMode === 'saved' && !proxyId) || (pxMode === 'custom' && !paste.trim())) return;
     setBusy(true); setError(null);
     try {
+      const px = pxMode === 'none' ? null : pxMode === 'custom' ? await addPasted() : proxyId;
+      if (px === undefined) return;
       const group = groupId === NEW_GROUP ? (newGroup.trim() ? await data.ensureGroup(newGroup) : null) : groupId || null;
       const common = {
-        name: name.trim(), groupId: group, proxyId: proxyId || null,
+        name: name.trim(), groupId: group, proxyId: px, notes: notes.trim() || null,
+        timezoneOverride: tz || null, localeOverride: langMode === 'custom' ? lang.trim() : null,
         tags: [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10),
         extensionIds: extensionIds.filter(id => usable.some(x => x.id === id)), searchEngine, restoreTabs,
         ...(manager ? { ...(ownerId || profile ? { ownerId: ownerId || null } : {}), ...(data.departments.length ? { departmentId: departmentId || null } : {}) } : {})
       };
       if (profile && base){
-        const ok = await data.patch(base, {
-          ...common, notes: notes.trim() || null, kernelVersion, syncMode, ...(regenerated ? { fingerprint: fp.fingerprint } : {}),
-          timezoneOverride: tz || null, localeOverride: langMode === 'custom' ? lang.trim() : null
-        });
+        const ok = await data.patch(base, { ...common, kernelVersion, syncMode, ...(regenerated ? { fingerprint: fp.fingerprint } : {}) });
         if (!ok){ setBase(profile); setError(f.stale); return; }
         onDone(profile);
       } else {
@@ -132,24 +138,21 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const usable = data.extensions.filter(x => x.kernel === kernel);
   const facts = fp.state === 'ready' ? fingerprintFacts(fp.fingerprint) : null;
   // Each proxy with how its last check went and where it exits.
-  const proxyOptions = useMemo<Opt[]>(() => [
-    { value: '', label: f.noProxy },
-    ...data.proxies.map(p => {
-      const st = proxyState(p), c = p.lastCheck;
-      return {
-        value: p.id, label: p.name, dot: st === 'ok' ? 'good' as const : st === 'slow' ? 'warn' as const : st === 'down' ? 'bad' as const : 'idle' as const,
-        hint: st === 'down' ? d.profiles.noResponse : st === 'unchecked' ? d.profiles.unchecked : [c?.geo?.city ?? c?.geo?.countryName, d.profiles.ms(c?.ms ?? 0)].filter(Boolean).join(' · ')
-      };
-    }),
-    ...(manager ? [{ value: PASTE, label: f.pasteProxy }] : [])
-  ], [data.proxies, manager, d, f]);
+  const proxyOptions = useMemo<Opt[]>(() => data.proxies.map(p => {
+    const st = proxyState(p), c = p.lastCheck;
+    return {
+      value: p.id, label: `${p.name} · ${p.type.toUpperCase()}`, dot: st === 'ok' ? 'good' as const : st === 'slow' ? 'warn' as const : st === 'down' ? 'bad' as const : 'idle' as const,
+      hint: st === 'down' ? d.profiles.noResponse : st === 'unchecked' ? d.profiles.unchecked : [c?.geo?.city ?? c?.geo?.countryName, d.profiles.ms(c?.ms ?? 0)].filter(Boolean).join(' · ')
+    };
+  }), [data.proxies, d]);
   const zoneOptions = useMemo<Opt[]>(() => {
     const kept = profile?.timezoneOverride;
     return [{ value: '', label: f.follow }, ...(kept && !ZONES.includes(kept) ? [kept] : []).concat(ZONES).map(z => ({ value: z, label: z }))];
   }, [f, profile?.timezoneOverride]);
 
   // The preview: the card the profile will get (exit from the proxy's last check) and its fingerprint.
-  const pxGeo = data.proxies.find(p => p.id === proxyId)?.lastCheck?.geo ?? null;
+  const chosenPx = pxMode === 'saved' ? data.proxies.find(p => p.id === proxyId) : undefined;
+  const pxGeo = chosenPx?.lastCheck?.geo ?? null;
   const groupLabel = groupId === NEW_GROUP ? newGroup.trim() || f.newGroup : data.groups.find(g => g.id === groupId)?.name ?? f.noGroup;
   const fpVersion = (fp.state === 'ready' ? fp.kernelVersion : target).split('.')[0];
   const tile = (icon: IconName, label: string, value: string | number, wide?: boolean) => (
@@ -176,7 +179,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               <div className="field">
                 <span className="label" id="pf-group">{f.group}</span>
                 <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} searchPh={f.searchPh}
-                  options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name })), { value: NEW_GROUP, label: f.newGroup }]} />
+                  options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: NEW_GROUP, label: f.newGroup }]} />
                 {groupId === NEW_GROUP && <input aria-label={f.newGroupPh} placeholder={f.newGroupPh} value={newGroup} onChange={e => setNewGroup(e.target.value)} maxLength={80} />}
               </div>
               <div className="field">
@@ -201,31 +204,36 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 options={[...(edit && !versions.some(k => k.version === kernelVersion) ? [{ value: kernelVersion, label: kernelVersion }] : []),
                   ...versions.map(k => ({ value: k.version, label: k.version, hint: k.recommended ? d.engines.recommended : k.installed ? d.engines.installed : undefined }))]} />
             </div>
-            <div className="row2">
-              <div className="field">
-                <span className="label" id="pf-os">{f.os}</span>
-                <div className="seg fill" role="group" aria-labelledby="pf-os">
-                  {(['windows', 'macos', 'linux'] as const).map(o => (
-                    <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => setOs(o)}><Icon name={o} />{d.os[o]}</button>
-                  ))}
-                </div>
+            <div className="field">
+              <span className="label" id="pf-os">{f.os}</span>
+              <div className="seg fill" role="group" aria-labelledby="pf-os">
+                {(['windows', 'macos', 'linux'] as const).map(o => (
+                  <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => setOs(o)}><Icon name={o} />{d.os[o]}</button>
+                ))}
               </div>
-              <div className="field">
-                <span className="label" id="pf-proxy">{f.proxy}</span>
+            </div>
+            <div className="field">
+              <span className="label" id="pf-proxy">{f.proxy}</span>
+              <div className="radios" role="radiogroup" aria-labelledby="pf-proxy">
+                {(['saved', 'custom', 'none'] as const).filter(m => m !== 'custom' || manager).map(m => (
+                  <label key={m} className="check-row"><input type="radio" name="pf-px" checked={pxMode === m} onChange={() => pickMode(m)} />{f.proxyMode[m]}</label>
+                ))}
+              </div>
+              {pxMode !== 'none' && (
                 <div className="pxcheck">
-                  <Select labelledBy="pf-proxy" value={proxyId} onChange={pickProxy} options={proxyOptions} searchPh={f.searchPh} empty={d.profiles.emptyMatch} />
-                  {proxyId && <button className="btn btn-secondary btn-sm" type="button" onClick={check} disabled={pxNote?.state === 'checking'}>{d.common.check}</button>}
+                  {pxMode === 'saved'
+                    ? <Select label={f.pickProxy} placeholder={f.pickProxy} value={proxyId} onChange={pickProxy} options={proxyOptions} searchPh={f.searchPh} empty={d.profiles.emptyMatch} />
+                    : <input className="mono-in" aria-label={f.proxyMode.custom} placeholder={f.pastePh} value={paste} onChange={e => { setPaste(e.target.value); setPxNote(null); }} spellCheck={false} autoComplete="off" />}
+                  <button className="btn btn-secondary" type="button" onClick={check} disabled={pxNote?.state === 'checking' || (pxMode === 'saved' ? !proxyId : !paste.trim())}>{d.proxies.test}</button>
                 </div>
-                {proxyId === PASTE && (
-                  <input className="mono-in" aria-label={f.pasteProxy} placeholder={f.pastePh} value={paste} onChange={e => setPaste(e.target.value)} spellCheck={false} autoComplete="off" />
-                )}
-                {pxNote && (
-                  <p className={`pxres ${pxNote.state}`} aria-live="polite">
-                    {pxNote.state === 'checking' ? <span className="spin" aria-hidden="true" /> : pxNote.state === 'ok' && <span className="d" aria-hidden="true" />}
-                    <span>{pxNote.text}</span>
-                  </p>
-                )}
-              </div>
+              )}
+              {pxErr && !pxNote && <p className="err">{pxErr}</p>}
+              {pxNote && (
+                <p className={`pxres ${pxNote.state}`} aria-live="polite">
+                  {pxNote.state === 'checking' ? <span className="spin" aria-hidden="true" /> : <Icon name={pxNote.state === 'ok' ? 'check' : 'alert'} />}
+                  <span>{pxNote.text}</span>
+                </p>
+              )}
             </div>
           </section>
 
@@ -236,6 +244,15 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
                 options={SEARCH_IDS.map(id => ({ value: id, label: d.browser.name(id), ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) }))} />
               <div className="field pf-switch">
                 <Switch label={d.browser.restore} checked={restoreTabs} onChange={setRestoreTabs} />
+              </div>
+            </div>
+            <div className="row2">
+              <SelectField label={f.tz} value={tz} onChange={setTz} options={zoneOptions} search searchPh={f.tzPh} empty={f.tzNone} />
+              <div className="field">
+                <span className="label" id="pf-lang">{f.lang}</span>
+                <Select labelledBy="pf-lang" value={langMode} onChange={setLangMode} options={[{ value: 'follow', label: f.follow }, { value: 'custom', label: f.custom }]} />
+                {langMode === 'custom' && <input aria-label={f.lang} placeholder={f.langPh} value={lang} onChange={e => setLang(e.target.value)} aria-invalid={!!langErr} />}
+                {langErr && <p className="err">{langErr}</p>}
               </div>
             </div>
           </section>
@@ -265,24 +282,16 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               </div>
             )}
             {edit && (
-              <>
-                <div className="row2">
-                  <SelectField label={f.tz} value={tz} onChange={setTz} options={zoneOptions} search searchPh={f.tzPh} empty={f.tzNone} />
-                  <div className="field">
-                    <span className="label" id="pf-lang">{f.lang}</span>
-                    <Select labelledBy="pf-lang" value={langMode} onChange={setLangMode} options={[{ value: 'follow', label: f.follow }, { value: 'custom', label: f.custom }]} />
-                    {langMode === 'custom' && <input aria-label={f.lang} placeholder={f.langPh} value={lang} onChange={e => setLang(e.target.value)} aria-invalid={!!langErr} />}
-                    {langErr && <p className="err">{langErr}</p>}
-                  </div>
-                </div>
-                <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}
-                  options={[{ value: 'cloud', label: f.syncCloud }, { value: 'local', label: f.syncLocal }]} />
-                <div className="field">
-                  <label htmlFor="pf-notes">{f.notes}</label>
-                  <textarea id="pf-notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={2000} />
-                </div>
-              </>
+              <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}
+                options={[{ value: 'cloud', label: f.syncCloud }, { value: 'local', label: f.syncLocal }]} />
             )}
+            <div className="field">
+              <label htmlFor="pf-notes">{f.notes}</label>
+              <span className="counted">
+                <textarea id="pf-notes" rows={2} value={notes} onChange={e => setNotes(e.target.value)} maxLength={2000} />
+                <small className="count">{notes.length} / 2000</small>
+              </span>
+            </div>
           </details>
         </div>
 
@@ -294,8 +303,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               <div><h2>{name.trim() || f.defaultName((data.profiles?.length ?? 0) + 1)}</h2><span className="mono">{groupLabel}</span></div>
             </div>
             <div className="idc-city">
-              <b>{pxGeo ? pxGeo.city ?? pxGeo.countryName : proxyId && proxyId !== PASTE ? d.detail.notChecked : d.detail.direct}</b>
-              <span className="mono">{data.proxies.find(p => p.id === proxyId)?.name ?? ''}</span>
+              <b>{pxGeo ? pxGeo.city ?? pxGeo.countryName : chosenPx || (pxMode === 'custom' && paste.trim()) ? d.detail.notChecked : d.detail.direct}</b>
+              <span className="mono">{chosenPx?.name ?? ''}</span>
             </div>
           </div>
           <section className="fpbox" data-testid="fingerprint">

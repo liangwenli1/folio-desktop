@@ -33,7 +33,8 @@ export const en = {
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines' },
   groups: {
     title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
-    rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`
+    rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`,
+    color: 'Colour', colors: { red: 'Red', blue: 'Blue', green: 'Green', amber: 'Amber', purple: 'Purple', teal: 'Teal', gray: 'Grey' }
   },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
   periods: { monthly: 'monthly', yearly: 'yearly' },
@@ -59,7 +60,7 @@ export const en = {
     out: (v: string) => `Folio ${v} is out.`, download: 'Download'
   },
   common: {
-    cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit',
+    cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit', copy: 'Copy', copied: 'Copied',
     selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
     never: 'Never', justNow: 'Just now', minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
     attribution: 'IP Geolocation by DB-IP'
@@ -117,7 +118,8 @@ export const en = {
     save_failed: 'The browser closed, but its sign-ins couldn’t be saved to Folio. They are still on this computer.'
   } as Record<string, string>,
   detail: {
-    profile: 'Profile', close: 'Close details',
+    profile: 'Profile', close: 'Close details', basics: 'Basics', proxyCard: 'Proxy connection', dataCard: 'Profile data', manage: 'Manage',
+    viewAll: 'View all', lastOpened: 'Last opened', synced: 'Last saved', answered: (ms: number) => `Answering · ${ms} ms`,
     openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
     notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection',
     tabs: { overview: 'Overview', signins: 'Sign-ins', extensions: 'Extensions', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint',
@@ -173,9 +175,10 @@ export const en = {
     basic: 'Basics', engineProxy: 'Engine and proxy', more: 'More settings', preview: 'Preview',
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
     engine: 'Engine', os: 'Operating system',
-    proxy: 'Proxy', noProxy: 'No proxy (this computer’s IP)', pasteProxy: 'Paste a new proxy…', pastePh: 'socks5://user:pass@host:port',
+    proxy: 'Proxy', proxyMode: { saved: 'Saved proxy', custom: 'New proxy', none: 'No proxy' }, pickProxy: 'Choose a proxy',
+    pickErr: 'Choose a proxy, or pick No proxy.', pastePh: 'socks5://user:pass@host:port',
     proxyBad: 'That doesn’t look like a proxy address.',
-    proxyOk: (place: string, ms: number) => `Answers in ${ms} ms, exits in ${place}`, proxyDown: 'The proxy didn’t answer.',
+    proxyOk: (place: string, ms: number) => `Connected · ${place} · ${ms} ms`, proxyDown: 'Can’t connect',
     tags: 'Tags', tagsPh: 'Comma-separated', fp: 'Fingerprint', regen: 'Regenerate',
     regenWarn: 'Sites will see a new device; logged-in sites may ask you to verify again.', fpErr: 'Couldn’t make a fingerprint.',
     firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
@@ -207,18 +210,28 @@ export const en = {
     done: (n: number) => `${profilesN(n)} imported`
   },
   proxies: {
-    title: 'Proxies', count: proxiesN,
+    title: 'Proxies',
     search: 'Search proxies', searchPh: 'Search name, host or city', add: 'Add proxy', import: 'Import', checkAll: 'Check all',
-    cols: { proxy: 'Proxy', exit: 'Exit', latency: 'Latency · last 20 checks', uptime: 'Uptime', profiles: 'Profiles', status: 'Status' },
+    sum: { total: 'Proxies', ok: 'Answering', issues: 'Problems', unbound: 'Unused' },
+    filter: { type: 'Type', types: 'All types', region: 'Region', regions: 'All regions', state: 'Status', states: 'All statuses' },
+    cols: { name: 'Name', type: 'Type', address: 'Address', exit: 'Exit', status: 'Status', latency: 'Latency', profiles: 'Profiles', actions: 'Actions' },
     labels: { latency: 'Latency', uptime: 'Uptime', profiles: 'Profiles' }, backupOf: (n: string) => `backup ${n}`, noExit: 'Exit unknown',
     downNote: (n: number, when: string | null) => `${n === 1 ? 'No response the last time' : `No response the last ${n} times`}${when ? ` · last answered ${when}` : ''}`,
-    states: { ok: 'Answering', slow: 'Slow', down: 'Not answering', unchecked: 'Not checked' }, mapLabel: 'Where the proxies exit',
+    states: { ok: 'Answering', slow: 'Slow', down: 'Not answering', unchecked: 'Not checked', issues: 'Slow or not answering', unbound: 'Unused' },
     history: (n: number) => `Last ${n} ${n === 1 ? 'check' : 'checks'}`, never: 'Not checked',
     empty: 'No proxies yet. Add one, or import a list from your provider.',
     bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use them keep working without a proxy.',
-    deleted: (n: number) => `${proxiesN(n)} deleted`, checked: (n: number) => `Checked ${proxiesN(n)}`, editX: (n: string) => `Edit ${n}`, checkX: (n: string) => `Check ${n}`,
+    deleted: (n: number) => `${proxiesN(n)} deleted`, checked: (n: number) => `Checked ${proxiesN(n)}`, actionsX: (n: string) => `Actions for ${n}`,
+    detail: {
+      label: 'Proxy', exitIp: 'Exit IP', region: 'Region', latency: 'Latency', profiles: 'Profiles', config: 'Connection', history: 'Recent checks',
+      ok: (ms: number) => `Answered · ${ms} ms`, failed: 'No response', passSet: 'Saved', passNone: 'None', uptime: 'Uptime',
+      uptimeOf: (pct: number, n: number) => `${pct}% of the last ${n}`, bound: (n: number) => `Profiles (${n})`, showAll: 'Show in Profiles',
+      none: 'No profile uses it.', noHistory: 'Not checked yet.'
+    },
     formAdd: 'Add proxy', formEdit: 'Edit proxy', name: 'Name', namePh: 'Defaults to host:port', type: 'Type', host: 'Host', port: 'Port',
-    user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', passRemove: 'Remove the saved password',
+    auth: 'Authentication', user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
+    test: 'Test connection', testOk: 'Connected', testBad: 'Can’t connect', why: { timeout: 'Timed out', unreachable: 'Unreachable' } as Record<string, string>,
+    addMore: 'Add another after saving',
     backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t answer.',
     hostErr: 'Enter a host name or IP address.', portErr: 'Ports go from 1 to 65535.',
     importTitle: 'Import proxies', importLead: 'One per line, in any of these formats:', defaultType: 'Type for lines without one',
@@ -235,20 +248,19 @@ export const en = {
   },
   engines: {
     title: 'Engines',
-    recommended: 'Recommended', installed: 'Downloaded', download: (size: string) => `Download · ${size}`, failed: 'The download failed.',
-    usedBy: (n: number) => (n ? `${profilesN(n)} here use it` : 'No profiles here use it'), everywhere: (n: number) => `${profilesN(n)} in all workspaces`,
+    cols: { version: 'Version', platforms: 'Systems', size: 'Size', released: 'Released', profiles: 'Profiles', status: 'Status', actions: 'Actions' },
+    recommended: 'Recommended', installed: 'Downloaded', notDownloaded: 'Not downloaded', download: (size: string) => `Download · ${size}`, failed: 'Download failed',
+    downloadingPct: (pct: number) => `Downloading ${pct}%`, everywhere: (n: number) => `${n} in all workspaces`, actionsX: (v: string) => `Actions for ${v}`,
     remove: 'Delete from this computer', removeBusy: 'Close the profiles that use it first.', removed: (v: string) => `${v} deleted from this computer`,
     retired: 'No longer in the catalog', none: 'No version of this engine is built for this computer.',
     outdated: (n: number, kernel: string) => `${profilesN(n)} use the older ${kernel}`, upgrade: (v: string) => `Upgrade to ${v}`,
     upgradeNote: (v: string) => `After the upgrade to ${v}, sites see the same fingerprint as before.`,
-    recommendedVersion: 'Recommended version', released: (date: string) => `Released ${date}`, downloaded: (size: string) => (size ? `Downloaded · ${size}` : 'Downloaded'),
-    downloadingOf: (size: string) => `Downloading · ${size}`, paused: (pct: number) => `Paused at ${pct}%`, pause: 'Pause', resume: 'Resume',
+    paused: (pct: number) => `Paused at ${pct}%`, pause: 'Pause', resume: 'Resume',
     disk: (size: string) => `Engines on this computer take ${size}`, cleanup: 'Delete unused versions', nothingToClean: 'Every downloaded version is in use or recommended.',
     cleanupTitle: (n: number) => `Delete ${n === 1 ? '1 unused version' : `${n} unused versions`}?`, cleanupNote: (size: string) => `Frees ${size}. A version downloads again if a profile needs it.`,
     cleaned: (n: number) => `${n === 1 ? '1 version' : `${n} versions`} deleted from this computer`,
     settings: 'Download settings', autoDownload: 'Download the recommended version automatically',
     idleOnly: 'Download only while idle',
-    history: 'Update history', historyAdded: (v: string) => `${v} added`, historyRecommended: (v: string) => `${v} made recommended`, historyNone: 'Nothing yet.',
     upgraded: (n: number, v: string) => `${profilesN(n)} now use ${v}`,
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple silicon', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
     admin: {
@@ -256,7 +268,7 @@ export const en = {
       file: 'Package', choose: 'Choose a file…', fileHint: 'The package as the engine publishes it: .zip, .tar.xz or .dmg. It goes straight to Folio’s storage.',
       hashing: (pct: number) => `Checking the file… ${pct}%`, uploading: (pct: number) => `Uploading… ${pct}%`, send: 'Upload', done: (v: string) => `${v} added to the catalog`,
       recommend: 'Make recommended', recommended: (v: string) => `${v} is now recommended`, retire: 'Remove', unfinished: 'Upload unfinished',
-      recommendTitle: (v: string) => `Make ${v} the recommended version?`, recommendNote: 'New profiles get it, and the history shows the note below.', note: 'What changed (optional)',
+      recommendTitle: (v: string) => `Make ${v} the recommended version?`, recommendNote: 'New profiles get it, and the note below shows on its row.', note: 'What changed (optional)',
       retireTitle: (v: string) => `Remove ${v} from the catalog?`,
       retireConfirm: (n: number) => `${n ? `${profilesN(n)} use it. ` : ''}Computers that downloaded it keep it; elsewhere its profiles are offered another version.`,
       retiredDone: (v: string) => `${v} removed from the catalog`
@@ -543,11 +555,6 @@ export const en = {
       webgl: { t: 'WebGL', fix: '' }
     }
   },
-  onboarding: {
-    title: 'Your first profile in three minutes', hide: 'Hide',
-    proxy: 'Add a proxy', proxyD: 'Paste one in any common format.', profile: 'Create a profile', profileD: 'Pick a system; the fingerprint is made for you.',
-    open: 'Open it', openD: 'The browser starts with the time zone and language of the proxy.', done: 'Done'
-  },
   retry: 'Try again',
   errors: {
     invalid_credentials: 'The email or password is not right.',
@@ -611,7 +618,8 @@ export const zh: Dict = {
   nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', engines: '内核' },
   groups: {
     title: '分组', all: '全部分组', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
-    rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组内环境将保留并变为未分组。`
+    rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组内环境将保留并变为未分组。`,
+    color: '颜色', colors: { red: '红色', blue: '蓝色', green: '绿色', amber: '橙色', purple: '紫色', teal: '青色', gray: '灰色' }
   },
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
   periods: { monthly: '月付', yearly: '年付' },
@@ -637,7 +645,7 @@ export const zh: Dict = {
     out: (v: string) => `Folio ${v} 已发布。`, download: '前往下载'
   },
   common: {
-    cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑',
+    cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑', copy: '复制', copied: '已复制',
     selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,
     never: '从未', justNow: '刚刚', minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
     attribution: 'IP Geolocation by DB-IP'
@@ -695,10 +703,11 @@ export const zh: Dict = {
     save_failed: '浏览器已关闭，但登录状态未能保存至 Folio，已保留在本机。'
   } as Record<string, string>,
   detail: {
-    profile: '环境', close: '关闭详情',
+    profile: '环境详情', close: '关闭详情', basics: '基础信息', proxyCard: '代理连接', dataCard: '环境数据', manage: '管理',
+    viewAll: '查看全部', lastOpened: '最近打开', synced: '最近同步', answered: (ms: number) => `连接正常 · ${ms} ms`,
     openProfile: '打开环境', edit: '编辑', trash: '移至回收站',
     notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连',
-    tabs: { overview: '概览', signins: '登录状态', extensions: '扩展', activity: '记录' }, more: '更多操作', fingerprint: '指纹',
+    tabs: { overview: '概览', signins: '登录状态', extensions: '扩展', activity: '记录' }, more: '更多操作', fingerprint: '指纹摘要',
     verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' }, noExtensions: '该环境未安装扩展。', noActivity: '暂无记录。',
     fields: { ip: '出口 IP', lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数', screen: '屏幕', gpu: 'WebGL 显卡', proxy: '代理' },
     hostTz: '跟随本机',
@@ -749,9 +758,10 @@ export const zh: Dict = {
     basic: '基本信息', engineProxy: '内核与代理', more: '更多设置', preview: '预览',
     group: '分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组名称',
     engine: '内核', os: '操作系统',
-    proxy: '代理', noProxy: '不使用代理（本机 IP）', pasteProxy: '粘贴新代理…', pastePh: 'socks5://用户名:密码@主机:端口',
+    proxy: '代理', proxyMode: { saved: '使用已有代理', custom: '自定义代理', none: '不使用代理' }, pickProxy: '选择代理',
+    pickErr: '请选择代理，或改为不使用代理。', pastePh: 'socks5://用户名:密码@主机:端口',
     proxyBad: '无法识别该代理地址。',
-    proxyOk: (place: string, ms: number) => `响应 ${ms} ms，出口位于 ${place}`, proxyDown: '代理无响应。',
+    proxyOk: (place: string, ms: number) => `连接正常 · ${place} · ${ms} ms`, proxyDown: '连接失败',
     tags: '标签', tagsPh: '用逗号分隔', fp: '指纹', regen: '重新生成',
     regenWarn: '网站会将其识别为新设备，已登录的网站可能要求重新验证。', fpErr: '指纹生成失败。',
     firefoxMissing: '需先下载 Firefox 内核才能生成该指纹。', download: '下载', downloading: (pct: number) => `正在下载… ${pct}%`,
@@ -782,18 +792,28 @@ export const zh: Dict = {
     done: (n: number) => `已导入 ${n} 个环境`
   },
   proxies: {
-    title: '代理', count: (n: number) => `${n} 个代理`,
-    search: '搜索代理', searchPh: '搜索名称、主机或城市', add: '添加代理', import: '导入', checkAll: '全部检测',
-    cols: { proxy: '代理', exit: '出口', latency: '延迟 · 最近 20 次', uptime: '可用率', profiles: '环境', status: '状态' },
+    title: '代理',
+    search: '搜索代理', searchPh: '搜索名称、地址或城市', add: '添加代理', import: '导入', checkAll: '全部检测',
+    sum: { total: '代理总数', ok: '连接正常', issues: '连接异常', unbound: '未绑定' },
+    filter: { type: '协议', types: '全部协议', region: '地区', regions: '全部地区', state: '状态', states: '全部状态' },
+    cols: { name: '代理名称', type: '协议', address: '代理地址', exit: '出口地区', status: '状态', latency: '延迟', profiles: '绑定环境', actions: '操作' },
     labels: { latency: '延迟', uptime: '可用率', profiles: '环境' }, backupOf: (n: string) => `备用 ${n}`, noExit: '出口未知',
     downNote: (n: number, when: string | null) => `连续 ${n} 次无响应${when ? ` · 最后正常于${when}` : ''}`,
-    states: { ok: '正常', slow: '较慢', down: '无响应', unchecked: '未检测' }, mapLabel: '各代理的出口位置',
+    states: { ok: '正常', slow: '较慢', down: '无响应', unchecked: '未检测', issues: '异常', unbound: '未绑定' },
     history: (n: number) => `最近 ${n} 次检测`, never: '未检测',
     empty: '暂无代理。可逐个添加，或导入代理商提供的列表。',
     bulkCheck: '检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '使用这些代理的环境将保留，并改为不使用代理。',
-    deleted: (n: number) => `已删除 ${n} 个代理`, checked: (n: number) => `已检测 ${n} 个代理`, editX: (n: string) => `编辑 ${n}`, checkX: (n: string) => `检测 ${n}`,
-    formAdd: '添加代理', formEdit: '编辑代理', name: '名称', namePh: '默认为 主机:端口', type: '类型', host: '主机', port: '端口',
-    user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', passRemove: '删除已保存的密码',
+    deleted: (n: number) => `已删除 ${n} 个代理`, checked: (n: number) => `已检测 ${n} 个代理`, actionsX: (n: string) => `${n} 的操作`,
+    detail: {
+      label: '代理详情', exitIp: '出口 IP', region: '地区', latency: '当前延迟', profiles: '绑定环境', config: '连接配置', history: '最近检测记录',
+      ok: (ms: number) => `连接正常 · ${ms} ms`, failed: '连接失败', passSet: '已保存', passNone: '未设置', uptime: '可用率',
+      uptimeOf: (pct: number, n: number) => `${pct}%（最近 ${n} 次）`, bound: (n: number) => `绑定环境（${n}）`, showAll: '在环境列表中查看',
+      none: '暂无环境使用此代理。', noHistory: '尚未检测。'
+    },
+    formAdd: '添加代理', formEdit: '编辑代理', name: '代理名称', namePh: '默认为 地址:端口', type: '代理协议', host: '代理地址', port: '端口',
+    auth: '身份验证', user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
+    test: '检测连接', testOk: '连接正常', testBad: '连接失败', why: { timeout: '连接超时', unreachable: '无法连接' } as Record<string, string>,
+    addMore: '保存后继续添加',
     backup: '备用线路', backupNone: '无', backupHint: '该线路无响应时自动切换至备用线路。',
     hostErr: '请填写主机名或 IP 地址。', portErr: '端口范围是 1 到 65535。',
     importTitle: '导入代理', importLead: '每行一个，支持以下格式：', defaultType: '未注明类型的行按此类型处理',
@@ -810,20 +830,19 @@ export const zh: Dict = {
   },
   engines: {
     title: '内核',
-    recommended: '推荐', installed: '已下载', download: (size: string) => `下载 · ${size}`, failed: '下载失败。',
-    usedBy: (n: number) => (n ? `本工作区 ${n} 个环境在用` : '本工作区暂无环境使用'), everywhere: (n: number) => `全平台 ${n} 个环境在用`,
+    cols: { version: '内核版本', platforms: '支持平台', size: '大小', released: '发布日期', profiles: '使用环境', status: '状态', actions: '操作' },
+    recommended: '推荐', installed: '已下载', notDownloaded: '未下载', download: (size: string) => `下载 · ${size}`, failed: '下载失败',
+    downloadingPct: (pct: number) => `下载中 ${pct}%`, everywhere: (n: number) => `全平台 ${n} 个`, actionsX: (v: string) => `${v} 的操作`,
     remove: '删除本机文件', removeBusy: '请先关闭使用该版本的环境。', removed: (v: string) => `已从本机删除 ${v}`,
     retired: '已从目录下架', none: '该内核暂无适用于本机系统的版本。',
     outdated: (n: number, kernel: string) => `${n} 个环境使用旧版本 ${kernel}`, upgrade: (v: string) => `升级到 ${v}`,
     upgradeNote: (v: string) => `升级到推荐的 ${v} 后，网站看到的指纹保持不变。`,
-    recommendedVersion: '推荐版本', released: (date: string) => `发布于 ${date}`, downloaded: (size: string) => (size ? `已下载 · ${size}` : '已下载'),
-    downloadingOf: (size: string) => `正在下载 · ${size}`, paused: (pct: number) => `已暂停 · ${pct}%`, pause: '暂停', resume: '继续',
+    paused: (pct: number) => `已暂停 · ${pct}%`, pause: '暂停', resume: '继续',
     disk: (size: string) => `本机内核共占用 ${size}`, cleanup: '清理未使用的版本', nothingToClean: '已下载的版本均在使用中或为推荐版本。',
     cleanupTitle: (n: number) => `清理 ${n} 个未使用的版本？`, cleanupNote: (size: string) => `可释放 ${size}，环境需要时将重新下载。`,
     cleaned: (n: number) => `已从本机删除 ${n} 个版本`,
     settings: '下载设置', autoDownload: '自动下载推荐版本',
     idleOnly: '只在空闲时下载',
-    history: '更新记录', historyAdded: (v: string) => `${v} 上架`, historyRecommended: (v: string) => `${v} 设为推荐`, historyNone: '暂无记录。',
     upgraded: (n: number, v: string) => `已将 ${n} 个环境升级到 ${v}`,
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple 芯片', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
     admin: {
@@ -831,7 +850,7 @@ export const zh: Dict = {
       file: '安装包', choose: '选择文件…', fileHint: '内核发布的原始安装包：.zip、.tar.xz 或 .dmg，直接上传至 Folio 存储。',
       hashing: (pct: number) => `正在校验文件… ${pct}%`, uploading: (pct: number) => `正在上传… ${pct}%`, send: '上传', done: (v: string) => `已将 ${v} 加入目录`,
       recommend: '设为推荐', recommended: (v: string) => `已将 ${v} 设为推荐版本`, retire: '下架', unfinished: '上传未完成',
-      recommendTitle: (v: string) => `将 ${v} 设为推荐版本？`, recommendNote: '新建环境将默认使用该版本，下方说明将显示在更新记录中。', note: '更新说明（可选）',
+      recommendTitle: (v: string) => `将 ${v} 设为推荐版本？`, recommendNote: '新建环境将默认使用该版本，下方说明将显示在该版本所在行。', note: '更新说明（可选）',
       retireTitle: (v: string) => `下架 ${v}？`,
       retireConfirm: (n: number) => `${n ? `全平台 ${n} 个环境在用。` : ''}已下载的电脑可继续使用，其他电脑上的相关环境需改用其他版本。`,
       retiredDone: (v: string) => `已下架 ${v}`
@@ -1116,11 +1135,6 @@ export const zh: Dict = {
       canvas: { t: 'Canvas 指纹在团队内唯一', fix: '另一个环境的 Canvas 绘制结果相同，请为其中之一重新生成指纹。' },
       webgl: { t: 'WebGL', fix: '' }
     }
-  },
-  onboarding: {
-    title: '三分钟完成首个环境配置', hide: '隐藏',
-    proxy: '添加代理', proxyD: '支持直接粘贴常见格式。', profile: '新建环境', profileD: '选择系统后自动生成指纹。',
-    open: '打开环境', openD: '浏览器将以代理所在地的时区与语言启动。', done: '已完成'
   },
   retry: '重试',
   errors: {

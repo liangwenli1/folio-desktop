@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import LAND from './land.json';
 
-export type PinState = 'run' | 'boot' | 'ok' | 'bad' | 'warn' | 'idle';
+export type PinState = 'run' | 'boot' | 'bad' | 'warn' | 'idle';
 export interface Pin { key: string; lat: number; lon: number; state: PinState; title: string; lines: string[] }
 // A line between two exits (two profiles that look related, or one that moved).
 export interface Link { from: { lat: number; lon: number }; to: { lat: number; lon: number }; level: 'warn' | 'bad' }
@@ -12,11 +12,11 @@ const W = 560, H = 196;
 const at = (lon: number, lat: number) => [((lon + 180) / 360) * W, ((76 - Math.max(-56, Math.min(76, lat))) / 132) * H] as const;
 const DOTS = (LAND as [number, number][]).map(([lon, lat]) => at(lon, lat));
 
-export function ExitMap({ pins, links = [], label, onPick, small }: { pins: Pin[]; links?: Link[]; label: string; onPick?(key: string): void; small?: boolean }){
+export function ExitMap({ pins, links = [], label, onPick }: { pins: Pin[]; links?: Link[]; label: string; onPick?(key: string): void }){
   const [hover, setHover] = useState<Pin | null>(null);
   const spot = hover && at(hover.lon, hover.lat);
   return (
-    <div className={`exit-map${small ? ' small' : ''}`}>
+    <div className="exit-map">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
         <g className="land">{DOTS.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={1.3} />)}</g>
         {links.map((l, i) => {

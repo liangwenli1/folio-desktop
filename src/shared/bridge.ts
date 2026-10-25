@@ -15,6 +15,7 @@ export type Fingerprint =
 
 export interface Geo { country: string; countryName: string; region: string | null; city: string | null; lat: number; lon: number; timezone: string; locale: string }
 export interface CheckResult { ok: boolean; ms: number | null; ip: string | null; geo: Geo | null; error: string | null }
+export interface ProxyDraft { type: 'http' | 'https' | 'socks5'; host: string; port: number; username: string | null; password: string | null; passwordOf?: string }
 
 export interface ProfileStatus {
   id: string; state: 'starting' | 'restoring' | 'running' | 'saving' | 'stopped' | 'error';
@@ -166,6 +167,8 @@ export interface FolioBridge {
   showFile(path: string): Promise<void>;
 
   checkProxy(id: string): Promise<CheckResult>;
+  // Checks what is typed into the proxy form, without saving it.
+  tryProxy(draft: ProxyDraft): Promise<CheckResult>;
   // For the given engine version (the recommended one by default); Firefox needs that version installed.
   newFingerprint(kind: KernelKind, os: Os, version?: string): Promise<{ fingerprint: Fingerprint; kernelVersion: string }>;
   kernels(): Promise<KernelState[]>;

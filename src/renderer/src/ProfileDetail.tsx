@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
-import { folio, isApiError, type ActivityEntry, type Extension, type Profile } from './api';
+import { folio, isApiError, type ActivityEntry, type Extension, type Group, type Profile } from './api';
 import { dayLabel, describe, time } from './Activity';
 import { ENGINES, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import { errorText, runTime, type Dict, type Lang } from './i18n';
-import { ExtIcon, Icon, Progress, bytes, percent, useOutsideClose, useToast, type IconName } from './ui';
+import { Avatar, ExtIcon, Icon, MoreMenu, Progress, bytes, percent, useToast, type IconName } from './ui';
 import { EngineLogo, Flag, SearchLogo } from './Flag';
 import { ReportDialog, buildReport, passed, type Report } from './Checkup';
 import type { Risk } from './risks';
@@ -15,8 +15,8 @@ interface Props {
   size: number | null; failed?: string;
   // What could tie it to other profiles; the team's profiles, for the health check's comparisons.
   risks: Risk[]; others: Profile[]; onStar(): void;
-  // The assigned person's email, when there is one; the extensions installed in it.
-  owner: string | null; extensions: Extension[]; activity: ActivityEntry[];
+  // Its group's name; the assigned person's email, when there is one; the extensions installed in it.
+  group: Group | null; owner: string | null; extensions: Extension[]; activity: ActivityEntry[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean; canExport: boolean;
   onClose(): void; onTakeover(): void; onExport(format: 'json' | 'netscape'): void; onImport(text: string): void; onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void;
 }
@@ -29,10 +29,8 @@ export const busyLabel = (d: Dict, state: string) => (state === 'restoring' ? d.
 const IC: Record<CheckLevel, IconName> = { ok: 'check', todo: 'download', warn: 'alert', bad: 'x' };
 const size = (n: number) => (n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 ** 2).toFixed(1)} MB`);
 
-export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, risks, others, onStar, owner, extensions, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
+export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSize, failed, risks, others, onStar, group, owner, extensions, activity, now, busy, canTakeOver, canTrash, canExport, onClose, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onExport, onImport }: Props){
   const [tab, setTab] = useState<Tab>('overview');
-  const [more, setMore] = useState(false);
-  const moreRef = useOutsideClose(more, () => setMore(false));
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p?.id, p?.lock?.since]);
   const toast = useToast();
@@ -63,24 +61,25 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
   const fixLabel = (f: Fix) => (f.kind === 'use-engine' ? d.fixes.use(`${kernel} ${f.version.split('.')[0]}`) : d.fixes[f.kind]);
   const fixKey = (f: Fix) => `${f.kind}:${'proxyId' in f ? f.proxyId : 'version' in f ? f.version : ''}`;
   const downloading = progress && !progress.finished && !progress.error;
-  const P = d.profiles;
+  const P = d.profiles, D = d.detail;
+  const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
 
   let primary, chip;
   if (status?.state === 'running'){
     primary = <button type="button" className="btn btn-primary" onClick={onStop}><Icon name="stop" />{P.stop}</button>;
-    chip = <span className="st run"><Icon name="play" />{P.st.running}<span className="sub">{runTime(now - (status.startedAt ?? now))}</span></span>;
+    chip = <span className="dot-st run">{P.st.running} · {runTime(now - (status.startedAt ?? now))}</span>;
   } else if (status || downloading){
     const label = status ? busyLabel(d, status.state) : P.downloading(percent(progress!));
     primary = <button type="button" className="btn btn-secondary" disabled><span className="spin" aria-hidden="true" />{label}</button>;
-    chip = <span className="st boot"><span className="spin" aria-hidden="true" />{label}</span>;
+    chip = <span className="dot-st boot">{label}</span>;
   } else if (away){
     primary = canTakeOver
       ? <button type="button" className="btn btn-secondary" onClick={() => setConfirmTakeover(true)}>{d.detail.takeover}</button>
       : <button type="button" className="btn btn-secondary" disabled>{d.detail.inUse}</button>;
-    chip = <span className="st away"><Icon name="monitor" />{P.inUseOn(away.deviceName ?? away.email)}</span>;
+    chip = <span className="dot-st away">{P.inUseOn(away.deviceName ?? away.email)}</span>;
   } else {
     primary = <button type="button" className="btn btn-primary" onClick={onOpen}><Icon name="play" />{d.detail.openProfile}</button>;
-    chip = failed ? <span className="st bad"><Icon name="alert" />{d.launch[failed] ?? d.launch.launch_failed}</span> : <span className="st idle"><Icon name="pause" />{P.st.idle}</span>;
+    chip = failed ? <span className="dot-st bad">{d.launch[failed] ?? d.launch.launch_failed}</span> : <span className="dot-st idle">{P.st.idle}</span>;
   }
 
   const row = (c: Check) => {
@@ -102,51 +101,33 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
 
   return (
     <>
-      <div className="d-top">
-        <button type="button" className={`icon-btn bare sm star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
-        <button type="button" className="icon-btn bare sm" aria-label={d.detail.close} onClick={onClose}><Icon name="x" /></button>
-      </div>
-      <article className="idcard" aria-label={p.name}>
-        <div className="idc-top">
-          <Flag country={geo?.country ?? null} kernel={p.kernel} size="lg" />
-          <div><h2 data-testid="detail-name">{p.name}</h2></div>
+      <header className="dh">
+        <Avatar text={p.name} />
+        <div className="dh-t">
+          <div className="dh-n">
+            <h2 data-testid="detail-name">{p.name}</h2>
+            <button type="button" className={`icon-btn bare sm star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
+          </div>
+          <span className="dh-sub">{chip}{group && <span className="tag grp-tag"><span className={`d gc-${group.color}`} aria-hidden="true" />{group.name}</span>}</span>
         </div>
-        <div className="idc-city">
-          <b>{geo ? geo.city ?? geo.countryName : px ? (h.proxy === 'down' ? d.detail.noExit : d.detail.notChecked) : d.detail.direct}</b>
-          <span className="mono">{px?.lastCheck?.ip ?? ''}</span>
-        </div>
-        {chip}
-      </article>
-      {geo && <p className="attrib">{d.common.attribution}</p>}
+        <span className="sp" />
+        {primary}
+        <button type="button" className="btn btn-secondary" onClick={onEdit}>{D.edit}</button>
+        {canTrash && <MoreMenu label={D.more} items={[{ label: D.trash, onClick: onTrash, danger: true }]} />}
+        <button type="button" className="icon-btn bare sm" aria-label={D.close} onClick={onClose}><Icon name="x" /></button>
+      </header>
       {away && (
         <div className="away-note" data-testid="away">
-          <p>{d.detail.away(away.deviceName ?? '—', away.email, new Date(away.since).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' }))}</p>
+          <p>{D.away(away.deviceName ?? '—', away.email, new Date(away.since).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' }))}</p>
           {confirmTakeover && <>
-            <p className="muted">{d.detail.takeoverNote}</p>
+            <p className="muted">{D.takeoverNote}</p>
             <div className="d-actions">
               <button type="button" className="btn btn-text btn-sm" onClick={() => setConfirmTakeover(false)}>{d.common.cancel}</button>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => { setConfirmTakeover(false); onTakeover(); }}>{d.detail.takeoverDo}</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => { setConfirmTakeover(false); onTakeover(); }}>{D.takeoverDo}</button>
             </div>
           </>}
         </div>
       )}
-      <div className="d-actions">
-        {primary}
-        <button type="button" className="btn btn-secondary" onClick={onEdit}>{d.detail.edit}</button>
-        <button type="button" className="btn btn-secondary" title={d.checkup.lead} disabled={checking || !!away} onClick={() => void checkup()}>
-          {checking && <span className="spin" aria-hidden="true" />}{checking ? d.checkup.running : d.checkup.run}
-        </button>
-        {canTrash && (
-          <div className="d-more" ref={moreRef}>
-            <button type="button" className="icon-btn bare" aria-label={d.detail.more} aria-haspopup="menu" aria-expanded={more} onClick={() => setMore(o => !o)}><Icon name="more" /></button>
-            {more && (
-              <div className="menu" role="menu">
-                <button className="menu-item danger" type="button" role="menuitem" onClick={() => { setMore(false); onTrash(); }}>{d.detail.trash}</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {(status || downloading) && status?.state !== 'running' && status?.state !== 'saving' && <Opening d={d} p={p} h={h} status={status} progress={downloading ? progress : undefined} />}
 
@@ -159,27 +140,67 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
       </div>
 
       {tab === 'overview' && <>
-        <section className="sec" aria-label={d.detail.fingerprint}>
-          <h3>{d.detail.fingerprint}</h3>
-          <dl className="kvl">
-            <dt>{d.detail.fields.os}</dt><dd>{d.os[p.os]}</dd>
-            <dt>{d.detail.fields.engine}</dt><dd><EngineLogo kernel={p.kernel} size={14} />{kernel} {p.kernelVersion}</dd>
-            <dt>{d.detail.fields.tz}</dt><dd className={`mono${h.checks.some(c => c.id === 'tz-mismatch') ? ' warn' : ''}`}>{tz ?? d.detail.hostTz}</dd>
-            <dt>{d.detail.fields.lang}</dt><dd className="mono">{locale ?? d.detail.hostTz}</dd>
-            <dt>{d.detail.fields.proxy}</dt><dd>{px ? `${px.type.toUpperCase()} · ${px.host}:${px.port}` : P.noProxy}</dd>
-            <dt>{d.browser.search}</dt><dd><SearchLogo engine={p.searchEngine} size={14} />{d.browser.name(p.searchEngine)}</dd>
-            <dt>{d.browser.start}</dt><dd>{p.restoreTabs ? d.browser.startTabs : p.searchEngine !== 'none' ? d.browser.startHome(d.browser.name(p.searchEngine)) : d.browser.startBlank}</dd>
-            <dt>{facts.seed ? d.detail.fields.seed : d.detail.fields.screen}</dt><dd className="mono">{facts.seed ?? facts.screen ?? '—'}</dd>
-            <dt>{d.detail.fields.cores}</dt><dd>{facts.cores ?? '—'}</dd>
-            {facts.gpu && <><dt>{d.detail.fields.gpu}</dt><dd>{facts.gpu}</dd></>}
-            <dt>{d.form.owner}</dt><dd data-testid="assigned">{owner ?? P.unassigned}</dd>
-          </dl>
-        </section>
-        <section className="sec" aria-label={d.detail.checksTitle}>
-          <div className="sec-row"><h3>{d.detail.checksTitle}</h3><span className={`verdict ${h.level}`} data-testid="verdict">{d.detail.verdict[h.level]}</span></div>
+        <div className="dgrid">
+          <section className="sec" aria-label={D.basics}>
+            <h3>{D.basics}</h3>
+            <dl className="kvl">
+              <dt>{d.form.group}</dt><dd>{group?.name ?? d.groups.none}</dd>
+              <dt>{d.form.owner}</dt><dd data-testid="assigned">{owner ?? P.unassigned}</dd>
+              <dt>{D.fields.os}</dt><dd><Icon name={p.os} />{d.os[p.os]}</dd>
+              <dt>{D.fields.engine}</dt><dd><EngineLogo kernel={p.kernel} size={14} />{kernel} {p.kernelVersion}</dd>
+              <dt>{d.browser.search}</dt><dd><SearchLogo engine={p.searchEngine} size={14} />{d.browser.name(p.searchEngine)}</dd>
+              <dt>{d.browser.start}</dt><dd>{p.restoreTabs ? d.browser.startTabs : p.searchEngine !== 'none' ? d.browser.startHome(d.browser.name(p.searchEngine)) : d.browser.startBlank}</dd>
+              <dt>{D.lastOpened}</dt><dd>{p.lastOpenedAt ? when(p.lastOpenedAt) : d.common.never}</dd>
+              {p.notes && <><dt>{D.notes}</dt><dd className="notes">{p.notes}</dd></>}
+            </dl>
+          </section>
+          <section className="sec" aria-label={D.proxyCard}>
+            <h3>{D.proxyCard}</h3>
+            {px ? <>
+              <p className="px-line"><b>{px.name}</b><span className="mono">{px.type.toUpperCase()} · {px.host}:{px.port}</span></p>
+              {geo && <p className="px-line"><span><Flag country={geo.country} size="xs" />{[geo.city, geo.countryName].filter(Boolean).join(', ')}</span><span className="mono">{px.lastCheck?.ip}</span></p>}
+              <p className={`pxres ${h.proxy === 'down' ? 'down' : h.proxy === 'ok' || h.proxy === 'slow' ? 'ok' : ''}`}>
+                <Icon name={h.proxy === 'down' ? 'alert' : h.proxy === 'unchecked' ? 'clock' : 'check'} />
+                <span>{h.proxy === 'down' ? D.noExit : h.proxy === 'unchecked' ? D.notChecked : D.answered(px.lastCheck?.ms ?? 0)}</span>
+              </p>
+              <div><button type="button" className="btn btn-xs btn-secondary" disabled={busy === `check:${px.id}`} onClick={() => onFix({ kind: 'check', proxyId: px.id })}>
+                {busy === `check:${px.id}` && <span className="spin" aria-hidden="true" />}{d.proxies.test}
+              </button></div>
+            </> : <p className="hint">{D.direct}</p>}
+          </section>
+          <section className="sec" aria-label={D.fingerprint}>
+            <h3>{D.fingerprint}</h3>
+            <dl className="kvl">
+              <dt>{D.fields.tz}</dt><dd className={`mono${h.checks.some(c => c.id === 'tz-mismatch') ? ' warn' : ''}`}>{tz ?? D.hostTz}</dd>
+              <dt>{D.fields.lang}</dt><dd className="mono">{locale ?? D.hostTz}</dd>
+              <dt>{facts.seed ? D.fields.seed : D.fields.screen}</dt><dd className="mono">{facts.seed ?? facts.screen ?? '—'}</dd>
+              <dt>{D.fields.cores}</dt><dd>{facts.cores ?? '—'}</dd>
+              {facts.gpu && <><dt>{D.fields.gpu}</dt><dd>{facts.gpu}</dd></>}
+            </dl>
+          </section>
+          <section className="sec" aria-label={D.dataCard}>
+            <div className="sec-row"><h3>{D.dataCard}</h3><button type="button" className="linkish" onClick={() => setTab('signins')}>{D.manage}</button></div>
+            {p.syncMode === 'local' ? <p className="hint">{D.localOnly}</p> : p.data ? (
+              <dl className="kvl">
+                <dt>{D.cookies}</dt><dd>{p.data.cookies}</dd>
+                <dt>{D.sites}</dt><dd>{p.data.origins}</dd>
+                <dt>{D.siteData}</dt><dd>{size(p.data.storageBytes)}</dd>
+                <dt>{D.synced}</dt><dd>{when(p.data.savedAt)}</dd>
+              </dl>
+            ) : <p className="hint">{D.notSaved}</p>}
+          </section>
+        </div>
+        {geo && <p className="attrib">{d.common.attribution}</p>}
+        <section className="sec" aria-label={D.checksTitle}>
+          <div className="sec-row">
+            <h3>{D.checksTitle}</h3><span className={`verdict ${h.level}`} data-testid="verdict">{D.verdict[h.level]}</span><span className="sp" />
+            <button type="button" className="btn btn-xs btn-secondary" title={d.checkup.lead} disabled={checking || !!away} onClick={() => void checkup()}>
+              {checking && <span className="spin" aria-hidden="true" />}{checking ? d.checkup.running : d.checkup.run}
+            </button>
+          </div>
           {p.report && (
             <p className="report-line">
-              {d.checkup.last(`${dayLabel(p.report.at, d, lang)} ${time(p.report.at, lang)}`, passed(p.report))}{' '}
+              {d.checkup.last(when(p.report.at), passed(p.report))}{' '}
               <button type="button" className="linkish" onClick={() => setReport(p.report)}>{d.checkup.view}</button>
             </p>
           )}
@@ -191,14 +212,19 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
                 <li key={`r${i}`} className={level} data-risk={r.kind}>
                   <span className="ic" aria-hidden="true"><Icon name={r.level === 'info' ? 'alert' : IC[level]} /></span>
                   <div>
-                    <span><span className="sr">{d.detail.status[level]}: </span>{d.risks.kinds[r.kind].t(r.ids.length, r.what)}</span>
+                    <span><span className="sr">{D.status[level]}: </span>{d.risks.kinds[r.kind].t(r.ids.length, r.what)}</span>
                   </div>
                 </li>
               );
             })}
           </ul>
         </section>
-        {p.notes && <section className="sec" aria-label={d.detail.notes}><h3>{d.detail.notes}</h3><p className="notes">{p.notes}</p></section>}
+        {activity.length > 0 && (
+          <section className="sec" aria-label={d.activity.recent}>
+            <div className="sec-row"><h3>{d.activity.recent}</h3><button type="button" className="linkish" onClick={() => setTab('activity')}>{D.viewAll}</button></div>
+            <ol className="acts">{activity.slice(0, 3).map(e => <li key={e.seq}><time>{when(e.at)}</time><span>{describe(d, e)}</span></li>)}</ol>
+          </section>
+        )}
       </>}
 
       {tab === 'signins' && (
@@ -211,7 +237,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
               <div><b>{p.data.origins}</b><span>{d.detail.sites}</span></div>
               <div><b>{p.extensionIds.length}</b><span>{d.detail.extensions}</span></div>
             </div>
-            <p className="hint">{d.detail.savedOn(`${dayLabel(p.data.savedAt, d, lang)} ${time(p.data.savedAt, lang)}`, p.data.deviceName)}</p>
+            <p className="hint">{d.detail.savedOn(when(p.data.savedAt), p.data.deviceName)}</p>
           </> : <p className="hint">{d.detail.notSaved}</p>}
           <div className="d-actions">
             {canExport && p.data && p.syncMode === 'cloud' && <>
@@ -241,7 +267,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
       {tab === 'activity' && (
         <section className="sec" aria-label={d.activity.recent}>
           {activity.length
-            ? <ol className="acts" data-testid="recent">{activity.map(e => <li key={e.seq}><time>{dayLabel(e.at, d, lang)} {time(e.at, lang)}</time><span>{describe(d, e)}</span></li>)}</ol>
+            ? <ol className="acts" data-testid="recent">{activity.map(e => <li key={e.seq}><time>{when(e.at)}</time><span>{describe(d, e)}</span></li>)}</ol>
             : <p className="hint">{d.detail.noActivity}</p>}
         </section>
       )}

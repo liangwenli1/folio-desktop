@@ -10,7 +10,7 @@ const seattle = { country: 'US', countryName: 'United States', region: 'Washingt
 const row = (win: Page, name: string) => win.locator('tr[data-id]', { has: win.getByRole('button', { name, exact: true }) });
 const detail = (win: Page) => win.getByRole('dialog', { name: 'Profile', exact: true });
 
-test('a first profile behind a SOCKS5 proxy with a password, set up and opened from the getting-started steps', async () => {
+test('a first profile behind a SOCKS5 proxy with a password, set up and opened from the workbench', async () => {
   test.skip(!hasKernels, 'browser engines are not unpacked here');
   test.setTimeout(240_000);
   const socks = await startSocks5('alice', 's3cret');
@@ -18,21 +18,28 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   const acct = await account({ buy: STUDIO });
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  const steps = win.getByTestId('onboarding');
+  const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
 
-  await steps.getByRole('button', { name: 'Add a proxy' }).click();
+  await nav('Proxies');
+  await win.getByRole('button', { name: 'Add proxy' }).click();
   const proxyForm = win.getByRole('dialog', { name: 'Add proxy' });
   await proxyForm.getByLabel('Host').fill('127.0.0.1');
   await proxyForm.getByLabel('Port').fill(String(socks.port));
+  await proxyForm.getByRole('switch', { name: 'Authentication' }).check();
   await proxyForm.getByLabel('Username').fill('alice');
   await proxyForm.getByLabel('Password').fill('s3cret');
+  // Checked before it is saved: where it comes out and how fast.
+  await proxyForm.getByRole('button', { name: 'Test connection' }).click();
+  await expect(proxyForm.getByTestId('proxy-test')).toContainText('Connected', { timeout: 20_000 });
+  await expect(proxyForm.getByTestId('proxy-test')).toContainText('127.0.0.1');
   await proxyForm.getByRole('button', { name: 'Save' }).click();
-  await expect(steps.locator('[data-step="proxy"]')).toHaveClass(/done/);
+  await expect(proxyForm).toBeHidden();
 
-  await steps.getByRole('button', { name: 'Create a profile' }).click();
+  await nav('Profiles');
+  await win.getByRole('button', { name: 'New profile' }).click();
   const form = win.getByRole('dialog', { name: 'New profile' });
   await form.getByLabel('Name', { exact: true }).fill('US-Store-01');
-  await choose(form.getByLabel('Proxy'), { index: 1 });
+  await choose(form.getByRole('combobox', { name: 'Choose a proxy' }), { index: 0 });
   await expect(form.getByTestId('fingerprint')).toContainText('Chromium 150');
   await form.getByRole('button', { name: 'Create profile' }).click();
 
@@ -50,7 +57,6 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
 
   await detail(win).getByRole('button', { name: /^Stop/ }).click();
   await expect(detail(win).getByRole('button', { name: 'Open profile' })).toBeVisible();
-  await expect(steps).toBeHidden();
   await app.close(); await socks.close(); await probe.close();
 });
 
@@ -145,8 +151,8 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await expect(pi.getByRole('status')).toContainText('2 proxies added');
   await expect(pi.getByRole('status')).toContainText('Line 3');
   await pi.getByRole('button', { name: 'Close' }).first().click();
-  // Proxies show as cards first.
-  await expect(win.locator('li.pxc[data-id]')).toHaveCount(2);
+  // Proxies show as a table first.
+  await expect(win.locator('tr[data-id]')).toHaveCount(2);
 
   await win.getByRole('button', { name: /^Profiles/ }).click();
   await win.getByRole('button', { name: 'Import', exact: true }).click();
@@ -161,7 +167,52 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await choose(win.getByRole('combobox', { name: 'Groups' }), 'Imported');
   await expect(win.locator('tr[data-id]')).toHaveText([/CSV-0/, /CSV-0/]);
   await expect(win.locator('.groups')).toContainText('Imported');
+  // A group's colour, picked from its menu.
+  const imported = win.locator('.grp-item', { hasText: 'Imported' });
+  await imported.hover();
+  await win.getByRole('button', { name: 'More for Imported' }).click();
+  await win.getByRole('button', { name: 'Teal' }).click();
+  await expect(imported.locator('.sq')).toHaveClass(/gc-teal/);
   expect((await (await acct.api.get(`/workspaces/${acct.workspaceId}/proxies`)).json()).proxies).toHaveLength(2);
+  await app.close();
+});
+
+test('a proxy’s details show its checks and the profiles on it, which open in the profile list', async () => {
+  const acct = await account({ buy: STUDIO });
+  const base = `/workspaces/${acct.workspaceId}`;
+  const add = async (name: string, check: object) => {
+    const p = await (await acct.api.post(`${base}/proxies`, { data: { name, type: 'socks5', host: `${name.toLowerCase()}.example.net`, port: 1080 } })).json();
+    await acct.api.post(`/proxies/${p.id}/check`, { data: check });
+    return p.id as string;
+  };
+  const us = await add('US-Line', { ok: true, ms: 120, ip: '203.0.113.7', geo: seattle, error: null });
+  await add('Dead-Line', { ok: false, ms: null, ip: null, geo: null, error: 'timeout' });
+  await acct.api.post(`${base}/profiles`, { data: chromiumProfile('On-US', { proxyId: us }) });
+  await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Direct') });
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Proxies' }).click();
+
+  const rows = win.locator('tr[data-id]');
+  await expect(rows).toHaveCount(2);
+  await win.getByRole('button', { name: /^Unused/ }).click();
+  await expect(rows).toHaveText([/Dead-Line/]);
+  await choose(win.getByRole('combobox', { name: 'Status' }), 'All statuses');
+  await choose(win.getByRole('combobox', { name: 'Region' }), 'United States');
+  await expect(rows).toHaveText([/US-Line/]);
+
+  await rows.getByRole('button', { name: 'US-Line', exact: true }).click();
+  const box = win.getByRole('dialog', { name: 'Proxy', exact: true });
+  await expect(box.locator('.dstats')).toContainText('203.0.113.7');
+  await expect(box.locator('.dstats')).toContainText('Seattle');
+  await expect(box.getByTestId('check-log')).toContainText('Answered · 120 ms');
+  await box.getByRole('button', { name: 'On-US', exact: true }).click();
+  // The profile list shows only the profiles on that line, with the one picked open.
+  await expect(win.getByRole('dialog', { name: 'Profile', exact: true }).getByTestId('detail-name')).toHaveText('On-US');
+  await win.keyboard.press('Escape');
+  await expect(win.locator('tr[data-id]')).toHaveText([/On-US/]);
+  await win.getByRole('button', { name: 'Show all profiles' }).click();
+  await expect(win.locator('tr[data-id]')).toHaveCount(2);
   await app.close();
 });
 
@@ -186,10 +237,10 @@ test('the consistency check fixes a hand-set time zone and moves a dead line to 
   await expect(card.locator('[data-check="proxy-backup"]')).toBeVisible();
   await card.locator('[data-check="tz-mismatch"]').getByRole('button', { name: 'Follow the proxy' }).click();
   await expect(card.locator('[data-check="tz-ok"]')).toBeVisible();
-  await expect(card.locator('.kvl')).toContainText('America/Los_Angeles');
+  await expect(card.getByRole('region', { name: 'Fingerprint' })).toContainText('America/Los_Angeles');
   await card.locator('[data-check="proxy-backup"]').getByRole('button', { name: 'Make the backup the main line' }).click();
   await expect(card.locator('[data-check="proxy-ok"]')).toBeVisible();
-  await expect(card.locator('.kvl')).toContainText('spare.example.net');
+  await expect(card.getByRole('region', { name: 'Proxy connection' })).toContainText('spare.example.net');
   await expect(card.getByTestId('verdict')).toHaveText('All consistent');
   await app.close();
 });

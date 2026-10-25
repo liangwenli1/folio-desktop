@@ -94,9 +94,12 @@ test('a newer version shows in the sidebar: restart to install on Windows, downl
   // What the update check reports, sent the way the main process sends it.
   const announce = (u: { version: string; installs: boolean }) => app.evaluate(({ BrowserWindow }, u) => BrowserWindow.getAllWindows()[0].webContents.send('app:update', u), u);
 
-  await announce({ version: '0.2.0', installs: true });
   const notice = win.getByRole('status', { name: 'Folio 0.2.0 is ready to install.' });
-  await expect(notice.getByRole('button', { name: 'Restart to update' })).toBeVisible();
+  // Sent straight to the window, the news is lost if it lands before the workbench listens: send it until it shows.
+  await expect(async () => {
+    await announce({ version: '0.2.0', installs: true });
+    await expect(notice.getByRole('button', { name: 'Restart to update' })).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await expect(notice).toContainText('Open profiles are saved and closed first.');
 
   await announce({ version: '0.2.1', installs: false });

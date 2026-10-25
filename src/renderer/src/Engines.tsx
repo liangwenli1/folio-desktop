@@ -1,22 +1,21 @@
-// Engines: a card per engine with its versions for this computer (download, pause, delete the download), profiles on
-// older versions moved to the recommended one in one go, the room they take here and a clean-up, the download settings,
-// and the history of versions added and recommended. Platform admins also see every system's packages, upload new
-// versions, pick the recommended one (with a note) and take versions off the catalog.
+// Engines: the download settings and the room versions take here (with a clean-up), profiles on older versions moved to
+// the recommended one in one go, then every version of both engines in one table: downloaded or not (download, pause,
+// delete the download), how many profiles here use it and the note it was recommended with. Platform admins also see
+// every system's packages, upload new versions, pick the recommended one (with a note) and take versions off the catalog.
 import { useEffect, useState } from 'react';
 import type { KernelKind, KernelSettings, KernelUpload } from '@shared/bridge';
 import { folio, isApiError, type Kernel } from './api';
 import { kernelKey, type WorkspaceData } from './data';
 import { ENGINES } from './checks';
-import { errorText, type Dict, type Lang } from './i18n';
-import { dayLabel } from './Activity';
+import { errorText, type Dict } from './i18n';
 import { SelectField } from './Select';
 import { EngineLogo } from './Flag';
-import { Icon, Modal, Progress, Ring, Switch, bytes, percent, useToast } from './ui';
+import { Icon, Modal, MoreMenu, Progress, Switch, bytes, percent, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
 
-export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; data: WorkspaceData; admin: boolean }){
+export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; admin: boolean }){
   const E = d.engines;
   const toast = useToast();
   const [catalog, setCatalog] = useState<Kernel[]>([]);
@@ -38,7 +37,6 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
   const profiles = data.profiles ?? [];
   const usedHere = (kind: KernelKind, version: string) => profiles.filter(p => p.kernel === kind && p.kernelVersion === version);
   const running = (kind: KernelKind, version: string) => usedHere(kind, version).some(p => data.status[p.id]);
-  const when = (iso: string) => dayLabel(iso, d, lang);
   // Versions downloaded here that nothing here uses and that aren't recommended: what a clean-up deletes.
   const unused = data.kernels.filter(k => k.installed && !k.recommended && !usedHere(k.kind, k.version).length);
   const unusedSize = unused.reduce((n, k) => n + (k.size ?? 0), 0);
@@ -48,12 +46,6 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
     const old = rec ? profiles.filter(p => p.kernel === kind && p.kernelVersion !== rec.version) : [];
     return rec && old.length ? [{ kind, rec: rec.version, old, from: [...new Set(old.map(p => p.kernelVersion.split('.')[0]))].join(', ') }] : [];
   });
-  // What happened to the versions for this computer: added, and made recommended; newest first.
-  const history = data.kernels.flatMap(k => [
-    ...(k.addedAt ? [{ at: k.addedAt, kind: k.kind, text: E.historyAdded(`${ENGINES[k.kind]} ${k.version}`), note: null as string | null }] : []),
-    ...(k.recommendedAt && k.recommendedAt !== k.addedAt ? [{ at: k.recommendedAt, kind: k.kind, text: E.historyRecommended(`${ENGINES[k.kind]} ${k.version}`), note: k.note }] : [])
-  ]).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 6);
-
   async function upgrade(kind: KernelKind, version: string, ids: string[]){
     try { toast(E.upgraded(await data.batch('set-kernel', ids, { kernel: kind, kernelVersion: version }), `${ENGINES[kind]} ${version}`)); } catch (e){ fail(e); }
     loadCatalog();
@@ -84,94 +76,80 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
           <span className="sp" />
           {admin && <button type="button" className="btn btn-secondary" onClick={() => setUploading(true)}><Icon name="upload" />{E.admin.upload}</button>}
         </header>
-        <div className="engines-page">
-          {outdated.map(o => (
-            <div key={o.kind} className="upgrade-note wide" role="status">
-              <Icon name="alert" />
-              <span><b>{E.outdated(o.old.length, `${ENGINES[o.kind]} ${o.from}`)}</b><span className="hint">{E.upgradeNote(`${ENGINES[o.kind]} ${o.rec.split('.')[0]}`)}</span></span>
-              <button type="button" className="btn btn-sm btn-primary" onClick={() => void upgrade(o.kind, o.rec, o.old.map(p => p.id))}>{E.upgrade(o.rec)}</button>
-            </div>
-          ))}
-          {KINDS.map(kind => {
-            const local = data.kernels.filter(k => k.kind === kind);
-            const rec = local.find(k => k.recommended) ?? local.find(k => k.available);
-            // Every version on this computer's list, plus (for admins) versions built only for other systems.
-            const versions = [...new Set([...local.map(k => k.version), ...catalog.filter(k => k.kind === kind).map(k => k.version)])];
-            return (
-              <section key={kind} className="engine-card" aria-label={ENGINES[kind]} data-engine={kind}>
-                <header className="en-h">
-                  <EngineLogo kernel={kind} size={40} />
-                  <span><h2>{ENGINES[kind]}</h2></span>
-                  {rec && <span className="en-rec"><small>{E.recommendedVersion}</small><b className="mono">{rec.version}</b></span>}
-                </header>
-                {!versions.length && <p className="hint">{E.none}</p>}
-                <ol className="en-list">
-                  {versions.map(version => {
-                    const k = local.find(x => x.version === version);
-                    const rows = catalog.filter(x => x.kind === kind && x.version === version);
-                    const recommended = k ? k.recommended : rows.some(x => x.recommended);
-                    const pr = data.progress[kernelKey(kind, version)], downloading = pr && !pr.finished && !pr.error && !pr.paused;
-                    const here = usedHere(kind, version).length, everywhere = rows.find(x => x.profiles !== null)?.profiles ?? 0;
-                    const label = `${ENGINES[kind]} ${version}`, added = k?.addedAt ?? rows[0]?.createdAt;
-                    return (
-                      <li key={version} className={`${recommended ? 'rec' : ''}${k?.installed ? ' got' : ''}`} data-version={version}>
-                        <span className="en-dot" aria-hidden="true" />
-                        <div className="en-main">
-                          <p className="tl-head">
-                            <b className="mono">{version}</b>
-                            {recommended && <span className="tag rec-tag">{E.recommended}</span>}
-                            {k && !k.available && <span className="tag">{E.retired}</span>}
-                          </p>
-                          <p className="hint">{[added && E.released(when(added)), E.usedBy(here), admin && E.everywhere(everywhere)].filter(Boolean).join(' · ')}</p>
-                          {admin && rows.length > 0 && (
-                            <p className="platforms">{rows.map(x => <span key={x.id} className={`tag first${x.ready ? '' : ' warn'}`} title={x.ready ? bytes(x.size) : E.admin.unfinished}>{E.platforms[x.platform] ?? x.platform}{!x.ready && ` · ${E.admin.unfinished}`}</span>)}</p>
-                          )}
-                          {pr?.error && <p className="err">{E.failed}</p>}
-                        </div>
-                        <div className="tl-acts">
-                          {downloading ? <>
-                            <Ring pct={percent(pr)} label={d.form.downloading(percent(pr))} />
-                            <span className="en-state accent">{E.downloadingOf(bytes(pr.total || k?.size || 0))}</span>
-                            <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.pauseKernel(kind, version)}>{E.pause}</button>
-                          </> : pr?.paused && !k?.installed ? <>
-                            <span className="en-state">{E.paused(percent(pr))}</span>
-                            <button type="button" className="btn btn-xs btn-secondary" onClick={() => void data.install(kind, version)}>{E.resume}</button>
-                          </> : k?.installed ? <>
-                            <span className="pill-ok"><Icon name="check" />{E.downloaded(k.size ? bytes(k.size) : '')}</span>
-                            <button type="button" className="btn btn-xs btn-text" disabled={running(kind, version)} title={running(kind, version) ? E.removeBusy : undefined}
-                              onClick={() => void data.removeKernel(kind, version).then(() => toast(E.removed(label)))}>{E.remove}</button>
-                          </> : k?.available && <button type="button" className="btn btn-xs btn-secondary" onClick={() => void data.install(kind, version)}><Icon name="download" />{E.download(bytes(k.size ?? 0))}</button>}
-                          {admin && rows.some(x => x.ready) && !recommended && <button type="button" className="btn btn-xs btn-text" onClick={() => setRecommending(rows.find(x => x.ready)!)}>{E.admin.recommend}</button>}
-                          {admin && rows.length > 0 && <button type="button" className="btn btn-xs btn-danger" onClick={() => setRetiring(rows)}>{E.admin.retire}</button>}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </section>
-            );
-          })}
-          <section className="engine-card wide en-disk" aria-label={E.disk('')}>
-            <Icon name="engines" />
-            <span><b>{E.disk(usage ? bytes(usage.bytes) : '…')}</b><small className="mono">{usage?.path}</small></span>
-            <span className="sp" />
-            <button type="button" className="btn btn-sm btn-text" disabled={!unused.length} title={unused.length ? undefined : E.nothingToClean} onClick={() => setCleaning(true)}>{E.cleanup}</button>
-          </section>
-          <section className="engine-card" aria-label={E.settings}>
-            <h3 className="en-t">{E.settings}</h3>
-            {settings && <>
-              <div className="en-set"><Switch label={E.autoDownload} checked={settings.autoDownload} onChange={on => change({ autoDownload: on })} /></div>
-              <div className="en-set"><Switch label={E.idleOnly} checked={settings.idleOnly} disabled={!settings.autoDownload} onChange={on => change({ idleOnly: on })} /></div>
-            </>}
-          </section>
-          <section className="engine-card" aria-label={E.history}>
-            <h3 className="en-t">{E.history}</h3>
-            {history.length ? (
-              <ol className="en-hist">
-                {history.map((h, i) => <li key={i}><EngineLogo kernel={h.kind} /><span><b>{h.text}</b>{h.note && <small>{h.note}</small>}</span><time className="mono">{when(h.at)}</time></li>)}
-              </ol>
-            ) : <p className="hint">{E.historyNone}</p>}
-          </section>
+        <section className="en-strip" aria-label={E.settings}>
+          {settings && <>
+            <Switch label={E.autoDownload} checked={settings.autoDownload} onChange={on => change({ autoDownload: on })} />
+            <Switch label={E.idleOnly} checked={settings.idleOnly} disabled={!settings.autoDownload} onChange={on => change({ idleOnly: on })} />
+          </>}
+          <span className="sp" />
+          <span className="en-disk" title={usage?.path}><Icon name="engines" />{E.disk(usage ? bytes(usage.bytes) : '…')}</span>
+          <button type="button" className="btn btn-sm btn-secondary" disabled={!unused.length} title={unused.length ? undefined : E.nothingToClean} onClick={() => setCleaning(true)}>{E.cleanup}</button>
+        </section>
+        {outdated.map(o => (
+          <div key={o.kind} className="upgrade-note wide" role="status">
+            <Icon name="alert" />
+            <span><b>{E.outdated(o.old.length, `${ENGINES[o.kind]} ${o.from}`)}</b><span className="hint">{E.upgradeNote(`${ENGINES[o.kind]} ${o.rec.split('.')[0]}`)}</span></span>
+            <button type="button" className="btn btn-sm btn-primary" onClick={() => void upgrade(o.kind, o.rec, o.old.map(p => p.id))}>{E.upgrade(o.rec)}</button>
+          </div>
+        ))}
+        <div className="tw top-gap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{E.cols.version}</th>{admin && <th scope="col">{E.cols.platforms}</th>}<th scope="col">{E.cols.size}</th><th scope="col">{E.cols.released}</th>
+                <th scope="col">{E.cols.profiles}</th><th scope="col">{E.cols.status}</th><th className="act" scope="col">{E.cols.actions}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {KINDS.flatMap(kind => {
+                const local = data.kernels.filter(k => k.kind === kind);
+                // Every version on this computer's list, plus (for admins) versions built only for other systems.
+                const versions = [...new Set([...local.map(k => k.version), ...catalog.filter(k => k.kind === kind).map(k => k.version)])];
+                if (!versions.length) return [<tr key={kind}><td colSpan={admin ? 7 : 6}><span className="l1"><EngineLogo kernel={kind} size={18} /><b>{ENGINES[kind]}</b></span><span className="l2">{E.none}</span></td></tr>];
+                return versions.map(version => {
+                  const k = local.find(x => x.version === version);
+                  const rows = catalog.filter(x => x.kind === kind && x.version === version);
+                  const recommended = k ? k.recommended : rows.some(x => x.recommended);
+                  const pr = data.progress[kernelKey(kind, version)], downloading = pr && !pr.finished && !pr.error && !pr.paused;
+                  const here = usedHere(kind, version).length, everywhere = rows.find(x => x.profiles !== null)?.profiles ?? 0;
+                  const label = `${ENGINES[kind]} ${version}`, added = k?.addedAt ?? rows[0]?.createdAt, size = k?.size ?? rows.find(x => x.ready)?.size ?? null;
+                  const note = k?.note ?? rows.find(x => x.note)?.note;
+                  const busy = running(kind, version);
+                  return (
+                    <tr key={`${kind}:${version}`} className={recommended ? 'rec' : ''} data-engine={kind} data-version={version}>
+                      <td>
+                        <span className="l1"><EngineLogo kernel={kind} size={18} /><b>{ENGINES[kind]}</b><span className="mono">{version}</span>
+                          {recommended && <span className="tag rec-tag">{E.recommended}</span>}{k && !k.available && <span className="tag">{E.retired}</span>}</span>
+                        {note && <span className="l2">{note}</span>}
+                      </td>
+                      {admin && <td><span className="platforms">{rows.map(x => <span key={x.id} className={`tag first${x.ready ? '' : ' warn'}`} title={x.ready ? bytes(x.size) : E.admin.unfinished}>{E.platforms[x.platform] ?? x.platform}{!x.ready && ` · ${E.admin.unfinished}`}</span>)}</span></td>}
+                      <td className="mono">{size ? bytes(size) : '—'}</td>
+                      <td className="mono">{added ? new Date(added).toLocaleDateString('sv-SE') : '—'}</td>
+                      <td><span className="l1">{here}</span>{admin && <span className="l2">{E.everywhere(everywhere)}</span>}</td>
+                      <td>
+                        {downloading ? <span className="en-prog"><span className="dot-st boot">{E.downloadingPct(percent(pr))}</span><Progress done={pr.done} total={pr.total} /></span>
+                          : pr?.paused && !k?.installed ? <span className="dot-st idle">{E.paused(percent(pr))}</span>
+                          : pr?.error && !k?.installed ? <span className="dot-st bad">{E.failed}</span>
+                          : k?.installed ? <span className="dot-st run">{E.installed}</span>
+                          : <span className="dot-st idle">{E.notDownloaded}</span>}
+                      </td>
+                      <td className="act"><span className="actin">
+                        {downloading ? <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.pauseKernel(kind, version)}>{E.pause}</button>
+                          : pr?.paused && !k?.installed ? <button type="button" className="btn btn-xs btn-secondary" onClick={() => void data.install(kind, version)}>{E.resume}</button>
+                          : k?.installed ? <button type="button" className="btn btn-xs btn-text" disabled={busy} title={busy ? E.removeBusy : undefined}
+                            onClick={() => void data.removeKernel(kind, version).then(() => toast(E.removed(label)))}>{E.remove}</button>
+                          : k?.available && <button type="button" className="btn btn-xs btn-secondary" onClick={() => void data.install(kind, version)}><Icon name="download" />{E.download(bytes(k.size ?? 0))}</button>}
+                        {admin && rows.length > 0 && <MoreMenu label={E.actionsX(label)} items={[
+                          ...(rows.some(x => x.ready) && !recommended ? [{ label: E.admin.recommend, onClick: () => setRecommending(rows.find(x => x.ready)!) }] : []),
+                          { label: E.admin.retire, onClick: () => setRetiring(rows), danger: true }
+                        ]} />}
+                      </span></td>
+                    </tr>
+                  );
+                });
+              })}
+            </tbody>
+          </table>
         </div>
       </main>
       {uploading && <UploadDialog d={d} onClose={() => setUploading(false)} onDone={reload} />}
@@ -192,7 +170,7 @@ export function EnginesPage({ d, lang, data, admin }: { d: Dict; lang: Lang; dat
   );
 }
 
-// Making a version the recommended one, with a line about what changed for the history.
+// Making a version the recommended one, with a line about what changed for its row.
 function RecommendDialog({ d, k, onClose, onDone }: { d: Dict; k: Kernel; onClose(): void; onDone(note: string): void }){
   const A = d.engines.admin;
   const [note, setNote] = useState('');

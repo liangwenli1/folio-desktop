@@ -5,7 +5,7 @@ import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time, useActivity } from './Activity';
-import { Avatar, BulkBar, Icon, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { Avatar, BulkBar, DetailDialog, Icon, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Select } from './Select';
 import { ExitMap, type Pin, type PinState } from './ExitMap';
 import { Flag, SEARCH_LOGOS } from './Flag';
@@ -21,14 +21,14 @@ type Progress = WorkspaceData['progress'][string];
 
 interface Props {
   d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; group: GroupFilter; setGroup(g: GroupFilter): void;
+  // Only these profiles (picked from a risk or a proxy), and the one whose details open first.
+  only: Set<string> | null; setOnly(s: Set<string> | null): void; openId: string | null;
   onNew(): void; onImport(): void; onEdit(id: string): void; onAddProxy(): void; onPalette(): void;
 }
 
-const ONBOARDING_KEY = (ws: string) => `folio.onboarding.${ws}`;
-const hidden = (ws: string) => { try { return localStorage.getItem(ONBOARDING_KEY(ws)) === 'hidden'; } catch { return false; } };
 const number = (p: Profile) => String(p.number).padStart(4, '0');
 
-export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImport, onEdit, onAddProxy, onPalette }: Props){
+export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly, openId, onNew, onImport, onEdit, onAddProxy, onPalette }: Props){
   const toast = useToast();
   const P = d.profiles;
   const [q, setQ] = useState('');
@@ -36,26 +36,17 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const [sort, setSort] = useState<Sort>('recent');
   const [view, setView] = useView<'list' | 'cards'>('profiles', 'list');
   const [sel, setSel] = useState<Set<string>>(() => new Set());
-  const [cur, setCur] = useState<string | null>(null);
-  const [detail, setDetail] = useState(false);
+  const [cur, setCur] = useState(openId);
+  const [detail, setDetail] = useState(!!openId);
   const [confirm, setConfirm] = useState(false);
   const [tagging, setTagging] = useState(false);
   const [tag, setTag] = useState('');
   const [busyFix, setBusyFix] = useState<string | null>(null);
-  const [onboardingHidden, setOnboardingHidden] = useState(() => hidden(ws.id));
-  // "Show these profiles" from a risk, and whether the risk list is open.
-  const [only, setOnly] = useState<Set<string> | null>(null);
+  // Whether the risk list is open.
   const [riskOpen, setRiskOpen] = useState(false);
   // Profiles opened together from the bulk actions, shown in the tray; why the ones that couldn't start didn't.
   const [batch, setBatch] = useState<string[] | null>(null);
   const [batchFail, setBatchFail] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (!detail) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal')) setDetail(false); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [detail]);
 
   const all = useMemo(() => data.profiles ?? [], [data.profiles]);
   const proxies = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
@@ -213,9 +204,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
   const shown = riskList.filter(r => r.level !== 'info');
   const names = (r: Risk) => r.ids.map(id => all.find(p => p.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
 
-  const showOnboarding = !onboardingHidden && data.profiles !== null && !(data.proxies.length && all.length && all.some(p => p.lastOpenedAt));
-  const hideOnboarding = () => { setOnboardingHidden(true); try { localStorage.setItem(ONBOARDING_KEY(ws.id), 'hidden'); } catch { /* per-session only */ } };
-
   const item = (p: Profile): ItemProps => ({
     d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), manager,
     owner: p.ownerId ? email.get(p.ownerId) ?? null : null,
@@ -240,12 +228,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
           </label>
           <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => setGroup(v as GroupFilter)}
-            options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name })), { value: 'none', label: d.groups.none }]} /></span>
+            options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} /></span>
           {manager && <button className="btn btn-secondary" type="button" onClick={onImport}>{P.import}</button>}
           <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
         </header>
-
-        {showOnboarding && <Onboarding d={d} data={data} onAddProxy={onAddProxy} onNew={onNew} onOpen={open} onHide={hideOnboarding} />}
 
         <section className="cards" aria-label={P.title}>
           <button type="button" className="kc" onClick={() => setStatus('running')}>
@@ -349,7 +335,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
                 <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
                 <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={!syncAllowed ? d.windowSync.upgrade : ids.length < 2 ? P.bulk.syncTwo : undefined} onClick={() => void startSync()}><Icon name="sync" />{P.bulk.sync}</button>
                 <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" searchPh={d.form.searchPh}
-                  options={[...data.groups.map(g => ({ value: g.id, label: g.name })), { value: 'none', label: d.groups.none }]}
+                  options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]}
                   onChange={v => { const g = v === 'none' ? null : v; void batchAction('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none)); }} />
                 <Select variant="bar" action label={P.bulk.proxy} placeholder={P.bulk.proxy} value="" searchPh={d.form.searchPh}
                   options={[...data.proxies.map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined })), { value: 'none', label: P.noProxy }]}
@@ -405,15 +391,14 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
       {batch && <Tray d={d} data={data} profiles={batch.map(id => all.find(p => p.id === id)).filter((p): p is Profile => !!p)} failed={batchFail}
         onRetry={launch} onClose={() => setBatch(null)} />}
 
-      {curProfile && <>
-        <div className="scrim" onClick={() => setDetail(false)} />
-        <div className="detail" role="dialog" aria-modal="true" aria-label={d.detail.profile}>
+      {curProfile && (
+        <DetailDialog label={d.detail.profile} onClose={() => setDetail(false)}>
           <ProfileDetail
             d={d} lang={lang} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
             status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
             size={data.kernels.find(k => k.kind === curProfile.kernel && k.version === curProfile.kernelVersion)?.size ?? null} failed={data.failed[curProfile.id]}
             risks={riskOf.get(curProfile.id) ?? []} others={all} onStar={() => void star(curProfile)}
-            owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
+            group={data.groups.find(g => g.id === curProfile.groupId) ?? null} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
             extensions={curProfile.extensionIds.map(id => extensions.get(id)).filter((x): x is Extension => !!x)}
             activity={recent.entries ?? []}
             onClose={() => setDetail(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
@@ -422,8 +407,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, onNew, onImpo
             onExport={format => void exportCookies([curProfile], format)} onImport={text => void importCookies(curProfile, text)}
             onFix={f => void fix(curProfile, f)}
           />
-        </div>
-      </>}
+        </DetailDialog>
+      )}
     </div>
   );
 }
@@ -556,31 +541,6 @@ function Tray({ d, data, profiles, failed, onRetry, onClose }: { d: Dict; data: 
             <Flag country={null} kernel={r.p.kernel} />
             <div><b>{r.p.name}</b>{r.st}<span className="meter"><i style={{ width: `${r.pct}%` }} /></span></div>
             {r.tone === 'bad' && <button type="button" className="btn btn-xs btn-secondary" onClick={() => onRetry(r.p)}>{T.retry}</button>}
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-function Onboarding({ d, data, onAddProxy, onNew, onOpen, onHide }: { d: Dict; data: WorkspaceData; onAddProxy(): void; onNew(): void; onOpen(p: Profile): void; onHide(): void }){
-  const O = d.onboarding, profiles = data.profiles ?? [];
-  const first = profiles[0];
-  const steps = [
-    { key: 'proxy', title: O.proxy, body: O.proxyD, done: data.proxies.length > 0, action: onAddProxy },
-    { key: 'profile', title: O.profile, body: O.profileD, done: profiles.length > 0, action: onNew },
-    { key: 'open', title: O.open, body: O.openD, done: profiles.some(p => p.lastOpenedAt), action: first ? () => onOpen(first) : undefined }
-  ];
-  const next = steps.find(s => !s.done);
-  return (
-    <section className="onboard" aria-label={O.title} data-testid="onboarding">
-      <header className="sec-row"><h2>{O.title}</h2><button type="button" className="btn btn-xs btn-text" onClick={onHide}>{O.hide}</button></header>
-      <ol>
-        {steps.map((s, i) => (
-          <li key={s.key} className={s.done ? 'done' : s === next ? 'next' : ''} data-step={s.key}>
-            <span className="num" aria-hidden="true">{s.done ? <Icon name="check" /> : i + 1}</span>
-            <div><b>{s.title}</b></div>
-            {s === next && s.action && <button type="button" className="btn btn-primary btn-sm" onClick={s.action}>{s.title}</button>}
           </li>
         ))}
       </ol>

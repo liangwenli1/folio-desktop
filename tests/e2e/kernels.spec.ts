@@ -52,18 +52,17 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await dialog.getByRole('button', { name: 'Upload', exact: true }).click();
     await expect(dialog).toBeHidden();
 
-    const chromium = win.getByRole('region', { name: 'Chromium' });
-    const row = chromium.locator(`li[data-version="${version}"]`);
+    const row = win.locator(`tr[data-engine="chromium"][data-version="${version}"]`);
     await expect(row).toContainText('Linux');
     await expect(row).toContainText('Download');
-    await row.getByRole('button', { name: 'Make recommended' }).click();
+    await row.getByRole('button', { name: `Actions for Chromium ${version}` }).click();
+    await win.getByRole('menuitem', { name: 'Make recommended' }).click();
     const making = win.getByRole('dialog', { name: `Make Chromium ${version} the recommended version?` });
     await making.getByLabel('What changed (optional)').fill('Chrome 151 security fixes');
     await making.getByRole('button', { name: 'Make recommended' }).click();
     await expect(row).toContainText('Recommended');
-    await expect(win.getByRole('region', { name: 'Update history' })).toContainText(`Chromium ${version} made recommended`);
-    await expect(win.getByRole('region', { name: 'Update history' })).toContainText('Chrome 151 security fixes');
-    await expect(chromium.locator('li[data-version="150.0.7871.186"]')).not.toContainText('Recommended');
+    await expect(row).toContainText('Chrome 151 security fixes');
+    await expect(win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]')).not.toContainText('Recommended');
 
     // Profiles on the older version move to it in one go.
     const banner = win.getByRole('status').filter({ hasText: 'use the older Chromium' });
@@ -72,7 +71,8 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await expect.poll(async () => (await (await admin.api.get(base)).json()).profiles.filter((p: { id: string; kernelVersion: string }) => made.includes(p.id) && p.kernelVersion === version).length).toBe(2);
     await expect(banner).toHaveCount(0);
 
-    await row.getByRole('button', { name: 'Remove' }).click();
+    await row.getByRole('button', { name: `Actions for Chromium ${version}` }).click();
+    await win.getByRole('menuitem', { name: 'Remove' }).click();
     const removing = win.getByRole('dialog', { name: `Remove Chromium ${version} from the catalog?` });
     await expect(removing).toContainText('2 profiles use it');
     await removing.getByRole('button', { name: 'Remove' }).click();
@@ -99,10 +99,10 @@ test('the catalog for this computer: what is downloaded, deleting a download, an
   await engines(win).click();
   await expect(win.getByRole('button', { name: 'Upload a version' })).toHaveCount(0);
 
-  const chromium = win.getByRole('region', { name: 'Chromium' }).locator('li[data-version="150.0.7871.186"]');
+  const chromium = win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]');
   await expect(chromium).toContainText('Recommended');
   await expect(chromium).toContainText('Downloaded');
-  const firefox = win.getByRole('region', { name: 'Firefox' }).locator('li[data-version="156.0.1-beta.36"]');
+  const firefox = win.locator('tr[data-engine="firefox"][data-version="156.0.1-beta.36"]');
   await expect(firefox.getByRole('button', { name: 'Download · 1.2 GB' })).toBeVisible();
 
   await chromium.getByRole('button', { name: 'Delete from this computer' }).click();
