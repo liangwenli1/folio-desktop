@@ -75,6 +75,7 @@ test('a waiting invitation’s link can be copied again, which replaces the old 
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await nav(win, /^Team/);
+  await win.getByRole('tab', { name: /^Invitations/ }).click();
   await win.locator('tr[data-invitation]').getByRole('button', { name: /^More for / }).click();
   await win.getByRole('menuitem', { name: 'Copy link' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'A new invitation link was copied' })).toBeVisible();

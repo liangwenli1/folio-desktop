@@ -10,12 +10,13 @@ const nav = (win: Page, name: RegExp) => win.getByRole('navigation', { name: 'Ma
 
 async function invite(owner: Page, email: string, role: 'Member' | 'Admin' = 'Member'){
   await nav(owner, /^Team/).click();
-  await owner.getByRole('button', { name: 'Invite' }).click();
-  const dialog = owner.getByRole('dialog', { name: 'Invite to the team' });
-  await dialog.getByLabel('Email').fill(email);
-  await dialog.getByRole('radio', { name: new RegExp(`^${role}`) }).check();
+  await owner.getByRole('button', { name: 'Invite people' }).click();
+  const dialog = owner.getByRole('dialog', { name: 'Invite people' });
+  await dialog.getByRole('textbox', { name: /^Emails/ }).fill(email);
+  await choose(dialog.getByRole('combobox', { name: 'Role' }), role);
   await dialog.getByRole('button', { name: 'Send invitation' }).click();
-  await expect(dialog.getByRole('status')).toContainText(`Invitation sent to ${email}`);
+  await expect(dialog.getByRole('status')).toContainText(email);
+  await expect(dialog.getByRole('status')).toContainText('Invitation sent');
   await dialog.getByRole('button', { name: 'Done' }).click();
 }
 

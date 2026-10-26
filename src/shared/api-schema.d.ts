@@ -4002,6 +4002,7 @@ export interface paths {
                                 joinedAt: string;
                                 groupIds: string[];
                                 profiles: number;
+                                lastActiveAt: string | null;
                             }[];
                         };
                     };
@@ -4067,7 +4068,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** Format: uuid */
-                        roleId: string;
+                        roleId?: string;
+                        groupIds?: string[];
                     };
                 };
             };
@@ -4187,6 +4189,8 @@ export interface paths {
                         groupIds?: string[];
                         /** @default true */
                         notify?: boolean;
+                        /** @default 7 */
+                        days?: 1 | 3 | 7 | 30;
                     };
                 };
             };
@@ -4481,6 +4485,7 @@ export interface paths {
                                 name: string;
                                 permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
                                 members: number;
+                                defaults: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[] | null;
                             }[];
                         };
                     };
@@ -4519,6 +4524,7 @@ export interface paths {
                             name: string;
                             permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
                             members: number;
+                            defaults: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[] | null;
                         };
                     };
                 };
@@ -4595,6 +4601,7 @@ export interface paths {
                             name: string;
                             permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
                             members: number;
+                            defaults: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[] | null;
                         };
                     };
                 };
@@ -4639,7 +4646,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "cookies.delete" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.groups" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "cookies.delete" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
                                 profile: {
                                     id: string | null;
                                     name: string;

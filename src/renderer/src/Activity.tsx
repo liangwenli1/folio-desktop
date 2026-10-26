@@ -45,7 +45,7 @@ const KINDS: Record<Exclude<Kind, 'all'>, string[]> = {
   trash: ['profile.trash', 'profile.restore', 'profile.purge'],
   proxies: ['proxy.create', 'proxy.import', 'proxy.update', 'proxy.delete', 'group.create', 'group.rename', 'group.delete'],
   cookies: ['cookies.export', 'cookies.import', 'cookies.delete', 'workspace.export', 'workspace.import'],
-  team: ['member.invite', 'member.join', 'member.role', 'member.remove', 'member.leave', 'invitation.withdraw', 'role.create', 'role.update', 'role.delete', 'department.create', 'department.update', 'department.delete'],
+  team: ['member.invite', 'member.join', 'member.role', 'member.groups', 'member.remove', 'member.leave', 'invitation.withdraw', 'role.create', 'role.update', 'role.delete', 'department.create', 'department.update', 'department.delete'],
   extensions: ['extension.add', 'extension.update', 'extension.delete'],
   automation: ['flow.create', 'flow.update', 'flow.delete', 'task.create', 'task.update', 'task.delete', 'run.start', 'run.finish']
 };

@@ -57,7 +57,8 @@ const PATHS = {
   eyeOff: 'M2.5 2.5l11 11M6.6 4c.5-.3 1-.5 1.4-.5 4.1 0 6.5 4.5 6.5 4.5s-.6 1.1-1.7 2.3M11 11.6c-.9.6-1.9.9-3 .9-4.1 0-6.5-4.5-6.5-4.5s.8-1.5 2.3-2.8M6.6 6.6a2 2 0 0 0 2.8 2.8',
   edit: 'M10.5 2.5l3 3-8 8h-3v-3zM9 4l3 3',
   info: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 7.3v3.9M8 4.8v.01',
-  folder: 'M2 4.5a1 1 0 0 1 1-1h3.2l1.5 1.5H13a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z'
+  folder: 'M2 4.5a1 1 0 0 1 1-1h3.2l1.5 1.5H13a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z',
+  lock: 'M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 4 0v2'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -73,11 +74,12 @@ export const Mark = () => (
 );
 
 // An on/off setting. The checkbox covers the whole control, so clicking anywhere on it toggles.
-export function Switch({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange(on: boolean): void }){
+// `hideLabel`: the words are said next to it already (a table row), so only screen readers get them.
+export function Switch({ label, checked, disabled, hideLabel, onChange }: { label: string; checked: boolean; disabled?: boolean; hideLabel?: boolean; onChange(on: boolean): void }){
   return (
     <label className="switch">
       <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={e => onChange(e.target.checked)} />
-      <span className="track" aria-hidden="true" />{label}
+      <span className="track" aria-hidden="true" />{hideLabel ? <span className="sr">{label}</span> : label}
     </label>
   );
 }
