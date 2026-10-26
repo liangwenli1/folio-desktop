@@ -13,7 +13,7 @@ test('the activity log says who did what, and each profile shows its recent entr
   const detail = win.getByRole('dialog', { name: 'Profile', exact: true });
   await detail.getByRole('button', { name: 'Edit' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
-  await form.getByLabel('Name', { exact: true }).fill('Shop Berlin');
+  await form.getByRole('textbox', { name: 'Name', exact: true }).fill('Shop Berlin');
   await form.getByRole('button', { name: 'Save changes' }).click();
   await detail.getByRole('tab', { name: 'Activity' }).click();
   const recent = detail.getByTestId('recent');

@@ -199,7 +199,7 @@ export function Toasts({ children }: { children: ReactNode }){
 // A dialog. `icon` makes it a short one (a confirmation, a one-step import): the icon on top, the title and the content
 // centred, the buttons side by side; its content goes straight in. A long one (a form) brings its own .m-body; `wide`
 // gives a big form room for a preview beside it.
-export function Modal({ title, closeLabel, onClose, foot, icon, tone, wide, children }: { title: string; closeLabel: string; onClose(): void; foot?: ReactNode; icon?: IconName; tone?: 'bad' | 'good'; wide?: boolean; children: ReactNode }){
+export function Modal({ title, sub, closeLabel, onClose, foot, icon, tone, wide, children }: { title: string; sub?: ReactNode; closeLabel: string; onClose(): void; foot?: ReactNode; icon?: IconName; tone?: 'bad' | 'good'; wide?: boolean; children: ReactNode }){
   const id = useId();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -215,7 +215,7 @@ export function Modal({ title, closeLabel, onClose, foot, icon, tone, wide, chil
           <div className="m-body"><span className={`m-icon${tone ? ` ${tone}` : ''}`} aria-hidden="true"><Icon name={icon} /></span><h2 id={id}>{title}</h2>{children}</div>
         </> : <>
           <div className="m-head">
-            <h2 id={id}>{title}</h2>
+            {sub ? <div><h2 id={id}>{title}</h2><p className="m-sub">{sub}</p></div> : <h2 id={id}>{title}</h2>}
             <button className="icon-btn bare" type="button" aria-label={closeLabel} title={closeLabel} onClick={onClose}><Icon name="x" /></button>
           </div>
           {children}

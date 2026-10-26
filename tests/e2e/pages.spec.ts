@@ -92,10 +92,10 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
   const win = await logIn(app, acct.email);
   await win.getByRole('button', { name: 'New profile' }).first().click();
   const form = win.getByRole('dialog', { name: 'New profile' });
-  await form.getByLabel('Name', { exact: true }).fill('Shop-2');
+  await form.getByRole('textbox', { name: 'Name', exact: true }).fill('Shop-2');
   await choose(form.getByLabel('Search engine'), 'Baidu');
   await form.getByRole('switch', { name: 'Restore last tabs' }).uncheck();
-  await expect(form.getByTestId('fingerprint')).toContainText('Chromium 150');
+  await expect(form.getByRole('combobox', { name: 'Browser engine' })).toContainText('Chromium 150');
   await form.getByRole('button', { name: 'Create profile' }).click();
 
   const row = win.locator('tr[data-id]', { hasText: 'Shop-2' });

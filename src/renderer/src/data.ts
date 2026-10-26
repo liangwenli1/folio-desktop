@@ -8,7 +8,8 @@ import { MANAGE, can, folio, isApiError, type Extension, type Flow, type Group, 
 
 export type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
-export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
+export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'
+  | 'searchEngine' | 'restoreTabs' | 'startUrl' | 'windowMode' | 'windowWidth' | 'windowHeight'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
 export interface WorkspaceData {

@@ -10,7 +10,7 @@ import { Icon, type GroupColor } from './ui';
 export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle' | `gc-${GroupColor}`; img?: string; group?: string }
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
-  id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean;
+  id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean; required?: boolean;
   variant?: 'field' | 'sm' | 'bar'; action?: boolean; search?: boolean; searchPh?: string; empty?: string;
 }
 type Place = { left: number; width: number; maxHeight: number; top?: number; bottom?: number };
@@ -21,7 +21,7 @@ const runs = (opts: Opt[]) => opts.reduce<{ group?: string; from: number; opts: 
   return out;
 }, []);
 
-export function Select({ value, options, onChange, id, label, labelledBy, placeholder, disabled, variant = 'field', action, search, searchPh, empty }: Props){
+export function Select({ value, options, onChange, id, label, labelledBy, placeholder, disabled, required, variant = 'field', action, search, searchPh, empty }: Props){
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -89,7 +89,7 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
   return (
     <>
       <button ref={btn} type="button" id={id} className={`sel ${variant}${open ? ' open' : ''}`} role="combobox" disabled={disabled}
-        aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${uid}-list` : undefined} aria-label={label} aria-labelledby={labelledBy}
+        aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${uid}-list` : undefined} aria-label={label} aria-labelledby={labelledBy} aria-required={required || undefined}
         onClick={() => (open ? close() : show())}
         onKeyDown={e => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); show(); } }}>
         {cur?.dot && <span className={`d ${cur.dot}`} aria-hidden="true" />}

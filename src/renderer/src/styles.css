@@ -118,7 +118,7 @@ input[type="checkbox"],input[type="radio"]{width:16px;height:16px;margin:0;verti
 .field input:disabled,.field textarea:disabled{background:var(--panel);color:var(--ink-2)}
 .mono-in{font-family:var(--f-data);font-size:12.5px !important}
 .check-row{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;color:var(--ink-2);cursor:pointer}
-.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:12px}
 .row2.host-port{grid-template-columns:minmax(0,1fr) 120px}
 .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 /* Segmented control: a grey track, the chosen segment a white raised tab. `.fill` makes every segment as wide. */
@@ -508,16 +508,6 @@ tr.empty b{color:var(--ink)}
 
 /* the picked profile's details: a drawer from the right */
 .detail{position:fixed;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 48px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding:10px 22px 24px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop)}
-/* the profile's identity card, in the brand gradient (the new-profile preview) */
-.idcard{position:relative;flex:none;display:grid;gap:10px;padding:16px 18px;border-radius:16px;background:var(--grad);color:#fff;box-shadow:0 16px 30px -18px rgba(156,45,72,.75)}
-.idc-top{display:flex;align-items:center;gap:12px;min-width:0}
-.idc-top > div{display:grid;min-width:0}
-.idcard h2{font-family:var(--f-display);font-weight:600;font-size:21px;line-height:1.2;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.idcard .mono{font-size:12px;opacity:.85}
-.idc-city{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-.idc-city b{font:var(--w-display) 26px/1.15 var(--f-display);letter-spacing:-.02em;overflow-wrap:anywhere}
-.idc-city span{font-size:12px;opacity:.85;text-align:right}
-.idcard .flag-badge{box-shadow:0 0 0 2px rgba(255,255,255,.7)}
 .d-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .d-more{position:relative}
 .tabs{display:flex;gap:18px;border-bottom:1px solid var(--line);flex:none}
@@ -687,39 +677,51 @@ body:has(.tray) .toasts{right:392px}
 .counted{position:relative;display:grid}
 .counted textarea{padding-bottom:22px}
 .counted .count{position:absolute;right:10px;bottom:6px;font:11px var(--f-data);color:var(--ink-3);pointer-events:none}
-/* the profile form: numbered sections on the left, the preview on the right */
-.pf{grid-template-columns:minmax(0,1fr) 300px;align-items:start;gap:18px;padding:18px 20px 20px}
-.pf-main{display:grid;gap:14px;min-width:0}
-.pf-sec{display:grid;gap:14px;padding:16px 18px 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
-.pf-sec h3{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600}
-.pf-sec .n{display:grid;place-items:center;width:22px;height:22px;border-radius:7px;background:var(--accent-soft);color:var(--accent-ink);font:600 12px var(--f-data)}
-.pf-more{gap:0}
-.pf-more[open]{gap:14px}
-.pf-more summary{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer}
-.pf-more summary::-webkit-details-marker{display:none}
-.pf-more summary .i{color:var(--ink-3);transition:transform .15s ease}
-.pf-more[open] summary .i{transform:rotate(180deg)}
+/* the profile form: a rail of its four sections beside them, scrolling on their own under a fixed head and foot */
+.m-sub{margin-top:2px;font:12.5px var(--f-data);color:var(--ink-3)}
+.pf-state{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:12px 20px 0;padding:8px 12px;border-radius:var(--r);background:var(--panel);font-size:13px;color:var(--ink-2);flex:none}
+.pf-state.run{background:var(--accent-soft)}
+.pf{display:grid;grid-template-columns:168px minmax(0,1fr);flex:1 1 auto;min-height:0}
+.pf-rail{display:grid;align-content:start;gap:2px;padding:14px 10px;border-right:1px solid var(--line)}
+.pf-rail button{display:flex;align-items:center;gap:10px;height:var(--h-ctl);padding:0 10px;border:0;border-radius:var(--r);background:none;color:var(--ink-2);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.pf-rail button:hover{background:var(--hover)}
+.pf-rail button[aria-current]{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.pf-rail .n{display:grid;place-items:center;width:22px;height:22px;flex:none;border:1px solid var(--line-2);border-radius:50%;font:600 12px var(--f-data);color:var(--ink-2)}
+.pf-rail button[aria-current] .n{border-color:var(--accent);background:var(--accent);color:var(--on-accent)}
+.pf-rail .d{margin-left:auto}
+.pf-scroll{position:relative;display:grid;align-content:start;gap:14px;min-height:0;overflow-y:auto;padding:14px 20px 20px}
+.pf-sec{display:grid;gap:14px;padding:16px 18px 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);scroll-margin-top:14px}
+.pf-sec h3{font-size:16px;font-weight:600}
 .pf .seg button:disabled{opacity:.45;cursor:default}
 .pf .seg .logo,.pf .seg .i{width:15px;height:15px}
+.req{margin-left:3px;color:var(--bad)}
+.opt{margin-left:2px;font-size:12px;font-weight:400;color:var(--ink-3)}
+.lock-note{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2)}
+.lock-note .i{width:13px;height:13px;color:var(--ink-3)}
+.pxres.past{color:var(--ink-2)}
 /* the switch lines up with the dropdown beside it, below that one's label */
 .pf-switch{align-content:start;padding-top:25px}
-.pf-preview{position:sticky;top:0;display:grid;gap:12px}
-.pf-t{font-size:12px;font-weight:600;color:var(--ink-3)}
-.pf-preview .idcard{padding:14px 16px}
-.pf-preview .idcard h2{font-size:18px}
-.pf-preview .idc-city b{font-size:22px}
-.fpbox{display:grid;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
-.fpbox-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.fpbox-h b{font-weight:600}
-.fp-need{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
-.fp-tiles{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-.fp-tile{display:flex;align-items:center;gap:9px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
-.fp-tile.wide{grid-column:1/-1}
-.fp-tile > span:last-child{display:grid;min-width:0}
-.fp-tile small{font-size:11.5px;color:var(--ink-3)}
-.fp-tile b{font:500 12.5px var(--f-data);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ft-ic{display:grid;place-items:center;width:26px;height:26px;flex:none;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--accent)}
-.ft-ic .i{width:14px;height:14px}
+/* the fingerprint in one strip, opened into its fields */
+.fp-sum{display:flex;align-items:center;gap:16px;min-height:62px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.fp-sum dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));flex:1;min-width:0;margin:0}
+.fp-sum dl > div{display:grid;align-content:start;gap:2px;min-width:0;padding:0 14px;border-left:1px solid var(--line)}
+.fp-sum dl > div:first-child{padding-left:0;border-left:0}
+.fp-sum dt{font-size:12px;color:var(--ink-3)}
+.fp-sum dd{margin:0;font-size:13.5px;font-weight:500;overflow-wrap:anywhere}
+.fp-sum .linkish{flex:none;color:var(--accent-ink);font-weight:500;text-decoration:none}
+.fp-need{display:flex;flex:1;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+/* a field that can follow the proxy: the switch sits on its label's line */
+.label-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:20px}
+.label-row > .label,.label-row > label{font-weight:600}
+.label-row .switch{font-size:12.5px;font-weight:400;color:var(--ink-2)}
+input.followed{color:var(--ink-2);background:var(--panel)}
+.win-size{display:flex;align-items:center;gap:10px;margin-top:4px}
+.win-size label{font-size:13px;color:var(--ink-2)}
+.unit{position:relative;display:flex;width:150px}
+.unit input{padding-right:34px}
+.unit span{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12.5px;color:var(--ink-3);pointer-events:none}
+.pf-dirty{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.pf-dirty b{font-weight:600;color:var(--warn-ink)}
 .formats{margin:0;padding:8px 10px;border-radius:var(--r);background:var(--panel);font-size:12.5px;font-weight:400;color:var(--ink-2);line-height:1.7}
 .import-result{display:grid;gap:6px;font-size:13.5px}
 .bad-lines{margin:0;padding-left:18px;max-height:140px;overflow:auto;font-size:13px;color:var(--ink-2)}
@@ -727,10 +729,6 @@ fieldset.ext-pick{border:0;margin:0;padding:0;display:grid;gap:6px}
 fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .ext-pick .check-row{color:var(--ink);font-size:13.5px}
 .ext-pick .mono{font-size:12px}
-@media (max-width:1180px){
-    .pf{grid-template-columns:minmax(0,1fr)}
-  .pf-preview{position:static}
-}
 
 /* team: departments as cards, people in a table with their role and latest activity, invitations waiting */
 .depts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:2px var(--gx) 14px;flex:none}

@@ -38,9 +38,9 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await nav('Profiles');
   await win.getByRole('button', { name: 'New profile' }).click();
   const form = win.getByRole('dialog', { name: 'New profile' });
-  await form.getByLabel('Name', { exact: true }).fill('US-Store-01');
+  await form.getByRole('textbox', { name: 'Name', exact: true }).fill('US-Store-01');
   await choose(form.getByRole('combobox', { name: 'Choose a proxy' }), { index: 0 });
-  await expect(form.getByTestId('fingerprint')).toContainText('Chromium 150');
+  await expect(form.getByRole('combobox', { name: 'Browser engine' })).toContainText('Chromium 150');
   await form.getByRole('button', { name: 'Create profile' }).click();
 
   // The proxy check (started when the proxy was saved) puts the exit in the row and on the card.
@@ -73,7 +73,7 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   // B starts editing first, then A saves a change.
   const formB = await edit(winB, 'Shared-01');
   const formA = await edit(winA, 'Shared-01');
-  await formA.getByLabel('Name', { exact: true }).fill('Shared-01 renamed');
+  await formA.getByRole('textbox', { name: 'Name', exact: true }).fill('Shared-01 renamed');
   await formA.getByLabel('Tags').fill('vip');
   await formA.getByRole('button', { name: 'Save changes' }).click();
   await expect(row(winB, 'Shared-01 renamed')).toContainText('vip', { timeout: 5000 });
@@ -228,7 +228,7 @@ test('fingerprint choices when creating a profile; filters by engine; a profile 
   const create = async (name: string, pick: (form: Locator) => Promise<void>) => {
     await win.getByRole('button', { name: 'New profile' }).click();
     const form = win.getByRole('dialog', { name: 'New profile' });
-    await form.getByLabel('Name', { exact: true }).fill(name);
+    await form.getByRole('textbox', { name: 'Name', exact: true }).fill(name);
     await pick(form);
     await expect(form.getByRole('button', { name: 'Create profile' })).toBeEnabled({ timeout: 60_000 });
     await form.getByRole('button', { name: 'Create profile' }).click();
@@ -238,6 +238,7 @@ test('fingerprint choices when creating a profile; filters by engine; a profile 
 
   // Chromium: the screen is this computer's; Canvas and the GPU can show this computer's own values.
   await create('Real-GPU', async form => {
+    await form.getByRole('button', { name: 'Edit fingerprint' }).click();
     await expect(form.getByRole('combobox', { name: 'Screen resolution' })).toBeDisabled();
     await choose(form.getByRole('combobox', { name: 'Canvas' }), 'This computer’s');
     await choose(form.getByRole('combobox', { name: 'WebGL' }), 'This computer’s GPU');
@@ -250,7 +251,8 @@ test('fingerprint choices when creating a profile; filters by engine; a profile 
 
   // Firefox: an exact screen, and WebRTC off.
   await create('FF-1080', async form => {
-    await form.getByRole('group', { name: 'Engine', exact: true }).getByRole('button', { name: 'Firefox' }).click();
+    await choose(form.getByRole('combobox', { name: 'Browser engine' }), /^Firefox/);
+    await form.getByRole('button', { name: 'Edit fingerprint' }).click();
     await choose(form.getByRole('combobox', { name: 'Screen resolution' }), '1920 × 1080');
     await choose(form.getByRole('combobox', { name: 'WebRTC' }), 'Off');
     await expect(form.getByTestId('fingerprint')).toContainText('1920 × 1080', { timeout: 60_000 });

@@ -122,8 +122,9 @@ export async function opened(win: Page, id: string){
 
 // Picks an option in one of the app's dropdowns (they are not native selects): by its name (the first one with it,
 // as a native select would), or by position.
-export async function choose(combo: Locator, option: string | { index: number }){
+export async function choose(combo: Locator, option: string | RegExp | { index: number }){
   await combo.click();
   const list = combo.page().getByRole('listbox');
-  await (typeof option === 'string' ? list.getByRole('option', { name: option, exact: true }).first() : list.getByRole('option').nth(option.index)).click();
+  await (typeof option === 'string' ? list.getByRole('option', { name: option, exact: true }).first()
+    : option instanceof RegExp ? list.getByRole('option', { name: option }).first() : list.getByRole('option').nth(option.index)).click();
 }

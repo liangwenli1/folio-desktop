@@ -284,7 +284,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
-        <ProfileForm d={d} wsId={ws.id} data={data} onClose={close} profile={editing}
+        <ProfileForm d={d} lang={lang} ws={ws} data={data} onClose={close} profile={editing}
           defaultGroup={group !== 'all' && group !== 'none' ? group : null}
           onDone={p => { close(); toast(dialog.kind === 'new' ? d.profiles.done.created(p.name) : d.profiles.done.saved); }} />
       )}

@@ -112,7 +112,7 @@ test('the catalog for this computer: what is downloaded, deleting a download, an
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Profiles' }).click();
   await win.getByRole('button', { name: 'New profile' }).click();
   const form = win.getByRole('dialog', { name: 'New profile' });
-  await expect(form.getByLabel('Engine version')).toHaveText(/150\.0\.7871\.186/);
-  await expect(form.getByTestId('fingerprint')).toContainText('Chromium 150');
+  await expect(form.getByRole('combobox', { name: 'Browser engine' })).toContainText('Chromium 150.0.7871.186');
+  await expect(form.getByRole('button', { name: 'Create profile' })).toBeEnabled();
   await app.close();
 });
