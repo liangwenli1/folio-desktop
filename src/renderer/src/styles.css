@@ -418,6 +418,9 @@ button.kc:hover{border-color:var(--line-2)}
 .tw table{width:100%;min-width:720px;border-collapse:separate;border-spacing:0;font-size:14px}
 .tw thead th{position:sticky;top:0;z-index:1;height:44px;padding:0 12px;text-align:left;font-size:12px;font-weight:500;color:var(--ink-2);background:var(--head);border-bottom:1px solid var(--line);white-space:nowrap}
 .tw tbody td{height:56px;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+/* tables inside dialogs and cards: shorter rows */
+.tw.dense thead th,.ck-prev thead th{height:36px}
+.tw.dense tbody td,.ck-prev tbody td{height:40px;padding:6px 12px}
 .tw tbody tr:last-child td{border-bottom:0}
 .tw tbody tr:hover td{background:var(--hover)}
 .tw tbody tr.cur td{background:var(--sel)}
@@ -756,7 +759,7 @@ body:has(.tray) .toasts{right:392px}
 .counted textarea{padding-bottom:22px}
 .counted .count{position:absolute;right:10px;bottom:6px;font:11px var(--f-data);color:var(--ink-3);pointer-events:none}
 /* the profile form: a rail of its four sections beside them, scrolling on their own under a fixed head and foot */
-.m-sub{margin-top:2px;font:12.5px var(--f-data);color:var(--ink-3)}
+.m-sub{margin-top:2px;font-size:12.5px;color:var(--ink-3)}
 .pf-state{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:12px 20px 0;padding:8px 12px;border-radius:var(--r);background:var(--panel);font-size:13px;color:var(--ink-2);flex:none}
 .pf-state.run{background:var(--accent-soft)}
 .pf{display:grid;grid-template-columns:168px minmax(0,1fr);flex:1 1 auto;min-height:0}
@@ -1094,7 +1097,7 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 .bars{display:flex;align-items:flex-end;gap:3px;height:28px}
 .bars i{flex:1;min-width:3px;max-width:9px;height:6px;border-radius:2px;background:var(--line)}
 .bars i.ok{background:var(--good)} .bars i.slow{background:var(--warn)} .bars i.vslow{background:var(--bad)} .bars i.miss{height:4px;background:var(--bad)}
-.lat{font:500 12.5px var(--f-data);font-variant-numeric:tabular-nums}
+.lat{font:500 12.5px var(--f-data);font-variant-numeric:tabular-nums;white-space:nowrap}
 .lat.good{color:var(--good-ink)} .lat.warn{color:var(--warn-ink)} .lat.bad{color:var(--bad)}
 .addr{display:inline-flex;align-items:center;gap:2px}
 .copy-btn{width:24px;height:24px;color:var(--ink-3)}
@@ -1103,7 +1106,57 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 .count-link{border:0;background:none;padding:0;font:600 13px var(--f-data);color:var(--accent);cursor:pointer}
 .count-link:hover{text-decoration:underline;text-underline-offset:3px}
 /* what a check from a form found */
-.px-test{display:flex}
+.px-test{display:flex;align-items:center;gap:10px}
+.px-auth{display:grid;gap:4px}
+/* the proxy list with the one picked beside it, and its own page */
+.px-wrap{display:grid;gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
+.px-wrap.with-panel{grid-template-columns:minmax(0,1fr) 320px}
+.px-list{display:grid;gap:12px;min-width:0;container-type:inline-size}
+/* with the panel open on a narrower window, the address goes (the panel shows it) so every other column stays in view */
+@container (max-width:920px){.px-t .c-addr{display:none}}
+.px-list .tw,.px-list .pxg,.px-list .cards-empty{margin:0;flex:none;min-height:0}
+.px-list .page-attrib{margin:0}
+.px-panel{position:sticky;top:12px;gap:12px}
+.px-panel h4{font-size:13px;font-weight:600}
+.pxp-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pxp-h b{font-size:16px;font-weight:600}
+.px-panel .bound li{grid-template-columns:minmax(0,1fr) auto}
+.px-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.pd-col{display:grid;gap:16px;align-content:start;min-width:0}
+.kvl.two{grid-template-columns:88px minmax(0,1fr) 88px minmax(0,1fr)}
+.kvl.two dt:has(+ dd.wide){grid-column:1}
+.kvl.two dd.wide{grid-column:2 / -1}
+.pd .dstats{flex:none}
+.bound-t{margin:0;flex:none;min-height:0}
+/* importing a list: the text beside what to know, then line by line what was read */
+.px-imp{gap:14px}
+.pi-edit{display:grid;grid-template-columns:auto minmax(0,1fr);height:168px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);overflow:hidden;font:12.5px/20px var(--f-data)}
+.pi-edit:focus-within{border-color:var(--ink-3);box-shadow:0 0 0 3px var(--seg)}
+.pi-gut{min-width:34px;padding:8px 0;overflow:hidden;border-right:1px solid var(--line);background:var(--panel);color:var(--ink-3);text-align:right;user-select:none}
+.pi-gut span{display:block;padding:0 8px}
+.pi-gut span.bad{color:var(--bad);font-weight:600}
+.pi-text{position:relative;overflow:hidden}
+.pi-marks{position:absolute;top:0;left:0;min-width:100%;padding:8px 0;white-space:pre;color:transparent;pointer-events:none}
+.pi-marks span{display:block;padding:0 10px}
+.pi-marks span.bad{background:var(--bad-soft)}
+.field .pi-text textarea{position:relative;display:block;height:100%;padding:8px 10px;border:0;border-radius:0;background:transparent;font:inherit;line-height:inherit;white-space:pre;resize:none}
+.field .pi-text textarea:focus{box-shadow:none}
+.pi-grid{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:14px;align-items:start}
+.pi-notes{display:grid;gap:6px;padding:12px 14px;border-radius:var(--r);background:var(--panel);font-size:13px}
+.pi-notes p{display:flex;align-items:center;gap:6px}
+.pi-notes p .i{width:14px;height:14px;color:var(--info)}
+.pi-notes ol{margin:0;padding-left:18px;color:var(--ink-2);line-height:1.8}
+tr.bad-row td{background:var(--bad-soft)}
+/* changing a profile's proxy */
+.px-rep{gap:12px}
+.rep-now{display:flex;gap:40px;margin:0;padding:12px 16px;border-radius:var(--r);background:var(--panel)}
+.rep-now dt{font-size:12px;color:var(--ink-3)}
+.rep-now dd{margin:4px 0 0}
+.rep-now .tag{margin:0}
+.filters.inline{padding:0}
+.rep-t{max-height:260px;margin:0;flex:none;min-height:0}
+.rep-t tr.off td{color:var(--ink-3);cursor:default}
+.rep-t tbody tr:not(.off){cursor:pointer}
 .px-result{display:grid;gap:10px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--good) 35%,transparent);border-radius:var(--r);background:var(--good-soft)}
 .px-result.bad{border-color:color-mix(in srgb,var(--bad) 35%,transparent);background:var(--bad-soft)}
 .px-result p{display:flex;align-items:center;gap:8px;font-size:13px}
@@ -1275,7 +1328,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .dot-st.boot{color:var(--warn-ink)} .dot-st.boot::before{background:var(--warn)}
 .dot-st.away{color:var(--info)} .dot-st.away::before{background:var(--info)}
 .dot-st.bad{color:var(--bad)} .dot-st.bad::before{background:var(--bad)}
-.px-exit{display:flex;align-items:center;gap:7px}
+.px-exit{display:flex;align-items:center;gap:7px;white-space:nowrap}
 .grp-pick{flex:none;min-width:150px}
 .pc-px{display:grid;gap:2px}
 

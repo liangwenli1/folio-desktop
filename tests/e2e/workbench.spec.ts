@@ -31,7 +31,7 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await proxyForm.getByRole('button', { name: 'Test connection' }).click();
   await expect(proxyForm.getByTestId('proxy-test')).toContainText('Connected', { timeout: 20_000 });
   await expect(proxyForm.getByTestId('proxy-test')).toContainText('127.0.0.1');
-  await proxyForm.getByRole('button', { name: 'Save' }).click();
+  await proxyForm.getByRole('button', { name: 'Save proxy' }).click();
   await expect(proxyForm).toBeHidden();
 
   await nav('Profiles');
@@ -149,13 +149,18 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await win.getByRole('button', { name: /^Proxies/ }).click();
   await win.getByRole('button', { name: 'Import', exact: true }).click();
   const pi = win.getByRole('dialog', { name: 'Import proxies' });
-  await pi.getByRole('textbox').fill('socks5://a:b@one.example.net:1080\ntwo.example.net:8080\nnot a proxy');
-  await pi.getByRole('button', { name: 'Import' }).click();
-  await expect(pi.getByRole('status')).toContainText('2 proxies added');
-  await expect(pi.getByRole('status')).toContainText('Line 3');
-  await pi.getByRole('button', { name: 'Close' }).first().click();
-  // Proxies show as a table first.
+  await pi.getByRole('textbox', { name: /^Proxy list/ }).fill('socks5://a:b@one.example.net:1080\ntwo.example.net:8080\nnot a proxy\n198.51.100.20:abc');
+  // Every line is read first: what it is, or why it isn't one.
+  await expect(pi.getByTestId('import-counts')).toHaveText('4 lines · 2 valid · 2 invalid');
+  await expect(pi.locator('tr[data-line="3"]')).toContainText('Not a proxy line');
+  await expect(pi.locator('tr[data-line="4"]')).toContainText('Port must be 1–65535');
+  await pi.getByRole('textbox', { name: 'Naming' }).fill('Ops-{n}');
+  await pi.getByRole('button', { name: 'Import 2 proxies' }).click();
+  await expect(win.getByRole('status').filter({ hasText: '2 proxies added' })).toBeVisible();
+  await expect(pi).toBeHidden();
+  // Proxies show as a table first, named from the pattern.
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
+  await expect(win.locator('tr[data-id]')).toHaveText([/Ops-1/, /Ops-2/]);
 
   await win.getByRole('button', { name: /^Profiles/ }).click();
   await win.getByRole('button', { name: 'Import', exact: true }).click();
@@ -205,12 +210,17 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
   await choose(win.getByRole('combobox', { name: 'Region' }), 'United States');
   await expect(rows).toHaveText([/US-Line/]);
 
+  // A quick look beside the list, then the proxy's own page.
   await rows.getByRole('button', { name: 'US-Line', exact: true }).click();
-  const box = win.getByRole('dialog', { name: 'Proxy', exact: true });
-  await expect(box.locator('.dstats')).toContainText('203.0.113.7');
-  await expect(box.locator('.dstats')).toContainText('Seattle');
-  await expect(box.getByTestId('check-log')).toContainText('Answered · 120 ms');
-  await box.getByRole('button', { name: 'On-US', exact: true }).click();
+  const panel = win.getByRole('complementary', { name: 'Proxy', exact: true });
+  await expect(panel.getByTestId('check-log')).toContainText('Answered · 120 ms');
+  await expect(panel).toContainText('On-US');
+  await panel.getByRole('button', { name: 'View details' }).click();
+  const page = win.getByRole('main', { name: 'Proxy', exact: true });
+  await expect(page.locator('.dstats')).toContainText('203.0.113.7');
+  await expect(page.locator('.dstats')).toContainText('Seattle');
+  await page.getByRole('tab', { name: /^Profiles/ }).click();
+  await page.getByRole('button', { name: 'On-US', exact: true }).click();
   // The profile list shows only the profiles on that line, with the one picked open.
   await expect(detail(win).getByTestId('detail-name')).toHaveText('On-US');
   await win.keyboard.press('Escape');

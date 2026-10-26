@@ -329,22 +329,53 @@ export const en = {
     history: (n: number) => `Last ${n} ${n === 1 ? 'check' : 'checks'}`, never: 'Not checked',
     empty: 'No proxies yet. Add one, or import a list from your provider.',
     bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use them keep working without a proxy.',
+    bulk: {
+      unbind: 'Unbind', unbindTitle: (n: number, m: number) => `Unbind ${proxiesN(n)} from ${profilesN(m)}?`,
+      unbindNote: 'Those profiles go out without a proxy until another is chosen; running ones change the next time they open.',
+      unbound: (m: number) => `${profilesN(m)} unbound`
+    },
     deleted: (n: number) => `${proxiesN(n)} deleted`, checked: (n: number) => `Checked ${proxiesN(n)}`, actionsX: (n: string) => `Actions for ${n}`,
     detail: {
       label: 'Proxy', exitIp: 'Exit IP', region: 'Region', latency: 'Latency', profiles: 'Profiles', config: 'Connection', history: 'Recent checks',
       ok: (ms: number) => `Answered · ${ms} ms`, failed: 'No response', passSet: 'Saved', passNone: 'None', uptime: 'Uptime',
-      uptimeOf: (pct: number, n: number) => `${pct}% of the last ${n}`, bound: (n: number) => `Profiles (${n})`, showAll: 'Show in Profiles',
-      none: 'No profile uses it.', noHistory: 'Not checked yet.'
+      uptimeOf: (pct: number, n: number) => `${pct}% of the last ${n}`, bound: (n: number) => `Profiles (${n})`,
+      none: 'No profile uses it.', noHistory: 'Not checked yet.',
+      created: 'Added', lastChecked: 'Last checked', viewAll: 'View all', manage: 'Manage', details: 'View details',
+      tabs: { overview: 'Overview', bound: 'Profiles', checks: 'Checks' },
+      createdOn: (when: string) => `Added ${when}`, checkedOn: (when: string) => `last checked ${when}`, authOn: 'On', authOff: 'Off',
+      runningWarn: 'Stop the running profiles that use this proxy before changing how it connects.', viewProfile: 'View profile'
     },
-    formAdd: 'Add proxy', formEdit: 'Edit proxy', name: 'Name', namePh: 'Defaults to host:port', type: 'Type', host: 'Host', port: 'Port',
-    auth: 'Authentication', user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
+    formAdd: 'Add proxy', formEdit: 'Edit proxy', formSub: 'Fill in how it connects, and check that it answers.', save: 'Save proxy',
+    name: 'Name', namePh: 'Defaults to host:port', type: 'Protocol', host: 'Host', port: 'Port', notes: 'Notes',
+    auth: 'Authentication', authHint: 'When on, the proxy is reached with a username and password.',
+    user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
+    lastTest: (when: string) => `Last checked: ${when}`, justNow: 'just now',
     test: 'Test connection', testOk: 'Connected', testBad: 'Can’t connect', why: { timeout: 'Timed out', unreachable: 'Unreachable' } as Record<string, string>,
     addMore: 'Add another after saving',
     backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t answer.',
     hostErr: 'Enter a host name or IP address.', portErr: 'Ports go from 1 to 65535.',
-    importTitle: 'Import proxies', importLead: 'One per line, in any of these formats:', defaultType: 'Type for lines without one',
-    importBtn: 'Import', imported: (added: number, known: number) => `${proxiesN(added)} added${known ? `, ${known} already saved` : ''}`,
-    badLines: 'These lines couldn’t be read:', line: (n: number) => `Line ${n}`
+    imp: {
+      title: 'Import proxies', sub: 'Bring in a list as text or from a file.', modes: { text: 'Paste text', file: 'From a file' },
+      protocol: 'Protocol', protocolHint: 'For lines that don’t say which.', naming: 'Naming', namePh: 'Proxy-{n}', sep: ', ',
+      nameHint: (ex: string) => `New proxies are numbered: ${ex}…`, list: 'Proxy list', listHint: ' One per line; username and password optional.',
+      formats: 'Formats: host:port:user:pass · user:pass@host:port · socks5://user:pass@host:port · host:port',
+      chooseFile: 'Choose a file…', noFile: 'No file chosen',
+      notesTitle: 'Before you import', notes: ['Ports go from 1 to 65535.', 'Lines already saved show in the preview.', 'Check the connections after importing.'],
+      preview: 'Preview', counts: (n: number) => `${n} ${n === 1 ? 'line' : 'lines'}`, valid: (n: number) => `${n} valid`, invalid: (n: number) => `${n} invalid`,
+      cols: { line: 'Line', address: 'Address', port: 'Port', result: 'Result' },
+      ok: 'Valid', saved: 'already saved: reused', repeat: 'same as a line above', again: 'added again',
+      why: { format: 'Not a proxy line', port: 'Port must be 1–65535' },
+      invalidNote: 'Invalid lines aren’t imported; correct them and read the list again.',
+      skip: 'Skip duplicate proxies', skipHelp: 'A line identical to a saved proxy, or to a line above, uses that one instead of adding another.',
+      reparse: 'Read again', submit: (n: number) => `Import ${proxiesN(n)}`,
+      done: (added: number, reused: number) => `${proxiesN(added)} added${reused ? `, ${reused} already saved` : ''}`
+    },
+    replace: {
+      title: 'Change proxy', lead: (name: string) => `Choose the proxy ${name} goes out through.`, current: 'Current proxy', state: 'Status',
+      pick: 'Pick', test: 'Check the chosen proxy', confirm: 'Change proxy',
+      running: 'The profile is running; stop it to change its proxy.', warn: 'After changing it, check the profile’s time zone and language.',
+      done: (profile: string, proxy: string) => `${profile} now goes out through ${proxy}`
+    }
   },
   trash: {
     title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it for good.', empty: 'The Trash is empty.',
@@ -1015,23 +1046,54 @@ export const zh: Dict = {
     states: { ok: '正常', slow: '较慢', down: '无响应', unchecked: '未检测', issues: '异常', unbound: '未绑定' },
     history: (n: number) => `最近 ${n} 次检测`, never: '未检测',
     empty: '暂无代理。可逐个添加，或导入代理商提供的列表。',
-    bulkCheck: '检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '使用这些代理的环境将保留，并改为不使用代理。',
+    bulkCheck: '批量检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '使用这些代理的环境将保留，并改为不使用代理。',
+    bulk: {
+      unbind: '解除绑定', unbindTitle: (n: number, m: number) => `解除 ${n} 个代理与 ${m} 个环境的绑定？`,
+      unbindNote: '这些环境将改为不使用代理，直到重新选择代理；运行中的环境下次启动时生效。',
+      unbound: (m: number) => `已解除 ${m} 个环境的绑定`
+    },
     deleted: (n: number) => `已删除 ${n} 个代理`, checked: (n: number) => `已检测 ${n} 个代理`, actionsX: (n: string) => `${n} 的操作`,
     detail: {
       label: '代理详情', exitIp: '出口 IP', region: '地区', latency: '当前延迟', profiles: '绑定环境', config: '连接配置', history: '最近检测记录',
       ok: (ms: number) => `连接正常 · ${ms} ms`, failed: '连接失败', passSet: '已保存', passNone: '未设置', uptime: '可用率',
-      uptimeOf: (pct: number, n: number) => `${pct}%（最近 ${n} 次）`, bound: (n: number) => `绑定环境（${n}）`, showAll: '在环境列表中查看',
-      none: '暂无环境使用此代理。', noHistory: '尚未检测。'
+      uptimeOf: (pct: number, n: number) => `${pct}%（最近 ${n} 次）`, bound: (n: number) => `绑定环境（${n}）`,
+      none: '暂无环境使用此代理。', noHistory: '尚未检测。',
+      created: '创建时间', lastChecked: '最后检测', viewAll: '查看全部', manage: '管理', details: '查看详情',
+      tabs: { overview: '概览', bound: '绑定环境', checks: '检测记录' },
+      createdOn: (when: string) => `创建于 ${when}`, checkedOn: (when: string) => `最近检测 ${when}`, authOn: '已启用', authOff: '未启用',
+      runningWarn: '更新连接配置前，请先停止使用该代理的运行中环境。', viewProfile: '查看环境'
     },
-    formAdd: '添加代理', formEdit: '编辑代理', name: '代理名称', namePh: '默认为 地址:端口', type: '代理协议', host: '代理地址', port: '端口',
-    auth: '身份验证', user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
+    formAdd: '添加代理', formEdit: '编辑代理', formSub: '填写连接信息并验证可用性。', save: '保存代理',
+    name: '代理名称', namePh: '默认为 地址:端口', type: '代理协议', host: '代理地址', port: '端口', notes: '备注',
+    auth: '身份验证', authHint: '启用后需要填写用户名和密码进行代理认证。',
+    user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
+    lastTest: (when: string) => `最近检测：${when}`, justNow: '刚刚',
     test: '检测连接', testOk: '连接正常', testBad: '连接失败', why: { timeout: '连接超时', unreachable: '无法连接' } as Record<string, string>,
     addMore: '保存后继续添加',
     backup: '备用线路', backupNone: '无', backupHint: '该线路无响应时自动切换至备用线路。',
     hostErr: '请填写主机名或 IP 地址。', portErr: '端口范围是 1 到 65535。',
-    importTitle: '导入代理', importLead: '每行一个，支持以下格式：', defaultType: '未注明类型的行按此类型处理',
-    importBtn: '导入', imported: (added: number, known: number) => `新增 ${added} 个代理${known ? `，${known} 个已存在` : ''}`,
-    badLines: '以下行无法识别：', line: (n: number) => `第 ${n} 行`
+    imp: {
+      title: '批量导入代理', sub: '通过文本或文件批量配置代理资源。', modes: { text: '文本导入', file: '文件导入' },
+      protocol: '代理协议', protocolHint: '未注明协议的行按此处理。', naming: '默认命名', namePh: '代理-{n}', sep: '、',
+      nameHint: (ex: string) => `将按序号自动命名，如：${ex}…`, list: '代理列表', listHint: '每行一条代理，支持填写身份验证信息',
+      formats: '格式：地址:端口:用户名:密码 · 用户名:密码@地址:端口 · socks5://用户名:密码@地址:端口 · 地址:端口',
+      chooseFile: '选择文件…', noFile: '未选择文件',
+      notesTitle: '导入说明', notes: ['端口范围为 1 – 65535', '重复代理可在预览中确认', '导入后建议检测连接'],
+      preview: '解析预览', counts: (n: number) => `共 ${n} 条`, valid: (n: number) => `有效 ${n} 条`, invalid: (n: number) => `无效 ${n} 条`,
+      cols: { line: '行号', address: '代理地址', port: '端口', result: '验证结果' },
+      ok: '格式有效', saved: '已保存，将复用', repeat: '与上方的行重复', again: '将重复添加',
+      why: { format: '格式错误', port: '端口格式错误' },
+      invalidNote: '无效记录不会导入，请修正后重新解析。',
+      skip: '跳过重复代理', skipHelp: '与已保存代理或上方行完全相同的行，直接使用已有代理，不再重复添加。',
+      reparse: '重新解析', submit: (n: number) => `导入 ${n} 条代理`,
+      done: (added: number, reused: number) => `已导入 ${added} 个代理${reused ? `，复用 ${reused} 个` : ''}`
+    },
+    replace: {
+      title: '更换代理', lead: (name: string) => `为环境 ${name} 更换代理，请选择新的代理。`, current: '当前代理', state: '当前状态',
+      pick: '选择', test: '检测所选代理', confirm: '确认更换',
+      running: '环境运行中，停止后才能更换代理。', warn: '更换代理后，请检查语言与时区配置。',
+      done: (profile: string, proxy: string) => `${profile} 已更换为 ${proxy}`
+    }
   },
   trash: {
     title: '回收站', lead: '恢复误删环境或永久删除记录。', empty: '回收站为空。',

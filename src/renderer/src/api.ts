@@ -15,6 +15,7 @@ export type Profile = Ok<'/workspaces/{id}/profiles', 'get'>['profiles'][number]
 export type Group = Ok<'/workspaces/{id}/groups', 'get'>['groups'][number];
 export type Proxy = Ok<'/workspaces/{id}/proxies', 'get'>['proxies'][number];
 export type ProxyImport = Ok<'/workspaces/{id}/proxies/import', 'post'>;
+export type ImportLine = Ok<'/workspaces/{id}/proxies/import/preview', 'post'>['lines'][number];
 export type Geo = NonNullable<NonNullable<Proxy['lastCheck']>['geo']>;
 export type MyRole = Workspace['role'];
 export type Permission = MyRole['permissions'][number];

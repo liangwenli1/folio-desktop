@@ -1,0 +1,41 @@
+// Moving a profile to another proxy from its menu (lines that don't answer can't be picked), and taking proxies off
+// their profiles in bulk.
+import { expect, test } from '@playwright/test';
+import { API, account, chromiumProfile, dataDir, launch, logIn } from './helpers';
+
+const seattle = { country: 'US', countryName: 'United States', region: 'Washington', city: 'Seattle', lat: 47.6, lon: -122.3, timezone: 'America/Los_Angeles', locale: 'en-US' };
+
+test('a profile changes proxy from its menu, and proxies are unbound in bulk', async () => {
+  const acct = await account();
+  const base = `${API}/workspaces/${acct.workspaceId}`;
+  const add = async (name: string, ok: boolean) => {
+    const p = await (await acct.api.post(`${base}/proxies`, { data: { name, type: 'socks5', host: `${name.toLowerCase()}.example.net`, port: 1080 } })).json();
+    await acct.api.post(`${API}/proxies/${p.id}/check`, { data: ok ? { ok, ms: 140, ip: '203.0.113.9', geo: seattle, error: null } : { ok, ms: null, ip: null, geo: null, error: 'timeout' } });
+    return p.id as string;
+  };
+  const a = await add('Line-A', true), b = await add('Line-B', true), down = await add('Line-Down', false);
+  const shop = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Shop', { proxyId: a }) })).json();
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+
+  await win.locator(`tr[data-id="${shop.id}"]`).getByRole('button', { name: 'Actions for Shop' }).click();
+  await win.getByRole('menuitem', { name: 'Change proxy' }).click();
+  const dialog = win.getByRole('dialog', { name: 'Change proxy' });
+  await expect(dialog).toContainText('Line-A');
+  await expect(dialog.locator(`tr[data-id="${down}"]`).getByRole('radio')).toBeDisabled();
+  await expect(dialog.locator(`tr[data-id="${a}"]`)).toHaveCount(0);
+  await dialog.locator(`tr[data-id="${b}"]`).click();
+  await dialog.getByRole('button', { name: 'Change proxy' }).click();
+  await expect(win.getByRole('status').filter({ hasText: 'Shop now goes out through Line-B' })).toBeVisible();
+  const proxyOf = async () => ((await (await acct.api.get(`${base}/profiles`)).json()).profiles[0] as { proxyId: string | null }).proxyId;
+  expect(await proxyOf()).toBe(b);
+
+  // Taken off in bulk: the profile goes without a proxy.
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Proxies' }).click();
+  await win.locator(`tr[data-id="${b}"]`).getByRole('checkbox').check();
+  await win.getByTestId('bulk').getByRole('button', { name: 'Unbind' }).click();
+  await win.getByRole('dialog', { name: 'Unbind 1 proxy from 1 profile?' }).getByRole('button', { name: 'Unbind' }).click();
+  await expect(win.getByRole('status').filter({ hasText: '1 profile unbound' })).toBeVisible();
+  expect(await proxyOf()).toBeNull();
+  await app.close();
+});

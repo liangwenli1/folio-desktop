@@ -7,6 +7,7 @@ import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
 import { Avatar, BulkBar, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
+import { ReplaceProxyDialog } from './Proxies';
 import { Select } from './Select';
 import { Flag, SEARCH_LOGOS } from './Flag';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
@@ -54,6 +55,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const [batch, setBatch] = useState<string[] | null>(null);
   const [batchFail, setBatchFail] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState(false);
+  // The profile whose proxy is being changed.
+  const [replacing, setReplacing] = useState<Profile | null>(null);
   // Twenty a page unless chosen otherwise; a page past the end (after a filter or a delete) falls back to the last.
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -68,6 +71,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const risky = (id: string) => (riskOf.get(id) ?? []).some(r => r.level !== 'info');
   const now = useNow(Object.values(data.status).some(s => s.state === 'running'));
   const manager = can(data.role, MANAGE), canDelete = can(data.role, 'profiles.delete'), canExport = can(data.role, 'cookies.export');
+  // Moving a profile to another proxy is editing it and binding the proxy.
+  const canBind = can(data.role, 'profiles.edit') && can(data.role, 'proxies.bind');
   const email = useMemo(() => new Map(data.members.map(m => [m.userId, m.email])), [data.members]);
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
   const issue = (p: Profile) => healthOf.get(p.id)!.level !== 'ok' || risky(p.id);
@@ -216,12 +221,13 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const names = (r: Risk) => r.ids.map(id => all.find(p => p.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
 
   const item = (p: Profile): ItemProps => ({
-    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), canDelete, group: data.groups.find(g => g.id === p.groupId) ?? null,
+    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), canDelete, canBind, group: data.groups.find(g => g.id === p.groupId) ?? null,
     owner: p.ownerId ? email.get(p.ownerId) ?? null : null,
     sync: data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null,
     status: data.status[p.id], progress: data.progress[kernelKey(p.kernel, p.kernelVersion)], checking: !!p.proxyId && data.checking.has(p.proxyId),
     onToggle: () => toggle(p.id), onView: () => pick(p.id), onOpen: () => void open(p), onStop: () => void stop(p), onEnter: () => void folio.focusProfile(p.id), onStar: () => void star(p),
-    onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }, onEdit: () => onEdit(p.id), onTrash: () => void trash([p.id]), onMove: () => setMoving(p)
+    onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }, onEdit: () => onEdit(p.id), onTrash: () => void trash([p.id]), onMove: () => setMoving(p),
+    onReplace: () => setReplacing(p)
   });
   async function move(p: Profile, groupId: string | null){
     setMoving(null);
@@ -235,7 +241,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
         <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>{P.clearFilters}</button></>
       : <p><b>{P.emptyNone}</b></p>);
 
-  if (curProfile) return (
+  if (curProfile) return (<>
     <ProfileDetail
       d={d} lang={lang} ws={ws} data={data} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
       status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
@@ -247,9 +253,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
       canTakeOver={manager} canTrash={canDelete} onTakeover={() => void takeover(curProfile)}
       onExport={format => void exportCookies([curProfile], format)}
-      onFix={f => void fix(curProfile, f)} onShowProxy={manager ? onShowProxy : undefined}
+      onFix={f => void fix(curProfile, f)} onShowProxy={manager ? onShowProxy : undefined} onReplaceProxy={canBind ? () => setReplacing(curProfile) : undefined}
     />
-  );
+    {replacing && <ReplaceProxyDialog d={d} data={data} profile={replacing} onClose={() => setReplacing(null)} onDone={() => setReplacing(null)} />}
+  </>);
 
   return (
     <div className="page">
@@ -393,6 +400,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           <BulkEdit d={d} data={data} profiles={all.filter(p => sel.has(p.id))} onClose={() => setEditing(false)}
             onDone={n => { setEditing(false); toast(d.bulkEdit.done(n)); }} onFail={fail} />
         )}
+        {replacing && <ReplaceProxyDialog d={d} data={data} profile={replacing} onClose={() => setReplacing(null)} onDone={() => setReplacing(null)} />}
         {moving && (
           <Modal title={P.moveTitle(moving.name)} closeLabel={d.common.close} onClose={() => setMoving(null)}>
             <ul className="m-body move-list">
@@ -416,9 +424,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
 }
 
 interface ItemProps {
-  d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; canDelete: boolean;
+  d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; canDelete: boolean; canBind: boolean;
   group: Group | null; status?: ProfileStatus; progress?: Progress; checking: boolean; risky: boolean;
-  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onEnter(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void;
+  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onEnter(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void; onReplace(): void;
 }
 
 // What the profile is doing: a coloured dot and a word.
@@ -435,11 +443,11 @@ function Status({ d, p, h, status, progress }: ItemProps){
 }
 
 // Everything to do with the profile, in its ⋯ menu.
-function Actions({ d, p, h, checking, canDelete, onCheck, onEdit, onMove, onTrash }: ItemProps){
+function Actions({ d, p, h, checking, canDelete, canBind, onCheck, onEdit, onMove, onReplace, onTrash }: ItemProps){
   const P = d.profiles;
   return <MoreMenu label={P.actionsX(p.name)} items={[
     ...(h.checks[0]?.id === 'proxy-down' ? [{ label: P.checkProxy, onClick: onCheck, disabled: checking }] : []),
-    { label: d.detail.edit, onClick: onEdit }, { label: P.move, onClick: onMove },
+    { label: d.detail.edit, onClick: onEdit }, { label: P.move, onClick: onMove }, ...(canBind ? [{ label: d.proxies.replace.title, onClick: onReplace }] : []),
     ...(canDelete ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
   ]} />;
 }

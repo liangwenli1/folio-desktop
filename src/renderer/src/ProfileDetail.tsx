@@ -24,7 +24,7 @@ interface Props {
   group: Group | null; owner: string | null; extensions: Extension[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean;
   onBack(): void; onStar(): void; onTakeover(): void; onExport(format: 'json' | 'netscape'): void;
-  onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void; onShowProxy?(id: string): void;
+  onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void; onShowProxy?(id: string): void; onReplaceProxy?(): void;
 }
 type Tab = 'overview' | 'fingerprint' | 'cookies' | 'activity';
 const TABS: Tab[] = ['overview', 'fingerprint', 'cookies', 'activity'];
@@ -141,7 +141,7 @@ export function ProfileDetail(props: Props){
 }
 
 // The overview: its basics, its proxy, a summary of its fingerprint, the data it keeps, and what was done lately.
-function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEdit, onFix, onTab, onShowProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
+function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
   const D = d.detail, F = d.fp;
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
   const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
@@ -172,7 +172,7 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEd
         </dl>
       </section>
       <section className="sec" aria-label={D.proxyCard}>
-        {head(D.proxyCard)}
+        {head(D.proxyCard, onReplaceProxy ? [d.proxies.replace.title, onReplaceProxy] : undefined, 'proxies')}
         {px ? <>
           <dl className="kvl">
             <dt>{D.fields.proxyName}</dt><dd>{px.name}</dd>
