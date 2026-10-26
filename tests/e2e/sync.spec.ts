@@ -36,10 +36,11 @@ async function startSite(){
   return { url: `http://localhost:${(server.address() as AddressInfo).port}`, close: () => new Promise<void>(r => server.close(() => r())) };
 }
 
-// Loads a page in a running profile's browser and returns what the page put on <body>.
+// Loads a page in a running profile's browser and returns what the page put on <body>. A tab of its own: the first
+// one may still be loading the tabs restored from the last session, and a second navigation there aborts one of them.
 const browse = (app: ElectronApplication, id: string, url: string, title: string) => app.evaluate(async (_e, { id, url, title }) => {
   const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
-  const page = r.ctx.pages()[0] ?? await r.ctx.newPage();
+  const page = await r.ctx.newPage();
   await page.goto(url);
   await page.waitForFunction(t => document.title === t, title);
   return page.evaluate(() => ({ ...document.body.dataset }));
