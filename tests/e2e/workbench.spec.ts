@@ -2,13 +2,12 @@
 // bulk actions with the Trash, imports, and the one-click fixes of the consistency check.
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, inBrowser, launch, logIn, startProbe } from './helpers';
+import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, inBrowser, launch, logIn, startProbe, detail } from './helpers';
 
 test.setTimeout(120_000);
 const STUDIO = { plan: 'studio', period: 'monthly' };
 const seattle = { country: 'US', countryName: 'United States', region: 'Washington', city: 'Seattle', lat: 47.6, lon: -122.3, timezone: 'America/Los_Angeles', locale: 'en-US' };
 const row = (win: Page, name: string) => win.locator('tr[data-id]', { has: win.getByRole('button', { name, exact: true }) });
-const detail = (win: Page) => win.getByRole('dialog', { name: 'Profile', exact: true });
 
 test('a first profile behind a SOCKS5 proxy with a password, set up and opened from the workbench', async () => {
   test.skip(!hasKernels, 'browser engines are not unpacked here');
@@ -46,16 +45,18 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   // The proxy check (started when the proxy was saved) puts the exit in the row and on the card.
   const r = row(win, 'US-Store-01');
   await expect(r).toContainText('US 127.0.0.1', { timeout: 20_000 });
+  const id = (await r.getAttribute('data-id'))!;
   await r.getByRole('button', { name: 'US-Store-01', exact: true }).click();
+  await detail(win).getByRole('tab', { name: 'Fingerprint' }).click();
   await expect(detail(win).getByTestId('verdict')).toHaveText('All consistent');
 
   await detail(win).getByRole('button', { name: 'Open profile' }).click();
-  await expect(r.locator('.run')).toBeVisible({ timeout: 90_000 });
-  const seen = await inBrowser(app, (await r.getAttribute('data-id'))!, probe.url);
+  await expect(detail(win).locator('.pd-head .dot-st.run')).toBeVisible({ timeout: 90_000 });
+  const seen = await inBrowser(app, id, probe.url);
   expect(seen).toMatchObject({ tz: 'America/Los_Angeles', lang: 'en-US', webdriver: false, rtc: [] });
   expect(socks.seen.some(d => d.endsWith(`:${probe.port}`))).toBe(true);
 
-  await detail(win).getByRole('button', { name: /^Stop/ }).click();
+  await detail(win).getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(detail(win).getByRole('button', { name: 'Open profile' })).toBeVisible();
   await app.close(); await socks.close(); await probe.close();
 });
@@ -67,7 +68,7 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   const [winA, winB] = await Promise.all([logIn(a, acct.email), logIn(b, acct.email)]);
   const edit = async (win: Page, name: string) => {
     await row(win, name).getByRole('button', { name, exact: true }).click();
-    await detail(win).getByRole('button', { name: 'Edit' }).click();
+    await detail(win).getByRole('button', { name: 'Edit profile' }).click();
     return win.getByRole('dialog', { name: 'Edit profile' });
   };
   // B starts editing first, then A saves a change.
@@ -76,7 +77,9 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   await formA.getByRole('textbox', { name: 'Name', exact: true }).fill('Shared-01 renamed');
   await formA.getByLabel('Tags').fill('vip');
   await formA.getByRole('button', { name: 'Save changes' }).click();
-  await expect(row(winB, 'Shared-01 renamed')).toContainText('vip', { timeout: 5000 });
+  // B has the profile's page open behind its form: the page follows.
+  await expect(detail(winB).getByTestId('detail-name')).toHaveText('Shared-01 renamed', { timeout: 5000 });
+  await expect(detail(winB).getByRole('region', { name: 'Basics' })).toContainText('vip');
 
   // B's save would undo A's rename without knowing: it is refused once, then replaces it on purpose.
   await formB.getByLabel('Notes').fill('from B');
@@ -84,7 +87,7 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   await expect(formB.getByRole('alert')).toContainText('Someone changed this profile while you were editing');
   await formB.getByRole('button', { name: 'Save changes' }).click();
   await expect(formB).toBeHidden();
-  await expect(row(winA, 'Shared-01')).toBeVisible({ timeout: 5000 });
+  await expect(detail(winA).getByTestId('detail-name')).toHaveText('Shared-01', { timeout: 5000 });
 
   await winB.keyboard.press('Escape');
   await winB.getByRole('button', { name: 'New group' }).click();
@@ -209,7 +212,7 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
   await expect(box.getByTestId('check-log')).toContainText('Answered · 120 ms');
   await box.getByRole('button', { name: 'On-US', exact: true }).click();
   // The profile list shows only the profiles on that line, with the one picked open.
-  await expect(win.getByRole('dialog', { name: 'Profile', exact: true }).getByTestId('detail-name')).toHaveText('On-US');
+  await expect(detail(win).getByTestId('detail-name')).toHaveText('On-US');
   await win.keyboard.press('Escape');
   await expect(win.locator('tr[data-id]')).toHaveText([/On-US/]);
   await win.getByRole('button', { name: 'Show all profiles' }).click();
@@ -245,7 +248,8 @@ test('fingerprint choices when creating a profile; filters by engine; a profile 
   });
   expect(await saved('Real-GPU')).toMatchObject({ kind: 'chromium', canvas: 'real', webgl: 'real' });
   await row(win, 'Real-GPU').getByRole('button', { name: 'Real-GPU', exact: true }).click();
-  await expect(detail(win).getByRole('region', { name: 'Fingerprint' })).toContainText('This computer’s GPU');
+  await expect(detail(win).getByRole('region', { name: 'Fingerprint summary' })).toContainText('This computer’s GPU');
+  await detail(win).getByRole('tab', { name: 'Fingerprint' }).click();
   await expect(detail(win).locator('[data-check="fp-real"]')).toContainText('Canvas and WebGL show this computer’s own values');
   await win.keyboard.press('Escape');
 
@@ -290,13 +294,15 @@ test('the consistency check fixes a hand-set time zone and moves a dead line to 
 
   await row(win, 'Fix-Me').getByRole('button', { name: 'Fix-Me', exact: true }).click();
   const card = detail(win);
+  await card.getByRole('tab', { name: 'Fingerprint' }).click();
   await expect(card.getByTestId('verdict')).toHaveText('Needs a look');
   await expect(card.locator('[data-check="proxy-backup"]')).toBeVisible();
   await card.locator('[data-check="tz-mismatch"]').getByRole('button', { name: 'Follow the proxy' }).click();
   await expect(card.locator('[data-check="tz-ok"]')).toBeVisible();
-  await expect(card.getByRole('region', { name: 'Fingerprint' })).toContainText('America/Los_Angeles');
+  await expect(card.getByRole('region', { name: 'Saved configuration' })).toContainText('America/Los_Angeles');
   await card.locator('[data-check="proxy-backup"]').getByRole('button', { name: 'Make the backup the main line' }).click();
   await expect(card.locator('[data-check="proxy-ok"]')).toBeVisible();
+  await card.getByRole('tab', { name: 'Overview' }).click();
   await expect(card.getByRole('region', { name: 'Proxy connection' })).toContainText('spare.example.net');
   await expect(card.getByTestId('verdict')).toHaveText('All consistent');
   await app.close();

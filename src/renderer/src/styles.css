@@ -528,18 +528,12 @@ tr.empty b{color:var(--ink)}
 .chk .ic .i{width:11px;height:11px;stroke-width:2.4}
 .chk .warn .ic{color:var(--warn);background:var(--warn-soft)} .chk .bad .ic{color:var(--bad);background:var(--bad-soft)} .chk .todo .ic{color:var(--info);background:var(--info-soft)}
 .chk .ck-d{display:block;font-size:12.5px;color:var(--ink-2);overflow-wrap:anywhere}
-.chk .btn{margin-top:6px}
+.chk li > div{display:grid;justify-items:start;gap:6px}
 .report-line{font-size:12.5px;color:var(--ink-2)}
 .store{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .store div{display:grid;gap:1px}
 .store b{font:600 17px var(--f-display);font-variant-numeric:tabular-nums}
 .store span{font-size:12px;color:var(--ink-2)}
-.ext-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
-.ext-list li{display:flex;align-items:center;gap:9px;font-size:13px}
-.ext-list li .mono{margin-left:auto;font-size:12px;color:var(--ink-3)}
-.acts{display:grid;gap:8px;margin:0;padding:0;list-style:none}
-.acts li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;font-size:13px}
-.acts time{font-family:var(--f-data);font-size:12px;line-height:1.75;color:var(--ink-3);white-space:nowrap}
 .away-note{display:grid;gap:8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--info) 30%,transparent);border-radius:var(--r);background:var(--info-soft);font-size:13px}
 .notes{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
 .detail .attrib{margin-top:-8px;text-align:right}
@@ -550,11 +544,6 @@ tr.empty b{color:var(--ink)}
 .dh > .pav{width:44px;height:44px;font-size:18px;border-radius:12px}
 .dh-t{display:grid;gap:5px;min-width:0}
 .dh-t h2{font:600 20px/1.2 var(--f-display);letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dh-n{display:flex;align-items:center;gap:4px;min-width:0}
-.dh-n .star{width:26px;height:26px;flex:none}
-.px-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
-.px-line > span:first-child{display:inline-flex;align-items:center;gap:6px}
-.px-line .mono{font-size:12px;color:var(--ink-2)}
 .dh-sub{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12.5px;color:var(--ink-2)}
 .dstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);flex:none}
 .dstats > div{display:grid;gap:4px;justify-items:center;min-width:0;padding:12px 10px;text-align:center}
@@ -569,6 +558,60 @@ tr.empty b{color:var(--ink)}
 .bound{display:grid;margin:0;padding:0;list-style:none}
 .bound li{display:grid;grid-template-columns:minmax(0,1fr) auto 76px;align-items:center;gap:10px;padding:8px 0;font-size:13px}
 .bound li + li{border-top:1px solid var(--line)}
+
+/* a profile's page: breadcrumb, header, tabs, then the tab's cards */
+.crumbs{display:flex;align-items:center;gap:6px;min-width:0;padding:8px var(--gx) 0;font-size:13px;color:var(--ink-3);flex:none}
+.crumbs button{padding:0;border:0;background:none;font:inherit;color:var(--ink-2);cursor:pointer}
+.crumbs button:hover{color:var(--accent-ink)}
+.crumbs .i{width:12px;height:12px;flex:none}
+.crumbs [aria-current]{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:10px var(--gx) 14px;flex:none}
+.pd-t{display:grid;gap:4px;min-width:0}
+.pd-n{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.pd-n h1{font:var(--w-display) 24px/32px var(--f-display);letter-spacing:-.025em;overflow-wrap:anywhere}
+.pd-n .star{width:28px;height:28px}
+.pd-n button.verdict{border:0;cursor:pointer}
+.pd-sub{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
+.pd-sub .sep{width:1px;height:12px;background:var(--line-2)}
+.pd > .away-note,.pd > .opening{margin:0 var(--gx) 14px;flex:none}
+.pd > .tabs{margin:0 var(--gx)}
+.pd-body{display:grid;gap:16px;align-content:start;padding:16px var(--gx) 24px}
+.pd-body .tw{margin:0}
+.pd-body .older{margin:0;justify-self:start}
+.pd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.pd .sec{gap:12px;padding:18px 20px}
+.pd .sec h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
+.pd .kvl{grid-template-columns:104px minmax(0,1fr);gap:10px 16px;font-size:14px}
+.pd .kvl dd.mono{font-size:13px}
+.pd .kvl .pxres{padding:3px 8px}
+.pd .kvl dd.tags{flex-wrap:wrap}
+.pd .kvl dd.tags .tag{margin:0}
+.act-link{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-2);text-decoration:none}
+.act-link:hover{color:var(--accent-ink)}
+.act-link .i{width:13px;height:13px}
+.px-geo{display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:13px;color:var(--ink-2)}
+.timeline{display:grid;margin:0;padding:0;list-style:none}
+.timeline li{position:relative;display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;padding:0 0 14px 20px}
+.timeline li::before{content:'';position:absolute;left:3px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--line-2)}
+.timeline li:first-child::before{background:var(--accent)}
+.timeline li:not(:last-child)::after{content:'';position:absolute;left:6.5px;top:19px;bottom:0;width:1px;background:var(--line)}
+.timeline time{font:12.5px/21px var(--f-data);color:var(--ink-2)}
+.timeline div{display:grid;gap:2px}
+.timeline b{font-weight:500}
+.timeline small{font-size:12px;color:var(--ink-3)}
+/* the Fingerprint tab: the fields on the left, what it is saved as and how it holds together on the right */
+.fpt{display:grid;gap:16px}
+.notice.info{background:var(--info-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--info) 30%,transparent)}
+.fpt-note{display:flex;align-items:center;gap:8px}
+.fpt-note > .i{width:15px;height:15px;flex:none;color:var(--info)}
+.fpt-note.warn > .i{color:var(--warn)}
+.fpt-note .btn{margin-left:auto}
+.fpt-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:16px;align-items:start}
+.fpt-side{display:grid;gap:16px}
+.pd .sec h3.fpt-h{padding-left:10px;border-left:3px solid var(--accent);font-size:15px;line-height:20px}
+.fpt-form .fpt-h:not(:first-child){margin-top:10px}
+.fpt textarea[readonly]{min-height:62px;color:var(--ink-2);background:var(--panel);font-size:12.5px}
+.fpt-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:8px;margin:0 calc(-1 * var(--gx)) -24px;padding:12px var(--gx);border-top:1px solid var(--line);background:var(--card)}
 
 /* opening a profile: its four steps, one under the other */
 .opening{display:grid;gap:0;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 14px 30px -18px rgba(29,28,43,.4),0 2px 4px rgba(29,28,43,.04)}

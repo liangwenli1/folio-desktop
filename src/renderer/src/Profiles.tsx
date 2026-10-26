@@ -4,8 +4,8 @@ import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
-import { dayLabel, time, useActivity } from './Activity';
-import { Avatar, BulkBar, DetailDialog, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { dayLabel, time } from './Activity';
+import { Avatar, BulkBar, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Select } from './Select';
 import { Flag, SEARCH_LOGOS } from './Flag';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
@@ -25,12 +25,12 @@ interface Props {
   d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; group: GroupFilter; setGroup(g: GroupFilter): void;
   // Only these profiles (picked from a risk or a proxy), and the one whose details open first.
   only: Set<string> | null; setOnly(s: Set<string> | null): void; openId: string | null;
-  onNew(): void; onImport(): void; onEdit(id: string): void; onPalette(): void; onTrashPage(): void;
+  onNew(): void; onImport(): void; onEdit(id: string): void; onPalette(): void; onTrashPage(): void; onShowProxy?(id: string): void;
 }
 
 const number = (p: Profile) => String(p.number).padStart(4, '0');
 
-export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly, openId, onNew, onImport, onEdit, onPalette, onTrashPage }: Props){
+export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly, openId, onNew, onImport, onEdit, onPalette, onTrashPage, onShowProxy }: Props){
   const toast = useToast();
   const P = d.profiles;
   const [q, setQ] = useState('');
@@ -66,7 +66,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const riskOf = useMemo(() => byProfile(riskList), [riskList]);
   const risky = (id: string) => (riskOf.get(id) ?? []).some(r => r.level !== 'info');
   const now = useNow(Object.values(data.status).some(s => s.state === 'running'));
-  const manager = can(data.role, MANAGE);
+  const manager = can(data.role, MANAGE), canDelete = can(data.role, 'profiles.delete'), canExport = can(data.role, 'cookies.export');
   const email = useMemo(() => new Map(data.members.map(m => [m.userId, m.email])), [data.members]);
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
   const issue = (p: Profile) => healthOf.get(p.id)!.level !== 'ok' || risky(p.id);
@@ -106,9 +106,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const pages = Math.max(1, Math.ceil(list.length / pageSize)), at = Math.min(page, pages);
   const pageList = list.slice((at - 1) * pageSize, at * pageSize);
   const pageSel = pageList.filter(p => sel.has(p.id)).length;
-  // The details dialog shows only while a profile is picked.
+  // A picked profile's page shows in place of the list.
   const curProfile = (detail && all.find(p => p.id === cur)) || null;
-  const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 10, !!curProfile);
   const filtered = group !== 'all' || engine !== 'all' || status !== 'all' || !!q || !!only;
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
@@ -217,7 +216,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const names = (r: Risk) => r.ids.map(id => all.find(p => p.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
 
   const item = (p: Profile): ItemProps => ({
-    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), manager, group: data.groups.find(g => g.id === p.groupId) ?? null,
+    d, lang, p, h: healthOf.get(p.id)!, cur: p.id === curProfile?.id, checked: sel.has(p.id), risky: risky(p.id), canDelete, group: data.groups.find(g => g.id === p.groupId) ?? null,
     owner: p.ownerId ? email.get(p.ownerId) ?? null : null,
     sync: data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null,
     status: data.status[p.id], progress: data.progress[kernelKey(p.kernel, p.kernelVersion)], checking: !!p.proxyId && data.checking.has(p.proxyId),
@@ -235,6 +234,22 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
         <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>{P.clearFilters}</button></>
       : <p><b>{P.emptyNone}</b></p>);
+
+  if (curProfile) return (
+    <ProfileDetail
+      d={d} lang={lang} ws={ws} data={data} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
+      status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
+      size={data.kernels.find(k => k.kind === curProfile.kernel && k.version === curProfile.kernelVersion)?.size ?? null} failed={data.failed[curProfile.id]}
+      risks={riskOf.get(curProfile.id) ?? []} others={all} onStar={() => void star(curProfile)}
+      group={data.groups.find(g => g.id === curProfile.groupId) ?? null} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
+      extensions={curProfile.extensionIds.map(id => extensions.get(id)).filter((x): x is Extension => !!x)}
+      onBack={() => setDetail(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
+      onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
+      canTakeOver={manager} canTrash={canDelete} canExport={canExport} onTakeover={() => void takeover(curProfile)}
+      onExport={format => void exportCookies([curProfile], format)} onImport={text => void importCookies(curProfile, text)}
+      onFix={f => void fix(curProfile, f)} onShowProxy={manager ? onShowProxy : undefined}
+    />
+  );
 
   return (
     <div className="page">
@@ -328,8 +343,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                     ...(['add', 'remove'] as const).flatMap(how => data.extensions.map(x => ({ value: `ext-${how}:${x.id}`, label: `${x.name} · ${ENGINES[x.kernel]}`, group: how === 'add' ? P.bulk.install : P.bulk.uninstall }))),
                     ...SEARCH_IDS.map(id => ({ value: `se:${id}`, label: d.browser.name(id), group: d.browser.search, ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) })),
                     ...(['on', 'off'] as const).map(v => ({ value: `tabs:${v}`, label: d.browser[v], group: d.browser.restore })),
-                    ...(manager ? [{ value: 'cookies:json', label: d.detail.json, group: P.bulk.cookies }, { value: 'cookies:netscape', label: d.detail.netscape, group: P.bulk.cookies }] : []),
-                    ...(manager ? [{ value: 'trash', label: P.bulk.trash }] : [])
+                    ...(canExport ? [{ value: 'cookies:json', label: d.detail.json, group: P.bulk.cookies }, { value: 'cookies:netscape', label: d.detail.netscape, group: P.bulk.cookies }] : []),
+                    ...(canDelete ? [{ value: 'trash', label: P.bulk.trash }] : [])
                   ]}
                   onChange={v => more(v)} />
               </>
@@ -396,30 +411,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       {batch && <Tray d={d} data={data} profiles={batch.map(id => all.find(p => p.id === id)).filter((p): p is Profile => !!p)} failed={batchFail}
         onRetry={launch} onClose={() => setBatch(null)} />}
 
-      {curProfile && (
-        <DetailDialog label={d.detail.profile} onClose={() => setDetail(false)}>
-          <ProfileDetail
-            d={d} lang={lang} p={curProfile} h={healthOf.get(curProfile.id)!} now={now} busy={busyFix}
-            status={data.status[curProfile.id]} progress={data.progress[kernelKey(curProfile.kernel, curProfile.kernelVersion)]}
-            size={data.kernels.find(k => k.kind === curProfile.kernel && k.version === curProfile.kernelVersion)?.size ?? null} failed={data.failed[curProfile.id]}
-            risks={riskOf.get(curProfile.id) ?? []} others={all} onStar={() => void star(curProfile)}
-            group={data.groups.find(g => g.id === curProfile.groupId) ?? null} owner={curProfile.ownerId ? email.get(curProfile.ownerId) ?? null : null}
-            extensions={curProfile.extensionIds.map(id => extensions.get(id)).filter((x): x is Extension => !!x)}
-            activity={recent.entries ?? []}
-            onClose={() => setDetail(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
-            onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
-            canTakeOver={manager} canTrash={manager} canExport={manager} onTakeover={() => void takeover(curProfile)}
-            onExport={format => void exportCookies([curProfile], format)} onImport={text => void importCookies(curProfile, text)}
-            onFix={f => void fix(curProfile, f)}
-          />
-        </DetailDialog>
-      )}
     </div>
   );
 }
 
 interface ItemProps {
-  d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; manager: boolean;
+  d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; canDelete: boolean;
   group: Group | null; status?: ProfileStatus; progress?: Progress; checking: boolean; risky: boolean;
   onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onEnter(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void;
 }
@@ -438,12 +435,12 @@ function Status({ d, p, h, status, progress }: ItemProps){
 }
 
 // Everything to do with the profile, in its ⋯ menu.
-function Actions({ d, p, h, checking, manager, onCheck, onEdit, onMove, onTrash }: ItemProps){
+function Actions({ d, p, h, checking, canDelete, onCheck, onEdit, onMove, onTrash }: ItemProps){
   const P = d.profiles;
   return <MoreMenu label={P.actionsX(p.name)} items={[
     ...(h.checks[0]?.id === 'proxy-down' ? [{ label: P.checkProxy, onClick: onCheck, disabled: checking }] : []),
     { label: d.detail.edit, onClick: onEdit }, { label: P.move, onClick: onMove },
-    ...(manager ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
+    ...(canDelete ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
   ]} />;
 }
 

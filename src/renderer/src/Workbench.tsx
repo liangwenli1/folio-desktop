@@ -46,6 +46,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   // Some profiles picked from elsewhere (the ones on a proxy, or with a risk), and one of them to show the details of.
   const [only, setOnly] = useState<Set<string> | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  // A proxy to show the details of when the Proxies page opens (from a profile's page).
+  const [proxyId, setProxyId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [wsOpen, setWsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -74,7 +76,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const editing = dialog?.kind === 'edit' ? data.profiles?.find(p => p.id === dialog.id) : undefined;
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
-  const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); setOnly(null); setOpenId(null); };
+  const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); setOnly(null); setOpenId(null); setProxyId(null); };
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
@@ -267,9 +269,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'profiles' && (
         <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
-          onEdit={id => setDialog({ kind: 'edit', id })} onTrashPage={() => go('trash')} />
+          onEdit={id => setDialog({ kind: 'edit', id })} onTrashPage={() => go('trash')} onShowProxy={id => { go('proxies'); setProxyId(id); }} />
       )}
-      {shown === 'proxies' && <ProxiesPage d={d} lang={lang} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })}
+      {shown === 'proxies' && <ProxiesPage d={d} lang={lang} data={data} openId={proxyId} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })}
         onShowProfiles={(ids, open) => { go('profiles'); setOnly(new Set(ids)); setOpenId(open ?? null); }} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
       {shown === 'extensions' && <ExtensionsPage d={d} ws={ws} data={data} />}

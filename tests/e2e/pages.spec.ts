@@ -2,7 +2,7 @@
 // the engines' download settings, copying a waiting invitation's link again, and a profile's browser settings.
 import { strToU8, zipSync } from 'fflate';
 import { expect, test } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, launch, logIn, roleId } from './helpers';
+import { account, choose, chromiumProfile, dataDir, launch, logIn, roleId, backToList, detail } from './helpers';
 
 const STUDIO = { plan: 'studio', period: 'monthly' };
 const nav = (win: import('@playwright/test').Page, name: RegExp) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
@@ -100,10 +100,9 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
 
   const row = win.locator('tr[data-id]', { hasText: 'Shop-2' });
   await row.getByRole('button', { name: 'Shop-2', exact: true }).click();
-  const detail = win.getByRole('dialog', { name: 'Profile', exact: true });
-  await expect(detail).toContainText('Search engineBaidu');
-  await expect(detail).toContainText('On openingOpens the Baidu home page');
-  await detail.getByRole('button', { name: 'Close details' }).click();
+  await expect(detail(win)).toContainText('Search engineBaidu');
+  await expect(detail(win)).toContainText('On openingOpens the Baidu home page');
+  await backToList(win);
 
   for (const n of ['Shop-1', 'Shop-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bing');
@@ -113,6 +112,6 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
   const profiles = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; searchEngine: string; restoreTabs: boolean }[];
   expect(profiles.map(p => [p.name, p.searchEngine, p.restoreTabs])).toEqual([['Shop-1', 'bing', true], ['Shop-2', 'bing', true]]);
   await row.getByRole('button', { name: 'Shop-2', exact: true }).click();
-  await expect(detail).toContainText('On openingRestores the last tabs');
+  await expect(detail(win)).toContainText('On openingRestores the last tabs');
   await app.close();
 });

@@ -54,7 +54,9 @@ const PATHS = {
   settings: 'M2.5 4.5h5M10.5 4.5h3M2.5 11.5h3M8.5 11.5h5M9 2.8v3.4M7 9.8v3.4',
   billing: 'M2 4.5h12v7H2zM2 7h12M4.5 9.5h2.5',
   help: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM6.4 6.3a1.65 1.65 0 1 1 1.85 2.05v.9M8 11.4h.01',
-  eyeOff: 'M2.5 2.5l11 11M6.6 4c.5-.3 1-.5 1.4-.5 4.1 0 6.5 4.5 6.5 4.5s-.6 1.1-1.7 2.3M11 11.6c-.9.6-1.9.9-3 .9-4.1 0-6.5-4.5-6.5-4.5s.8-1.5 2.3-2.8M6.6 6.6a2 2 0 0 0 2.8 2.8'
+  eyeOff: 'M2.5 2.5l11 11M6.6 4c.5-.3 1-.5 1.4-.5 4.1 0 6.5 4.5 6.5 4.5s-.6 1.1-1.7 2.3M11 11.6c-.9.6-1.9.9-3 .9-4.1 0-6.5-4.5-6.5-4.5s.8-1.5 2.3-2.8M6.6 6.6a2 2 0 0 0 2.8 2.8',
+  edit: 'M10.5 2.5l3 3-8 8h-3v-3zM9 4l3 3',
+  info: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 7.3v3.9M8 4.8v.01'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;

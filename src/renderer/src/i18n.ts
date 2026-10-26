@@ -165,13 +165,16 @@ export const en = {
     save_failed: 'The browser closed, but its sign-ins couldn’t be saved to Folio. They are still on this computer.'
   } as Record<string, string>,
   detail: {
-    profile: 'Profile', close: 'Close details', basics: 'Basics', proxyCard: 'Proxy connection', dataCard: 'Profile data', manage: 'Manage',
+    profile: 'Profile', crumbs: 'Breadcrumb', basics: 'Basics', proxyCard: 'Proxy connection', dataCard: 'Profile data', manage: 'Manage',
     viewAll: 'View all', lastOpened: 'Last opened', synced: 'Last saved', answered: (ms: number) => `Answering · ${ms} ms`,
-    openProfile: 'Open profile', edit: 'Edit', trash: 'Move to Trash',
+    openProfile: 'Open profile', edit: 'Edit', editProfile: 'Edit profile', trash: 'Move to Trash', viewProxy: 'View proxy',
     notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection',
-    tabs: { overview: 'Overview', signins: 'Sign-ins', extensions: 'Extensions', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint',
-    verdict: { ok: 'All consistent', warn: 'Needs a look', bad: 'Can’t open' }, noExtensions: 'No extensions in this profile.', noActivity: 'Nothing recorded yet.',
-    fields: { lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', seed: 'Fingerprint seed', cores: 'CPU cores' },
+    tabs: { overview: 'Overview', fingerprint: 'Fingerprint', cookies: 'Cookies', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint summary',
+    verdict: { ok: 'All consistent', warn: 'Needs a look', bad: 'Can’t open' }, noActivity: 'Nothing recorded yet.',
+    fields: {
+      name: 'Name', number: 'Number', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', window: 'Window size',
+      proxyName: 'Proxy', proxyType: 'Type and address', ip: 'Exit IP', state: 'Status', checked: 'Last checked'
+    },
     hostTz: 'This computer’s',
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', todo: 'To do', warn: 'Warning', bad: 'Problem' },
     storage: 'Sign-ins', cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', extensions: 'Extensions', savedOn: (when: string, device: string | null) => `Saved ${when}${device ? ` on ${device}` : ''}`,
@@ -258,6 +261,15 @@ export const en = {
     lockedNote: 'The profile is running; stop it to change this.', stopNow: 'Stop profile',
     unsaved: 'Unsaved changes', changedN: (n: number) => `${n} changed`, createHint: 'Everything here can be changed later.',
     discardTitle: 'Discard unsaved changes?', discardNote: 'What you changed here won’t be saved.', keepEditing: 'Keep editing', discard: 'Discard changes'
+  },
+  // The Fingerprint tab of a profile's page.
+  fpTab: {
+    next: 'Changes apply the next time the profile opens.', locked: 'The profile is running; stop it to change its fingerprint.',
+    browser: 'Browser', screen: 'Screen', langTz: 'Language and time zone', hardware: 'Hardware',
+    current: 'Saved configuration', consistency: 'Consistency', advanced: 'Advanced',
+    ua: 'User-Agent', uaLater: 'Made by the engine from the system and version; run a health check to see it here.',
+    screenHint: 'The screen resolution is what sites read; the window size is set when editing the profile.',
+    defaults: 'Restore defaults', save: 'Save fingerprint', saved: 'Fingerprint saved'
   },
   // A profile's search engine and the pages it opens with.
   browser: {
@@ -371,7 +383,7 @@ export const en = {
     title: 'Activity log', lead: 'What has been done in this workspace, by whom and when.', person: 'Person', everyone: 'Everyone', kind: 'Showing',
     search: 'Search profiles, people or actions', cols: { time: 'Time', person: 'Person', what: 'What happened', kind: 'Kind', device: 'Computer' },
     kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
-    export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
+    export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
     today: 'Today', yesterday: 'Yesterday', on: (device: string) => `on ${device}`,
     actions: {
       'profile.create': p => `created ${p}`, 'profile.update': (p, x) => `changed the ${x.fields?.map((f: string) => enFields[f] ?? f).join(', ')} of ${p}`,
@@ -820,13 +832,16 @@ export const zh: Dict = {
     save_failed: '浏览器已关闭，但登录状态未能保存至 Folio，已保留在本机。'
   } as Record<string, string>,
   detail: {
-    profile: '环境详情', close: '关闭详情', basics: '基础信息', proxyCard: '代理连接', dataCard: '环境数据', manage: '管理',
-    viewAll: '查看全部', lastOpened: '最近打开', synced: '最近同步', answered: (ms: number) => `连接正常 · ${ms} ms`,
-    openProfile: '打开环境', edit: '编辑', trash: '移至回收站',
+    profile: '环境详情', crumbs: '当前位置', basics: '基础信息', proxyCard: '代理信息', dataCard: '环境数据', manage: '管理',
+    viewAll: '查看全部', lastOpened: '最近使用', synced: '最近同步', answered: (ms: number) => `连接正常 · ${ms} ms`,
+    openProfile: '启动环境', edit: '编辑', editProfile: '编辑环境', trash: '移至回收站', viewProxy: '查看代理详情',
     notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连',
-    tabs: { overview: '概览', signins: '登录状态', extensions: '扩展', activity: '记录' }, more: '更多操作', fingerprint: '指纹摘要',
-    verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' }, noExtensions: '该环境未安装扩展。', noActivity: '暂无记录。',
-    fields: { lang: '语言', tz: '时区', os: '系统', engine: '内核', seed: '指纹种子', cores: 'CPU 核数' },
+    tabs: { overview: '概览', fingerprint: '指纹配置', cookies: 'Cookie 管理', activity: '操作记录' }, more: '更多操作', fingerprint: '指纹摘要',
+    verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' }, noActivity: '暂无记录。',
+    fields: {
+      name: '环境名称', number: '环境编号', lang: '语言', tz: '时区', os: '操作系统', engine: '使用内核', window: '启动窗口',
+      proxyName: '代理名称', proxyType: '类型与地址', ip: '出口 IP', state: '连接状态', checked: '上次检测'
+    },
     hostTz: '跟随本机',
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', todo: '待处理', warn: '警告', bad: '问题' },
     storage: '登录状态', cookies: 'Cookie', siteData: '网站存储', sites: '站点', extensions: '扩展', savedOn: (when: string, device: string | null) => `${when}${device ? ` 在 ${device} 上` : ''}保存`,
@@ -909,6 +924,14 @@ export const zh: Dict = {
     lockedNote: '环境运行中，停止后才能修改此项。', stopNow: '停止环境',
     unsaved: '有未保存的修改', changedN: (n: number) => `已修改 ${n} 项`, createHint: '创建后可继续调整环境配置。',
     discardTitle: '放弃未保存的修改？', discardNote: '关闭后，本次的修改将不会保存。', keepEditing: '继续编辑', discard: '放弃修改'
+  },
+  fpTab: {
+    next: '修改将在下次启动环境时生效。', locked: '环境运行中，停止后才能修改指纹配置。',
+    browser: '浏览器配置', screen: '屏幕配置', langTz: '语言与时区', hardware: '硬件与媒体',
+    current: '当前配置', consistency: '配置一致性', advanced: '高级配置',
+    ua: 'User-Agent', uaLater: '由内核按系统与版本生成，运行体检后可在此查看。',
+    screenHint: '屏幕分辨率是网页读取的屏幕参数；启动窗口尺寸在编辑环境中设置。',
+    defaults: '恢复默认', save: '保存配置', saved: '指纹配置已保存'
   },
   browser: {
     search: '搜索引擎', name: zhSearch,
@@ -1021,7 +1044,7 @@ export const zh: Dict = {
     title: '操作日志', lead: '查看工作空间内的操作记录、操作人与时间。', person: '成员', everyone: '所有人', kind: '显示',
     search: '搜索环境、成员或操作', cols: { time: '时间', person: '成员', what: '操作', kind: '类别', device: '电脑' },
     kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
-    export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '暂无记录。', someone: '有人', recent: '最近活动',
+    export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '暂无记录。', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
     today: '今天', yesterday: '昨天', on: (device: string) => `在 ${device} 上`,
     actions: {
       'profile.create': p => `创建了 ${p}`, 'profile.update': (p, x) => `修改了 ${p} 的${x.fields?.map((f: string) => zhFields[f] ?? f).join('、')}`,

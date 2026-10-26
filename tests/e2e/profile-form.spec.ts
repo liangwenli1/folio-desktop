@@ -2,7 +2,7 @@
 // window size; an edit says what changed, asks before throwing it away, and waits for a running profile to stop
 // before its engine, proxy or fingerprint can change.
 import { expect, test } from '@playwright/test';
-import { API, ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logIn, opened } from './helpers';
+import { API, ENGINE_ENV, account, chromiumProfile, dataDir, detail, hasKernels, launch, logIn, opened } from './helpers';
 
 test.setTimeout(180_000);
 
@@ -43,7 +43,7 @@ test('an edit says what changed and asks before throwing it away', async () => {
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await win.locator('tr[data-id]').getByRole('button', { name: 'Shop-1', exact: true }).click();
-  await win.getByRole('dialog', { name: 'Profile', exact: true }).getByRole('button', { name: 'Edit' }).click();
+  await detail(win).getByRole('button', { name: 'Edit profile' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await expect(form.getByRole('status')).toContainText('Changes apply the next time it opens.');
   await expect(form.getByRole('button', { name: 'Save changes' })).toBeDisabled();
@@ -74,7 +74,7 @@ test('while it runs, what it was started with waits until it is stopped', async 
   await expect(win.locator(`tr[data-id="${p.id}"]`)).toBeVisible();
   expect(await opened(win, p.id)).toMatchObject({ state: 'running' });
   await win.locator(`tr[data-id="${p.id}"]`).getByRole('button', { name: 'Run-1', exact: true }).click();
-  await win.getByRole('dialog', { name: 'Profile', exact: true }).getByRole('button', { name: 'Edit' }).click();
+  await detail(win).getByRole('button', { name: 'Edit profile' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await expect(form.getByRole('combobox', { name: 'Browser engine' })).toBeDisabled();
   await expect(form.getByRole('radio', { name: 'No proxy' })).toBeDisabled();

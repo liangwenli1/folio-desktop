@@ -132,7 +132,8 @@ for (const lang of ['en', 'zh'] as const){
     expect(await opened(win, ids['US-Store-01'])).toMatchObject({ state: 'running' });
     const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: new RegExp(`^${name}`) });
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
-    const drawer = win.getByRole('dialog', { name: d.detail.profile, exact: true });
+    const drawer = win.getByRole('main', { name: d.detail.profile, exact: true });
+    const back = () => drawer.getByRole('navigation', { name: d.detail.crumbs }).getByRole('button', { name: d.profiles.title }).click();
 
     const frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[] = [];
     const pictures: { file: string; light: Buffer; dark: Buffer }[] = [];
@@ -188,7 +189,7 @@ for (const lang of ['en', 'zh'] as const){
     await snap('opening', { focus: [drawer.locator('.opening')] });
     // 4. Its three tabs come back.
     await expect(row('UK-Shop-01').locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
-    await drawer.getByRole('button', { name: d.detail.close }).click();
+    await back();
     await expect.poll(() => app.evaluate((_e, id) => (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages().length, ids['UK-Shop-01'])).toBe(3);
     const browser = await app.evaluate(async (_e, id) => {
       const page = (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages()[0];
@@ -199,6 +200,7 @@ for (const lang of ['en', 'zh'] as const){
     await snap('restored', { browser: true });
     // 5. US-Store-02's health check.
     await click(row('US-Store-02').getByRole('button', { name: 'US-Store-02', exact: true }));
+    await click(drawer.getByRole('tab', { name: d.detail.tabs.fingerprint }));
     await drawer.getByRole('button', { name: d.checkup.run, exact: true }).scrollIntoViewIfNeeded();
     await snap('drawer-check');
     await click(drawer.getByRole('button', { name: d.checkup.run, exact: true }));
@@ -206,7 +208,7 @@ for (const lang of ['en', 'zh'] as const){
     await expect(report).toBeVisible({ timeout: 120_000 });
     await snap('checkup', { focus: [report] });
     await click(report.locator('.m-foot').getByRole('button', { name: d.common.close }));
-    await drawer.getByRole('button', { name: d.detail.close }).click();
+    await back();
     // 6. An extension goes into three profiles.
     await click(nav(d.nav.extensions));
     await snap('extensions');

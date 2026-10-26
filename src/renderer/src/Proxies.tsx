@@ -27,8 +27,9 @@ const exitOf = (p: Proxy) => (p.lastCheck?.ok ? { geo: p.lastCheck.geo, ip: p.la
 const uptime = (p: Proxy) => (p.history.length ? Math.round((p.history.filter(h => h.ok).length / p.history.length) * 100) : null);
 const place = (g: { city?: string | null; countryName: string }) => [g.city, g.countryName].filter(Boolean).join(', ');
 
-export function ProxiesPage({ d, lang, data, onAdd, onEdit, onImport, onShowProfiles }: {
-  d: Dict; lang: Lang; data: WorkspaceData; onAdd(): void; onEdit(id: string): void; onImport(): void; onShowProfiles(ids: string[], open?: string): void;
+// `openId`: a proxy whose details show first (from a profile's page).
+export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, onShowProfiles }: {
+  d: Dict; lang: Lang; data: WorkspaceData; openId: string | null; onAdd(): void; onEdit(id: string): void; onImport(): void; onShowProfiles(ids: string[], open?: string): void;
 }){
   const toast = useToast();
   const X = d.proxies;
@@ -39,7 +40,7 @@ export function ProxiesPage({ d, lang, data, onAdd, onEdit, onImport, onShowProf
   const [view, setView] = useView<'cards' | 'table'>('proxies', 'table');
   const [sel, setSel] = useState<Set<string>>(() => new Set());
   const [confirm, setConfirm] = useState<string[] | null>(null);
-  const [cur, setCur] = useState<string | null>(null);
+  const [cur, setCur] = useState<string | null>(openId);
   const byId = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
   // The countries the lines exit in, for the region filter.
   const regions = useMemo(() => {

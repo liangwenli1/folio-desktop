@@ -9,11 +9,10 @@ import { Select } from './Select';
 type Kind = 'all' | keyof Dict['activity']['kinds'];
 const PAGE = 50;
 
+// What an entry says, without who did it.
+export const said = (d: Dict, e: ActivityEntry) => d.activity.actions[e.action](e.profile ? `${e.profile.name} #${String(e.profile.number).padStart(4, '0')}` : '', e.detail);
 // One entry as a sentence, starting with who did it.
-export function describe(d: Dict, e: ActivityEntry){
-  const p = e.profile ? `${e.profile.name} #${String(e.profile.number).padStart(4, '0')}` : '';
-  return `${e.actor ?? d.activity.someone} ${d.activity.actions[e.action](p, e.detail)}`;
-}
+export const describe = (d: Dict, e: ActivityEntry) => `${e.actor ?? d.activity.someone} ${said(d, e)}`;
 
 export const time = (iso: string, lang: Lang) => new Date(iso).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 export function dayLabel(iso: string, d: Dict, lang: Lang){
@@ -70,15 +69,8 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
     } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
   }
 
-  // What the entry says, without who did it (that has its own column).
-  const said = (e: ActivityEntry) => d.activity.actions[e.action](e.profile ? `${e.profile.name} #${String(e.profile.number).padStart(4, '0')}` : '', e.detail);
   const needle = q.trim().toLowerCase();
-  const byDay: [string, ActivityEntry[]][] = [];
-  for (const e of entries ?? []){
-    if (needle && !`${e.actor ?? ''} ${said(e)} ${e.deviceName ?? ''}`.toLowerCase().includes(needle)) continue;
-    const label = dayLabel(e.at, d, lang);
-    if (byDay.at(-1)?.[0] === label) byDay.at(-1)![1].push(e); else byDay.push([label, [e]]);
-  }
+  const shown = entries && (needle ? entries.filter(e => `${e.actor ?? ''} ${said(d, e)} ${e.deviceName ?? ''}`.toLowerCase().includes(needle)) : entries);
 
   return (
     <div className="page">
@@ -98,35 +90,48 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
           <span className="sp" />
           <Select variant="sm" label={A.person} value={person} onChange={setPerson} options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
         </div>
-        <div className="tw flow">
-          <table className="log-t">
-            <thead>
-              <tr><th scope="col">{A.cols.time}</th><th scope="col">{A.cols.person}</th><th scope="col">{A.cols.what}</th><th scope="col">{A.cols.kind}</th><th scope="col">{A.cols.device}</th></tr>
-            </thead>
-            <tbody>
-              {entries === null && !failed && Array.from({ length: 6 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td><i className="w3" /></td><td><i /></td><td><i /></td><td><i className="w3" /></td><td><i className="w3" /></td></tr>)}
-              {failed && <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={() => void reload()} /></td></tr>}
-              {!failed && entries !== null && !byDay.length && <tr className="empty"><td colSpan={5}><p>{A.empty}</p></td></tr>}
-              {byDay.flatMap(([label, list]) => [
-                <tr key={label} className="day"><td colSpan={5}>{label}</td></tr>,
-                ...list.map(e => {
-                  const k = kindOf(e.action);
-                  return (
-                    <tr key={e.seq} data-action={e.action}>
-                      <td className="mono muted">{time(e.at, lang)}</td>
-                      <td><span className="who-cell">{e.actor ? <span className="pav sm" aria-hidden="true">{e.actor.slice(0, 1).toUpperCase()}</span> : null}<b>{e.actor ?? A.someone}</b></span></td>
-                      <td>{said(e)}</td>
-                      <td><span className="kind-cell"><span className="kic sm" aria-hidden="true"><Icon name={KIND_ICON[k]} /></span>{A.kinds[k]}</span></td>
-                      <td className="mono muted">{e.deviceName ?? '—'}</td>
-                    </tr>
-                  );
-                })
-              ])}
-            </tbody>
-          </table>
-        </div>
+        <ActivityTable d={d} lang={lang} entries={shown} failed={failed} onRetry={() => void reload()} />
         {more && <button className="btn btn-secondary btn-sm older" type="button" onClick={() => void older()}>{A.more}</button>}
       </main>
+    </div>
+  );
+}
+
+// The log as a table, a row a day between the entries: here, and on a profile's page for that profile alone.
+export function ActivityTable({ d, lang, entries, failed, onRetry }: { d: Dict; lang: Lang; entries: ActivityEntry[] | null; failed: boolean; onRetry(): void }){
+  const A = d.activity;
+  const byDay: [string, ActivityEntry[]][] = [];
+  for (const e of entries ?? []){
+    const label = dayLabel(e.at, d, lang);
+    if (byDay.at(-1)?.[0] === label) byDay.at(-1)![1].push(e); else byDay.push([label, [e]]);
+  }
+  return (
+    <div className="tw flow">
+      <table className="log-t">
+        <thead>
+          <tr><th scope="col">{A.cols.time}</th><th scope="col">{A.cols.person}</th><th scope="col">{A.cols.what}</th><th scope="col">{A.cols.kind}</th><th scope="col">{A.cols.device}</th></tr>
+        </thead>
+        <tbody>
+          {entries === null && !failed && Array.from({ length: 6 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td><i className="w3" /></td><td><i /></td><td><i /></td><td><i className="w3" /></td><td><i className="w3" /></td></tr>)}
+          {failed && <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={onRetry} /></td></tr>}
+          {!failed && entries !== null && !byDay.length && <tr className="empty"><td colSpan={5}><p>{A.empty}</p></td></tr>}
+          {byDay.flatMap(([label, list]) => [
+            <tr key={label} className="day"><td colSpan={5}>{label}</td></tr>,
+            ...list.map(e => {
+              const k = kindOf(e.action);
+              return (
+                <tr key={e.seq} data-action={e.action}>
+                  <td className="mono muted">{time(e.at, lang)}</td>
+                  <td><span className="who-cell">{e.actor ? <span className="pav sm" aria-hidden="true">{e.actor.slice(0, 1).toUpperCase()}</span> : null}<b>{e.actor ?? A.someone}</b></span></td>
+                  <td>{said(d, e)}</td>
+                  <td><span className="kind-cell"><span className="kic sm" aria-hidden="true"><Icon name={KIND_ICON[k]} /></span>{A.kinds[k]}</span></td>
+                  <td className="mono muted">{e.deviceName ?? '—'}</td>
+                </tr>
+              );
+            })
+          ])}
+        </tbody>
+      </table>
     </div>
   );
 }

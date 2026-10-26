@@ -4,7 +4,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type ElectronApplication } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { ENGINE_ENV, account, closeWindows, dataDir, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { ENGINE_ENV, account, closeWindows, dataDir, hasKernels, lastStatus, launch, logIn, opened, detail } from './helpers';
 
 test.skip(!hasKernels, 'browser engines are not unpacked here');
 test.setTimeout(300_000);
@@ -82,10 +82,10 @@ for (const kernel of ['chromium', 'firefox'] as const){
     const row = winA.locator('tr[data-id]', { hasText: 'Shop' });
     await expect(row).toContainText('In use on');
     await row.getByRole('button', { name: 'Shop', exact: true }).click();
-    const detail = winA.getByRole('dialog', { name: 'Profile', exact: true });
-    await expect(detail.getByTestId('away')).toContainText(acct.email);
-    await detail.getByRole('button', { name: 'Take over', exact: true }).click();
-    await detail.getByRole('button', { name: 'Take over and open' }).click();
+    const page = detail(winA);
+    await expect(page.getByTestId('away')).toContainText(acct.email);
+    await page.getByRole('button', { name: 'Take over', exact: true }).click();
+    await page.getByRole('button', { name: 'Take over and open' }).click();
     await expect.poll(async () => (await lastStatus(winB, p.id))?.state, { timeout: 20_000 }).toBe('error');
     expect(await lastStatus(winB, p.id)).toMatchObject({ error: 'lock_lost' });
     await expect.poll(async () => (await lastStatus(winA, p.id))?.state, { timeout: 60_000 }).toBe('running');

@@ -3,20 +3,19 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { account, choose, chromiumProfile, dataDir, detail, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
 
 test.setTimeout(180_000);
 const cookies = JSON.stringify([
   { domain: '.shop.example', expirationDate: 1893456000, hostOnly: false, httpOnly: true, name: 'sid', path: '/', sameSite: 'lax', secure: true, session: false, value: 'abc' },
   { domain: 'shop.example', hostOnly: true, httpOnly: false, name: 'pref', path: '/', sameSite: 'strict', secure: false, session: true, value: 'dark' }
 ]);
-const detail = (win: Page) => win.getByRole('dialog', { name: 'Profile', exact: true });
 // Saving goes where the test says, instead of asking.
 const saveTo = (app: ElectronApplication, path: string) => app.evaluate(({ dialog }, path) => {
   dialog.showSaveDialog = (async () => ({ canceled: false, filePath: path })) as typeof dialog.showSaveDialog;
 }, path);
 async function importFile(win: Page, text: string){
-  await detail(win).getByRole('tab', { name: 'Sign-ins' }).click();
+  await detail(win).getByRole('tab', { name: 'Cookies' }).click();
   await detail(win).getByTestId('storage').locator('input[type=file]').setInputFiles({ name: 'cookies.json', mimeType: 'application/json', buffer: Buffer.from(text) });
 }
 
@@ -26,7 +25,7 @@ test('cookies come in from a file and go out as JSON; kept on one computer, Foli
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await win.getByRole('button', { name: 'Shop-07', exact: true }).click();
-  await detail(win).getByRole('tab', { name: 'Sign-ins' }).click();
+  await detail(win).getByRole('tab', { name: 'Cookies' }).click();
   const storage = detail(win).getByTestId('storage');
   await expect(storage).toContainText('Nothing saved yet');
 
@@ -41,7 +40,7 @@ test('cookies come in from a file and go out as JSON; kept on one computer, Foli
   const exported = JSON.parse(readFileSync(out, 'utf8'));
   expect(exported.map((c: { name: string; value: string }) => `${c.name}=${c.value}`).sort()).toEqual(['pref=dark', 'sid=abc']);
 
-  await detail(win).getByRole('button', { name: 'Edit' }).click();
+  await detail(win).getByRole('button', { name: 'Edit profile' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await choose(form.getByLabel('Sign-ins'), 'Keep on the computer that uses it');
   await form.getByRole('button', { name: 'Save changes' }).click();

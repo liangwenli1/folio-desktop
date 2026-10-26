@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { account, API, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { account, API, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened, backToList, detail } from './helpers';
 
 test.setTimeout(300_000);
 const zip = (files: Record<string, string>) => Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)]))));
@@ -84,12 +84,12 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   // Chromium through the profile form, Firefox through the bulk actions (which pass over the Chromium profile).
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^Profiles/ }).click();
   await win.getByRole('button', { name: 'Shop-CR', exact: true }).click();
-  await win.getByRole('dialog', { name: 'Profile', exact: true }).getByRole('button', { name: 'Edit' }).click();
+  await detail(win).getByRole('button', { name: 'Edit profile' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await form.getByRole('group', { name: 'Extensions' }).getByLabel('Shop Helper').check();
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(form).toHaveCount(0);
-  await win.getByRole('button', { name: 'Close details' }).click();
+  await backToList(win);
   await win.getByLabel('Select all shown').check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Shop Helper FF · Firefox');
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper FF installed in 1 profile; 1 skipped' })).toBeVisible();
@@ -176,7 +176,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     expect(await kept(a, p.id, stores.page)).toEqual({ local: 'alpha-1', db: 'alpha-1' });
     await stop(winA, p.id);
     await winA.getByRole('button', { name: 'Wallet-01', exact: true }).click();
-    await winA.getByRole('tab', { name: 'Sign-ins' }).click();
+    await winA.getByRole('tab', { name: 'Cookies' }).click();
     await expect(winA.getByTestId('storage').locator('.store')).toContainText('1Extensions');
     await a.close();
 
