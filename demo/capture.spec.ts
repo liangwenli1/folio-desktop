@@ -2,7 +2,8 @@
 // server with demo data and the real engines, one picture per step for each language and colour scheme, and what the
 // player needs to animate between them: what each step is about (the player's camera moves in on it), where the pointer
 // clicks, where the opening cards land, the restored browser.
-// Writes src/renderer/src/demo/, which the website copies to public/demo/.
+// Writes src/renderer/src/demo/, which the website copies to public/demo/, and demo/stills/: pictures of other pages
+// that only the website shows (copied next to the demo's), kept out of the workbench's own bundle.
 //   npm run build && npx playwright test -c demo
 // Needs what the end-to-end tests need (folio-server with DEV_TOOLS and MOCK_PAYMENTS, Mailpit, the engines in
 // FOLIO_KERNELS_DIR), API_URL pointing at the server, and the demo proxies' host names (<exit>.proxy.example, see
@@ -16,7 +17,7 @@ import { API, ENGINE_ENV, PASSWORD, SITE, closeWindows, dataDir, lastMail, lastS
 import { EXITS, SITES, hostOf, startExits, type ExitKey } from './world';
 
 test.setTimeout(900_000);
-const OUT = 'src/renderer/src/demo', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
+const OUT = 'src/renderer/src/demo', STILLS = 'demo/stills', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
 
 const PEOPLE = {
   en: { owner: 'ava@larkspur.example', mate: 'jordan@larkspur.example', device: 'Jordan’s MacBook Pro', workspace: 'Larkspur Trading', groups: ['US stores', 'EU shops', 'Social'] },
@@ -62,7 +63,7 @@ async function signIn(app: ElectronApplication, email: string, ws: string){
   await win.fill('#email', email);
   await win.fill('#password', PASSWORD);
   await win.click('button[type="submit"]');
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   return win;
 }
 
@@ -80,7 +81,8 @@ for (const lang of ['en', 'zh'] as const){
     const { checkoutId } = await (await owner.post(`/workspaces/${ws}/billing/checkout`, { data: { plan: 'studio', period: 'monthly', addonPacks: 0 } })).json();
     await owner.post(`/billing/checkouts/${checkoutId}/pay`, { data: { card: { number: '4242424242424242', expMonth: 12, expYear: 2030, cvc: '123' } } });
     const mate = await person(who.mate, lang);
-    const invite = await (await owner.post(`/workspaces/${ws}/invitations`, { data: { email: who.mate, role: 'admin' } })).json();
+    const roles = (await (await owner.get(`/workspaces/${ws}/roles`)).json()).roles as { id: string; key: string | null }[];
+    const invite = await (await owner.post(`/workspaces/${ws}/invitations`, { data: { email: who.mate, roleId: roles.find(r => r.key === 'admin')!.id, notify: false } })).json();
     expect((await mate.post(`/invitations/${invite.invitation.id}/accept`)).ok()).toBe(true);
 
     const groups = [];
@@ -127,8 +129,9 @@ for (const lang of ['en', 'zh'] as const){
     // ---------- this computer, recorded ----------
     const app = await launchApp(dataDir(), SCALE);
     const win = await signIn(app, who.owner, ws);
-    // Sized as a window (sizing the page would undo the scale).
+    // Sized as a window (sizing the page would undo the scale). Toasts would linger into the next pictures.
     await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [W, H]);
+    await win.addStyleTag({ content: '.toasts{display:none!important}' });
     expect(await opened(win, ids['US-Store-01'])).toMatchObject({ state: 'running' });
     const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: new RegExp(`^${name}`) });
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
@@ -137,6 +140,7 @@ for (const lang of ['en', 'zh'] as const){
 
     const frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[] = [];
     const pictures: { file: string; light: Buffer; dark: Buffer }[] = [];
+    const stills: { file: string; light: Buffer; dark: Buffer }[] = [];
     const at = async (l: Locator): Promise<[number, number]> => {
       const b = (await l.boundingBox())!;
       return [+((b.x + b.width / 2) / W).toFixed(4), +((b.y + b.height / 2) / H).toFixed(4)];
@@ -148,9 +152,8 @@ for (const lang of ['en', 'zh'] as const){
       const r = Math.max(...bs.map(b => b.x + b.width)), btm = Math.max(...bs.map(b => b.y + b.height));
       return [x / W, y / H, (r - x) / W, (btm - y) / H].map(v => +Math.max(0, v).toFixed(4));
     };
-    // The picture of this moment, light and dark (after their colour transitions), and what it is about.
-    async function snap(file: string, { focus, browser }: { focus?: Locator[]; browser?: true } = {}){
-      const extra = { ...(focus ? { focus: await box(...focus) } : {}), ...(browser ? { browser } : {}) };
+    // This moment, light and dark (after their colour transitions).
+    async function shoot(){
       await win.mouse.move(W / 2, 3);
       await win.waitForTimeout(500);
       const light = await win.screenshot();
@@ -159,7 +162,12 @@ for (const lang of ['en', 'zh'] as const){
       const dark = await win.screenshot();
       await win.emulateMedia({ colorScheme: 'light' });
       await win.waitForTimeout(300);
-      pictures.push({ file, light, dark });
+      return { light, dark };
+    }
+    // A step of the demo: its picture, and what it is about.
+    async function snap(file: string, { focus, browser }: { focus?: Locator[]; browser?: true } = {}){
+      const extra = { ...(focus ? { focus: await box(...focus) } : {}), ...(browser ? { browser } : {}) };
+      pictures.push({ file, ...await shoot() });
       frames.push({ file, clicks: [], ...extra });
     }
     // The pointer clicks it in the demo, then the recording does.
@@ -188,7 +196,7 @@ for (const lang of ['en', 'zh'] as const){
     await expect(drawer.locator('.opening .step-r').nth(2)).toHaveClass(/now/, { timeout: 60_000 });
     await snap('opening', { focus: [drawer.locator('.opening')] });
     // 4. Its three tabs come back.
-    await expect(row('UK-Shop-01').locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
+    await expect(drawer.locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
     await back();
     await expect.poll(() => app.evaluate((_e, id) => (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages().length, ids['UK-Shop-01'])).toBe(3);
     const browser = await app.evaluate(async (_e, id) => {
@@ -256,6 +264,28 @@ for (const lang of ['en', 'zh'] as const){
 
     await mateDesk.delete(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } });
 
+    // ---------- stills for the website's pages ----------
+    const still = async (file: string) => { stills.push({ file, ...await shoot() }); };
+    await win.getByRole('button', { name: d.profiles.new }).click();
+    const form = win.getByRole('dialog', { name: d.form.newTitle });
+    await form.getByRole('textbox', { name: d.form.name, exact: true }).fill('US-Store-04');
+    await still('new');
+    await form.getByRole('button', { name: d.common.cancel }).click();
+    await win.getByRole('button', { name: d.form.discard }).click().catch(() => {});
+    await nav(d.nav.engines).click();
+    await expect(win.locator('tr[data-engine]').first()).toBeVisible();
+    await still('engines');
+    await nav(d.nav.groups).click();
+    await win.getByRole('tree').getByRole('button', { name: new RegExp(`^${who.groups[0]}`) }).click();
+    await expect(win.locator('tr[data-id]').first()).toBeVisible();
+    await still('groups');
+    await nav(d.nav.team).click();
+    await expect(win.locator(`tr[data-member="${who.mate}"]`)).toBeVisible();
+    await still('members');
+    await nav(d.nav.jobs).click();
+    await expect(win.locator('tr[data-job]').first()).toBeVisible();
+    await still('jobs');
+
     // ---------- pictures ----------
     const webp = (png: Buffer | Uint8Array) => win.evaluate(async ({ b64, q }) => {
       const bin = atob(b64), bytes = new Uint8Array(bin.length);
@@ -275,6 +305,10 @@ for (const lang of ['en', 'zh'] as const){
       mkdirSync(dir, { recursive: true });
       for (const p of pictures) writeFileSync(join(dir, `${p.file}.webp`), await webp(p[scheme]));
       writeFileSync(join(dir, 'browser.webp'), browserPic);
+      const stillDir = join(STILLS, `${lang}-${scheme}`);
+      rmSync(stillDir, { recursive: true, force: true });
+      mkdirSync(stillDir, { recursive: true });
+      for (const p of stills) writeFileSync(join(stillDir, `${p.file}.webp`), await webp(p[scheme]));
     }
     writeFileSync(join(OUT, `${lang}.json`), JSON.stringify({
       width: W, height: H, frames, cards,

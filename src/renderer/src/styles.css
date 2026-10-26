@@ -426,7 +426,7 @@ button.kc:hover{border-color:var(--line-2)}
 .tag.first{margin-left:0;margin-right:6px}
 .cc{font-family:var(--f-data);font-size:12px;font-weight:500;letter-spacing:.04em;padding:0 5px;border:1px solid var(--line-2);border-radius:5px;color:var(--ink-2)}
 .flag.warn{color:var(--warn-ink);font-weight:500}
-.actin{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:4px 8px}
+.actin{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px 8px}
 /* status labels (S1-2): a white raised capsule, an icon that says what is going on, dark text. A state's colour
    only tints its icon and the capsule's shadow. */
 .st{--c:var(--ink-3);display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:99px;background:var(--card);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);box-shadow:0 1px 1px rgba(29,28,43,.05),0 5px 12px -5px color-mix(in srgb,var(--c) 40%,transparent);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -606,7 +606,6 @@ tr.empty b{color:var(--ink)}
 .ck .tw{flex:none;min-height:0}
 .ck td.mono{font-size:13px}
 .ck td.nowrap{white-space:nowrap}
-.ck td.act .actin{flex-wrap:nowrap}
 .ck-flags{display:inline-flex;gap:6px}
 .th-sort{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;color:inherit;cursor:pointer}
 .th-sort .i{width:11px;height:11px;opacity:.3}
@@ -819,7 +818,6 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .tm-main{gap:12px;min-width:0}
 .tm-main .filters{padding:0}
 .tm-main .tw{margin:0;overflow:auto}
-.tm-main .actin{flex-wrap:nowrap}
 .tm-main td.nowrap{white-space:nowrap}
 /* on a narrower window the role definitions go below the table */
 @media (max-width:1360px){.tm-wrap{grid-template-columns:minmax(0,1fr)} .tm-defs{grid-template-columns:repeat(2,minmax(0,1fr))} .tm-defs h3{grid-column:1 / -1}}
@@ -934,7 +932,6 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .tr-t td.ellip{max-width:180px;overflow:hidden;text-overflow:ellipsis}
 /* with the panel open on a narrower window, who deleted them goes (the panel says) */
 @container (max-width:900px){.tr-t .c-by{display:none}}
-.tr-t .actin{flex-wrap:nowrap}
 .tr-panel > .btn{width:100%}
 
 /* activity: the filters in a band, the log as a table with an entry's details beside it */
@@ -1224,7 +1221,7 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 .bars i.ok{background:var(--good)} .bars i.slow{background:var(--warn)} .bars i.vslow{background:var(--bad)} .bars i.miss{height:4px;background:var(--bad)}
 .lat{font:500 12.5px var(--f-data);font-variant-numeric:tabular-nums;white-space:nowrap}
 .lat.good{color:var(--good-ink)} .lat.warn{color:var(--warn-ink)} .lat.bad{color:var(--bad)}
-.addr{display:inline-flex;align-items:center;gap:2px}
+.addr{display:inline-flex;align-items:center;gap:2px;white-space:nowrap}
 .copy-btn{width:24px;height:24px;color:var(--ink-3)}
 .copy-btn .i{width:13px;height:13px}
 .tw tbody tr:not(:hover) .addr .copy-btn{opacity:0}
@@ -1351,7 +1348,6 @@ tr.bad-row td{background:var(--bad-soft)}
 .en-tags .tag{margin:0;white-space:nowrap}
 .en-t th,.en-t td{padding-left:10px;padding-right:10px}
 .en-t td.mono{white-space:nowrap}
-.en-t .actin{flex-wrap:nowrap}
 /* with the notes open on a narrower window, size and release date go (the notes show them) */
 @container (max-width:1000px){.en-t .c-size,.en-t .c-rel{display:none}}
 .en-foot{display:flex;align-items:center;gap:12px;margin:0}
@@ -1521,6 +1517,9 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 /* profiles list: the status as a coloured dot and a word, where the proxy exits, the group picker */
 .dot-st{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);white-space:nowrap}
 .dot-st::before{content:'';width:7px;height:7px;flex:none;border-radius:50%;background:var(--ink-3)}
+/* in a table a long status (in use on someone's computer) takes a second line, so the row's actions keep theirs */
+.tw td .dot-st{white-space:normal;align-items:flex-start}
+.tw td .dot-st::before{margin-top:6px}
 .dot-st.run{color:var(--good-ink)} .dot-st.run::before{background:var(--good)}
 .dot-st.boot{color:var(--warn-ink)} .dot-st.boot::before{background:var(--warn)}
 .dot-st.away{color:var(--info)} .dot-st.away::before{background:var(--info)}
