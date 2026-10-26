@@ -27,6 +27,7 @@ const PATHS = {
   check: 'M4 12l5 5L20 6',
   info: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 11v6m0-10h.01',
   more: 'M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0',
+  moreV: 'M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0',
   chevR: 'm9 6 6 6-6 6',
   back: 'm15 6-6 6 6 6',
   up: 'M12 20V4m-6 6 6-6 6 6',
@@ -120,12 +121,13 @@ export const Avatar = ({ text, small, title }: { text: string; small?: boolean; 
 );
 
 // The ⋯ button and its menu.
-export function MoreMenu({ label, items }: { label: string; items: { label: string; onClick(): void; danger?: boolean; disabled?: boolean }[] }){
+// A row's further actions behind a dots button; `vertical` stands the dots up, as the design does on some pages.
+export function MoreMenu({ label, items, vertical }: { label: string; items: { label: string; onClick(): void; danger?: boolean; disabled?: boolean }[]; vertical?: boolean }){
   const [open, setOpen] = useState(false);
   const ref = useOutsideClose(open, () => setOpen(false));
   return (
     <div className="d-more" ref={ref}>
-      <button type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="more" /></button>
+      <button type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name={vertical ? 'moreV' : 'more'} /></button>
       {open && (
         <div className="menu" role="menu">
           {items.map(i => (

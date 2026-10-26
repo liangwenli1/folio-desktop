@@ -159,7 +159,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
           : k?.installed ? canDefault && <button type="button" className="btn btn-sm btn-primary" onClick={() => void makeDefault(`${kind}:${version}`)}>{E.setDefault}</button>
           : k?.available && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void data.install(kind, version)}>{E.download}</button>}
         <button type="button" className="btn btn-sm btn-text" onClick={() => setCur(r.key)}>{E.details}</button>
-        {items.length > 0 && <MoreMenu label={E.actionsX(r.label)} items={items} />}
+        {items.length > 0 && <MoreMenu vertical label={E.actionsX(r.label)} items={items} />}
       </span>
     );
   }

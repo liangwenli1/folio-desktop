@@ -72,7 +72,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
         </div>
         <div className="tw dense rl-t">
           <table>
-            <thead><tr><th scope="col">{P.col}</th><th scope="col">{P.what}</th><th className="act" scope="col">{P.allow}</th></tr></thead>
+            <thead><tr><th scope="col">{P.col}</th><th scope="col">{P.what}</th><th className="c-sw" scope="col">{P.allow}</th></tr></thead>
             <tbody>
               {SECTIONS.map(([s, list]) => (
                 <Fragment key={s}>
@@ -81,7 +81,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
                     <tr key={p} data-permission={p}>
                       <td><b>{P.perms[p][0]}</b></td>
                       <td className="muted">{P.perms[p][1]}</td>
-                      <td className="act"><Switch label={P.perms[p][0]} hideLabel checked={perms.includes(p)} disabled={locked}
+                      <td className="c-sw"><Switch label={P.perms[p][0]} hideLabel checked={perms.includes(p)} disabled={locked}
                         onChange={on => setPerms(x => (on ? [...x, p] : x.filter(y => y !== p)))} /></td>
                     </tr>
                   ))}

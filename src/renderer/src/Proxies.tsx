@@ -198,7 +198,7 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
                             onChange={() => setSel(s => { const n = new Set(s); rows.forEach(p => (shownSel === rows.length ? n.delete(p.id) : n.add(p.id))); return n; })} />
                         </th>
                         <th scope="col">{X.cols.name}</th><th scope="col">{X.cols.type}</th><th className="c-addr" scope="col">{X.cols.address}</th><th scope="col">{X.cols.exit}</th>
-                        <th scope="col">{X.cols.status}</th><th scope="col">{X.cols.latency}</th><th scope="col">{X.cols.profiles}</th><th className="act" scope="col">{X.cols.actions}</th>
+                        <th scope="col">{X.cols.status}</th><th scope="col">{X.cols.latency}</th><th className="c-n" scope="col">{X.cols.profiles}</th><th className="act" scope="col">{X.cols.actions}</th>
                       </tr>
                     </thead>
                     <tbody>{rows.map(p => <ProxyRow key={p.id} {...item(p)} />)}</tbody>
@@ -254,7 +254,7 @@ const Exit = ({ p }: { p: Proxy }) => {
 };
 
 function Actions({ d, p, busy, onCheck, onDelete }: ProxyItem){
-  return <MoreMenu label={d.proxies.actionsX(p.name)} items={[
+  return <MoreMenu vertical label={d.proxies.actionsX(p.name)} items={[
     { label: d.common.check, onClick: onCheck, disabled: busy }, { label: d.proxies.bulkDelete, onClick: onDelete, danger: true }
   ]} />;
 }
@@ -298,7 +298,7 @@ function ProxyRow(props: ProxyItem){
       <td><Exit p={p} /></td>
       <td data-testid="proxy-check"><ProxyState d={d} p={p} busy={busy} /></td>
       <td><b className={`lat ${tone(p)}`}>{latency(d, p)}</b></td>
-      <td><Count {...props} /></td>
+      <td className="c-n"><Count {...props} /></td>
       <td className="act"><span className="actin"><button type="button" className="btn btn-sm btn-text" onClick={onEdit}>{d.common.edit}</button><Actions {...props} /></span></td>
     </tr>
   );
@@ -418,7 +418,7 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={onEdit}><Icon name="edit" />{X.formEdit}</button>
           <button type="button" className="btn btn-primary" disabled={busy} onClick={onCheck}>{busy ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.test}</button>
-          <MoreMenu label={X.actionsX(p.name)} items={[{ label: X.bulkDelete, onClick: onDelete, danger: true }]} />
+          <MoreMenu vertical label={X.actionsX(p.name)} items={[{ label: X.bulkDelete, onClick: onDelete, danger: true }]} />
         </header>
         <div className="tabs page-tabs" role="tablist" aria-label={D.label}>
           {(['overview', 'bound', 'checks'] as const).map(t => (

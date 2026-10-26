@@ -425,7 +425,10 @@ button.kc:hover{border-color:var(--line-2)}
 .tw tbody tr.cur td{background:var(--sel)}
 .tw tbody tr.cur td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .tw th.cb,.tw td.cb{width:44px;padding-left:16px;padding-right:0}
-.tw th.act,.tw td.act{text-align:right;white-space:nowrap}
+/* Actions as in the design: the header over the first one, the dots menu pushed to the far end. */
+.tw th.act,.tw td.act{text-align:left;white-space:nowrap}
+.tw th.c-sw,.tw td.c-sw{text-align:right;white-space:nowrap}
+.tw th.c-n,.tw td.c-n{text-align:center}
 .tw .num{text-align:right}
 .tw td.num{font-family:var(--f-data);font-size:12.5px;font-variant-numeric:tabular-nums}
 .tw td.result{white-space:normal;max-width:420px;font-size:13px}
@@ -440,7 +443,10 @@ button.kc:hover{border-color:var(--line-2)}
 .tag.first{margin-left:0;margin-right:6px}
 .cc{font-family:var(--f-data);font-size:12px;font-weight:500;letter-spacing:.04em;padding:0 5px;border:1px solid var(--line-2);border-radius:5px;color:var(--ink-2)}
 .flag.warn{color:var(--warn-ink);font-weight:500}
-.actin{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px 8px}
+.actin{display:flex;align-items:center;gap:4px 8px}
+.actin > .d-more{margin-left:auto}
+/* A text button first in the cell lines its words up with the column's header. */
+.tw td.act .actin > .btn-text:first-child,.tw td.act > .btn-text:first-child{margin-left:-12px}
 /* status labels (S1-2): a white raised capsule, an icon that says what is going on, dark text. A state's colour
    only tints its icon and the capsule's shadow. */
 .st{--c:var(--ink-3);display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:99px;background:var(--card);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);box-shadow:0 1px 1px rgba(29,28,43,.05),0 5px 12px -5px color-mix(in srgb,var(--c) 40%,transparent);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
