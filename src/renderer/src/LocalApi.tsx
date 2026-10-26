@@ -105,7 +105,7 @@ await page.goto('https://example.com');`
         <header className="bar">
           <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.lead}</p></div>
           <span className="sp" />
-          <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/docs/api/`)}><Icon name="api" />{A.reference}</button>
+          <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/help/api/`)}><Icon name="api" />{A.reference}</button>
         </header>
         {state && <div className="api-page">
           <div className="api-col">

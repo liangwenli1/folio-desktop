@@ -255,7 +255,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         )}
 
         <nav className="nav foot-nav" aria-label={d.nav.more}>
-          <NavItem icon="help" label={d.nav.help} active={false} onClick={() => folio.openSite(`${site}/docs/`)} />
+          <NavItem icon="help" label={d.nav.help} active={false} onClick={() => folio.openSite(`${site}/help/`)} />
           <NavItem icon="settings" label={d.nav.settings} active={shown === 'settings'} onClick={() => go('settings')} />
           {manager && <NavItem icon="billing" label={d.nav.billing} active={shown === 'billing'} onClick={() => go('billing')} />}
         </nav>
