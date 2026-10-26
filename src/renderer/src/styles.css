@@ -561,7 +561,6 @@ tr.empty b{color:var(--ink)}
 .pd > .tabs{margin:0 var(--gx)}
 .pd-body{display:grid;gap:16px;align-content:start;padding:16px var(--gx) 24px}
 .pd-body .tw{margin:0}
-.pd-body .older{margin:0;justify-self:start}
 .pd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
 .pd .sec{gap:12px;padding:18px 20px}
 .pd .sec h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
@@ -866,16 +865,33 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .role.owner{background:var(--accent-soft);color:var(--accent-ink)} .role.admin{background:var(--info-soft);color:var(--info)}
 .tw.flow{flex:none;min-height:0;overflow:visible;margin-bottom:14px}
 
-/* activity: a table with a row per entry and a band per day */
+/* activity: the filters in a band, the log as a table with an entry's details beside it */
 .seg.wrap{flex-wrap:wrap}
-.log-t tr.day td{height:34px;padding:0 12px;background:var(--panel);font-size:12px;font-weight:600;color:var(--ink-2)}
+.lg-f{margin:0 var(--gx) 12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
+.lg-f .search{flex:1;width:auto;min-width:200px}
+.lg-dates{display:inline-flex;align-items:center;gap:6px;height:var(--h-ctl);padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);font-size:13px;color:var(--ink-2)}
+.lg-dates .i{width:15px;height:15px;color:var(--ink-3)}
+.lg-dates input{height:30px;padding:0 4px;border:0;background:transparent;font:13px var(--f-data);color:var(--ink)}
+.lg-t{margin:0;flex:none;min-height:0}
+.lg-t tbody tr[data-action]{cursor:pointer}
+.lg-t td.nowrap{white-space:nowrap}
+.lg-what{max-width:340px}
+.lg-t .who-cell b{max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.lg-what .rowlink{font-weight:400;text-align:left}
+.th-sort{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;color:inherit;cursor:pointer}
+.th-sort .i{width:12px;height:12px}
+.lg-said{margin:0;font-size:13.5px;line-height:1.6}
+.lg-fields{margin:0;padding-left:18px;font-size:13px;line-height:1.8}
+.lg-change{display:flex;align-items:center;gap:6px;margin:0;font-size:13px}
+.lg-change .i{width:13px;height:13px;color:var(--ink-3)}
+.lg-note{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.lg-note .i{width:14px;height:14px;flex:none;color:var(--info)}
 .who-cell,.kind-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
 .who-cell b{font-weight:600}
 .pav.sm{width:22px;height:22px;font-size:11px;background:var(--accent);box-shadow:none}
 .pav.xs{width:24px;height:24px;font-size:11px;box-shadow:none}
 .kic.sm{width:24px;height:24px;margin:0;border-radius:8px}
 .kic.sm .i{width:13px;height:13px}
-.older{align-self:flex-start;margin:0 var(--gx) 24px}
 
 /* flows: the list; the editor draws the steps as a chart, with the picked step's settings and a trial run beside it */
 .flow-cell{display:flex;align-items:center;gap:10px}

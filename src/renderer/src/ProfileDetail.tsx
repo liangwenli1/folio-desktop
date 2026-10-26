@@ -12,6 +12,7 @@ import { Icon, MoreMenu, Progress, bytes, percent, type IconName } from './ui';
 import { Flag, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
 import { CookiesTab } from './ProfileCookies';
+import { Pager } from './Pager';
 import type { Risk } from './risks';
 
 interface Props {
@@ -43,7 +44,11 @@ export function ProfileDetail(props: Props){
   const show = (t: Tab) => { setTab(t); setSeen(s => new Set(s).add(t)); };
   const [confirmTakeover, setConfirmTakeover] = useState(false);
   useEffect(() => setConfirmTakeover(false), [p.id, p.lock?.since]);
-  const log = useActivity(ws.id, `&profileId=${p.id}`, data);
+  // The latest few for the overview's timeline, and a page at a time on the Activity tab.
+  const [logPage, setLogPage] = useState(1);
+  const [logSize, setLogSize] = useState(20);
+  const recent = useActivity(ws.id, `&profileId=${p.id}`, data, 1, 4);
+  const log = useActivity(ws.id, `&profileId=${p.id}`, data, logPage, logSize, tab === 'activity');
   // The fingerprint draft starts again from the saved profile whenever that changes, unless it holds unsaved edits.
   const [fpDirty, setFpDirty] = useState(false);
   const [fpRound, setFpRound] = useState(0);
@@ -121,7 +126,7 @@ export function ProfileDetail(props: Props){
           {TABS.map(t => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => show(t)}>{D.tabs[t]}</button>)}
         </div>
         <div className="pd-body">
-          {tab === 'overview' && <Overview {...props} entries={log.entries} onTab={show} onShowProxy={onShowProxy} />}
+          {tab === 'overview' && <Overview {...props} entries={recent.entries} onTab={show} onShowProxy={onShowProxy} />}
           {seen.has('fingerprint') && (
             <div hidden={tab !== 'fingerprint'}>
               <FingerprintTab key={`${fpVersion.current}:${fpRound}`} d={d} lang={lang} data={data} p={p} h={h} status={status} size={props.size}
@@ -131,8 +136,8 @@ export function ProfileDetail(props: Props){
           )}
           {seen.has('cookies') && <div hidden={tab !== 'cookies'}><CookiesTab d={d} lang={lang} data={data} p={p} running={status?.state === 'running'} onExport={props.onExport} /></div>}
           {tab === 'activity' && <>
-            <ActivityTable d={d} lang={lang} entries={log.entries} failed={log.failed} onRetry={() => void log.reload()} />
-            {log.more && <button className="btn btn-secondary btn-sm older" type="button" onClick={() => void log.older()}>{d.activity.more}</button>}
+            <ActivityTable d={d} lang={lang} entries={log.entries} failed={log.failed} onRetry={() => void log.reload()} profile />
+            {log.total > 0 && <Pager d={d} total={log.total} page={logPage} size={logSize} onPage={setLogPage} onSize={n => { setLogSize(n); setLogPage(1); }} />}
           </>}
         </div>
       </main>

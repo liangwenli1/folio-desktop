@@ -4622,7 +4622,11 @@ export interface paths {
                     profileId?: string;
                     actorId?: string;
                     kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "extensions" | "automation";
-                    before?: number;
+                    q?: string;
+                    from?: unknown;
+                    to?: unknown;
+                    order?: "desc" | "asc";
+                    offset?: number;
                     limit?: number;
                 };
                 header?: never;
@@ -4656,6 +4660,7 @@ export interface paths {
                                     [key: string]: unknown;
                                 };
                             }[];
+                            total: number;
                             retentionDays: number;
                         };
                     };
@@ -4683,6 +4688,9 @@ export interface paths {
                     profileId?: string;
                     actorId?: string;
                     kind?: "open" | "profiles" | "trash" | "proxies" | "cookies" | "team" | "extensions" | "automation";
+                    q?: string;
+                    from?: unknown;
+                    to?: unknown;
                 };
                 header?: never;
                 path: {

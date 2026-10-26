@@ -15,6 +15,8 @@ const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
 
 const enFields: Record<string, string> = { searchEngine: 'search engine', restoreTabs: 'tab restoring', startUrl: 'start page', windowMode: 'window', windowWidth: 'window', windowHeight: 'window', name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'owner', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
 const zhFields: Record<string, string> = { searchEngine: '搜索引擎', restoreTabs: '恢复标签页', startUrl: '启动页', windowMode: '启动窗口', windowWidth: '启动窗口', windowHeight: '启动窗口', name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
+// A profile field as the log names it.
+export const fieldName = (lang: Lang, f: string) => (lang === 'zh' ? zhFields : enFields)[f] ?? f;
 const enSearch = (id: SearchEngine): string => (id === 'none' ? 'None' : SEARCH_ENGINES[id].name);
 const zhSearch = (id: SearchEngine): string => (id === 'none' ? '无' : id === 'baidu' ? '百度' : SEARCH_ENGINES[id].name);
 
@@ -503,11 +505,29 @@ export const en = {
     newTitle: 'New role', name: 'Role name', nameErr: 'Enter a role name.', from: 'Start from', fromNone: 'No permissions', create: 'Create role'
   },
   activity: {
-    title: 'Activity log', lead: 'What has been done in this workspace, by whom and when.', person: 'Person', everyone: 'Everyone', kind: 'Showing',
-    search: 'Search profiles, people or actions', cols: { time: 'Time', person: 'Person', what: 'What happened', kind: 'Kind', device: 'Computer' },
-    kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
-    export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
-    today: 'Today', yesterday: 'Yesterday', on: (device: string) => `on ${device}`,
+    title: 'Activity log', lead: 'What has been done in this workspace, by whom and when.', person: 'Person', everyone: 'Everyone', kind: 'Action',
+    search: 'Search by name, person or entry number', cols: { time: 'Time', person: 'Person', type: 'Action', object: 'Done to', what: 'What happened' },
+    kinds: { all: 'All actions', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
+    dates: 'Dates', from: 'From', until: 'Until', to: 'to',
+    export: 'Export log', exported: (path: string) => `Saved to ${path}`, empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
+    today: 'Today', yesterday: 'Yesterday',
+    detail: {
+      title: 'Entry details', number: 'Entry', person: 'By', time: 'Time', type: 'Action', object: 'Done to', device: 'Computer', what: 'What happened',
+      fields: 'What changed', change: 'Renamed', note: 'The log never keeps passwords or cookie values.'
+    },
+    types: {
+      'profile.create': 'Create profile', 'profile.update': 'Edit profile', 'profile.move': 'Move to group', 'profile.tag': 'Add tag', 'profile.untag': 'Remove tag',
+      'profile.set-proxy': 'Change proxy', 'profile.assign': 'Assign profile', 'profile.trash': 'Move to Trash', 'profile.restore': 'Restore profile', 'profile.purge': 'Delete forever',
+      'profile.open': 'Open profile', 'profile.close': 'Close profile', 'profile.takeover': 'Take over profile',
+      'proxy.create': 'Add proxy', 'proxy.import': 'Import proxies', 'proxy.update': 'Edit proxy', 'proxy.delete': 'Delete proxy',
+      'group.create': 'Create group', 'group.rename': 'Rename group', 'group.delete': 'Delete group', 'group.members': 'Group access',
+      'member.invite': 'Invite', 'member.join': 'Join', 'member.role': 'Change role', 'member.groups': 'Change groups', 'member.remove': 'Remove member', 'member.leave': 'Leave team',
+      'invitation.withdraw': 'Withdraw invitation', 'role.create': 'Create role', 'role.update': 'Edit role', 'role.delete': 'Delete role',
+      'cookies.export': 'Export cookies', 'cookies.import': 'Import cookies', 'cookies.delete': 'Delete cookies', 'workspace.export': 'Export workspace', 'workspace.import': 'Import workspace',
+      'flow.create': 'Create flow', 'flow.update': 'Edit flow', 'flow.delete': 'Delete flow', 'task.create': 'Create task', 'task.update': 'Edit task', 'task.delete': 'Delete task',
+      'run.start': 'Start run', 'run.finish': 'Finish run', 'extension.add': 'Add extension', 'extension.update': 'Update extension', 'extension.delete': 'Delete extension',
+      'profile.add-extension': 'Install extension', 'profile.remove-extension': 'Uninstall extension', 'profile.set-kernel': 'Change engine', 'profile.set-browser': 'Browser settings'
+    } as Record<string, string>,
     actions: {
       'profile.create': p => `created ${p}`, 'profile.update': (p, x) => `changed the ${x.fields?.map((f: string) => enFields[f] ?? f).join(', ')} of ${p}`,
       'profile.move': (p, x) => (x.group ? `moved ${p} to ${x.group}` : `took ${p} out of its group`), 'profile.tag': (p, x) => `tagged ${p} “${x.tag}”`,
@@ -1286,11 +1306,29 @@ export const zh: Dict = {
     newTitle: '新建角色', name: '角色名称', nameErr: '请填写角色名称。', from: '初始权限', fromNone: '不含任何权限', create: '创建角色'
   },
   activity: {
-    title: '操作日志', lead: '查看工作空间内的操作记录、操作人与时间。', person: '成员', everyone: '所有人', kind: '显示',
-    search: '搜索环境、成员或操作', cols: { time: '时间', person: '成员', what: '操作', kind: '类别', device: '电脑' },
-    kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
-    export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '暂无记录。', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
-    today: '今天', yesterday: '昨天', on: (device: string) => `在 ${device} 上`,
+    title: '操作日志', lead: '查询成员操作记录与配置变更。', person: '操作人', everyone: '全部成员', kind: '操作类型',
+    search: '搜索对象名称、操作人或操作编号', cols: { time: '时间', person: '操作人', type: '操作类型', object: '操作对象', what: '操作内容' },
+    kinds: { all: '全部操作', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
+    dates: '时间范围', from: '开始日期', until: '结束日期', to: '至',
+    export: '导出日志', exported: (path: string) => `已保存到 ${path}`, empty: '暂无记录。', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
+    today: '今天', yesterday: '昨天',
+    detail: {
+      title: '操作详情', number: '操作编号', person: '操作人', time: '时间', type: '操作类型', object: '操作对象', device: '来源电脑', what: '操作内容',
+      fields: '修改的项目', change: '名称变更', note: '日志不记录密码与 Cookie 明文。'
+    },
+    types: {
+      'profile.create': '新建环境', 'profile.update': '编辑环境', 'profile.move': '移动分组', 'profile.tag': '添加标签', 'profile.untag': '移除标签',
+      'profile.set-proxy': '更换代理', 'profile.assign': '分配环境', 'profile.trash': '删除环境', 'profile.restore': '恢复环境', 'profile.purge': '彻底删除',
+      'profile.open': '启动环境', 'profile.close': '关闭环境', 'profile.takeover': '接管环境',
+      'proxy.create': '添加代理', 'proxy.import': '导入代理', 'proxy.update': '编辑代理', 'proxy.delete': '删除代理',
+      'group.create': '新建分组', 'group.rename': '重命名分组', 'group.delete': '删除分组', 'group.members': '分组授权',
+      'member.invite': '邀请成员', 'member.join': '加入团队', 'member.role': '变更角色', 'member.groups': '调整授权分组', 'member.remove': '移除成员', 'member.leave': '退出团队',
+      'invitation.withdraw': '撤回邀请', 'role.create': '新建角色', 'role.update': '修改角色', 'role.delete': '删除角色',
+      'cookies.export': '导出 Cookie', 'cookies.import': '导入 Cookie', 'cookies.delete': '删除 Cookie', 'workspace.export': '导出工作空间', 'workspace.import': '导入工作空间',
+      'flow.create': '新建流程', 'flow.update': '编辑流程', 'flow.delete': '删除流程', 'task.create': '新建定时任务', 'task.update': '编辑定时任务', 'task.delete': '删除定时任务',
+      'run.start': '开始运行', 'run.finish': '运行结束', 'extension.add': '添加扩展', 'extension.update': '更新扩展', 'extension.delete': '删除扩展',
+      'profile.add-extension': '安装扩展', 'profile.remove-extension': '卸载扩展', 'profile.set-kernel': '变更内核', 'profile.set-browser': '浏览器设置'
+    } as Record<string, string>,
     actions: {
       'profile.create': p => `创建了 ${p}`, 'profile.update': (p, x) => `修改了 ${p} 的${x.fields?.map((f: string) => zhFields[f] ?? f).join('、')}`,
       'profile.move': (p, x) => (x.group ? `将 ${p} 移至「${x.group}」` : `将 ${p} 移出分组`), 'profile.tag': (p, x) => `为 ${p} 添加标签「${x.tag}」`,
