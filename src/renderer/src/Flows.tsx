@@ -6,7 +6,7 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Icon, Modal, useToast } from './ui';
+import { Icon, LoadFailed, Modal, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -117,7 +117,9 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
               <tr><th scope="col">{F.cols.name}</th><th scope="col" className="num">{F.cols.steps}</th><th scope="col">{F.cols.by}</th><th scope="col">{F.cols.updated}</th><th className="act" scope="col" /></tr>
             </thead>
             <tbody>
-              {!data.flows.length && <tr className="empty"><td colSpan={5}><p>{F.empty}</p></td></tr>}
+              {data.loadFailed.has('flows')
+                ? <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={() => data.refresh('flows')} /></td></tr>
+                : !data.flows.length && <tr className="empty"><td colSpan={5}><p>{F.empty}</p></td></tr>}
               {data.flows.map(f => (
                 <tr key={f.id} data-flow={f.name}>
                   <td><span className="flow-cell"><span className="flow-ic" aria-hidden="true"><Icon name="flows" /></span>
@@ -127,9 +129,9 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
                   <td>{f.createdBy === meId ? F.you : (f.createdBy && email.get(f.createdBy)) || '—'}</td>
                   <td>{ago(f.updatedAt, d)}</td>
                   <td className="act"><span className="actin">
-                    <button type="button" className="btn btn-xs btn-secondary" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button>
-                    <button type="button" className="btn btn-xs btn-text" onClick={() => void duplicate(f)}>{F.duplicate}</button>
-                    {f.canEdit && <button type="button" className="btn btn-xs btn-danger" aria-label={F.deleteX(f.name)} onClick={() => setConfirm(f)}>{F.delete}</button>}
+                    <button type="button" className="btn btn-sm btn-secondary" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button>
+                    <button type="button" className="btn btn-sm btn-text" onClick={() => void duplicate(f)}>{F.duplicate}</button>
+                    {f.canEdit && <button type="button" className="btn btn-sm btn-danger" aria-label={F.deleteX(f.name)} onClick={() => setConfirm(f)}>{F.delete}</button>}
                   </span></td>
                 </tr>
               ))}
@@ -237,8 +239,8 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
         {leaving && (
           <div className="away-note flow-note" role="alertdialog" aria-label={F.leave}>
             <span>{F.leave}</span>
-            <div className="d-actions"><button type="button" className="btn btn-xs btn-secondary" onClick={() => setLeaving(false)}>{F.keepEditing}</button>
-              <button type="button" className="btn btn-xs btn-danger solid" onClick={onClose}>{F.discard}</button></div>
+            <div className="d-actions"><button type="button" className="btn btn-sm btn-secondary" onClick={() => setLeaving(false)}>{F.keepEditing}</button>
+              <button type="button" className="btn btn-sm btn-danger solid" onClick={onClose}>{F.discard}</button></div>
           </div>
         )}
         {readOnly && <p className="hint flow-note">{F.readOnly}</p>}
@@ -258,9 +260,9 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
               {edit.steps.length > 0 && <span className="fend">{F.end}</span>}
             </div></div>
             <div className="zoom">
-              <button type="button" aria-label={F.zoomOut} disabled={zoom <= 0.6} onClick={() => setZoom(z => Math.round((z - 0.1) * 10) / 10)}>−</button>
+              <button type="button" aria-label={F.zoomOut} title={F.zoomOut} disabled={zoom <= 0.6} onClick={() => setZoom(z => Math.round((z - 0.1) * 10) / 10)}>−</button>
               <b className="mono">{Math.round(zoom * 100)}%</b>
-              <button type="button" aria-label={F.zoomIn} disabled={zoom >= 1.3} onClick={() => setZoom(z => Math.round((z + 0.1) * 10) / 10)}>+</button>
+              <button type="button" aria-label={F.zoomIn} title={F.zoomIn} disabled={zoom >= 1.3} onClick={() => setZoom(z => Math.round((z + 0.1) * 10) / 10)}>+</button>
             </div>
           </section>
           <div className="flow-side">
@@ -389,13 +391,13 @@ function StepPanel({ d, steps, loc, readOnly, onChange, onEdit }: {
         <span><small>{F.stepN(path)}</small><b>{F.types[s.type]}</b></span>
         <span className="sp" />
         {!readOnly && <span className="fstep-acts">
-          <button type="button" className="icon-btn sm bare" aria-label={F.up(path)} title={F.up(path)} disabled={i === 0}
+          <button type="button" className="icon-btn bare" aria-label={F.up(path)} title={F.up(path)} disabled={i === 0}
             onClick={() => onEdit(l => { const n = [...l]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; }, [...up, i - 1])}><Icon name="up" /></button>
-          <button type="button" className="icon-btn sm bare" aria-label={F.down(path)} title={F.down(path)} disabled={i === list.length - 1}
+          <button type="button" className="icon-btn bare" aria-label={F.down(path)} title={F.down(path)} disabled={i === list.length - 1}
             onClick={() => onEdit(l => { const n = [...l]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; }, [...up, i + 1])}><Icon name="down" /></button>
-          <button type="button" className="icon-btn sm bare" aria-label={F.copyStep(path)} title={F.copyStep(path)} disabled={countSteps([s]) + countSteps(steps) > 300}
+          <button type="button" className="icon-btn bare" aria-label={F.copyStep(path)} title={F.copyStep(path)} disabled={countSteps([s]) + countSteps(steps) > 300}
             onClick={() => onEdit(l => [...l.slice(0, i + 1), structuredClone(s), ...l.slice(i + 1)], [...up, i + 1])}><Icon name="copy" /></button>
-          <button type="button" className="icon-btn sm bare danger" aria-label={F.remove(path)} title={F.remove(path)}
+          <button type="button" className="icon-btn bare danger" aria-label={F.remove(path)} title={F.remove(path)}
             onClick={() => onEdit(l => l.filter((_, k) => k !== i), null)}><Icon name="trash" /></button>
         </span>}
       </header>

@@ -4,7 +4,7 @@ import type { BatchAction, WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { BulkBar, Icon, Modal, ViewSwitch, useToast, useView } from './ui';
+import { BulkBar, Icon, LoadFailed, Modal, ViewSwitch, useToast, useView } from './ui';
 import { Flag } from './Flag';
 
 export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
@@ -55,7 +55,9 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
 
-        {data.trash !== null && !list.length && <div className="cards-empty"><p>{T.empty}</p></div>}
+        {data.loadFailed.has('trash')
+          ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('trash')} /></div>
+          : data.trash !== null && !list.length && <div className="cards-empty"><p>{T.empty}</p></div>}
         {list.length > 0 && (view === 'cards'
           ? <ul className="pgrid">{list.map(p => <TrashCard key={p.id} {...item(p)} />)}</ul>
           : (
@@ -110,8 +112,8 @@ function TrashRow({ d, p, checked, country, group, by, when, onToggle, onRestore
       <td className="mono">{when}</td>
       <td>{by}</td>
       <td className="act"><span className="actin">
-        <button type="button" className="btn btn-xs btn-primary" onClick={onRestore}><Icon name="refresh" />{d.trash.restore}</button>
-        <button type="button" className="btn btn-xs btn-text" onClick={onPurge}>{d.trash.purge}</button>
+        <button type="button" className="btn btn-sm btn-primary" onClick={onRestore}><Icon name="refresh" />{d.trash.restore}</button>
+        <button type="button" className="btn btn-sm btn-text" onClick={onPurge}>{d.trash.purge}</button>
       </span></td>
     </tr>
   );
@@ -131,8 +133,8 @@ function TrashCard({ d, p, checked, country, group, by, when, onToggle, onRestor
         <li><Icon name="trash" />{d.trash.byAt(by, when)}</li>
       </ul>
       <div className="pc-foot">
-        <button type="button" className="btn btn-xs btn-primary" onClick={onRestore}><Icon name="refresh" />{d.trash.restore}</button>
-        <button type="button" className="btn btn-xs btn-text" onClick={onPurge}>{d.trash.purge}</button>
+        <button type="button" className="btn btn-sm btn-primary" onClick={onRestore}><Icon name="refresh" />{d.trash.restore}</button>
+        <button type="button" className="btn btn-sm btn-text" onClick={onPurge}>{d.trash.purge}</button>
       </div>
     </li>
   );

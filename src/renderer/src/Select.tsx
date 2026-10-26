@@ -11,7 +11,7 @@ export interface Opt { value: string; label: string; hint?: string; dot?: 'good'
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
   id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean;
-  variant?: 'field' | 'sm' | 'cell' | 'bar'; action?: boolean; search?: boolean; searchPh?: string; empty?: string;
+  variant?: 'field' | 'sm' | 'bar'; action?: boolean; search?: boolean; searchPh?: string; empty?: string;
 }
 type Place = { left: number; width: number; maxHeight: number; top?: number; bottom?: number };
 // Consecutive options of the same group, with where they start in the list.
@@ -43,7 +43,7 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
     // Never up into the window's top strip (--tb), where clicks drag the window.
     const tb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tb')) || 0;
     const r = btn.current!.getBoundingClientRect(), below = innerHeight - r.bottom - 8, above = r.top - 8 - tb;
-    const up = below < 240 && above > below, width = Math.max(r.width, variant === 'bar' || variant === 'cell' ? 220 : 0);
+    const up = below < 240 && above > below, width = Math.max(r.width, variant === 'bar' ? 220 : 0);
     setPlace({ left: Math.max(8, Math.min(r.left, innerWidth - width - 8)), width, maxHeight: Math.min(340, up ? above : below), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
     setActive(Math.max(0, options.findIndex(o => o.value === value)));
     setOpen(true);

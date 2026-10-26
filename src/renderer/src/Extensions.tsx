@@ -7,7 +7,7 @@ import { folio, isApiError, type Extension, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { BulkBar, ExtIcon, Icon, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
+import { BulkBar, ExtIcon, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
@@ -70,7 +70,9 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
 
-        {!list.length && <div className="cards-empty"><p>{data.extensions.length ? X.noMatch : X.empty}</p></div>}
+        {data.loadFailed.has('extensions')
+          ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('extensions')} /></div>
+          : !list.length && <div className="cards-empty"><p>{data.extensions.length ? X.noMatch : X.empty}</p></div>}
         {list.length > 0 && (view === 'cards'
           ? <ul className="ext-grid">{list.map(e => <ExtCard key={e.id} {...item(e)} />)}</ul>
           : (
@@ -126,7 +128,7 @@ function ExtCard({ d, e, manager, checked, users, onToggle, onInstall, onUpdate,
         {users}
         <span className="sp" />
         {manager && <MoreMenu label={d.detail.more} items={[{ label: d.extensions.update, onClick: onUpdate }, { label: d.extensions.delete, onClick: onDelete, danger: true }]} />}
-        <button type="button" className="btn btn-xs btn-secondary" onClick={onInstall}>{X.install}</button>
+        <button type="button" className="btn btn-sm btn-secondary" onClick={onInstall}>{X.install}</button>
       </div>
     </li>
   );
@@ -143,7 +145,7 @@ function ExtRow({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, 
       <td>{users}</td>
       <td>{ago(e.updatedAt, d)}</td>
       <td className="act"><span className="actin">
-        <button type="button" className="btn btn-xs btn-secondary" onClick={onInstall}>{d.extensions.install}</button>
+        <button type="button" className="btn btn-sm btn-secondary" onClick={onInstall}>{d.extensions.install}</button>
         {manager && <MoreMenu label={d.detail.more} items={[{ label: d.extensions.update, onClick: onUpdate }, { label: d.extensions.delete, onClick: onDelete, danger: true }]} />}
       </span></td>
     </tr>

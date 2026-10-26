@@ -8,7 +8,7 @@ import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { BulkBar, CopyBtn, DetailDialog, Icon, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { BulkBar, CopyBtn, DetailDialog, Icon, LoadFailed, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -117,7 +117,9 @@ export function ProxiesPage({ d, lang, data, onAdd, onEdit, onImport, onShowProf
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
 
-        {!list.length && <div className="cards-empty"><p>{data.proxies.length ? d.profiles.emptyMatch : X.empty}</p></div>}
+        {data.loadFailed.has('proxies')
+          ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('proxies')} /></div>
+          : !list.length && <div className="cards-empty"><p>{data.proxies.length ? d.profiles.emptyMatch : X.empty}</p></div>}
         {list.length > 0 && (view === 'cards'
           ? <ul className="pxg">{list.map(p => <ProxyCard key={p.id} {...item(p)} />)}</ul>
           : (
@@ -264,7 +266,7 @@ function ProxyDetail(props: ProxyItem & { lang: Lang; data: WorkspaceData; profi
       <span className="sp" />
       <button type="button" className="btn btn-secondary" onClick={onEdit}>{d.common.edit}</button>
       <button type="button" className="btn btn-primary" disabled={busy} onClick={onCheck}>{busy ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{d.common.check}</button>
-      <button type="button" className="icon-btn bare sm" aria-label={d.common.close} onClick={onClose}><Icon name="x" /></button>
+      <button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button>
     </header>
     <dl className="dstats">
       <div><dt>{D.exitIp}</dt><dd className="mono">{ex?.ip ?? '—'}{ex?.ip && <CopyBtn text={ex.ip} label={d.common.copy} done={d.common.copied} />}</dd></div>
@@ -435,7 +437,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
               <label htmlFor="px-pass">{X.pass}</label>
               <span className="pass-in">
                 <input id="px-pass" type={reveal ? 'text' : 'password'} value={password} onChange={e => change(setPassword)(e.target.value)} autoComplete="new-password" placeholder={proxy?.hasPassword ? X.passKeep : ''} />
-                <button type="button" className="icon-btn bare sm" aria-label={reveal ? X.conceal : X.reveal} title={reveal ? X.conceal : X.reveal} onClick={() => setReveal(r => !r)}><Icon name={reveal ? 'eyeOff' : 'eye'} /></button>
+                <button type="button" className="icon-btn bare" aria-label={reveal ? X.conceal : X.reveal} title={reveal ? X.conceal : X.reveal} onClick={() => setReveal(r => !r)}><Icon name={reveal ? 'eyeOff' : 'eye'} /></button>
               </span>
             </div>
           </div>

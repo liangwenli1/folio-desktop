@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import type { Dict } from './i18n';
 
 const PATHS = {
   x: 'M4 4l8 8M12 4l-8 8',
@@ -103,7 +104,7 @@ export function MoreMenu({ label, items }: { label: string; items: { label: stri
   const ref = useOutsideClose(open, () => setOpen(false));
   return (
     <div className="d-more" ref={ref}>
-      <button type="button" className="icon-btn bare sm" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="more" /></button>
+      <button type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name="more" /></button>
       {open && (
         <div className="menu" role="menu">
           {items.map(i => (
@@ -207,12 +208,12 @@ export function Modal({ title, closeLabel, onClose, foot, icon, tone, wide, chil
       <div className="scrim modal-scrim" onClick={onClose} />
       <div className={`modal${icon ? ' short' : wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id}>
         {icon ? <>
-          <button className="icon-btn bare sm m-close" type="button" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
+          <button className="icon-btn bare m-close" type="button" aria-label={closeLabel} title={closeLabel} onClick={onClose}><Icon name="x" /></button>
           <div className="m-body"><span className={`m-icon${tone ? ` ${tone}` : ''}`} aria-hidden="true"><Icon name={icon} /></span><h2 id={id}>{title}</h2>{children}</div>
         </> : <>
           <div className="m-head">
             <h2 id={id}>{title}</h2>
-            <button className="icon-btn bare" type="button" aria-label={closeLabel} onClick={onClose}><Icon name="x" /></button>
+            <button className="icon-btn bare" type="button" aria-label={closeLabel} title={closeLabel} onClick={onClose}><Icon name="x" /></button>
           </div>
           {children}
         </>}
@@ -224,6 +225,16 @@ export function Modal({ title, closeLabel, onClose, foot, icon, tone, wide, chil
 
 // An extension's own icon (a jigsaw piece when it has none).
 export const ExtIcon = ({ src }: { src?: string | null }) => <span className="ext-ic">{src ? <img src={src} alt="" /> : <Icon name="extensions" />}</span>;
+
+// A list whose load failed: it says so where the rows would be and offers to load it again, so a failure never
+// reads as "there is nothing here" (or as a skeleton that never settles). Goes in a table's empty row or in a
+// .cards-empty box, whichever the page uses.
+export const LoadFailed = ({ d, onRetry }: { d: Dict; onRetry(): void }) => (
+  <>
+    <p><b>{d.common.loadFailed}</b></p>
+    <button type="button" className="btn btn-sm btn-secondary" onClick={onRetry}>{d.common.loadRetry}</button>
+  </>
+);
 
 // What to do with the rows ticked on a page: how many, the actions, and a cross that clears the selection.
 export function BulkBar({ n, label, clearLabel, onClear, children }: { n: number; label: string; clearLabel: string; onClear(): void; children: ReactNode }){

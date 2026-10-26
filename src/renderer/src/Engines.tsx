@@ -134,11 +134,11 @@ export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; 
                           : <span className="dot-st idle">{E.notDownloaded}</span>}
                       </td>
                       <td className="act"><span className="actin">
-                        {downloading ? <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.pauseKernel(kind, version)}>{E.pause}</button>
-                          : pr?.paused && !k?.installed ? <button type="button" className="btn btn-xs btn-secondary" onClick={() => void data.install(kind, version)}>{E.resume}</button>
-                          : k?.installed ? <button type="button" className="btn btn-xs btn-text" disabled={busy} title={busy ? E.removeBusy : undefined}
+                        {downloading ? <button type="button" className="btn btn-sm btn-text" onClick={() => void folio.pauseKernel(kind, version)}>{E.pause}</button>
+                          : pr?.paused && !k?.installed ? <button type="button" className="btn btn-sm btn-secondary" onClick={() => void data.install(kind, version)}>{E.resume}</button>
+                          : k?.installed ? <button type="button" className="btn btn-sm btn-text" disabled={busy} title={busy ? E.removeBusy : undefined}
                             onClick={() => void data.removeKernel(kind, version).then(() => toast(E.removed(label)))}>{E.remove}</button>
-                          : k?.available && <button type="button" className="btn btn-xs btn-secondary" onClick={() => void data.install(kind, version)}><Icon name="download" />{E.download(bytes(k.size ?? 0))}</button>}
+                          : k?.available && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void data.install(kind, version)}><Icon name="download" />{E.download(bytes(k.size ?? 0))}</button>}
                         {admin && rows.length > 0 && <MoreMenu label={E.actionsX(label)} items={[
                           ...(rows.some(x => x.ready) && !recommended ? [{ label: E.admin.recommend, onClick: () => setRecommending(rows.find(x => x.ready)!) }] : []),
                           { label: E.admin.retire, onClick: () => setRetiring(rows), danger: true }

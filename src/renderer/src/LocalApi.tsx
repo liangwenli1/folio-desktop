@@ -117,7 +117,7 @@ await page.goto('https://example.com');`
                     {state.listening ? <>{A.listening} <span className="mono">{base}</span></> : state.error ? A.errors[state.error as keyof typeof A.errors] ?? state.error : A.off}
                   </small>
                 </span>
-                {state.listening && <button type="button" className="btn btn-xs btn-secondary" onClick={() => copy(base)}><Icon name="link" />{A.copyAddress}</button>}
+                {state.listening && <button type="button" className="btn btn-sm btn-secondary" onClick={() => copy(base)}><Icon name="link" />{A.copyAddress}</button>}
                 <Switch label={A.enable} checked={state.enabled} onChange={on => void change({ enabled: on })} />
               </div>
               <div className="api-port">
@@ -141,8 +141,8 @@ await page.goto('https://example.com');`
                 <div className="token-new" role="status">
                   <span>{A.newToken}</span>
                   <code className="mono">{fresh}</code>
-                  <span className="actin"><button type="button" className="btn btn-xs btn-primary" onClick={() => copy(fresh)}>{A.copy}</button>
-                    <button type="button" className="btn btn-xs btn-text" onClick={() => setFresh(null)}>{A.done}</button></span>
+                  <span className="actin"><button type="button" className="btn btn-sm btn-primary" onClick={() => copy(fresh)}>{A.copy}</button>
+                    <button type="button" className="btn btn-sm btn-text" onClick={() => setFresh(null)}>{A.done}</button></span>
                 </div>
               )}
               <ul className="tokens">
@@ -152,7 +152,7 @@ await page.goto('https://example.com');`
                     <span><b>{t.name}{t.workspaceId !== ws.id && <span className="tag">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}</b>
                       <small>{A.made(day(t.createdAt, lang))} · {t.lastUsedAt ? A.used(day(t.lastUsedAt, lang)) : A.unused}</small></span>
                     <span className="sp" />
-                    <button type="button" className="btn btn-xs btn-text" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>
+                    <button type="button" className="btn btn-sm btn-text" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>
                   </li>
                 ))}
               </ul>
@@ -169,7 +169,7 @@ await page.goto('https://example.com');`
               </div>
               <div className="code-wrap">
                 <pre className="code"><code>{highlight(shown)}</code></pre>
-                <button type="button" className="btn btn-xs btn-secondary copy" onClick={() => copy(shown)}>{A.copy}</button>
+                <button type="button" className="btn btn-sm btn-secondary copy" onClick={() => copy(shown)}>{A.copy}</button>
               </div>
             </section>
 

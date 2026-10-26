@@ -6,7 +6,7 @@ import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus,
 import { GROUP_COLORS } from './ui';
 import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
 
-type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
+export type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
 export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
@@ -25,6 +25,9 @@ export interface WorkspaceData {
   // Why each profile's last launch on this computer failed, until it is opened again.
   failed: Record<string, string>;
   refresh(...kinds: Kind[]): void;
+  // Lists whose last load failed: their table says so and offers `refresh` again, instead of an endless skeleton
+  // or an empty list that looks like there is nothing there.
+  loadFailed: Set<Kind>;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
   batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean }): Promise<number>;
@@ -62,6 +65,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [progress, setProgress] = useState<Record<string, KernelProgress>>({});
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [checking, setChecking] = useState<Set<string>>(() => new Set());
+  const [loadFailed, setLoadFailed] = useState<Set<Kind>>(() => new Set());
   const handlers = useRef(on);
   handlers.current = on;
   const waiting = useRef(new Map<string, (ok: boolean) => void>());
@@ -70,25 +74,27 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
 
   const refresh = useCallback((...kinds: Kind[]) => {
     const base = `/workspaces/${wsId}`;
-    const run = <T>(path: string, set: (v: T) => void) => folio.api<T>('GET', path).then(set).catch(() => { /* the next change event retries */ });
+    const mark = (k: Kind, failed: boolean) => setLoadFailed(f => (f.has(k) === failed ? f : new Set([...f].filter(x => x !== k).concat(failed ? [k] : []))));
+    const run = <T>(k: Kind, path: string, set: (v: T) => void) =>
+      folio.api<T>('GET', path).then(v => { set(v); mark(k, false); }).catch(() => mark(k, true));
     for (const k of kinds){
-      if (k === 'profiles') void run<{ profiles: Profile[] }>(`${base}/profiles`, r => setProfiles(r.profiles));
-      if (k === 'trash') void run<{ profiles: Profile[] }>(`${base}/profiles?trash=1`, r => setTrash(r.profiles));
-      if (k === 'groups') void run<{ groups: Group[] }>(`${base}/groups`, r => setGroups(r.groups));
-      if (k === 'proxies') void run<{ proxies: Proxy[] }>(`${base}/proxies`, r => setProxies(r.proxies));
-      if (k === 'flows') void run<{ flows: Flow[] }>(`${base}/flows`, r => setFlows(r.flows));
-      if (k === 'tasks') void run<{ tasks: Task[] }>(`${base}/tasks`, r => setTasks(r.tasks));
-      if (k === 'extensions') void run<{ extensions: Extension[] }>(`${base}/extensions`, r => setExtensions(r.extensions));
+      if (k === 'profiles') void run<{ profiles: Profile[] }>(k, `${base}/profiles`, r => setProfiles(r.profiles));
+      if (k === 'trash') void run<{ profiles: Profile[] }>(k, `${base}/profiles?trash=1`, r => setTrash(r.profiles));
+      if (k === 'groups') void run<{ groups: Group[] }>(k, `${base}/groups`, r => setGroups(r.groups));
+      if (k === 'proxies') void run<{ proxies: Proxy[] }>(k, `${base}/proxies`, r => setProxies(r.proxies));
+      if (k === 'flows') void run<{ flows: Flow[] }>(k, `${base}/flows`, r => setFlows(r.flows));
+      if (k === 'tasks') void run<{ tasks: Task[] }>(k, `${base}/tasks`, r => setTasks(r.tasks));
+      if (k === 'extensions') void run<{ extensions: Extension[] }>(k, `${base}/extensions`, r => setExtensions(r.extensions));
       if (k === 'members'){
-        void run<{ members: Member[] }>(`${base}/members`, r => setMembers(r.members));
-        void run<{ departments: Department[] }>(`${base}/departments`, r => setDepartments(r.departments));
-        if (role !== 'member') void run<{ invitations: Invitation[] }>(`${base}/invitations`, r => setInvitations(r.invitations));
+        void run<{ members: Member[] }>(k, `${base}/members`, r => setMembers(r.members));
+        void run<{ departments: Department[] }>(k, `${base}/departments`, r => setDepartments(r.departments));
+        if (role !== 'member') void run<{ invitations: Invitation[] }>(k, `${base}/invitations`, r => setInvitations(r.invitations));
       }
     }
   }, [wsId, role]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]); setTasks([]); setExtensions([]);
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]); setTasks([]); setExtensions([]); setLoadFailed(new Set());
     refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks', 'extensions');
     void folio.watch(wsId);
     return folio.onChange(c => {
@@ -195,5 +201,5 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     reloadKernels();
   }, [reloadKernels]);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
+  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
 }

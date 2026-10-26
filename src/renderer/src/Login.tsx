@@ -73,7 +73,7 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
               <button className="linkish" type="button" onClick={() => folio.openSite(`${site}/forgot/`)}>{d.login.forgot}</button>
             </div>
           </div>
-          <button className="btn btn-primary full" type="submit" disabled={busy}>{d.login.submit}</button>
+          <button className="btn btn-primary btn-lg full" type="submit" disabled={busy}>{d.login.submit}</button>
           <p className="login-alt">{d.login.noAccount} <button className="linkish" type="button" onClick={() => folio.openSite(`${site}/signup/`)}>{d.login.create}</button></p>
         </form>
         <p className="login-foot">

@@ -5,7 +5,7 @@ import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time, useActivity } from './Activity';
-import { Avatar, BulkBar, DetailDialog, Icon, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { Avatar, BulkBar, DetailDialog, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Select } from './Select';
 import { ExitMap, type Pin, type PinState } from './ExitMap';
 import { Flag, SEARCH_LOGOS } from './Flag';
@@ -227,10 +227,13 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     setMoving(null);
     try { await data.batch('move', [p.id], { groupId }); toast(P.done.moved(1, groupId ? groupName.get(groupId) ?? '' : d.groups.none)); } catch (e){ fail(e); }
   }
-  const empty = data.profiles !== null && !list.length && (all.length
-    ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
-      <button type="button" className="btn btn-secondary btn-xs" onClick={() => { setQ(''); setStatus('all'); setEngine('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
-    : <p><b>{P.emptyNone}</b></p>);
+  const failed = data.loadFailed.has('profiles');
+  const empty = failed
+    ? <LoadFailed d={d} onRetry={() => data.refresh('profiles')} />
+    : data.profiles !== null && !list.length && (all.length
+      ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setStatus('all'); setEngine('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
+      : <p><b>{P.emptyNone}</b></p>);
 
   return (
     <div className="page">
@@ -261,8 +264,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
             {!pins.length && manager && (
               <div className="map-empty">
                 {data.proxies.length
-                  ? <button type="button" className="btn btn-xs btn-secondary" disabled={data.checking.size > 0} onClick={() => void data.check(data.proxies.map(p => p.id))}>{P.map.check}</button>
-                  : <button type="button" className="btn btn-xs btn-secondary" onClick={onAddProxy}>{P.map.add}</button>}
+                  ? <button type="button" className="btn btn-sm btn-secondary" disabled={data.checking.size > 0} onClick={() => void data.check(data.proxies.map(p => p.id))}>{P.map.check}</button>
+                  : <button type="button" className="btn btn-sm btn-secondary" onClick={onAddProxy}>{P.map.add}</button>}
               </div>
             )}
           </section>
@@ -274,7 +277,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
               <Icon name="alert" /><b>{d.risks.title(shown.length)}</b>
               {!riskOpen && <span className="risk-first">{d.risks.kinds[shown[0].kind].t(shown[0].ids.length, shown[0].what)}</span>}
               <span className="sp" />
-              <button type="button" className="btn btn-xs btn-text" aria-expanded={riskOpen} onClick={() => setRiskOpen(o => !o)}>{riskOpen ? d.risks.hide : d.risks.show}</button>
+              <button type="button" className="btn btn-sm btn-text" aria-expanded={riskOpen} onClick={() => setRiskOpen(o => !o)}>{riskOpen ? d.risks.hide : d.risks.show}</button>
             </div>
             {riskOpen && (
               <ul className="risk-list">
@@ -282,7 +285,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                   <li key={i} className={r.level} data-risk={r.kind}>
                     <span className={`d ${r.level === 'bad' ? 'bad' : 'warn'}`} aria-hidden="true" />
                     <div><p><b>{d.risks.kinds[r.kind].t(r.ids.length, r.what)}</b></p><p className="hint">{names(r)} · {d.risks.kinds[r.kind].fix}</p></div>
-                    <button type="button" className="btn btn-xs btn-secondary" onClick={() => setOnly(new Set(r.ids))}>{d.risks.only}</button>
+                    <button type="button" className="btn btn-sm btn-secondary" onClick={() => setOnly(new Set(r.ids))}>{d.risks.only}</button>
                   </li>
                 ))}
               </ul>
@@ -320,7 +323,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                 </tr>
               </thead>
               <tbody>
-                {data.profiles === null && Array.from({ length: 5 }, (_, i) => (
+                {data.profiles === null && !failed && Array.from({ length: 5 }, (_, i) => (
                   <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /></td><td><i className="w3" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td><td /></tr>
                 ))}
                 {empty && <tr className="empty"><td colSpan={9}>{empty}</td></tr>}
@@ -566,15 +569,15 @@ function Tray({ d, data, profiles, failed, onRetry, onClose }: { d: Dict; data: 
     <section className={`tray${folded ? ' folded' : ''}`} aria-label={T.title(rows.length)} role="status">
       <header className="tray-h">
         <b>{T.title(rows.length)}</b><small>{T.done(settled, rows.length)}</small>
-        <button type="button" className="icon-btn bare sm" aria-label={folded ? T.unfold : T.fold} onClick={() => setFolded(f => !f)}><Icon name="chev" /></button>
-        {settled === rows.length && <button type="button" className="icon-btn bare sm" aria-label={T.close} onClick={onClose}><Icon name="x" /></button>}
+        <button type="button" className="icon-btn bare" aria-label={folded ? T.unfold : T.fold} title={folded ? T.unfold : T.fold} onClick={() => setFolded(f => !f)}><Icon name="chev" /></button>
+        {settled === rows.length && <button type="button" className="icon-btn bare" aria-label={T.close} title={T.close} onClick={onClose}><Icon name="x" /></button>}
       </header>
       <ol>
         {rows.map(r => (
           <li key={r.p.id} className={r.tone}>
             <Flag country={null} kernel={r.p.kernel} />
             <div><b>{r.p.name}</b>{r.st}<span className="meter"><i style={{ width: `${r.pct}%` }} /></span></div>
-            {r.tone === 'bad' && <button type="button" className="btn btn-xs btn-secondary" onClick={() => onRetry(r.p)}>{T.retry}</button>}
+            {r.tone === 'bad' && <button type="button" className="btn btn-sm btn-secondary" onClick={() => onRetry(r.p)}>{T.retry}</button>}
           </li>
         ))}
       </ol>
@@ -593,9 +596,9 @@ function SyncBar({ d, data, names }: { d: Dict; data: WorkspaceData; names: Map<
       <span><b>{W.on}</b> {W.summary(names.get(s.leader) ?? '', s.members.length - 1)}</span>
       <form className="sync-url" onSubmit={e => { e.preventDefault(); if (url.trim()) void folio.syncGoto(url.trim()); setUrl(''); }}>
         <input aria-label={W.address} placeholder={W.addressPh} value={url} onChange={e => setUrl(e.target.value)} spellCheck={false} />
-        <button type="submit" className="btn btn-xs btn-secondary">{W.open}</button>
+        <button type="submit" className="btn btn-sm btn-secondary">{W.open}</button>
       </form>
-      <button type="button" className="btn btn-xs btn-secondary" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
+      <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
     </div>
   );
 }

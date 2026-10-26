@@ -63,6 +63,7 @@ export const en = {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit', copy: 'Copy', copied: 'Copied',
     selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
     never: 'Never', justNow: 'Just now', minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
+    loadFailed: 'This list could not be loaded.', loadRetry: 'Try again',
     attribution: 'IP Geolocation by DB-IP'
   },
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
@@ -659,6 +660,7 @@ export const zh: Dict = {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑', copy: '复制', copied: '已复制',
     selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,
     never: '从未', justNow: '刚刚', minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
+    loadFailed: '列表加载失败。', loadRetry: '重新加载',
     attribution: 'IP Geolocation by DB-IP'
   },
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },

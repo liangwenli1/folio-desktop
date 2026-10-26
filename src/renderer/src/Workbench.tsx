@@ -181,9 +181,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           <section className="update" role="status" aria-label={update.installs ? d.update.ready(update.version) : d.update.out(update.version)}>
             <p><b>{update.installs ? d.update.ready(update.version) : d.update.out(update.version)}</b></p>
             {update.installs ? <>
-              <button className="btn btn-xs btn-primary" type="button" onClick={() => void folio.installUpdate()}>{d.update.restart}</button>
+              <button className="btn btn-sm btn-primary" type="button" onClick={() => void folio.installUpdate()}>{d.update.restart}</button>
               <p className="muted">{d.update.restartNote}</p>
-            </> : <button className="btn btn-xs btn-secondary" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
+            </> : <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
           </section>
         )}
 
@@ -293,8 +293,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
 
 function NavItem({ icon, label, badge, active, onClick }: { icon: IconName; label: string; badge?: string; active: boolean; onClick(): void }){
   return (
-    <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} onClick={onClick}>
-      <span className="ni"><Icon name={icon} /></span>{label}{badge && <span className="cnt on">{badge}</span>}
+    <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} title={label} onClick={onClick}>
+      <span className="ni"><Icon name={icon} /></span><span className="nav-l">{label}</span>{badge && <span className="cnt on">{badge}</span>}
     </button>
   );
 }
@@ -316,8 +316,8 @@ function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me:
       <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
         <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', d.roles[i.role])}</small></span>
         <span className="invite-acts">
-          <button type="button" className="btn btn-xs btn-primary" onClick={() => onAnswer(i, true)}>{d.team.join}</button>
-          <button type="button" className="btn btn-xs btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>
+          <button type="button" className="btn btn-sm btn-primary" onClick={() => onAnswer(i, true)}>{d.team.join}</button>
+          <button type="button" className="btn btn-sm btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>
         </span>
       </li>
     ))}
@@ -377,7 +377,7 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
             <button type="button" className={`nav-i${group === g.id ? ' active' : ''}`} aria-current={group === g.id ? 'true' : undefined} onClick={() => onPick(g.id)}>
               <span className={`sq gc-${g.color}`} aria-hidden="true" />{g.name}
             </button>
-            {manager && <button type="button" className="grp-more" aria-label={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>}
+            {manager && <button type="button" className="grp-more" aria-label={G.more(g.name)} title={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>}
             {menu === g.id && (
               <div className="menu" role="menu">
                 <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setRenaming(g.id); setName(g.name); }}>{G.rename}</button>
@@ -390,8 +390,8 @@ function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceD
             {confirm === g.id && (
               <div className="grp-confirm" role="alertdialog" aria-label={G.deleteConfirm(g.name)}>
                 <p>{G.deleteConfirm(g.name)}</p>
-                <div><button type="button" className="btn btn-xs btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                  <button type="button" className="btn btn-xs btn-danger solid" onClick={() => void remove(g.id)}>{G.delete}</button></div>
+                <div><button type="button" className="btn btn-sm btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+                  <button type="button" className="btn btn-sm btn-danger solid" onClick={() => void remove(g.id)}>{G.delete}</button></div>
               </div>
             )}
           </div>

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
-import { Icon, useToast, type IconName } from './ui';
+import { Icon, LoadFailed, useToast, type IconName } from './ui';
 import { Select } from './Select';
 
 type Kind = 'all' | keyof Dict['activity']['kinds'];
@@ -27,13 +27,16 @@ export function dayLabel(iso: string, d: Dict, lang: Lang){
 export function useActivity(wsId: string, query: string, data: WorkspaceData, limit = PAGE, enabled = true){
   const [entries, setEntries] = useState<ActivityEntry[] | null>(null);
   const [more, setMore] = useState(false);
+  const [failed, setFailed] = useState(false);
   const load = useCallback(async (before?: number) => {
     const r = await folio.api<{ entries: ActivityEntry[] }>('GET', `/workspaces/${wsId}/activity?limit=${limit}${query}${before ? `&before=${before}` : ''}`);
     setEntries(list => (before ? [...(list ?? []), ...r.entries] : r.entries));
     setMore(r.entries.length === limit);
+    setFailed(false);
   }, [wsId, query, limit]);
-  useEffect(() => { if (enabled) void load().catch(() => setEntries([])); }, [enabled, load, data.profiles, data.proxies, data.groups, data.members]);
-  return { entries, more, older: () => entries?.length ? load(entries.at(-1)!.seq) : Promise.resolve() };
+  useEffect(() => { if (enabled) void load().catch(() => setFailed(true)); }, [enabled, load, data.profiles, data.proxies, data.groups, data.members]);
+  const reload = () => load().catch(() => setFailed(true));
+  return { entries, more, failed, reload, older: () => entries?.length ? load(entries.at(-1)!.seq) : Promise.resolve() };
 }
 
 // Which filter of the log an entry belongs to (the server's grouping), for its category column.
@@ -56,7 +59,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
   const [person, setPerson] = useState('');
   const [kind, setKind] = useState<Kind>('all');
   const [q, setQ] = useState('');
-  const { entries, more, older } = useActivity(ws.id, `${person ? `&actorId=${person}` : ''}${kind !== 'all' ? `&kind=${kind}` : ''}`, data);
+  const { entries, more, failed, reload, older } = useActivity(ws.id, `${person ? `&actorId=${person}` : ''}${kind !== 'all' ? `&kind=${kind}` : ''}`, data);
   const canExport = data.role !== 'member' && ws.subscription.plan === 'company';
 
   async function exportCsv(){
@@ -101,8 +104,9 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
               <tr><th scope="col">{A.cols.time}</th><th scope="col">{A.cols.person}</th><th scope="col">{A.cols.what}</th><th scope="col">{A.cols.kind}</th><th scope="col">{A.cols.device}</th></tr>
             </thead>
             <tbody>
-              {entries === null && Array.from({ length: 6 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td><i className="w3" /></td><td><i /></td><td><i /></td><td><i className="w3" /></td><td><i className="w3" /></td></tr>)}
-              {entries !== null && !byDay.length && <tr className="empty"><td colSpan={5}><p>{A.empty}</p></td></tr>}
+              {entries === null && !failed && Array.from({ length: 6 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td><i className="w3" /></td><td><i /></td><td><i /></td><td><i className="w3" /></td><td><i className="w3" /></td></tr>)}
+              {failed && <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={() => void reload()} /></td></tr>}
+              {!failed && entries !== null && !byDay.length && <tr className="empty"><td colSpan={5}><p>{A.empty}</p></td></tr>}
               {byDay.flatMap(([label, list]) => [
                 <tr key={label} className="day"><td colSpan={5}>{label}</td></tr>,
                 ...list.map(e => {

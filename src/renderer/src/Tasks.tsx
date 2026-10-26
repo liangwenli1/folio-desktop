@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Icon, Modal, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { Icon, LoadFailed, Modal, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -96,7 +96,9 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
                 <tr><th scope="col">{T.cols.task}</th><th scope="col">{T.cols.profiles}</th><th scope="col">{T.cols.when}</th><th scope="col">{T.cols.last}</th><th scope="col">{T.cols.on}</th><th className="act" scope="col" /></tr>
               </thead>
               <tbody>
-                {!data.tasks.length && <tr className="empty"><td colSpan={6}><p>{T.empty}</p></td></tr>}
+                {data.loadFailed.has('tasks')
+                  ? <tr className="empty"><td colSpan={6}><LoadFailed d={d} onRetry={() => data.refresh('tasks')} /></td></tr>
+                  : !data.tasks.length && <tr className="empty"><td colSpan={6}><p>{T.empty}</p></td></tr>}
                 {data.tasks.map(t => {
                   const here = data.active.find(a => a.taskId === t.id);
                   return (
@@ -114,10 +116,10 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
                       <td>{t.schedule ? (t.runner?.self ? T.here : t.runner?.deviceName ?? '—') : <span className="muted">{T.starter}</span>}</td>
                       <td className="act"><span className="actin">
                         {here
-                          ? <button type="button" className="btn btn-xs btn-secondary" onClick={() => void folio.stopRun(here.runId)}><Icon name="stop" />{T.stop}</button>
-                          : <button type="button" className="btn btn-xs btn-secondary" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} title={!t.profileIds.length ? T.noProfilesHere : t.lastRun?.status === 'running' ? T.runningElsewhere : undefined} aria-label={T.runX(t.name)} onClick={() => void start(t)}><Icon name="play" />{T.run}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-xs btn-text" onClick={() => setForm({ task: t })}>{d.common.edit}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-xs btn-danger" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t)}>{T.delete}</button>}
+                          ? <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopRun(here.runId)}><Icon name="stop" />{T.stop}</button>
+                          : <button type="button" className="btn btn-sm btn-secondary" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} title={!t.profileIds.length ? T.noProfilesHere : t.lastRun?.status === 'running' ? T.runningElsewhere : undefined} aria-label={T.runX(t.name)} onClick={() => void start(t)}><Icon name="play" />{T.run}</button>}
+                        {t.canEdit && <button type="button" className="btn btn-sm btn-text" onClick={() => setForm({ task: t })}>{d.common.edit}</button>}
+                        {t.canEdit && <button type="button" className="btn btn-sm btn-danger" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t)}>{T.delete}</button>}
                       </span></td>
                     </tr>
                   );
@@ -209,7 +211,7 @@ function LatestRun({ d, lang, task, flag, idle, runsSeq, onRerun }: {
     <section className="latest" aria-label={T.latest(task.name)}>
       <header className="sec-row">
         <span><b>{T.latest(task.name)}</b><span className="muted"> {when(run.scheduledFor ?? run.startedAt, lang)}{took !== null && ` · ${T.took(took)}`}</span></span>
-        {run.status !== 'running' && idle && again.length > 0 && <button type="button" className="btn btn-xs btn-secondary" onClick={() => onRerun(again)}>{T.rerun(again.length)}</button>}
+        {run.status !== 'running' && idle && again.length > 0 && <button type="button" className="btn btn-sm btn-secondary" onClick={() => onRerun(again)}>{T.rerun(again.length)}</button>}
       </header>
       <ul className="latest-grid">
         {items.map(i => (
@@ -270,10 +272,10 @@ function TaskCalendar({ d, lang, tasks, onOpen }: { d: Dict; lang: Lang; tasks: 
       </ul>
       <section className="cal-week" aria-label={range}>
         <header className="cal-h">
-          <button type="button" className="icon-btn sm bare" aria-label={C.prev} title={C.prev} onClick={() => step(-1)}><Icon name="back" /></button>
+          <button type="button" className="icon-btn bare" aria-label={C.prev} title={C.prev} onClick={() => step(-1)}><Icon name="back" /></button>
           <b>{range}</b>
-          <button type="button" className="icon-btn sm bare" aria-label={C.next} title={C.next} onClick={() => step(1)}><Icon name="chevR" /></button>
-          {monday !== weekOf(now) && <button type="button" className="btn btn-xs btn-text" onClick={() => setMonday(weekOf(Date.now()))}>{C.thisWeek}</button>}
+          <button type="button" className="icon-btn bare" aria-label={C.next} title={C.next} onClick={() => step(1)}><Icon name="chevR" /></button>
+          {monday !== weekOf(now) && <button type="button" className="btn btn-sm btn-text" onClick={() => setMonday(weekOf(Date.now()))}>{C.thisWeek}</button>}
         </header>
         <div className="cal-grid">
           <div className="cal-times" style={{ height: (to - from) * HOUR }}>
@@ -372,7 +374,7 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
             {detail && (detail.run.status === 'missed' || detail.run.status === 'busy') && (
               <div className="away-note">
                 <span>{detail.run.status === 'missed' ? T.missedNote(when(detail.run.scheduledFor!, lang), detail.run.deviceName ?? '') : T.busyNote(when(detail.run.scheduledFor!, lang))}</span>
-                {idle && <div className="d-actions"><button type="button" className="btn btn-xs btn-primary" onClick={() => void run()}>{T.runNow}</button></div>}
+                {idle && <div className="d-actions"><button type="button" className="btn btn-sm btn-primary" onClick={() => void run()}>{T.runNow}</button></div>}
               </div>
             )}
             {detail && detail.run.status !== 'missed' && detail.run.status !== 'busy' && <>
@@ -380,8 +382,8 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
                 <div className="run-sum"><RunLine d={d} lang={lang} run={detail.run} here={data.active.some(a => a.runId === detail.run.id)} />
                   <span className="hint">{T.startedBy(detail.run.startedBy ?? '—', detail.run.deviceName, ago(detail.run.startedAt, d))}</span></div>
                 <span className="sp" />
-                {detail.run.status !== 'running' && again.length > 0 && idle && <button type="button" className="btn btn-xs btn-secondary" onClick={() => void run('rerun', again)}>{T.rerun(again.length)}</button>}
-                <button type="button" className="btn btn-xs btn-text" disabled={!detail.items.length} onClick={() => void exportCsv()}>{T.export}</button>
+                {detail.run.status !== 'running' && again.length > 0 && idle && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void run('rerun', again)}>{T.rerun(again.length)}</button>}
+                <button type="button" className="btn btn-sm btn-text" disabled={!detail.items.length} onClick={() => void exportCsv()}>{T.export}</button>
               </div>
               <div className="tw flow">
                 <table>
@@ -547,8 +549,8 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
             <div className="vars-kept">
               <span>{vars.mode === 'clear' ? T.varsCleared : stored ? T.varsStored(stored.count, stored.names.join(', ')) : <span className="spin" aria-hidden="true" />}</span>
               <span className="sp" />
-              <button type="button" className="btn btn-xs btn-secondary" onClick={() => setVars({ mode: 'replace', text: '' })}>{T.varsReplace}</button>
-              {vars.mode === 'keep' && <button type="button" className="btn btn-xs btn-secondary" onClick={() => setVars({ mode: 'clear', text: '' })}>{T.varsClear}</button>}
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => setVars({ mode: 'replace', text: '' })}>{T.varsReplace}</button>
+              {vars.mode === 'keep' && <button type="button" className="btn btn-sm btn-secondary" onClick={() => setVars({ mode: 'clear', text: '' })}>{T.varsClear}</button>}
             </div>
           ) : <>
             <div className="file-row">

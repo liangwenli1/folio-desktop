@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { folio, isApiError, type Department, type Member, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
-import { Avatar, Icon, Modal, MoreMenu, useToast, type IconName } from './ui';
+import { Avatar, Icon, LoadFailed, Modal, MoreMenu, useToast, type IconName } from './ui';
 import { Select, SelectField } from './Select';
 
 type Dialog = { kind: 'invite' } | { kind: 'remove'; member: Member } | { kind: 'leave' } | { kind: 'dept'; dept?: Department } | null;
@@ -83,6 +83,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                 </tr>
               </thead>
               <tbody>
+                {data.loadFailed.has('members') && <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={() => data.refresh('members')} /></td></tr>}
                 {people.map(m => {
                   const me = m.userId === meId, editable = manager && m.role !== 'owner' && !me;
                   return (

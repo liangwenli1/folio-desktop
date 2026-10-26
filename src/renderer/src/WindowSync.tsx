@@ -157,7 +157,7 @@ function Windows({ d, sync, profiles, country }: { d: Dict; sync: WindowSync; pr
               {lead ? <span className="hint">{W.workHere}</span>
                 : m.issue ? <span className="st bad"><Icon name="alert" />{m.issue === 'coords' ? W.notFound(null) : W.failed}</span>
                 : <span className="st run"><Icon name="check" />{W.inSync}</span>}
-              {!lead && <button type="button" className="btn btn-xs btn-text" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
+              {!lead && <button type="button" className="btn btn-sm btn-text" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
             </header>
             <div className="win-shot">
               {shots[m.id] ? <img className="thumb" src={shots[m.id]} alt="" /> : <span className="hint">{W.shotWait}</span>}

@@ -274,7 +274,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
           <section className="pf-sec">
             <div className="sec-row">
               <h3><span className="n">3</span>{F.title}</h3>
-              <button className="btn btn-xs btn-secondary" type="button" onClick={randomize} disabled={fp.state === 'loading' || fp.state === 'need-firefox'}><Icon name="refresh" />{F.random}</button>
+              <button className="btn btn-sm btn-secondary" type="button" onClick={randomize} disabled={fp.state === 'loading' || fp.state === 'need-firefox'}><Icon name="refresh" />{F.random}</button>
             </div>
             <div className="row2">
               {kernel === 'chromium'

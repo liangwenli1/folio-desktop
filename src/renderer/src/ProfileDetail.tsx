@@ -91,7 +91,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
         <div>
           <span><span className="sr">{d.detail.status[c.level]}: </span>{text.t(vars)}</span>
           {c.fix && (
-            <button type="button" className="btn btn-xs btn-secondary" disabled={busy === fixKey(c.fix)} onClick={() => onFix(c.fix!)}>
+            <button type="button" className="btn btn-sm btn-secondary" disabled={busy === fixKey(c.fix)} onClick={() => onFix(c.fix!)}>
               {busy === fixKey(c.fix) && <span className="spin" aria-hidden="true" />}{fixLabel(c.fix)}
             </button>
           )}
@@ -107,7 +107,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
         <div className="dh-t">
           <div className="dh-n">
             <h2 data-testid="detail-name">{p.name}</h2>
-            <button type="button" className={`icon-btn bare sm star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
+            <button type="button" className={`icon-btn bare star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
           </div>
           <span className="dh-sub">{chip}{group && <span className="tag grp-tag"><span className={`d gc-${group.color}`} aria-hidden="true" />{group.name}</span>}</span>
         </div>
@@ -115,7 +115,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
         {primary}
         <button type="button" className="btn btn-secondary" onClick={onEdit}>{D.edit}</button>
         {canTrash && <MoreMenu label={D.more} items={[{ label: D.trash, onClick: onTrash, danger: true }]} />}
-        <button type="button" className="icon-btn bare sm" aria-label={D.close} onClick={onClose}><Icon name="x" /></button>
+        <button type="button" className="icon-btn bare" aria-label={D.close} title={D.close} onClick={onClose}><Icon name="x" /></button>
       </header>
       {away && (
         <div className="away-note" data-testid="away">
@@ -164,7 +164,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
                 <Icon name={h.proxy === 'down' ? 'alert' : h.proxy === 'unchecked' ? 'clock' : 'check'} />
                 <span>{h.proxy === 'down' ? D.noExit : h.proxy === 'unchecked' ? D.notChecked : D.answered(px.lastCheck?.ms ?? 0)}</span>
               </p>
-              <div><button type="button" className="btn btn-xs btn-secondary" disabled={busy === `check:${px.id}`} onClick={() => onFix({ kind: 'check', proxyId: px.id })}>
+              <div><button type="button" className="btn btn-sm btn-secondary" disabled={busy === `check:${px.id}`} onClick={() => onFix({ kind: 'check', proxyId: px.id })}>
                 {busy === `check:${px.id}` && <span className="spin" aria-hidden="true" />}{d.proxies.test}
               </button></div>
             </> : <p className="hint">{D.direct}</p>}
@@ -198,7 +198,7 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
         <section className="sec" aria-label={D.checksTitle}>
           <div className="sec-row">
             <h3>{D.checksTitle}</h3><span className={`verdict ${h.level}`} data-testid="verdict">{D.verdict[h.level]}</span><span className="sp" />
-            <button type="button" className="btn btn-xs btn-secondary" title={d.checkup.lead} disabled={checking || !!away} onClick={() => void checkup()}>
+            <button type="button" className="btn btn-sm btn-secondary" title={d.checkup.lead} disabled={checking || !!away} onClick={() => void checkup()}>
               {checking && <span className="spin" aria-hidden="true" />}{checking ? d.checkup.running : d.checkup.run}
             </button>
           </div>
@@ -245,11 +245,11 @@ export function ProfileDetail({ d, lang, p, h, status, progress, size: engineSiz
           </> : <p className="hint">{d.detail.notSaved}</p>}
           <div className="d-actions">
             {canExport && p.data && p.syncMode === 'cloud' && <>
-              <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('json')}>{d.detail.exportAs(d.detail.json)}</button>
-              <button type="button" className="btn btn-xs btn-secondary" onClick={() => onExport('netscape')}>{d.detail.exportAs(d.detail.netscape)}</button>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => onExport('json')}>{d.detail.exportAs(d.detail.json)}</button>
+              <button type="button" className="btn btn-sm btn-secondary" onClick={() => onExport('netscape')}>{d.detail.exportAs(d.detail.netscape)}</button>
               <span className="sp" />
             </>}
-            <label className="btn btn-xs btn-secondary file-btn">{d.detail.importCookies}
+            <label className="btn btn-sm btn-secondary file-btn">{d.detail.importCookies}
               <input type="file" accept=".json,.txt,text/plain,application/json" onChange={async e => {
                 const file = e.target.files?.[0];
                 e.target.value = '';
