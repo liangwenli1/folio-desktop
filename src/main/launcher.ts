@@ -1,9 +1,11 @@
 // Opens and closes profiles. Opening: take the profile's lock (one computer at a time), fetch the launch details,
 // check the proxy (falling back to its backup line), bring the profile's folder up to the saved sign-in state,
 // align time zone, language and location with the exit IP, set its search engine, start the local forwarder and the
-// engine, and open its start pages. While it runs, the lock is renewed and cookies are saved every few minutes. When
-// the browser closes (however it closes), its folder is read back with the engine offline, the state (with the tabs
-// it had open) is uploaded and the lock released.
+// engine, and open its start pages. Both engines start without a window, which keeps them alive when their last window
+// closes: the profile then stops, or, when the workspace says so, keeps running without a window until a window is
+// opened again or it is stopped. While it runs, the lock is renewed and cookies are saved every few minutes. When the
+// browser closes (however it closes), its folder is read back with the engine offline, the state (with the tabs it
+// had open) is uploaded and the lock released.
 import { app, screen } from 'electron';
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
@@ -28,7 +30,7 @@ interface LaunchProfile {
   timezoneOverride: string | null; localeOverride: string | null; searchEngine: SearchEngine; restoreTabs: boolean;
   startUrl: string | null; windowMode: 'default' | 'custom' | 'maximized'; windowWidth: number | null; windowHeight: number | null;
 }
-interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null; extensions: Extension[] }
+interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null; extensions: Extension[]; stopOnWindowClose: boolean }
 
 class LaunchError extends Error { constructor(public code: string){ super(code); } }
 
@@ -38,6 +40,8 @@ const MAX_TABS = 20, TAB_GRACE_MS = 1000;
 
 interface Running {
   ctx: BrowserContext; fwd: Forwarder; status: ProfileStatus; profile: LaunchProfile; exe: string; dir: string;
+  // Whether closing its last window stops it (otherwise it runs on without one); set once it is being stopped.
+  stopOnClose: boolean; stopping?: boolean;
   // What this computer's folder matches, and the package downloaded at opening (its sites' storage).
   local: Local; saved: StorageState | null;
   visited: Set<string>; timers: NodeJS.Timeout[]; done: Promise<void>;
@@ -69,14 +73,14 @@ const testOnly = () => [
   ...(process.env.FOLIO_PROXY_LOOPBACK ? ['--proxy-bypass-list=<-loopback>'] : [])
 ];
 
-// `start`: the page it opens on (a blank one without).
-async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean, extensions: string[], start = 'about:blank'){
+// Without a window of its own: --no-startup-window, with the DevTools pipe, keeps Chromium alive after its last window.
+async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: number, tz: string, locale: string, geo: Geo | null, debug: boolean, extensions: string[]){
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'chromium' }>;
   const real = [fp.canvas === 'real' && 'canvas', fp.webgl === 'real' && 'gpu'].filter(Boolean);
   // Only our own switches: Playwright's defaults include --disable-extensions, --force-color-profile and others
   // that change behaviour a site can see (see docs/kernel-evaluation.md).
   const args = [
-    '--remote-debugging-pipe', ...(debug ? ['--remote-debugging-port=0'] : []), `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check',
+    '--remote-debugging-pipe', ...(debug ? ['--remote-debugging-port=0'] : []), `--user-data-dir=${dir}`, '--no-first-run', '--no-default-browser-check', '--no-startup-window',
     `--fingerprint=${fp.seed}`, `--fingerprint-platform=${p.os}`, '--fingerprint-brand=Chrome', `--fingerprint-hardware-concurrency=${fp.hardwareConcurrency}`,
     ...(real.length ? [`--disable-spoofing=${real.join(',')}`] : []),
     `--lang=${locale}`, `--accept-lang=${locale},${locale.split('-')[0]}`, `--timezone=${tz}`,
@@ -84,7 +88,7 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
     ...(extensions.length ? [`--load-extension=${extensions.join(',')}`] : []),
     ...(p.windowMode === 'maximized' ? ['--start-maximized'] : []),
     ...(p.windowMode === 'custom' && p.windowWidth && p.windowHeight ? [`--window-size=${p.windowWidth},${p.windowHeight}`] : []),
-    ...testOnly(), start
+    ...testOnly()
   ];
   return chromium.launchPersistentContext(dir, {
     executablePath: exe, headless: false, viewport: null, ignoreDefaultArgs: true, args,
@@ -112,7 +116,10 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
       ...(process.env.FOLIO_PROXY_LOOPBACK ? { 'network.proxy.allow_hijacking_localhost': true } : {}),
       ...(extensions.dirs.length ? { 'extensions.webextensions.uuids': JSON.stringify(extensions.uuids) } : {})
     },
-    ...(bidiPort ? { args: [`--remote-debugging-port=${bidiPort}`] } : {})
+    // Playwright's own arguments for Firefox, without its start page and with -silent: no window of its own, and
+    // Juggler keeps Firefox alive after its last window (Playwright then doesn't wait for a first one either).
+    ignoreDefaultArgs: true,
+    args: ['-no-remote', '-wait-for-browser', '-foreground', '-profile', dir, '-juggler-pipe', '-silent', ...(bidiPort ? [`--remote-debugging-port=${bidiPort}`] : [])]
   }) as Promise<BrowserContext>;
 }
 
@@ -189,14 +196,14 @@ async function restore(p: LaunchProfile, exe: string, dir: string, state: Storag
   try { await ctx.setStorageState({ cookies: state.cookies, origins: state.origins }); } finally { await ctx.close(); }
 }
 
-// Start pages, each in a new tab in order, loading in the background; `intoFirst`: the first goes into the tab the
-// browser started with (Firefox starts on a blank one; Chromium opens the first start page itself).
-async function openTabs(ctx: BrowserContext, urls: string[], intoFirst: boolean){
-  for (const [i, url] of urls.entries()){
-    const page = (intoFirst && i === 0 && ctx.pages()[0]) || await ctx.newPage();
-    void page.goto(url).catch(() => {});
+// Pages in a new window (the browser has none open), each in a tab in order, loading in the background; a blank one
+// without.
+async function openTabs(ctx: BrowserContext, urls: string[]){
+  for (const url of urls.length ? urls : ['about:blank']){
+    const page = await ctx.newPage();
+    if (url !== 'about:blank') void page.goto(url).catch(() => {});
   }
-  if (urls.length) await ctx.pages()[0]?.bringToFront().catch(() => {});
+  await ctx.pages()[0]?.bringToFront().catch(() => {});
 }
 // The open tabs, or once the browser has closed, the last ones to close.
 function tabsOf(r: Running){
@@ -233,7 +240,7 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     locked = true;
     const r = await api<LaunchData>('GET', `/profiles/${id}/launch`);
     if (!r.ok) throw new LaunchError(r.error.code);
-    const { profile, proxy, backup, extensions } = r.data;
+    const { profile, proxy, backup, extensions, stopOnWindowClose } = r.data;
     const exe = await resolveKernel(profile.kernel, profile.kernelVersion);
     if (!exe) throw new LaunchError('kernel_missing');
 
@@ -291,7 +298,7 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     const engine = profile.searchEngine === 'none' ? null : SEARCH_ENGINES[profile.searchEngine];
     const start = !opts.tabs ? [] : profile.restoreTabs && keptTabs.length ? keptTabs : profile.startUrl ? [profile.startUrl] : engine ? [engine.home] : [];
     const ctx = profile.kernel === 'chromium'
-      ? await launchChromium(exe, dir, profile, port, tz, locale, geo, !!opts.api, ext.dirs, start[0])
+      ? await launchChromium(exe, dir, profile, port, tz, locale, geo, !!opts.api, ext.dirs)
       : await withFirefoxSearch(exe, profile.searchEngine, () => launchFirefox(exe, dir, profile, port, tz, locale, geo, check?.ip ?? null, bidiPort, ext));
     const debug: Debugging | null = !opts.api ? null
       : bidiPort ? { protocol: 'webdriver-bidi', wsEndpoint: `ws://127.0.0.1:${bidiPort}/session` } : await cdpAddress(dir);
@@ -301,7 +308,8 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     const track = (page: Page) => {
       const tab: Tab = { url: '', closedAt: null };
       tabs?.set(page, tab);
-      // Chromium's start pages may have loaded before this.
+      windowBack(id);
+      // A page may arrive already on its address (a popup).
       const seen = (url: string) => {
         const u = URL.parse(url);
         if (u?.protocol === 'http:' || u?.protocol === 'https:'){ visited.add(u.origin); tab.url = u.href; }
@@ -312,19 +320,21 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
       page.on('close', () => {
         tab.closedAt = Date.now();
         for (const [p, t] of tabs ?? []) if (t.closedAt !== null && tab.closedAt - t.closedAt >= TAB_GRACE_MS) tabs!.delete(p);
+        if (!ctx.pages().length) windowsGone(id);
       });
     };
-    ctx.pages().forEach(track);
     ctx.on('page', track);
-    await (profile.kernel === 'chromium' ? openTabs(ctx, start.slice(1), false) : openTabs(ctx, start, true));
+    await openTabs(ctx, start);
     const status: ProfileStatus = { id, state: 'running', startedAt: Date.now(), usedBackup, exitIp: check?.ip ?? null, exitGeo: geo, ...(ext.failed.length ? { extensionErrors: ext.failed } : {}) };
     const entry: Running = {
-      ctx, fwd, status, profile, exe, dir, local, saved, visited, lost: null, debug, extensions, tabs, keptTabs,
+      ctx, fwd, status, profile, exe, dir, stopOnClose: stopOnWindowClose, local, saved, visited, lost: null, debug, extensions, tabs, keptTabs,
       timers: [setInterval(() => void renew(id), RENEW_MS), setInterval(() => void autosave(id), AUTOSAVE_MS)],
       done: new Promise(resolve => ctx.on('close', () => { void finish(id).finally(resolve); }))
     };
     running.set(id, entry);
     notify(status);
+    // Its window was closed while it was still starting.
+    if (!ctx.pages().length) windowsGone(id);
     // Where it went out from this time, for the warnings about profiles that look related or moved.
     if (check?.ip) void api('POST', `/profiles/${id}/exit`, { ip: check.ip, geo });
     return null;
@@ -444,10 +454,31 @@ export async function checkup(id: string): Promise<{ ok: true; facts: CheckupFac
   } finally { await page.close().catch(() => {}); }
 }
 
-// Brings a running profile's window to the front (the command palette's "switch to it").
+// Its last window closed: it stops, or keeps running without a window (the workspace's choice).
+function windowsGone(id: string){
+  const r = running.get(id);
+  if (!r || r.lost || r.stopping || r.status.noWindow) return;
+  if (r.stopOnClose){ void stop(id); return; }
+  r.status = { ...r.status, noWindow: true };
+  notify(r.status);
+}
+// A window again, opened from Folio or by a flow, a script or the health check.
+function windowBack(id: string){
+  const r = running.get(id);
+  if (!r?.status.noWindow) return;
+  const { noWindow: _, ...rest } = r.status;
+  r.status = rest;
+  notify(r.status);
+}
+
+// Brings a running profile's window to the front (going to its window, or the command palette's "switch to it"). One
+// running without a window gets one again, with the tabs it was closed with.
 export async function focus(id: string){
-  const page = running.get(id)?.ctx.pages()[0];
-  await page?.bringToFront().catch(() => {});
+  const r = running.get(id);
+  if (!r) return;
+  const page = r.ctx.pages()[0];
+  if (page) await page.bringToFront().catch(() => {});
+  else await openTabs(r.ctx, r.tabs ? tabsOf(r) : []);
 }
 // A new tab in the profile's browser, for a flow to run in.
 export async function newPage(id: string){
@@ -467,6 +498,7 @@ export async function removeCookies(id: string, keys: CookieKey[]){
 export async function stop(id: string){
   const r = running.get(id);
   if (!r) return;
+  r.stopping = true;
   await r.ctx.close().catch(() => {});
   await r.done;
 }

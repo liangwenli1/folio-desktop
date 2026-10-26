@@ -1,6 +1,7 @@
-// A profile's own page: its Fingerprint tab saves what it changes, and the way back finds the list as it was left.
+// A profile's own page: its Fingerprint tab saves what it changes, the way back finds the list as it was left, and the
+// workspace can have it show as soon as a profile starts.
 import { expect, test } from '@playwright/test';
-import { API, account, backToList, choose, chromiumProfile, dataDir, detail, launch, logIn } from './helpers';
+import { API, ENGINE_ENV, account, backToList, choose, chromiumProfile, dataDir, detail, hasKernels, launch, logIn } from './helpers';
 
 test.setTimeout(180_000);
 
@@ -36,5 +37,21 @@ test('the fingerprint tab saves its changes, and the list comes back on the page
   await backToList(win);
   await expect(win.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
+  await app.close();
+});
+
+test('with the workspace set to, starting a profile from the list opens its page', async () => {
+  test.skip(!hasKernels, 'browser engines are not unpacked here');
+  const acct = await account();
+  const base = `${API}/workspaces/${acct.workspaceId}`;
+  expect((await acct.api.patch(base, { data: { settings: { openDetailAfterLaunch: true } } })).ok()).toBe(true);
+  const p = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Opens-Page') })).json();
+  const app = await launch(dataDir(), ENGINE_ENV);
+  const win = await logIn(app, acct.email);
+  await win.locator(`tr[data-id="${p.id}"]`).getByRole('button', { name: 'Open', exact: true }).click();
+  await expect(detail(win).getByTestId('detail-name')).toHaveText('Opens-Page');
+  await expect(detail(win).locator('.pd-head .dot-st.run')).toBeVisible({ timeout: 90_000 });
+  await detail(win).getByRole('button', { name: 'Stop', exact: true }).click();
+  await expect(detail(win).getByRole('button', { name: 'Open profile' })).toBeVisible({ timeout: 60_000 });
   await app.close();
 });

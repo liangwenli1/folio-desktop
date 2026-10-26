@@ -29,6 +29,8 @@ export interface ProfileStatus {
   error?: string; startedAt?: number; usedBackup?: boolean; exitIp?: string | null; exitGeo?: Geo | null;
   // Extensions that failed their check (signature or hash) and were not installed, by name.
   extensionErrors?: string[];
+  // Running without a window: its last one was closed and the workspace keeps profiles running then.
+  noWindow?: boolean;
 }
 // An engine version for this computer: in Folio's catalog (`available`), downloaded here (`installed`), or both. `size`
 // is the package's, when the catalog knows it; `recommended` is the version new profiles get.

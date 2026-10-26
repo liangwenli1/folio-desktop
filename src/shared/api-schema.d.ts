@@ -2844,6 +2844,7 @@ export interface paths {
                                 updatedAt: string;
                                 profiles: number;
                             }[];
+                            stopOnWindowClose: boolean;
                         };
                     };
                 };

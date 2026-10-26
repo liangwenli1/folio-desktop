@@ -117,6 +117,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     const w = await data.launch(p);
     if (w === 'kernel_missing'){ setCur(p.id); setDetail(true); toast(d.profiles.done.failed(p.name, why(w)), undefined, 'bad'); }
     else if (w) toast(why(w), undefined, 'bad');
+    // The workspace may want a profile's page to show as it starts.
+    else if (ws.settings.openDetailAfterLaunch) pick(p.id);
   }
   // Several at once: their progress goes to the tray instead of toasts.
   function launch(p: Profile){
@@ -423,7 +425,7 @@ interface ItemProps {
 function Status({ d, p, h, status, progress }: ItemProps){
   const P = d.profiles, away = elsewhere(p);
   const downloading = progress && !progress.finished && !progress.error;
-  const [tone, text] = status?.state === 'running' ? ['run', P.st.running]
+  const [tone, text] = status?.state === 'running' ? ['run', status.noWindow ? P.st.noWindow : P.st.running]
     : status ? ['boot', status.state === 'saving' ? busyLabel(d, status.state) : status.state === 'restoring' ? P.stage.restore : status.stage === 'launch' ? P.stage.launch : P.stage.proxy]
     : downloading ? ['boot', P.downloading(percent(progress))]
     : away ? ['away', P.inUseOn(away.deviceName ?? away.email)]

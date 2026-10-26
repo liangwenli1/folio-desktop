@@ -78,7 +78,8 @@ async function setup(){
     expect((await acct.api.patch(`/profiles/${id}`, { data: { version: p.version, ...patch } })).ok()).toBe(true);
   };
   const connects = (host: string) => upstream.seen.filter(s => s === `${host}:443`).length;
-  return { upstream, probe, app, win, folder, create, close, edit, connects, done: async () => { await app.close(); await upstream.close(); await probe.close(); } };
+  const settings = async (s: object) => expect((await acct.api.patch(base, { data: { settings: s } })).ok()).toBe(true);
+  return { upstream, probe, app, win, folder, create, close, edit, connects, settings, done: async () => { await app.close(); await upstream.close(); await probe.close(); } };
 }
 
 // The page a profile starts on, and a window of its own size, in both engines. (A maximised window needs a window
@@ -95,6 +96,29 @@ for (const kernel of ['chromium', 'firefox'] as const){
     }, p.id);
     expect(size).toEqual([1000, 700]);
     await t.close(p.id);
+    await t.done();
+  });
+}
+
+// Closing the last window stops a profile (the tests above), unless the workspace keeps it running: then the engine
+// stays up without a window, Go to window opens the tabs it was closed with again, and Stop ends it.
+for (const kernel of ['chromium', 'firefox'] as const){
+  test(`${kernel}: kept running after its last window closes, it opens a window again from the list`, async () => {
+    const t = await setup();
+    await t.settings({ stopOnWindowClose: false });
+    const p = await t.create(`Keep-${kernel}`, kernel, { startUrl: t.probe.url });
+    expect(await opened(t.win, p.id)).toMatchObject({ state: 'running' });
+    await expect.poll(() => tabsOf(t.app, p.id), { timeout: 30_000 }).toEqual([t.probe.url]);
+    await closeWindows(t.app, p.id);
+    await expect.poll(() => lastStatus(t.win, p.id)).toMatchObject({ state: 'running', noWindow: true });
+    expect(await tabsOf(t.app, p.id)).toEqual([]);
+    const row = t.win.locator(`tr[data-id="${p.id}"]`);
+    await expect(row).toContainText('Running · window closed');
+    await row.getByRole('button', { name: 'Go to window' }).click();
+    await expect.poll(() => tabsOf(t.app, p.id), { timeout: 30_000 }).toEqual([t.probe.url]);
+    await expect(row).not.toContainText('window closed');
+    await row.getByRole('button', { name: 'Stop', exact: true }).click();
+    await expect.poll(async () => (await lastStatus(t.win, p.id))?.state, { timeout: 60_000 }).toBe('stopped');
     await t.done();
   });
 }

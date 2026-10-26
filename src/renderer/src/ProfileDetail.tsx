@@ -68,7 +68,7 @@ export function ProfileDetail(props: Props){
       <button type="button" className="btn btn-secondary" onClick={() => void folio.focusProfile(p.id)}><Icon name="pointer" />{P.enter}</button>
       <button type="button" className="btn btn-primary" onClick={onStop}><Icon name="stop" />{P.stop}</button>
     </>;
-    chip = <span className="dot-st run">{P.st.running} · {runTime(now - (status.startedAt ?? now))}</span>;
+    chip = <span className="dot-st run">{status.noWindow ? P.st.noWindow : P.st.running} · {runTime(now - (status.startedAt ?? now))}</span>;
   } else if (status || downloading){
     const label = status ? busyLabel(d, status.state) : P.downloading(percent(progress!));
     primary = <button type="button" className="btn btn-secondary" disabled><span className="spin" aria-hidden="true" />{label}</button>;
