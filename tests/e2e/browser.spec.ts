@@ -81,6 +81,24 @@ async function setup(){
   return { upstream, probe, app, win, folder, create, close, edit, connects, done: async () => { await app.close(); await upstream.close(); await probe.close(); } };
 }
 
+// The page a profile starts on, and a window of its own size, in both engines. (A maximised window needs a window
+// manager to maximise it, which this test machine has none of; that one is checked on Windows and macOS.)
+for (const kernel of ['chromium', 'firefox'] as const){
+  test(`${kernel}: a profile opens on its start page, in a window of its own size`, async () => {
+    const t = await setup();
+    const p = await t.create(`Start-${kernel}`, kernel, { startUrl: t.probe.url, windowMode: 'custom', windowWidth: 1000, windowHeight: 700 });
+    expect(await opened(t.win, p.id)).toMatchObject({ state: 'running' });
+    await expect.poll(() => tabsOf(t.app, p.id), { timeout: 30_000 }).toEqual([t.probe.url]);
+    const size = await t.app.evaluate(async (_e, id) => {
+      const r = (globalThis as unknown as { __folioRunning: Running }).__folioRunning.get(id)!;
+      return r.ctx.pages()[0].evaluate(() => [window.outerWidth, window.outerHeight]);
+    }, p.id);
+    expect(size).toEqual([1000, 700]);
+    await t.close(p.id);
+    await t.done();
+  });
+}
+
 test('chromium: a used profile changed to Baidu searches with it and opens its home page, then the tabs it was closed with', async () => {
   const t = await setup();
   const p = await t.create('Search-01', 'chromium', {});

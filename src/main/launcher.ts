@@ -26,6 +26,7 @@ import { SEARCH_ENGINES, type SearchEngine } from '../shared/search';
 interface LaunchProfile {
   id: string; workspaceId: string; syncMode: 'cloud' | 'local'; kernel: KernelKind; kernelVersion: string; os: Os; fingerprint: Fingerprint;
   timezoneOverride: string | null; localeOverride: string | null; searchEngine: SearchEngine; restoreTabs: boolean;
+  startUrl: string | null; windowMode: 'default' | 'custom' | 'maximized'; windowWidth: number | null; windowHeight: number | null;
 }
 interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null; extensions: Extension[] }
 
@@ -81,6 +82,8 @@ async function launchChromium(exe: string, dir: string, p: LaunchProfile, port: 
     `--lang=${locale}`, `--accept-lang=${locale},${locale.split('-')[0]}`, `--timezone=${tz}`,
     `--proxy-server=http://127.0.0.1:${port}`, '--disable-non-proxied-udp',
     ...(extensions.length ? [`--load-extension=${extensions.join(',')}`] : []),
+    ...(p.windowMode === 'maximized' ? ['--start-maximized'] : []),
+    ...(p.windowMode === 'custom' && p.windowWidth && p.windowHeight ? [`--window-size=${p.windowWidth},${p.windowHeight}`] : []),
     ...testOnly(), start
   ];
   return chromium.launchPersistentContext(dir, {
@@ -94,11 +97,11 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
   const fp = p.fingerprint as Extract<Fingerprint, { kind: 'firefox' }>;
   const block = fp.webrtc === 'block';
   // Camoufox otherwise shows the host's time zone and the real public IP over WebRTC (P0 evaluation).
-  const config: Record<string, unknown> = fitWindow({
+  const config: Record<string, unknown> = fitWindow(sizedWindow(p, {
     ...fp.config, timezone: tz,
     ...(geo ? { 'geolocation:latitude': geo.lat, 'geolocation:longitude': geo.lon, 'geolocation:accuracy': 50 } : {}),
     ...(exitIp && !exitIp.includes(':') && !block ? { 'webrtc:ipv4': exitIp } : {})
-  });
+  }));
   await prepareFirefox();
   return Camoufox({
     executable_path: exe, persistent_context: true, user_data_dir: dir, headless: false, os: p.os, locale, config,
@@ -111,6 +114,21 @@ async function launchFirefox(exe: string, dir: string, p: LaunchProfile, port: n
     },
     ...(bidiPort ? { args: [`--remote-debugging-port=${bidiPort}`] } : {})
   }) as Promise<BrowserContext>;
+}
+
+// Firefox's window at the size the profile asks for: its own width and height, or this screen's work area. The
+// browser's own bars keep the room they had in the fingerprint.
+function sizedWindow(p: LaunchProfile, config: Record<string, unknown>){
+  const size = p.windowMode === 'maximized' ? screen.getPrimaryDisplay().workAreaSize
+    : p.windowMode === 'custom' && p.windowWidth && p.windowHeight ? { width: p.windowWidth, height: p.windowHeight } : null;
+  if (!size) return config;
+  for (const [axis, want] of [['Width', size.width], ['Height', size.height]] as const){
+    const outer = config[`window.outer${axis}`], inner = config[`window.inner${axis}`];
+    const bars = typeof outer === 'number' && typeof inner === 'number' ? Math.max(0, outer - inner) : 0;
+    config[`window.outer${axis}`] = want;
+    if (typeof inner === 'number') config[`window.inner${axis}`] = Math.max(1, want - bars);
+  }
+  return config;
 }
 
 // A claimed screen bigger than this computer's keeps its size, but the window shrinks to fit the real one (with the
@@ -271,7 +289,7 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     }
     const keptTabs = (profile.syncMode === 'cloud' ? saved?.tabs : local.tabs) ?? [];
     const engine = profile.searchEngine === 'none' ? null : SEARCH_ENGINES[profile.searchEngine];
-    const start = !opts.tabs ? [] : profile.restoreTabs && keptTabs.length ? keptTabs : engine ? [engine.home] : [];
+    const start = !opts.tabs ? [] : profile.restoreTabs && keptTabs.length ? keptTabs : profile.startUrl ? [profile.startUrl] : engine ? [engine.home] : [];
     const ctx = profile.kernel === 'chromium'
       ? await launchChromium(exe, dir, profile, port, tz, locale, geo, !!opts.api, ext.dirs, start[0])
       : await withFirefoxSearch(exe, profile.searchEngine, () => launchFirefox(exe, dir, profile, port, tz, locale, geo, check?.ip ?? null, bidiPort, ext));

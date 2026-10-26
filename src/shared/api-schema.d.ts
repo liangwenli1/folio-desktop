@@ -1781,6 +1781,11 @@ export interface paths {
                                 /** @enum {string} */
                                 searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                                 restoreTabs: boolean;
+                                startUrl: string | null;
+                                /** @enum {string} */
+                                windowMode: "default" | "custom" | "maximized";
+                                windowWidth: number | null;
+                                windowHeight: number | null;
                                 lastOpenedAt: string | null;
                                 lastOpenedBy: string | null;
                                 createdAt: string;
@@ -1907,6 +1912,11 @@ export interface paths {
                         /** @enum {string} */
                         searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                         restoreTabs?: boolean;
+                        startUrl?: string | null;
+                        /** @enum {string} */
+                        windowMode?: "default" | "custom" | "maximized";
+                        windowWidth?: number | null;
+                        windowHeight?: number | null;
                     };
                 };
             };
@@ -1955,6 +1965,11 @@ export interface paths {
                             /** @enum {string} */
                             searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                             restoreTabs: boolean;
+                            startUrl: string | null;
+                            /** @enum {string} */
+                            windowMode: "default" | "custom" | "maximized";
+                            windowWidth: number | null;
+                            windowHeight: number | null;
                             lastOpenedAt: string | null;
                             lastOpenedBy: string | null;
                             createdAt: string;
@@ -2095,6 +2110,11 @@ export interface paths {
                             /** @enum {string} */
                             searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                             restoreTabs?: boolean;
+                            startUrl?: string | null;
+                            /** @enum {string} */
+                            windowMode?: "default" | "custom" | "maximized";
+                            windowWidth?: number | null;
+                            windowHeight?: number | null;
                         }[];
                     };
                 };
@@ -2145,6 +2165,11 @@ export interface paths {
                                 /** @enum {string} */
                                 searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                                 restoreTabs: boolean;
+                                startUrl: string | null;
+                                /** @enum {string} */
+                                windowMode: "default" | "custom" | "maximized";
+                                windowWidth: number | null;
+                                windowHeight: number | null;
                                 lastOpenedAt: string | null;
                                 lastOpenedBy: string | null;
                                 createdAt: string;
@@ -2287,6 +2312,11 @@ export interface paths {
                         /** @enum {string} */
                         searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                         restoreTabs?: boolean;
+                        startUrl?: string | null;
+                        /** @enum {string} */
+                        windowMode?: "default" | "custom" | "maximized";
+                        windowWidth?: number | null;
+                        windowHeight?: number | null;
                     };
                 };
             };
@@ -2335,6 +2365,11 @@ export interface paths {
                             /** @enum {string} */
                             searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                             restoreTabs: boolean;
+                            startUrl: string | null;
+                            /** @enum {string} */
+                            windowMode: "default" | "custom" | "maximized";
+                            windowWidth: number | null;
+                            windowHeight: number | null;
                             lastOpenedAt: string | null;
                             lastOpenedBy: string | null;
                             createdAt: string;
@@ -2447,6 +2482,11 @@ export interface paths {
                         /** @enum {string} */
                         searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                         restoreTabs?: boolean;
+                        startUrl?: string | null;
+                        /** @enum {string} */
+                        windowMode?: "default" | "custom" | "maximized";
+                        windowWidth?: number | null;
+                        windowHeight?: number | null;
                     };
                 };
             };
@@ -2695,6 +2735,11 @@ export interface paths {
                                 /** @enum {string} */
                                 searchEngine: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                                 restoreTabs: boolean;
+                                startUrl: string | null;
+                                /** @enum {string} */
+                                windowMode: "default" | "custom" | "maximized";
+                                windowWidth: number | null;
+                                windowHeight: number | null;
                                 lastOpenedAt: string | null;
                                 lastOpenedBy: string | null;
                                 createdAt: string;
@@ -4644,6 +4689,11 @@ export interface paths {
                                 /** @enum {string} */
                                 searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                                 restoreTabs?: boolean;
+                                startUrl?: string | null;
+                                /** @enum {string} */
+                                windowMode?: "default" | "custom" | "maximized";
+                                windowWidth?: number | null;
+                                windowHeight?: number | null;
                                 ref: string;
                                 group: string | null;
                                 proxyRef: string | null;
@@ -4743,6 +4793,11 @@ export interface paths {
                             /** @enum {string} */
                             searchEngine?: "none" | "google" | "bing" | "baidu" | "duckduckgo" | "yahoo" | "yandex";
                             restoreTabs?: boolean;
+                            startUrl?: string | null;
+                            /** @enum {string} */
+                            windowMode?: "default" | "custom" | "maximized";
+                            windowWidth?: number | null;
+                            windowHeight?: number | null;
                             ref: string;
                             group: string | null;
                             proxyRef: string | null;
