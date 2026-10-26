@@ -364,11 +364,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                     options={[...data.members.map(m => ({ value: m.userId, label: m.email })), { value: 'none', label: P.unassigned }]}
                     onChange={v => { const who = v === 'none' ? null : v; void batchAction('assign', { ownerId: who }, n => P.done.assigned(n, who ? email.get(who) ?? '' : P.unassigned)); }} />
                 )}
-                {manager && data.departments.length > 0 && (
-                  <Select variant="bar" action label={P.bulk.department} placeholder={P.bulk.department} value=""
-                    options={[...data.departments.map(x => ({ value: x.id, label: x.name })), { value: 'none', label: P.bulk.noDepartment }]}
-                    onChange={v => void batchAction('set-department', { departmentId: v === 'none' ? null : v }, P.done.departmentSet)} />
-                )}
                 {data.extensions.length > 0 && (
                   <Select variant="bar" action label={P.bulk.extensions} placeholder={P.bulk.extensions} value="" searchPh={d.form.searchPh}
                     options={(['add', 'remove'] as const).flatMap(how => data.extensions.map(x => ({ value: `${how}:${x.id}`, label: `${x.name} · ${ENGINES[x.kernel]}`, group: how === 'add' ? P.bulk.install : P.bulk.uninstall })))}

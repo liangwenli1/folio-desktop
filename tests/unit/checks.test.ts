@@ -10,7 +10,7 @@ const proxy = (id: string, check: Partial<NonNullable<Proxy['lastCheck']>> | nul
   lastCheck: check && { ok: true, ms: 180, ip: '172.58.1.2', geo: seattle, error: null, checkedAt: '2026-10-21T00:00:00Z', ...check }
 });
 const profile = (over: Partial<Profile> = {}): Profile => ({
-  id: 'p1', workspaceId: 'w1', number: 1, name: 'US-Store-01', groupId: null, ownerId: null, departmentId: null, tags: [], kernel: 'chromium', kernelVersion: '150.0.7871.186', os: 'windows',
+  id: 'p1', workspaceId: 'w1', number: 1, name: 'US-Store-01', groupId: null, ownerId: null, tags: [], kernel: 'chromium', kernelVersion: '150.0.7871.186', os: 'windows',
   fingerprint: { kind: 'chromium', seed: 42, hardwareConcurrency: 8 }, proxyId: 'main', timezoneOverride: null, localeOverride: null, notes: null,
   lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, deletedBy: null, version: 1, syncMode: 'cloud', searchEngine: 'none', restoreTabs: true, extensionIds: [], data: null, lock: null,
   lastExit: null, prevExit: null, report: null, starred: false, ...over

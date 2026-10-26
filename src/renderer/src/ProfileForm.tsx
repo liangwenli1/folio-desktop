@@ -44,10 +44,9 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [os, setOs] = useState<Os>(profile?.os ?? 'windows');
   const [proxyId, setProxyId] = useState(profile?.proxyId ?? '');
   const [pxMode, setPxMode] = useState<PxMode>((profile ? profile.proxyId : data.proxies.length) ? 'saved' : 'none');
-  // Owners and admins choose who it is assigned to (new profiles default to whoever creates them) and its department.
+  // Whoever administers the workspace chooses who it is assigned to; a new profile goes to whoever makes it.
   const manager = can(data.role, MANAGE);
   const [ownerId, setOwnerId] = useState(profile ? profile.ownerId ?? '' : '');
-  const [departmentId, setDepartmentId] = useState(profile?.departmentId ?? '');
   const [paste, setPaste] = useState('');
   const [pxNote, setPxNote] = useState<PxNote>(null);
   const [tags, setTags] = useState(profile?.tags.join(', ') ?? '');
@@ -149,7 +148,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
         timezoneOverride: tz || null, localeOverride: langMode === 'custom' ? lang.trim() : null,
         tags: [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10),
         extensionIds: extensionIds.filter(id => usable.some(x => x.id === id)), searchEngine, restoreTabs,
-        ...(manager ? { ...(ownerId || profile ? { ownerId: ownerId || null } : {}), ...(data.departments.length ? { departmentId: departmentId || null } : {}) } : {})
+        ...(manager && (ownerId || profile) ? { ownerId: ownerId || null } : {})
       };
       if (profile && base){
         const ok = await data.patch(base, { ...common, kernelVersion, syncMode, ...(regenerated || choicesChanged ? { fingerprint: withChoices(fp.fingerprint) } : {}) });
@@ -330,14 +329,8 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
               </fieldset>
             )}
             {manager && (
-              <div className="row2">
-                <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} searchPh={f.searchPh}
-                  options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
-                {data.departments.length > 0 && (
-                  <SelectField label={f.department} value={departmentId} onChange={setDepartmentId}
-                    options={[{ value: '', label: f.noDepartment }, ...data.departments.map(x => ({ value: x.id, label: x.name }))]} />
-                )}
-              </div>
+              <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} searchPh={f.searchPh}
+                options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
             )}
             {edit && (
               <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}

@@ -1543,6 +1543,9 @@ export interface paths {
                                 name: string;
                                 /** @enum {string} */
                                 color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
+                                parentId: string | null;
+                                inheritMembers: boolean;
+                                memberIds: string[];
                                 profiles: number;
                             }[];
                         };
@@ -1566,6 +1569,9 @@ export interface paths {
                         name: string;
                         /** @enum {string} */
                         color?: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
+                        /** Format: uuid */
+                        parentId?: string | null;
+                        inheritMembers?: boolean;
                     };
                 };
             };
@@ -1581,6 +1587,9 @@ export interface paths {
                             name: string;
                             /** @enum {string} */
                             color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
+                            parentId: string | null;
+                            inheritMembers: boolean;
+                            memberIds: string[];
                             profiles: number;
                         };
                     };
@@ -1605,7 +1614,9 @@ export interface paths {
         post?: never;
         delete: {
             parameters: {
-                query?: never;
+                query?: {
+                    moveTo?: string | null;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -1642,6 +1653,10 @@ export interface paths {
                         name?: string;
                         /** @enum {string} */
                         color?: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
+                        /** Format: uuid */
+                        parentId?: string | null;
+                        inheritMembers?: boolean;
+                        memberIds?: string[];
                     };
                 };
             };
@@ -1657,6 +1672,10 @@ export interface paths {
                             name: string;
                             /** @enum {string} */
                             color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
+                            parentId: string | null;
+                            inheritMembers: boolean;
+                            memberIds: string[];
+                            profiles: number;
                         };
                     };
                 };
@@ -1698,7 +1717,6 @@ export interface paths {
                                 name: string;
                                 groupId: string | null;
                                 ownerId: string | null;
-                                departmentId: string | null;
                                 tags: string[];
                                 /** @enum {string} */
                                 kernel: "chromium" | "firefox";
@@ -1822,8 +1840,6 @@ export interface paths {
                         tags?: string[];
                         /** Format: uuid */
                         ownerId?: string | null;
-                        /** Format: uuid */
-                        departmentId?: string | null;
                         /** @enum {string} */
                         kernel: "chromium" | "firefox";
                         kernelVersion: string;
@@ -1875,7 +1891,6 @@ export interface paths {
                             name: string;
                             groupId: string | null;
                             ownerId: string | null;
-                            departmentId: string | null;
                             tags: string[];
                             /** @enum {string} */
                             kernel: "chromium" | "firefox";
@@ -2013,8 +2028,6 @@ export interface paths {
                             tags?: string[];
                             /** Format: uuid */
                             ownerId?: string | null;
-                            /** Format: uuid */
-                            departmentId?: string | null;
                             /** @enum {string} */
                             kernel: "chromium" | "firefox";
                             kernelVersion: string;
@@ -2068,7 +2081,6 @@ export interface paths {
                                 name: string;
                                 groupId: string | null;
                                 ownerId: string | null;
-                                departmentId: string | null;
                                 tags: string[];
                                 /** @enum {string} */
                                 kernel: "chromium" | "firefox";
@@ -2211,8 +2223,6 @@ export interface paths {
                         /** Format: uuid */
                         ownerId?: string | null;
                         /** Format: uuid */
-                        departmentId?: string | null;
-                        /** Format: uuid */
                         proxyId?: string | null;
                         kernelVersion?: string;
                         /** @enum {string} */
@@ -2261,7 +2271,6 @@ export interface paths {
                             name: string;
                             groupId: string | null;
                             ownerId: string | null;
-                            departmentId: string | null;
                             tags: string[];
                             /** @enum {string} */
                             kernel: "chromium" | "firefox";
@@ -2389,7 +2398,7 @@ export interface paths {
                     "application/json": {
                         ids: string[];
                         /** @enum {string} */
-                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "set-department" | "add-extension" | "remove-extension" | "set-kernel" | "set-browser" | "trash" | "restore" | "purge";
+                        action: "move" | "tag" | "untag" | "set-proxy" | "assign" | "add-extension" | "remove-extension" | "set-kernel" | "set-browser" | "trash" | "restore" | "purge";
                         /** Format: uuid */
                         groupId?: string | null;
                         tag?: string;
@@ -2397,8 +2406,6 @@ export interface paths {
                         proxyId?: string | null;
                         /** Format: uuid */
                         ownerId?: string | null;
-                        /** Format: uuid */
-                        departmentId?: string | null;
                         /** Format: uuid */
                         extensionId?: string;
                         /** @enum {string} */
@@ -2624,7 +2631,6 @@ export interface paths {
                                 name: string;
                                 groupId: string | null;
                                 ownerId: string | null;
-                                departmentId: string | null;
                                 tags: string[];
                                 /** @enum {string} */
                                 kernel: "chromium" | "firefox";
@@ -3731,7 +3737,7 @@ export interface paths {
                                     name: string;
                                 };
                                 joinedAt: string;
-                                departmentIds: string[];
+                                groupIds: string[];
                                 profiles: number;
                             }[];
                         };
@@ -3887,7 +3893,7 @@ export interface paths {
                                     key: "owner" | "admin" | "member" | "viewer" | null;
                                     name: string;
                                 };
-                                departmentIds: string[];
+                                groupIds: string[];
                                 invitedBy: string | null;
                                 createdAt: string;
                                 expiresAt: string;
@@ -3915,7 +3921,7 @@ export interface paths {
                         /** Format: uuid */
                         roleId: string;
                         /** @default [] */
-                        departmentIds?: string[];
+                        groupIds?: string[];
                         /** @default true */
                         notify?: boolean;
                     };
@@ -3938,7 +3944,7 @@ export interface paths {
                                     key: "owner" | "admin" | "member" | "viewer" | null;
                                     name: string;
                                 };
-                                departmentIds: string[];
+                                groupIds: string[];
                                 invitedBy: string | null;
                                 createdAt: string;
                                 expiresAt: string;
@@ -4333,147 +4339,6 @@ export interface paths {
         };
         trace?: never;
     };
-    "/workspaces/{id}/departments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            departments: {
-                                id: string;
-                                name: string;
-                                memberIds: string[];
-                                profiles: number;
-                            }[];
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            id: string;
-                            name: string;
-                            memberIds: string[];
-                            profiles: number;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/departments/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Default Response */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": null;
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        name?: string;
-                        memberIds?: string[];
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": null;
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
     "/workspaces/{id}/activity": {
         parameters: {
             query?: never;
@@ -4511,7 +4376,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
                                 profile: {
                                     id: string | null;
                                     name: string;

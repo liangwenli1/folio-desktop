@@ -95,7 +95,7 @@ test('a flow runs on 10 profiles 3 at a time, failures are retried, and the resu
 
   // Another person in the team sees the same run and its results.
   const admin = await account();
-  const inv = await owner.api.post(`${base}/invitations`, { data: { email: admin.email, roleId: await roleId(owner.api, owner.workspaceId, 'admin'), departmentIds: [] } });
+  const inv = await owner.api.post(`${base}/invitations`, { data: { email: admin.email, roleId: await roleId(owner.api, owner.workspaceId, 'admin') } });
   expect(inv.ok()).toBe(true);
   await owner.api.patch(base, { data: { name: 'Larkspur Trading' } });
   const app2 = await launch(dataDir());

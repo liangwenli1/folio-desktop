@@ -1,13 +1,13 @@
 // The team: people with their roles and what they can see, invitations still open in the same list, and (Company)
-// departments.
+// which groups each of them is authorised for.
 import { useState, type FormEvent } from 'react';
-import { MANAGE, can, folio, isApiError, type Department, type Member, type Role, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Group, type Member, type Role, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
 import { Avatar, Icon, LoadFailed, Modal, MoreMenu, useToast, type IconName } from './ui';
 import { Select, SelectField } from './Select';
 
-type Dialog = { kind: 'invite' } | { kind: 'remove'; member: Member } | { kind: 'leave' } | { kind: 'dept'; dept?: Department } | null;
+type Dialog = { kind: 'invite' } | { kind: 'remove'; member: Member } | { kind: 'leave' } | { kind: 'group'; group: Group } | null;
 interface Props { d: Dict; lang: Lang; ws: Workspace; meId: string; data: WorkspaceData; onLeft(): void }
 
 export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
@@ -15,20 +15,20 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const toast = useToast();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [q, setQ] = useState('');
-  const [tab, setTab] = useState<'members' | 'depts'>('members');
+  const [tab, setTab] = useState<'members' | 'groups'>('members');
   const manager = can(data.role, MANAGE);
   const company = ws.subscription.plan === 'company';
-  const deptName = new Map(data.departments.map(x => [x.id, x.name]));
+  const groupName = new Map(data.groups.map(g => [g.id, g.name]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const close = () => setDialog(null);
   const needle = q.trim().toLowerCase();
   const people = data.members.filter(m => !needle || m.email.toLowerCase().includes(needle));
   const invites = manager ? data.invitations.filter(i => !needle || i.email.toLowerCase().includes(needle)) : [];
   // What someone sees: everything if their role administers the workspace; otherwise their own profiles and
-  // their departments'.
+  // the groups they are authorised for.
   const seesAll = (role: Member['role']) => data.roles.find(r => r.id === role.id)?.permissions.includes(MANAGE) ?? false;
-  const scope = (role: Member['role'], departmentIds: string[]) => (seesAll(role) ? T.scopeAll
-    : departmentIds.length ? departmentIds.map(id => deptName.get(id)).filter(Boolean).join(lang === 'zh' ? '、' : ', ') : T.scopeOwn);
+  const scope = (role: Member['role'], groupIds: string[]) => (seesAll(role) ? T.scopeAll
+    : groupIds.length ? groupIds.map(id => groupName.get(id)).filter(Boolean).join(lang === 'zh' ? '、' : ', ') : T.scopeOwn);
   // Every role but the owner's can be given out.
   const givable = data.roles.filter(r => r.key !== 'owner');
   const self = data.members.find(m => m.userId === meId);
@@ -37,17 +37,17 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     try { await folio.api('PATCH', `/workspaces/${ws.id}/members/${m.userId}`, { roleId }); } catch (e){ fail(e); }
     data.refresh('members');
   }
-  async function resend(emailAddr: string, roleId: string, departmentIds: string[]){
+  async function resend(emailAddr: string, roleId: string, groupIds: string[]){
     try {
-      const r = await folio.api<{ emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, roleId, departmentIds });
+      const r = await folio.api<{ emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, roleId, groupIds });
       if (r.emailed) toast(T.sent(emailAddr)); else toast(T.notSent, undefined, 'bad');
     } catch (e){ fail(e); }
     data.refresh('members');
   }
   // Links are stored hashed: copying one makes a new link (not emailed), and the one before stops working.
-  async function copyLink(emailAddr: string, roleId: string, departmentIds: string[]){
+  async function copyLink(emailAddr: string, roleId: string, groupIds: string[]){
     try {
-      const r = await folio.api<{ link: string }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, roleId, departmentIds, notify: false });
+      const r = await folio.api<{ link: string }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, roleId, groupIds, notify: false });
       await navigator.clipboard.writeText(r.link);
       toast(T.copiedNew);
     } catch (e){ fail(e); }
@@ -73,7 +73,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
 
         <div className="filters">
           <div className="tabs" role="tablist" aria-label={T.title}>
-            {(['members', 'depts'] as const).map(t => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{T.tabs[t]}</button>)}
+            {(['members', 'groups'] as const).map(t => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{T.tabs[t]}</button>)}
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                         ? <span className="role-pick"><Select variant="sm" label={T.roleOf(m.email)} value={m.role.id} onChange={r => void setRole(m, r)}
                           options={givable.map(r => ({ value: r.id, label: roleName(d, r) }))} /></span>
                         : <span className={`role ${m.role.key ?? 'custom'}`}><Icon name={roleIcon(m.role)} />{roleName(d, m.role)}</span>}</td>
-                      <td>{scope(m.role, m.departmentIds)}</td>
+                      <td>{scope(m.role, m.groupIds)}</td>
                       <td><span className="dot-st run">{T.joined}</span></td>
                       <td className="act">{editable && <MoreMenu label={T.moreX(m.email)} items={[{ label: T.remove, onClick: () => setDialog({ kind: 'remove', member: m }), danger: true }]} />}</td>
                     </tr>
@@ -107,11 +107,11 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                   <tr key={i.id} data-invitation={i.email}>
                     <td><span className="prof-cell"><Avatar text={i.email} /><span className="l1"><b>{i.email}</b></span></span></td>
                     <td><span className={`role ${i.role.key ?? 'custom'}`}><Icon name={roleIcon(i.role)} />{roleName(d, i.role)}</span></td>
-                    <td>{scope(i.role, i.departmentIds)}</td>
+                    <td>{scope(i.role, i.groupIds)}</td>
                     <td><span className="dot-st boot" title={T.expires(day(i.expiresAt, lang))}>{T.invited}</span></td>
                     <td className="act"><MoreMenu label={T.moreX(i.email)} items={[
-                      { label: T.copyLink, onClick: () => void copyLink(i.email, i.role.id, i.departmentIds) },
-                      { label: T.resend, onClick: () => void resend(i.email, i.role.id, i.departmentIds) },
+                      { label: T.copyLink, onClick: () => void copyLink(i.email, i.role.id, i.groupIds) },
+                      { label: T.resend, onClick: () => void resend(i.email, i.role.id, i.groupIds) },
                       { label: T.withdraw, onClick: () => void withdraw(i.id), danger: true }
                     ]} /></td>
                   </tr>
@@ -120,19 +120,14 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
             </table>
           </div>
         ) : (
-          <section className="depts" aria-label={T.depts}>
-            {data.departments.map(x => (
-              <button key={x.id} type="button" className="dept" data-department={x.name} disabled={!manager || !company} onClick={() => setDialog({ kind: 'dept', dept: x })}>
+          <section className="depts" aria-label={T.groupAccess}>
+            {data.groups.map(g => (
+              <button key={g.id} type="button" className="dept" data-group={g.name} disabled={!manager || !company} onClick={() => setDialog({ kind: 'group', group: g })}>
                 <span className="kic accent"><Icon name="team" /></span>
-                <span><b>{x.name}</b><small>{T.deptSum(x.memberIds.length, x.profiles)}</small></span>
+                <span><b>{g.name}</b><small>{T.groupSum(g.memberIds.length, g.profiles)}</small></span>
               </button>
             ))}
-            {manager && (
-              <button type="button" className="dept add" disabled={!company} onClick={() => setDialog({ kind: 'dept' })}>
-                <span className="kic"><Icon name="plus" /></span>
-                <span><b>{T.deptAdd}</b>{!company && <small className="tag">{d.plans.company}</small>}</span>
-              </button>
-            )}
+            {!data.groups.length && <p className="hint">{T.groupAccessNone}</p>}
           </section>
         )}
       </main>
@@ -145,7 +140,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
           <button className="btn btn-danger solid" type="button" onClick={() => void folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</button>
         </>}><p>{T.leaveLead}</p></Modal>
       )}
-      {dialog?.kind === 'dept' && <DepartmentDialog d={d} ws={ws} data={data} dept={dialog.dept} onClose={close} />}
+      {dialog?.kind === 'group' && <GroupAccessDialog d={d} data={data} group={dialog.group} onClose={close} />}
     </div>
   );
 }
@@ -159,7 +154,7 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
   const givable = data.roles.filter(r => r.key !== 'owner');
   const [roleId, setRoleId] = useState('');
   const role = givable.find(r => r.id === roleId) ?? givable.find(r => r.key === 'member') ?? givable[0];
-  const [depts, setDepts] = useState<string[]>([]);
+  const [groupIds, setGroupIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ link: string; emailed: boolean; email: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -169,7 +164,7 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
     if (!emailAddr.includes('@')){ setError(T.emailErr); return; }
     setBusy(true); setError(null);
     try {
-      const r = await folio.api<{ link: string; emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr.trim(), roleId: role.id, departmentIds: depts });
+      const r = await folio.api<{ link: string; emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr.trim(), roleId: role.id, groupIds });
       setResult({ ...r, email: emailAddr.trim() });
       data.refresh('members');
     } catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); } finally { setBusy(false); }
@@ -209,12 +204,12 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
               </label>
             ))}
           </fieldset>
-          {company && data.departments.length > 0 && (
+          {company && data.groups.length > 0 && (
             <fieldset className="field choices">
-              <legend className="label">{T.departments}</legend>
-              {data.departments.map(x => (
-                <label key={x.id} className="check-row">
-                  <input type="checkbox" checked={depts.includes(x.id)} onChange={e => setDepts(s => (e.target.checked ? [...s, x.id] : s.filter(id => id !== x.id)))} />{x.name}
+              <legend className="label">{T.groupAccess}</legend>
+              {data.groups.map(g => (
+                <label key={g.id} className="check-row">
+                  <input type="checkbox" checked={groupIds.includes(g.id)} onChange={e => setGroupIds(s => (e.target.checked ? [...s, g.id] : s.filter(id => id !== g.id)))} />{g.name}
                 </label>
               ))}
             </fieldset>
@@ -253,50 +248,37 @@ function RemoveDialog({ d, ws, data, member, meId, onClose }: { d: Dict; ws: Wor
   );
 }
 
-function DepartmentDialog({ d, ws, data, dept, onClose }: { d: Dict; ws: Workspace; data: WorkspaceData; dept?: Department; onClose(): void }){
+// Who is authorised for a group (Company): a role says what someone may do, the groups they are in say which
+// profiles they may do it to. The group tree itself is managed on the Groups page.
+function GroupAccessDialog({ d, data, group, onClose }: { d: Dict; data: WorkspaceData; group: Group; onClose(): void }){
   const T = d.team;
-  const [name, setName] = useState(dept?.name ?? '');
-  const [memberIds, setMemberIds] = useState<string[]>(dept?.memberIds ?? []);
-  const [confirm, setConfirm] = useState(false);
+  const [memberIds, setMemberIds] = useState<string[]>(group.memberIds);
   const [error, setError] = useState<string | null>(null);
-  const run = async (fn: () => Promise<unknown>) => {
-    try { await fn(); data.refresh('members', 'profiles'); onClose(); } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
-  };
   async function save(e: FormEvent){
     e.preventDefault();
-    if (!name.trim()) return;
-    await run(async () => {
-      const id = dept?.id ?? (await folio.api<Department>('POST', `/workspaces/${ws.id}/departments`, { name: name.trim() })).id;
-      await folio.api('PATCH', `/departments/${id}`, { ...(dept ? { name: name.trim() } : {}), memberIds });
-    });
+    try {
+      await folio.api('PATCH', `/groups/${group.id}`, { memberIds });
+      data.refresh('groups', 'members', 'profiles');
+      onClose();
+    } catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); }
   }
   return (
-    <Modal title={dept ? dept.name : T.deptAdd} closeLabel={d.common.close} onClose={onClose} foot={confirm
-      ? <>
-        <span className="hint sp">{T.deptDeleteConfirm(dept!.name)}</span>
-        <button className="btn btn-secondary" type="button" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
-        <button className="btn btn-danger solid" type="button" onClick={() => void run(() => folio.api('DELETE', `/departments/${dept!.id}`))}>{T.deptDelete}</button>
-      </>
-      : <>
-        {dept && <button className="btn btn-danger" type="button" onClick={() => setConfirm(true)}>{T.deptDelete}</button>}
-        <span className="sp" />
-        <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-        <button className="btn btn-primary" type="submit" form="dept-form">{d.common.save}</button>
-      </>}>
-      <form className="m-body" id="dept-form" onSubmit={save} noValidate>
+    <Modal title={group.name} closeLabel={d.common.close} onClose={onClose} foot={<>
+      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <button className="btn btn-primary" type="submit" form="group-access-form">{d.common.save}</button>
+    </>}>
+      <form className="m-body" id="group-access-form" onSubmit={save} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
-        <div className="field">
-          <label htmlFor="dept-name">{T.deptName}</label>
-          <input id="dept-name" value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus />
-        </div>
         <fieldset className="field choices">
-          <legend className="label">{T.deptMembers}</legend>
+          <legend className="label">{T.groupMembers}</legend>
           {data.members.filter(m => m.role.key !== 'owner').map(m => (
             <label key={m.userId} className="check-row">
-              <input type="checkbox" checked={memberIds.includes(m.userId)} onChange={e => setMemberIds(s => (e.target.checked ? [...s, m.userId] : s.filter(id => id !== m.userId)))} />{m.email}
+              <input type="checkbox" checked={memberIds.includes(m.userId)}
+                onChange={e => setMemberIds(s => (e.target.checked ? [...s, m.userId] : s.filter(id => id !== m.userId)))} />{m.email}
             </label>
           ))}
         </fieldset>
+        <p className="hint">{T.groupInherits}</p>
       </form>
     </Modal>
   );

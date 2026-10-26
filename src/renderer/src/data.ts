@@ -4,11 +4,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus, WindowSync } from '@shared/bridge';
 import { GROUP_COLORS } from './ui';
-import { MANAGE, can, folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
+import { MANAGE, can, folio, isApiError, type Extension, type Flow, type Group, type Invitation, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
 
 export type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
-export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
-export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'departmentId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
+export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
+export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | 'proxyId' | 'ownerId' | 'kernelVersion' | 'fingerprint' | 'timezoneOverride' | 'localeOverride' | 'notes' | 'syncMode' | 'extensionIds'>>;
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
 export interface WorkspaceData {
@@ -16,8 +16,8 @@ export interface WorkspaceData {
   // The workspace's roles, with what each may do: the team page's picker and the scope column read them.
   roles: Role[];
   profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
-  // The team: everyone in it, its departments, and (for owners and admins) invitations still open.
-  members: Member[]; departments: Department[]; invitations: Invitation[];
+  // The team: everyone in it, and (for whoever manages members) invitations still open.
+  members: Member[]; invitations: Invitation[];
   flows: Flow[]; tasks: Task[]; extensions: Extension[];
   // Bumped when runs change anywhere (pages showing runs fetch them again); the runs under way on this computer.
   runsSeq: number; active: ActiveRun[];
@@ -32,7 +32,7 @@ export interface WorkspaceData {
   loadFailed: Set<Kind>;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
-  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; departmentId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean }): Promise<number>;
+  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean }): Promise<number>;
   // The id of the group with this name, created when there is none.
   ensureGroup(name: string): Promise<string>;
   // Checks proxies two at a time; `checking` holds the ones under way.
@@ -54,7 +54,6 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   const [groups, setGroups] = useState<Group[]>([]);
   const [proxies, setProxies] = useState<Proxy[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [departments, setDepartments] = useState<Department[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [roleList, setRoles] = useState<Role[]>([]);
   const [flows, setFlows] = useState<Flow[]>([]);
@@ -94,7 +93,6 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
       if (k === 'extensions') void run<{ extensions: Extension[] }>(k, `${base}/extensions`, r => setExtensions(r.extensions));
       if (k === 'members'){
         void run<{ members: Member[] }>(k, `${base}/members`, r => setMembers(r.members));
-        void run<{ departments: Department[] }>(k, `${base}/departments`, r => setDepartments(r.departments));
         void run<{ roles: Role[] }>(k, `${base}/roles`, r => setRoles(r.roles));
         if (manages) void run<{ invitations: Invitation[] }>(k, `${base}/invitations`, r => setInvitations(r.invitations));
       }
@@ -102,7 +100,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   }, [wsId, manages]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setLoadFailed(new Set());
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setLoadFailed(new Set());
     refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks', 'extensions');
     void folio.watch(wsId);
     return folio.onChange(c => {
@@ -209,5 +207,5 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
     reloadKernels();
   }, [reloadKernels]);
 
-  return { role, roles: roleList, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
+  return { role, roles: roleList, profiles, trash, groups, proxies, members, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
 }
