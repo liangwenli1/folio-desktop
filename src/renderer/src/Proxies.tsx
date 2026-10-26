@@ -9,7 +9,7 @@ import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { BulkBar, CopyBtn, Empty, Icon, ListFailed, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { Act, BulkBar, CopyBtn, Empty, Icon, ListFailed, Modal, MoreMenu, Switch, useToast, useView, ViewSwitch, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
@@ -109,13 +109,13 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
     onToggle: () => toggle(p.id), onView: () => setCur(p.id), onCheck: () => void data.check([p.id]), onEdit: () => onEdit(p.id),
     onDelete: () => setConfirm([p.id]), onShow: () => onShowProfiles(on(p.id).map(x => x.id))
   });
-  const SUM: [Status, string, IconName, string][] = [['all', '', 'proxies', X.sum.total], ['ok', 'good', 'check', X.sum.ok], ['issues', 'bad', 'alert', X.sum.issues], ['unbound', '', 'link', X.sum.unbound]];
+  const SUM: [Status, string, IconName, string][] = [['all', 'info', 'server', X.sum.total], ['ok', 'good', 'check', X.sum.ok], ['issues', 'bad', 'bang', X.sum.issues], ['unbound', '', 'unlink', X.sum.unbound]];
   const reset = () => setPage(1);
   const dialogs = <>
     {confirm && (
-      <Modal icon="trash" tone="bad" title={X.confirmDelete(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+      <Modal kind="bad" title={X.confirmDelete(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
         <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-        <button type="button" className="btn btn-danger solid" onClick={() => void remove(confirm)}>{X.bulkDelete}</button>
+        <Act className="btn btn-danger solid" run={() => remove(confirm)}>{X.bulkDelete}</Act>
       </>}><p>{X.confirmNote}</p></Modal>
     )}
     {replacing && <ReplaceProxyDialog d={d} data={data} profile={replacing} onClose={() => setReplacing(null)} onDone={() => setReplacing(null)} />}
@@ -142,7 +142,7 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
         <section className="cards" aria-label={X.title}>
           {SUM.map(([s, tone, icon, label]) => (
             <button key={s} type="button" className="kc" aria-pressed={s === 'all' ? undefined : status === s} onClick={() => { setStatus(s === status ? 'all' : s); reset(); }}>
-              <span className="kc-h"><span className={`kic ${tone}`}><Icon name={icon} /></span><small>{label}</small></span><b>{data.proxies.filter(p => matches(p, s)).length}</b>
+              <span className={`kc-ic ${tone}`}><Icon name={icon} /></span><span className="kc-t"><small>{label}</small><b>{data.proxies.filter(p => matches(p, s)).length}</b></span>
             </button>
           ))}
         </section>
@@ -213,9 +213,9 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
         </div>
 
         {unbinding && (
-          <Modal icon="link" title={X.bulk.unbindTitle(unbinding.length, bound)} closeLabel={d.common.close} onClose={() => setUnbinding(null)} foot={<>
+          <Modal kind="warn" title={X.bulk.unbindTitle(unbinding.length, bound)} closeLabel={d.common.close} onClose={() => setUnbinding(null)} foot={<>
             <button type="button" className="btn btn-secondary" onClick={() => setUnbinding(null)}>{d.common.cancel}</button>
-            <button type="button" className="btn btn-primary" onClick={() => void unbind(unbinding)}>{X.bulk.unbind}</button>
+            <Act className="btn btn-primary" run={() => unbind(unbinding)}>{X.bulk.unbind}</Act>
           </>}><p>{X.bulk.unbindNote}</p></Modal>
         )}
         {dialogs}
@@ -435,7 +435,7 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
             </dl>
             {ex?.geo && <p className="attrib">{d.common.attribution}</p>}
             {s === 'down' && (
-              <Empty icon="alert" tone="bad" title={d.states.proxyDown} text={d.states.proxyDownText(`${p.host}:${p.port}`)}>
+              <Empty icon="alertTri" tone="bad" title={d.states.proxyDown} text={d.states.proxyDownText(`${p.host}:${p.port}`)}>
                 <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={onCheck}>{d.states.checkAgain}</button>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={onEdit}>{d.states.editProxy}</button>
               </Empty>
@@ -566,7 +566,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
       {!proxy && <label className="check-row"><input type="checkbox" checked={another} onChange={e => setAnother(e.target.checked)} />{X.addMore}</label>}
       <span className="sp" />
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="submit" form="proxy-form" disabled={busy}>{X.save}</button>
+      <button className="btn btn-primary" type="submit" form="proxy-form" disabled={busy} aria-busy={busy || undefined}>{X.save}</button>
     </>}>
       <form className="m-body" id="proxy-form" onSubmit={submit} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -704,7 +704,7 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
       <span className="sp" />
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
       <button className="btn btn-secondary" type="button" disabled={reading || !text.trim()} onClick={() => void read()}>{I.reparse}</button>
-      <button className="btn btn-primary" type="button" disabled={busy || reading || !going} onClick={() => void submit()}>{I.submit(going)}</button>
+      <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || reading || !going} onClick={() => void submit()}>{I.submit(going)}</button>
     </>}>
       <div className="m-body px-imp">
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -795,7 +795,7 @@ export function ReplaceProxyDialog({ d, data, profile, onClose, onDone }: { d: D
     <Modal wide title={R.title} closeLabel={d.common.close} onClose={onClose} foot={<>
       <span className="sp" />
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="button" disabled={busy || !pick || !!status} onClick={() => void confirm()}>{R.confirm}</button>
+      <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || !pick || !!status} onClick={() => void confirm()}>{R.confirm}</button>
     </>}>
       <div className="m-body px-rep">
         {error && <p className="notice error" role="alert">{error}</p>}

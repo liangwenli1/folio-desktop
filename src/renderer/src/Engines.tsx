@@ -10,7 +10,7 @@ import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { Select, SelectField, type Opt } from './Select';
 import { EngineLogo } from './Flag';
-import { Empty, Icon, Modal, MoreMenu, Progress, Switch, bytes, percent, useToast } from './ui';
+import { Act, bytes, Empty, Icon, Modal, MoreMenu, percent, Progress, Switch, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
@@ -254,15 +254,15 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
       {uploading && <UploadDialog d={d} onClose={() => setUploading(false)} onDone={reload} />}
       {recommending && <RecommendDialog d={d} k={recommending} onClose={() => setRecommending(null)} onDone={note => void recommend(recommending, note)} />}
       {retiring && (
-        <Modal icon="trash" tone="bad" title={E.admin.retireTitle(`${ENGINES[retiring[0].kind]} ${retiring[0].version}`)} closeLabel={d.common.close} onClose={() => setRetiring(null)} foot={<>
+        <Modal kind="bad" title={E.admin.retireTitle(`${ENGINES[retiring[0].kind]} ${retiring[0].version}`)} closeLabel={d.common.close} onClose={() => setRetiring(null)} foot={<>
           <button type="button" className="btn btn-secondary" onClick={() => setRetiring(null)}>{d.common.cancel}</button>
-          <button type="button" className="btn btn-danger solid" onClick={() => void retire(retiring)}>{E.admin.retire}</button>
+          <Act className="btn btn-danger solid" run={() => retire(retiring)}>{E.admin.retire}</Act>
         </>}><p>{E.admin.retireConfirm(retiring.find(x => x.profiles !== null)?.profiles ?? 0)}</p></Modal>
       )}
       {cleaning && (
-        <Modal icon="trash" title={E.cleanupTitle(unused.length)} closeLabel={d.common.close} onClose={() => setCleaning(false)} foot={<>
+        <Modal kind="warn" title={E.cleanupTitle(unused.length)} closeLabel={d.common.close} onClose={() => setCleaning(false)} foot={<>
           <button type="button" className="btn btn-secondary" onClick={() => setCleaning(false)}>{d.common.cancel}</button>
-          <button type="button" className="btn btn-primary" onClick={() => void clean()}>{E.cleanup}</button>
+          <Act className="btn btn-primary" run={() => clean()}>{E.cleanup}</Act>
         </>}><p>{unused.map(k => `${ENGINES[k.kind]} ${k.version}`).join(' · ')}</p><p>{E.cleanupNote(bytes(unusedSize))}</p></Modal>
       )}
     </div>
@@ -326,7 +326,7 @@ function RecommendDialog({ d, k, onClose, onDone }: { d: Dict; k: Kernel; onClos
   const A = d.engines.admin;
   const [note, setNote] = useState('');
   return (
-    <Modal icon="check" tone="good" title={A.recommendTitle(`${ENGINES[k.kind]} ${k.version}`)} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal kind="good" title={A.recommendTitle(`${ENGINES[k.kind]} ${k.version}`)} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
       <button type="button" className="btn btn-primary" onClick={() => onDone(note.trim())}>{A.recommend}</button>
     </>}>
@@ -374,7 +374,7 @@ function UploadDialog({ d, onClose, onDone }: { d: Dict; onClose(): void; onDone
   return (
     <Modal title={A.title} closeLabel={d.common.close} onClose={busy ? () => {} : onClose} foot={<>
       <button className="btn btn-secondary" type="button" onClick={onClose} disabled={busy}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="button" disabled={busy || !file || !/^[0-9][0-9A-Za-z.+-]{0,39}$/.test(version.trim())} onClick={() => void send()}>
+      <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || !file || !/^[0-9][0-9A-Za-z.+-]{0,39}$/.test(version.trim())} onClick={() => void send()}>
         {progress ? (progress.stage === 'hash' ? A.hashing(pct) : A.uploading(pct)) : A.send}
       </button>
     </>}>

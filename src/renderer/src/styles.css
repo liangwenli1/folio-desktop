@@ -65,7 +65,7 @@ h1,h2,h3,p{margin:0}
 .splash{display:grid;place-items:center;height:100%;color:var(--ink-2)}
 /* The spec asks for a 1.75px stroke on a 24×24 viewBox; our icons are drawn on 16×16, so the same rendered weight
    is 1.75 × 16/24. Small status and tick icons keep a heavier stroke of their own, or they vanish at 11–14px. */
-svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.17;stroke-linecap:round;stroke-linejoin:round}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .sp{flex:1 1 0}
 .full{width:100%}
 .linkish{border:0;background:none;padding:0;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
@@ -87,13 +87,22 @@ input[type="checkbox"],input[type="radio"]{width:16px;height:16px;margin:0;verti
 .meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
 
 /* buttons: primary (one per area), secondary, text, danger */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:var(--h-ctl);padding:0 16px;border-radius:var(--r);border:1px solid transparent;font-size:14px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:var(--h-ctl);padding:0 16px;border-radius:var(--r);border:1px solid transparent;font-size:14px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease,transform .08s ease}
 .btn:disabled{opacity:.5;cursor:default}
+/* Pressed: the button sinks a little. Submitting (aria-busy): a spinner in place of the label, the width kept, and no
+   more clicks until it is done. */
+.btn:active:not(:disabled){transform:translateY(1px) scale(.985)}
+.btn[aria-busy="true"]{position:relative;color:transparent!important;opacity:1;cursor:progress}
+.btn[aria-busy="true"] > *{visibility:hidden}
+.btn[aria-busy="true"]::after{content:'';position:absolute;inset:0;width:16px;height:16px;margin:auto;border:2px solid var(--busy,var(--ink-2));border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@media (prefers-reduced-motion: reduce){.btn:active:not(:disabled){transform:none}}
 .btn-sm{height:var(--h-sm);padding:0 12px;font-size:13px}
 .btn-sm > .i{width:14px;height:14px}
 .btn-lg{height:var(--h-lg);padding:0 22px;font-size:15px}
 .btn-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:0 6px 14px -8px var(--accent)}
 .btn-primary:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 88%,#000);border-color:color-mix(in srgb,var(--accent) 88%,#000)}
+.btn-primary:active:not(:disabled){background:color-mix(in srgb,var(--accent) 78%,#000);border-color:color-mix(in srgb,var(--accent) 78%,#000)}
+.btn-primary,.btn-danger.solid{--busy:#fff}
 .btn-secondary{background:var(--card);border-color:var(--line-2);color:var(--ink);box-shadow:0 1px 2px rgba(29,28,43,.05)}
 .btn-secondary:hover:not(:disabled){border-color:var(--ink-3);background:var(--hover)}
 .btn-text{background:transparent;color:var(--ink-2)}
@@ -239,13 +248,15 @@ html[data-platform="win32"] .top{padding-right:150px}
 .ws .i{color:var(--ink-3)}
 .ws .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
 .nav{display:grid;gap:1px}
-.nav-i{position:relative;display:flex;align-items:center;gap:9px;width:100%;height:36px;padding:0 8px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);text-align:left;font-size:14px;cursor:pointer}
-.nav-i .ni{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:7px;background:var(--panel);border:1px solid var(--line)}
-.nav-i .ni .i{width:14px;height:14px}
+/* A section: its icon (20px, no box) and name; the one shown is tinted, with a bar on its left edge. */
+.nav-i{position:relative;display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);text-align:left;font-size:14px;cursor:pointer}
+.nav-i > .i{width:20px;height:20px;color:var(--ink-3)}
 .nav-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-i:hover:not(:disabled){background:var(--hover);color:var(--ink)}
+.nav-i:hover:not(:disabled) > .i{color:var(--ink-2)}
 .nav-i.active{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
-.nav-i.active .ni{background:var(--card);border-color:transparent;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.nav-i.active > .i{color:var(--accent)}
+.nav-i.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
 .nav-i:disabled{opacity:.7;cursor:default}
 .cnt{margin-left:auto;font:500 11.5px var(--f-data);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .nav-i.active .cnt{color:var(--accent-ink)}
@@ -342,17 +353,20 @@ html[data-platform="win32"] .top{padding-right:150px}
 
 /* figures above a list: four of them, side by side */
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:2px var(--gx) 0;flex:none}
-.kc{display:grid;align-content:start;gap:2px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);text-align:left;color:var(--ink)}
+/* A figure: its icon in a tinted circle on the left (a solid one with a white mark for good and bad), the name and the
+   number beside it. */
+.kc{display:flex;align-items:center;gap:14px;min-width:0;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);text-align:left;color:var(--ink)}
 button.kc{cursor:pointer}
 button.kc:hover{border-color:var(--line-2)}
-.kc-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.kc small{font-size:12.5px;color:var(--ink-2)}
-.kc b{font:600 26px/1.2 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.kc b small{margin-left:4px;font:500 12px var(--f-body);letter-spacing:0;color:var(--ink-3)}
-.kic{display:grid;place-items:center;width:28px;height:28px;margin-bottom:6px;border-radius:9px;background:var(--seg);color:var(--ink-2)}
-.kc-h .kic{margin:0}
-.kic .i{width:14px;height:14px}
-.kic.good{background:var(--good-soft);color:var(--good)} .kic.bad{background:var(--bad-soft);color:var(--bad)} .kic.warn{background:var(--warn-soft);color:var(--warn)}
+.kc-ic{display:grid;place-items:center;width:48px;height:48px;flex:none;border-radius:50%;background:var(--seg);color:var(--ink-2)}
+.kc-ic .i{width:24px;height:24px}
+.kc-ic.info{background:var(--info-soft);color:var(--info)}
+.kc-ic.good{background:var(--good-soft)} .kc-ic.bad{background:var(--bad-soft)}
+.kc-ic.good .i,.kc-ic.bad .i{width:28px;height:28px;padding:4px;border-radius:50%;color:#fff;stroke-width:3}
+.kc-ic.good .i{background:var(--good)} .kc-ic.bad .i{background:var(--bad)}
+.kc-t{display:grid;gap:2px;min-width:0}
+.kc small{font-size:13px;color:var(--ink-2)}
+.kc b{font:700 26px/1.15 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 
 /* the profile list: rows or cards */
 .filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px var(--gx) 12px;flex:none}
@@ -430,7 +444,7 @@ button.kc:hover{border-color:var(--line-2)}
 /* status labels (S1-2): a white raised capsule, an icon that says what is going on, dark text. A state's colour
    only tints its icon and the capsule's shadow. */
 .st{--c:var(--ink-3);display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 12px;border-radius:99px;background:var(--card);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);box-shadow:0 1px 1px rgba(29,28,43,.05),0 5px 12px -5px color-mix(in srgb,var(--c) 40%,transparent);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
-.st > .i{width:12px;height:12px;stroke-width:2.4;color:var(--c)}
+.st > .i{width:12px;height:12px;stroke-width:3.6;color:var(--c)}
 .st > .spin{width:11px;height:11px;color:var(--c);border-width:2px}
 .st .sub{font:500 12px var(--f-data);color:var(--ink-2)}
 .st.run{--c:var(--good)} .st.boot{--c:var(--accent)} .st.away{--c:var(--info)} .st.bad{--c:var(--bad)}
@@ -445,12 +459,12 @@ button.kc:hover{border-color:var(--line-2)}
 .tw tbody tr:not(:hover) .star:not(.on){opacity:0}
 .icon-btn.star{width:32px;height:32px;margin:0;vertical-align:0}
 .risk-flag{display:inline-grid;place-items:center;margin-left:4px;color:var(--bad);vertical-align:-3px}
-.risk-flag .i{width:14px;height:14px;stroke-width:2}
+.risk-flag .i{width:14px;height:14px;stroke-width:3}
 /* what could link profiles: one line until it is opened */
 .risk-bar{display:grid;gap:8px;margin:12px var(--gx) 0;padding:8px 10px 8px 14px;border-radius:var(--r-card);background:var(--warn-soft);flex:none;font-size:13px}
 .risk-bar.bad{background:var(--bad-soft)}
 .risk-h{display:flex;align-items:center;gap:10px;min-width:0}
-.risk-h > .i{color:var(--warn);stroke-width:2}
+.risk-h > .i{color:var(--warn);stroke-width:3}
 .risk-bar.bad .risk-h > .i{color:var(--bad)}
 .risk-h b{font-weight:600;white-space:nowrap}
 .risk-first{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
@@ -512,9 +526,9 @@ tr.empty b{color:var(--ink)}
 .kvl dd.warn{color:var(--warn-ink)}
 .chk{display:grid;gap:9px;margin:0;padding:0;list-style:none}
 .chk li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;font-size:13px}
-.chk .ic{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;color:var(--good);background:var(--good-soft)}
-.chk .ic .i{width:11px;height:11px;stroke-width:2.4}
-.chk .warn .ic{color:var(--warn);background:var(--warn-soft)} .chk .bad .ic{color:var(--bad);background:var(--bad-soft)} .chk .todo .ic{color:var(--info);background:var(--info-soft)}
+.chk .ic{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#fff;background:var(--good)}
+.chk .ic .i{width:12px;height:12px;stroke-width:3.6}
+.chk .warn .ic{background:var(--warn)} .chk .bad .ic{background:var(--bad)} .chk .todo .ic{background:var(--info)}
 .chk .ck-d{display:block;font-size:12.5px;color:var(--ink-2);overflow-wrap:anywhere}
 .chk li > div{display:grid;justify-items:start;gap:6px}
 .report-line{font-size:12.5px;color:var(--ink-2)}
@@ -523,8 +537,6 @@ tr.empty b{color:var(--ink)}
 .detail .attrib{margin-top:-8px;text-align:right}
 /* a record's details: its header, four figures, then its sections two by two */
 .dh{display:flex;align-items:center;gap:12px;min-width:0;padding-top:12px;flex:none}
-.dh-ic{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:12px;background:var(--accent-soft);color:var(--accent)}
-.dh-ic .i{width:22px;height:22px}
 .dh > .pav{width:44px;height:44px;font-size:18px;border-radius:12px}
 .dh-t{display:grid;gap:5px;min-width:0}
 .dh-t h2{font:600 20px/1.2 var(--f-display);letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -644,7 +656,7 @@ fieldset.ck-conflict{border:0;margin:0;padding:0}
 .step-r.done::before{background:color-mix(in srgb,var(--good) 55%,transparent)}
 .step-ic{display:grid;place-items:center;width:26px;height:24px;flex:none;color:var(--ink-3)}
 .step-ic .i{width:16px;height:16px}
-.step-r.done .step-ic{color:var(--good)} .step-r.done .step-ic .i{stroke-width:2.6}
+.step-r.done .step-ic{color:var(--good)} .step-r.done .step-ic .i{stroke-width:3.9}
 .step-r.now .step-ic{color:var(--accent)}
 .step-ic .spin{width:16px;height:16px;border-width:2px}
 .step-r > div{flex:1;min-width:0}
@@ -706,25 +718,26 @@ body:has(.tray) .toasts{right:392px}
 .modal.wide .m-head{background:var(--card)}
 .modal.wide .m-foot{background:var(--card)}
 .modal.wide .m-foot .hint{font-size:12.5px}
-/* A short dialog (a confirmation, a one-step import): an icon on top, everything centred, buttons side by side. */
+/* A short dialog (a confirmation, a one-step install), as in the design: the kind's icon beside the title, the content
+   under the title, the buttons on the right below a line. */
 .modal.short{width:min(480px,calc(100vw - 48px))}
-.modal.short .m-body{justify-items:center;gap:10px;padding:28px 26px 8px;text-align:center}
-.modal.short .m-body > *{justify-self:stretch}
-.modal.short .m-body > .m-icon,.modal.short .m-body > h2{justify-self:center}
-.modal.short h2{font-family:var(--f-display);font-weight:600;font-size:18px;letter-spacing:-.01em}
-.modal.short .m-body > p{font-size:13.5px;color:var(--ink-2)}
-.modal.short .m-foot{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:16px 26px 24px;border-top:0}
+.modal.short .m-body{grid-template-columns:auto minmax(0,1fr);column-gap:14px;row-gap:8px;padding:22px 52px 20px 22px}
+.modal.short .m-body > *{grid-column:2}
+.modal.short .m-body > .m-icon{grid-column:1;grid-row:1 / span 2;align-self:start}
+.modal.short h2{align-self:center;font-family:var(--f-display);font-weight:600;font-size:17px;line-height:1.45;letter-spacing:-.01em}
+.modal.short .m-body > p{font-size:13.5px;line-height:1.6;color:var(--ink-2)}
 .modal.short .m-close{position:absolute;top:12px;right:12px}
-.m-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--accent-soft);color:var(--accent);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--accent) 70%,transparent)}
-.m-icon .i{width:22px;height:22px;stroke-width:1.8}
-.m-icon.bad{background:var(--bad-soft);color:var(--bad);box-shadow:0 8px 18px -10px color-mix(in srgb,var(--bad) 70%,transparent)}
-.m-icon.good{background:var(--good-soft);color:var(--good)}
+.m-icon{display:grid;place-items:center;width:38px;height:38px;color:var(--warn)}
+.m-icon .i{width:38px;height:38px}
+.m-icon.bad{color:var(--bad)}
+.m-icon.info{color:var(--info)}
+.m-icon.good .i{width:34px;height:34px;padding:7px;border-radius:50%;background:var(--good);color:#fff;stroke-width:3}
 /* Toasts: white cards that float, an icon for how it went, the action on the right. */
 .toasts{position:fixed;z-index:50;right:16px;bottom:16px;display:grid;gap:8px;width:min(400px,calc(100% - 32px))}
 .toast{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop);font-size:13.5px}
-.toast > .t-ic{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:50%;background:var(--good-soft);color:var(--good)}
-.toast > .t-ic .i{width:14px;height:14px;stroke-width:2.2}
-.toast.bad > .t-ic{background:var(--bad-soft);color:var(--bad)}
+.toast > .t-ic{display:grid;place-items:center;width:26px;height:26px;flex:none;border-radius:50%;background:var(--good);color:#fff}
+.toast > .t-ic .i{width:16px;height:16px;stroke-width:3}
+.toast.bad > .t-ic{background:var(--bad)}
 .toast span{flex:1;min-width:0}
 .toast button{flex:none;border:0;background:none;color:var(--ink);font-weight:600;cursor:pointer}
 .toast button:hover{color:var(--accent-ink)}
@@ -747,7 +760,7 @@ body:has(.tray) .toasts{right:392px}
 .pxcheck{display:flex;gap:8px}
 .pxcheck > .sel,.pxcheck > input{flex:1;min-width:0}
 .pxres{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font-size:13px;font-weight:400;color:var(--ink-2)}
-.pxres .i{width:14px;height:14px;stroke-width:2.4}
+.pxres .i{width:14px;height:14px;stroke-width:3.6}
 .pxres.ok{border-color:color-mix(in srgb,var(--good) 35%,transparent);background:var(--good-soft);color:var(--good-ink)}
 .pxres.warn{border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:var(--warn-soft);color:var(--warn-ink)}
 .pxres.down,.pxres.bad,.pxres.slow{border-color:color-mix(in srgb,var(--bad) 35%,transparent);background:var(--bad-soft);color:var(--bad)}
@@ -870,7 +883,6 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .rl-t{margin:0;flex:none;min-height:0}
 .rl-t tr.sect td{height:32px;padding:0 12px;background:var(--panel);font-size:12px;font-weight:600;color:var(--ink-2)}
 .rl-foot{display:flex;align-items:center;gap:10px}
-.kic.accent{background:var(--accent-soft);color:var(--accent)}
 .pav{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;border-radius:50%;color:#fff;font-size:12.5px;font-weight:700;box-shadow:0 3px 8px -3px rgba(29,28,43,.4)}
 .pav.c0{background:#D2445E} .pav.c1{background:#2F6FD6} .pav.c2{background:#1E8A63} .pav.c3{background:#C98A12} .pav.c4{background:#7A4FC4} .pav.c5{background:#1F8A97}
 .role{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:99px;background:var(--seg);font-size:12px;font-weight:600;color:var(--ink-2);white-space:nowrap}
@@ -880,9 +892,13 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 
 /* what a page shows instead of its rows (the design's ST01–ST06): an icon, a line, what it means, what to do */
 .es{display:grid;justify-items:center;gap:8px;max-width:440px;margin:0 auto;padding:28px 16px;text-align:center}
-.es-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--seg);color:var(--ink-2)}
-.es-ic .i{width:24px;height:24px}
-.es.bad .es-ic{background:var(--bad-soft);color:var(--bad)}
+.es-ic{position:relative;display:grid;place-items:center;width:52px;height:52px;color:var(--ink-2)}
+.es-ic > .i{width:48px;height:48px;stroke-width:1.5}
+.es.bad .es-ic{color:var(--bad)}
+.es.bad .es-ic:has(.es-badge){color:var(--ink-2)}
+.es-badge{position:absolute;right:-2px;bottom:0;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;box-shadow:0 0 0 2px var(--card)}
+.es-badge.x{background:var(--bad)}
+.es-badge .i{width:12px;height:12px;stroke-width:3.5}
 .es-t{font-size:16px;font-weight:600;color:var(--ink)}
 .es p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
 .es-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
@@ -903,9 +919,14 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .jb-bar .mono{font-size:12.5px}
 .jb-bar small{font-size:11.5px;color:var(--ink-3)}
 .meter.good i{background:var(--good)} .meter.warn i{background:var(--warn)}
-.jb-st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;white-space:nowrap}
-.jb-st .i{width:14px;height:14px}
-.jb-st.running{color:var(--info)} .jb-st.done{color:var(--good-ink)} .jb-st.partial{color:var(--warn-ink)} .jb-st.canceled{color:var(--ink-3)}
+.jb-st,.jb-r{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:500;white-space:nowrap}
+.jb-st .i,.jb-r .i{width:16px;height:16px;padding:3px;border-radius:50%;background:var(--ink-3);color:#fff;stroke-width:3.5}
+.jb-st .spin{width:14px;height:14px;margin:1px;border-width:2px}
+.jb-st.running{color:var(--info)}
+.jb-st.done,.jb-r.ok{color:var(--good-ink)} .jb-st.done .i,.jb-r.ok .i{background:var(--good)}
+.jb-st.partial{color:var(--warn-ink)} .jb-st.partial .i{background:var(--warn)}
+.jb-st.failed,.jb-r.failed{color:var(--bad)} .jb-st.failed .i,.jb-r.failed .i{background:var(--bad)}
+.jb-st.canceled,.jb-r.canceled,.jb-r.pending{color:var(--ink-3)}
 .jb-panel .sec-row{justify-content:flex-start}
 .jb-panel .sec-row .icon-btn{margin-left:auto}
 .jb-stats{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
@@ -913,8 +934,7 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .side-wrap.with-panel.jb-wrap{grid-template-columns:minmax(0,1fr) 400px}
 .jb-items table{min-width:0}
 .jb-items .ellip{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.jb-r{font-size:12.5px;font-weight:600}
-.jb-r.ok{color:var(--good-ink)} .jb-r.failed{color:var(--bad)} .jb-r.pending,.jb-r.canceled{color:var(--ink-3)}
+
 .jb-log{display:grid;gap:6px;max-height:300px;margin:0;padding:0;overflow:auto;list-style:none;font-size:12.5px}
 .jb-log li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px}
 .jb-log time{font:12px var(--f-data);color:var(--ink-3)}
@@ -955,19 +975,18 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .lg-change .i{width:13px;height:13px;color:var(--ink-3)}
 .lg-note{display:flex;align-items:center;gap:8px;font-size:12.5px}
 .lg-note .i{width:14px;height:14px;flex:none;color:var(--info)}
-.who-cell,.kind-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.who-cell{display:flex;align-items:center;gap:8px;white-space:nowrap}
 .who-cell b{font-weight:600}
 .pav.sm{width:22px;height:22px;font-size:11px;background:var(--accent);box-shadow:none}
 .pav.xs{width:24px;height:24px;font-size:11px;box-shadow:none}
-.kic.sm{width:24px;height:24px;margin:0;border-radius:8px}
-.kic.sm .i{width:13px;height:13px}
 
 /* flows: the list; the editor draws the steps as a chart, with the picked step's settings and a trial run beside it */
 .flow-cell{display:flex;align-items:center;gap:10px}
-.flow-ic{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:9px;background:var(--seg);color:var(--ink-2)}
+.flow-ic{display:grid;place-items:center;width:28px;height:28px;flex:none;color:var(--ink-3)}
+.flow-ic .i{width:20px;height:20px}
 .flow-types{display:flex;gap:4px;margin-top:3px}
-.flow-types .step-ic{width:20px;height:20px;border-radius:6px}
-.flow-types .step-ic .i{width:12px;height:12px}
+.flow-types .stype{width:18px;height:18px}
+.flow-types .stype .i{width:16px;height:16px}
 .flow-main{overflow:hidden}
 .flow-bar{flex-wrap:nowrap}
 .flow-bar .btn-text{padding:0 8px;color:var(--ink-2)}
@@ -977,7 +996,7 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .flow-name input:hover:not([readonly]),.flow-name input:focus{border-color:var(--line-2);background:var(--card);outline:none}
 .flow-name input[aria-invalid="true"]{border-color:var(--bad)}
 .flow-saved{display:inline-flex;align-items:center;gap:5px;flex:none;font-size:12.5px;color:var(--good-ink)}
-.flow-saved .i{width:12px;height:12px;stroke-width:2.4}
+.flow-saved .i{width:12px;height:12px;stroke-width:3.6}
 .flow-note{margin:0 var(--gx) 10px;flex:none}
 .flow-edit{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;padding:0 var(--gx) 18px}
 /* the chart: dotted paper, steps centred one under another, joined by short lines */
@@ -995,7 +1014,8 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .fnode small{font-size:11px;color:var(--ink-3)}
 .fnode b{font-size:13.5px;font-weight:600}
 .fnode b + span{font-size:12px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fnode .step-ic{width:32px;height:32px;border-radius:10px}
+.fnode .stype{width:32px;height:32px}
+.fnode .stype .i{width:22px;height:22px}
 .fnone{font-size:12px;color:var(--ink-3)}
 /* a condition: a bar across, then its two branches side by side */
 .fork{position:relative;display:flex;gap:28px;margin-top:14px;padding-top:12px;border-top:2px solid var(--line-2)}
@@ -1017,9 +1037,10 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .zoom button:hover:not(:disabled){background:var(--seg);color:var(--ink)}
 .zoom button:disabled{opacity:.4;cursor:default}
 /* step icons, coloured by kind: page actions, data, logic, other */
-.step-ic{display:inline-grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:var(--seg);color:var(--ink-2)}
-.step-ic.page{background:var(--info-soft);color:var(--info)} .step-ic.data{background:var(--good-soft);color:var(--good)}
-.step-ic.logic{background:var(--warn-soft);color:var(--warn)} .step-ic.other{background:var(--bad-soft);color:var(--bad)}
+/* A flow step's type: its icon, no box, in its category's colour. */
+.stype{display:inline-grid;place-items:center;width:28px;height:28px;flex:none;color:var(--ink-2)}
+.stype .i{width:20px;height:20px}
+.stype.page{color:var(--info)} .stype.data{color:var(--good)} .stype.logic{color:var(--warn)} .stype.other{color:var(--bad)}
 .add-step{position:relative}
 .step-menu{position:fixed;z-index:60;left:auto;right:auto;width:580px;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;padding:8px}
 .step-menu > div{display:grid;gap:2px;align-content:start}
@@ -1034,7 +1055,8 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .fcard{border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
 .fstep{display:grid;gap:12px;padding:16px 18px}
 .fstep-h{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.fstep-h .step-ic{width:36px;height:36px;border-radius:11px}
+.fstep-h .stype{width:36px;height:36px}
+.fstep-h .stype .i{width:24px;height:24px}
 .fstep-h > span:nth-child(2){display:grid}
 .fstep-h small{font-size:11.5px;color:var(--ink-3)}
 .fstep-h b{font-family:var(--f-display);font-size:17px;font-weight:600}
@@ -1070,7 +1092,8 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .task-note p{flex:1;min-width:0}
 .task-note .switch{flex:none;font-size:13px;font-weight:600}
 .task-cell{display:flex;align-items:center;gap:10px}
-.task-ic{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:9px;background:var(--accent-soft);color:var(--accent)}
+.task-ic{display:grid;place-items:center;width:28px;height:28px;flex:none;color:var(--ink-3)}
+.task-ic .i{width:20px;height:20px}
 .pflags{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
 .flags{display:inline-flex}
 .flags .flag-badge{width:22px;height:22px;box-shadow:0 0 0 2px var(--card)}
@@ -1163,7 +1186,7 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .api-h{display:flex;align-items:center;gap:12px}
 .api-h > span:nth-child(2){display:grid;flex:1;min-width:0}
 .api-h b{font-size:14px;font-weight:600}
-.api-h .kic{margin:0}
+.api-h > .i{width:20px;height:20px;color:var(--accent)}
 .api-status{font-size:12.5px;color:var(--ink-2)}
 .api-status.on{color:var(--good-ink)} .api-status.bad{color:var(--bad)}
 .api-port{display:grid;grid-template-columns:160px minmax(0,1fr);gap:16px;align-items:end}
@@ -1181,7 +1204,7 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .tokens li > span:nth-child(2){display:grid;min-width:0}
 .tokens b{display:flex;align-items:center;gap:6px;font-weight:600}
 .tokens small{font-size:12.5px;color:var(--ink-2)}
-.tokens .kic{margin:0}
+.tokens li > .i{width:20px;height:20px;color:var(--ink-3)}
 .code-wrap{position:relative}
 .code-wrap .copy{position:absolute;top:8px;right:8px}
 pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code-bg);color:var(--code-ink);font-size:12.5px;line-height:1.65;overflow-x:auto}
@@ -1211,7 +1234,7 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 .pxc-n b{font-weight:600}
 .pxc-bars{margin:8px 0 2px;padding:10px 12px;border-radius:var(--r);background:var(--panel)}
 .pxc-down{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--bad)}
-.pxc-down .i{width:13px;height:13px;stroke-width:2.2}
+.pxc-down .i{width:13px;height:13px;stroke-width:3.3}
 .pxc-f{display:flex;align-items:flex-end;gap:16px;margin-top:6px;padding-top:10px;border-top:1px solid var(--line)}
 .pxc-f > span:not(.sp){display:grid;gap:2px}
 .pxc-f small{font-size:11.5px;color:var(--ink-3)}
@@ -1284,7 +1307,7 @@ tr.bad-row td{background:var(--bad-soft)}
 .px-result{display:grid;gap:10px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--good) 35%,transparent);border-radius:var(--r);background:var(--good-soft)}
 .px-result.bad{border-color:color-mix(in srgb,var(--bad) 35%,transparent);background:var(--bad-soft)}
 .px-result p{display:flex;align-items:center;gap:8px;font-size:13px}
-.px-result p .i{width:14px;height:14px;color:var(--good);stroke-width:2.4}
+.px-result p .i{width:14px;height:14px;color:var(--good);stroke-width:3.6}
 .px-result.bad p .i{color:var(--bad)}
 .px-result p b{color:var(--good-ink)} .px-result.bad p b{color:var(--bad)}
 .px-result p span{color:var(--ink-2)}
@@ -1322,7 +1345,7 @@ tr.bad-row td{background:var(--bad-soft)}
 
 /* engines: the download settings and the room they take, then every version in one table */
 .upgrade-note{display:flex;align-items:center;gap:12px;margin:12px var(--gx) 0;padding:12px 16px;border-radius:var(--r-card);background:var(--warn-soft);flex:none}
-.upgrade-note > .i{color:var(--warn);stroke-width:2}
+.upgrade-note > .i{color:var(--warn);stroke-width:3}
 .upgrade-note > span{display:grid;flex:1;min-width:0}
 .tag.rec-tag{margin:0;background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
 .tag.warn{background:var(--warn-soft);color:var(--warn-ink)}
@@ -1411,10 +1434,10 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .report-list{display:grid;gap:0;margin:12px 0 0;padding:0;list-style:none}
 .report-list li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:9px 108px 9px 0;border-top:1px solid var(--line)}
 .report-list li:nth-child(n+3){padding-right:0}
-.report-list .ic{display:grid;place-items:center;width:22px;height:22px;border-radius:50%}
-.report-list .ic .i{width:13px;height:13px;stroke-width:2}
-.report-list li.ok .ic{color:var(--good-ink);background:var(--good-soft)}
-.report-list li.bad .ic{color:var(--bad-ink);background:var(--bad-soft)}
+.report-list .ic{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;color:#fff}
+.report-list .ic .i{width:13px;height:13px;stroke-width:3.5}
+.report-list li.ok .ic{background:var(--good)}
+.report-list li.bad .ic{background:var(--bad)}
 .report-list li.bad .ck-t{color:var(--bad-ink)}
 .report-list .ck-d{font-size:12.5px;overflow-wrap:anywhere}
 .report-list .ck-d .mono{font-size:12px}
@@ -1430,7 +1453,8 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .pal-g{padding:8px 10px 4px;font-size:12px;font-weight:600;color:var(--ink-2)}
 .pal-list [role="option"]{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;cursor:pointer}
 .pal-list [role="option"][data-active="true"]{background:var(--sel)}
-.pal-ic{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;border-radius:9px;background:var(--seg);color:var(--ink-2)}
+.pal-ic{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;color:var(--ink-3)}
+.pal-ic > .i{width:18px;height:18px}
 .pal-ic .flag-badge{width:28px;height:28px;box-shadow:none}
 .pal-l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
 .pal-l small{margin-left:8px;font-size:12px;color:var(--ink-2)}
@@ -1474,7 +1498,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .win-shot{position:relative;display:grid;place-items:center;aspect-ratio:5/2;background:var(--seg);overflow:hidden}
 .win-shot .thumb{width:100%;height:100%;object-fit:cover;object-position:top}
 .win-bad{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:flex-start;gap:7px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);border-radius:var(--r);background:color-mix(in srgb,var(--bad) 10%,var(--card));color:var(--bad-ink);font-size:12.5px;font-weight:600;box-shadow:var(--shadow)}
-.win-bad .i{flex:none;margin-top:2px;width:14px;height:14px;stroke-width:2}
+.win-bad .i{flex:none;margin-top:2px;width:14px;height:14px;stroke-width:3}
 .sync-log{display:grid;gap:6px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
 .sync-log h2,.sync-pick h2,.sync-up h2{font-size:14px;font-weight:600}
 .sync-log ol{display:grid;margin:0;padding:0;list-style:none}
@@ -1497,7 +1521,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .sync-up h2{font-family:var(--f-display);font-size:20px;font-weight:var(--w-display);letter-spacing:-.015em}
 .sync-up ul{display:grid;gap:8px;margin:0;padding:0;list-style:none;font-size:13.5px}
 .sync-up li{display:flex;align-items:center;gap:8px}
-.sync-up li .i{color:var(--good);stroke-width:2.2}
+.sync-up li .i{color:var(--good);stroke-width:3.3}
 
 /* Under 1024px the rail keeps only its icons: the names are in each button's tooltip, and the groups stay
    reachable through the filter bar's group picker. */

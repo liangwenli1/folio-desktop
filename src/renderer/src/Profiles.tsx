@@ -6,7 +6,7 @@ import { startJob, type JobRun } from './jobRun';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
-import { Avatar, BulkBar, Empty, Icon, ListFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { Act, Avatar, BulkBar, Empty, Icon, ListFailed, Modal, MoreMenu, percent, useNow, useToast, useView, ViewSwitch } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select } from './Select';
@@ -402,9 +402,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
         {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
 
         {confirm && ids.length > 0 && (
-          <Modal icon="trash" tone="bad" title={P.bulk.confirm(ids.length)} closeLabel={d.common.close} onClose={() => setConfirm(false)} foot={<>
+          <Modal kind="warn" title={P.bulk.confirm(ids.length)} closeLabel={d.common.close} onClose={() => setConfirm(false)} foot={<>
             <button type="button" className="btn btn-secondary" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
-            <button type="button" className="btn btn-danger solid" onClick={() => void trash(ids)}>{P.bulk.doTrash}</button>
+            <Act className="btn btn-danger solid" run={() => trash(ids)}>{P.bulk.doTrash}</Act>
           </>}><p>{P.bulk.confirmNote}</p></Modal>
         )}
         {editing && ids.length > 0 && (
@@ -657,7 +657,7 @@ function BulkEdit({ d, data, profiles, onClose, onDone, onFail }: {
       <label className="check-row"><input type="checkbox" checked={stoppedOnly} onChange={e => setStoppedOnly(e.target.checked)} />{B.stoppedOnly}</label>
       <span className="sp" />
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-primary" disabled={busy || nothing || !targets.length || !okStart} onClick={() => void submit()}>{B.submit(targets.length)}</button>
+      <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || nothing || !targets.length || !okStart} onClick={() => void submit()}>{B.submit(targets.length)}</button>
     </>}>
       <div className="m-body be">
         <p className="hint">{B.lead(profiles.length)}</p>

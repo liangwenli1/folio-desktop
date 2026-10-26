@@ -215,7 +215,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
         : <span className="hint">{f.createHint}</span>}
       <span className="sp" />
       <button className="btn btn-secondary" type="button" onClick={requestClose}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="submit" form="profile-form" disabled={busy || fpd.fp.state !== 'ready' || (edit && !changes)}>{edit ? f.save : f.create}</button>
+      <button className="btn btn-primary" type="submit" form="profile-form" aria-busy={busy || undefined} disabled={busy || fpd.fp.state !== 'ready' || (edit && !changes)}>{edit ? f.save : f.create}</button>
     </>}>
       {profile && (
         <div className={`pf-state${locked ? ' run' : ''}`} role="status">
@@ -399,7 +399,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
     </Modal>
     {/* Beside the form, not in it: the form's box would clip it. */}
     {asking && (
-      <Modal icon="alert" title={f.discardTitle} closeLabel={d.common.close} onClose={() => setAsking(false)} foot={<>
+      <Modal kind="warn" title={f.discardTitle} closeLabel={d.common.close} onClose={() => setAsking(false)} foot={<>
         <button type="button" className="btn btn-secondary" onClick={() => setAsking(false)} autoFocus>{f.keepEditing}</button>
         <button type="button" className="btn btn-danger solid" onClick={onClose}>{f.discard}</button>
       </>}><p>{f.discardNote}</p></Modal>

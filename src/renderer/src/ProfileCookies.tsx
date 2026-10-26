@@ -7,7 +7,7 @@ import { cookieKey, readCookies, type Cookie } from '@shared/cookies';
 import { can, folio, isApiError, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Empty, Icon, LoadFailed, Modal, useToast } from './ui';
+import { Act, Empty, Icon, LoadFailed, Modal, useToast } from './ui';
 import { Pager } from './Pager';
 import { Select } from './Select';
 import { dayLabel, time } from './Activity';
@@ -167,9 +167,9 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
       {importing && <CookieImport d={d} p={p} existing={new Set(all.map(cookieKey))} onClose={() => setImporting(false)} onDone={() => { setImporting(false); changed(); }} />}
       {editing && <CookieEdit d={d} p={p} c={editing} canRead={canRead} canRename={canDelete} onClose={() => setEditing(null)} onDone={c => { setEditing(null); setCur(cookieKey(c)); changed(); }} />}
       {confirm && (
-        <Modal icon="trash" tone="bad" title={C.deleteN(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+        <Modal kind="bad" title={C.deleteN(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
           <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-          <button type="button" className="btn btn-danger solid" onClick={() => void remove(confirm)}>{C.delete}</button>
+          <Act className="btn btn-danger solid" run={() => remove(confirm)}>{C.delete}</Act>
         </>}><p>{running ? C.deleteRunning : C.deleteNote}</p></Modal>
       )}
     </div>
@@ -256,7 +256,7 @@ function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict;
     <Modal title={C.editTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
       <span className="sp" />
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-primary" disabled={busy || !loaded} onClick={() => void save()}>{C.save}</button>
+      <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || !loaded} onClick={() => void save()}>{C.save}</button>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -322,7 +322,7 @@ function CookieImport({ d, p, existing, onClose, onDone }: { d: Dict; p: Profile
     <Modal wide title={C.importTitle(p.name)} closeLabel={d.common.close} onClose={onClose} foot={<>
       <span className="sp" />
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-primary" disabled={busy || !going.length} onClick={() => void submit()}>{C.submit(going.length)}</button>
+      <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || !going.length} onClick={() => void submit()}>{C.submit(going.length)}</button>
     </>}>
       <div className="m-body ck-in">
         {error && <p className="notice error" role="alert">{error}</p>}

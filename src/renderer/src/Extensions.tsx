@@ -7,11 +7,11 @@ import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from '
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { BulkBar, Empty, ExtIcon, Icon, ListFailed, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
+import { Act, BulkBar, Empty, ExtIcon, Icon, ListFailed, Modal, MoreMenu, useToast, useView, ViewSwitch } from './ui';
 import { EngineLogo, Flag } from './Flag';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
-const SHIELD = 'M8 1.8 13 3.6v4.1c0 3-2.1 5.5-5 6.5-2.9-1-5-3.5-5-6.5V3.6zM5.6 8l1.7 1.7 3.2-3.4';
+const SHIELD = 'M12 2.7 19.5 5.4v6.15c0 4.5 -3.15 8.25 -7.5 9.75 -4.35 -1.5 -7.5 -5.25 -7.5 -9.75V5.4zM8.4 12l2.55 2.55 4.8 -5.1';
 type Filter = 'all' | KernelKind;
 
 export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: WorkspaceData }){
@@ -103,9 +103,9 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
       {dialog && <ExtensionDialog d={d} ws={ws} data={data} ext={dialog.ext} onClose={() => setDialog(null)} />}
       {installing && <InstallDialog d={d} data={data} exts={installing} onClose={() => setInstalling(null)} onDone={() => { setInstalling(null); setSel(new Set()); }} />}
       {confirm && (
-        <Modal icon="trash" tone="bad" title={X.confirmDelete(confirm.name, confirm.profiles)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+        <Modal kind="bad" title={X.confirmDelete(confirm.name, confirm.profiles)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
           <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-          <button type="button" className="btn btn-danger solid" onClick={() => void remove(confirm)}>{X.delete}</button>
+          <Act className="btn btn-danger solid" run={() => remove(confirm)}>{X.delete}</Act>
         </>}><p>{X.deleteNote}</p></Modal>
       )}
     </div>
@@ -114,7 +114,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
 
 interface ExtItem { d: Dict; e: Extension; manager: boolean; checked: boolean; users: ReactNode; onToggle(): void; onInstall(): void; onUpdate(): void; onDelete(): void }
 
-const Shield = ({ d }: { d: Dict }) => <span className="shield" title={d.extensions.signedNote}><svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={SHIELD} /></svg>{d.extensions.signed}</span>;
+const Shield = ({ d }: { d: Dict }) => <span className="shield" title={d.extensions.signedNote}><svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d={SHIELD} /></svg>{d.extensions.signed}</span>;
 const source = (d: Dict, e: Extension) => (e.source === 'store' ? e.storeId : d.extensions.uploaded);
 
 // The manager's own actions on an extension: a new version, or deleting it.
@@ -178,9 +178,9 @@ function InstallDialog({ d, data, exts, onClose, onDone }: { d: Dict; data: Work
     } catch (err){ toast(errorText(d, isApiError(err) ? err.code : 'internal'), undefined, 'bad'); } finally { setBusy(false); }
   }
   return (
-    <Modal icon="download" title={exts.length === 1 ? X.installTitle(exts[0].name) : X.installMany(exts.length)} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal kind="info" title={exts.length === 1 ? X.installTitle(exts[0].name) : X.installMany(exts.length)} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-primary" disabled={!chosen.size || busy} onClick={() => void install()}>{X.installDo(chosen.size)}</button>
+      <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={!chosen.size || busy} onClick={() => void install()}>{X.installDo(chosen.size)}</button>
     </>}>
       <p>{[...kinds].map(k => ENGINES[k]).join(' · ')}</p>
       {profiles.length ? <>

@@ -111,7 +111,7 @@ await page.goto('https://example.com');`
           <div className="api-col">
             <section className="api-card" aria-label={A.server}>
               <div className="api-h">
-                <span className="kic accent"><Icon name="api" /></span>
+                <Icon name="api" />
                 <span><b>{A.server}</b>
                   <small className={`api-status${state.listening ? ' on' : state.error ? ' bad' : ''}`} role="status">
                     {state.listening ? <>{A.listening} <span className="mono">{base}</span></> : state.error ? A.errors[state.error as keyof typeof A.errors] ?? state.error : A.off}
@@ -148,7 +148,7 @@ await page.goto('https://example.com');`
               <ul className="tokens">
                 {state.tokens.map(t => (
                   <li key={t.id} data-token={t.name}>
-                    <span className="kic"><Icon name="key" /></span>
+                    <Icon name="key" />
                     <span><b>{t.name}{t.workspaceId !== ws.id && <span className="tag">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}</b>
                       <small>{A.made(day(t.createdAt, lang))} · {t.lastUsedAt ? A.used(day(t.lastUsedAt, lang)) : A.unused}</small></span>
                     <span className="sp" />

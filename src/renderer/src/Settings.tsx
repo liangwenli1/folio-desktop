@@ -35,7 +35,7 @@ export function SettingsPage({ d, ws, data, manager }: { d: Dict; ws: Workspace;
         <header className="bar">
           <div className="ttl"><h1>{S.title}</h1><p className="sub">{S.lead}</p></div>
           <span className="sp" />
-          {manager && <button className="btn btn-primary" type="button" disabled={busy} onClick={() => void save()}>{S.save}</button>}
+          {manager && <button className="btn btn-primary" type="button" disabled={busy} aria-busy={busy || undefined} onClick={() => void save()}>{S.save}</button>}
         </header>
 
         <div className="setup">

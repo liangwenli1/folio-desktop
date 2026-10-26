@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Empty, Icon, ListFailed, Modal, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { Act, Empty, Icon, ListFailed, Modal, Switch, useToast, useView, ViewSwitch, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -131,9 +131,9 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
             onRerun={ids => void start(shown, 'rerun', ids)} />}
         </>}
         {confirm && (
-          <Modal icon="trash" tone="bad" title={T.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+          <Modal kind="bad" title={T.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
             <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-            <button type="button" className="btn btn-danger solid" onClick={() => void remove(confirm)}>{T.delete}</button>
+            <Act className="btn btn-danger solid" run={() => remove(confirm)}>{T.delete}</Act>
           </>}><p>{describeTask(d, lang, confirm)}</p></Modal>
         )}
       </main>
@@ -508,7 +508,7 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
   return (
     <Modal title={task ? T.editTitle : T.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="button" disabled={blocked} onClick={() => void save()}>{task ? T.save : T.create}</button>
+      <button className="btn btn-primary" type="button" disabled={blocked} aria-busy={saving || undefined} onClick={() => void save()}>{task ? T.save : T.create}</button>
     </>}>
       <div className="m-body">
         <div className="row2">

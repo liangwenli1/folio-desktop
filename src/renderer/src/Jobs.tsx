@@ -14,7 +14,9 @@ type Tab = 'all' | 'running' | 'done' | 'partial' | 'canceled';
 type Range = 'day' | 'week' | 'month' | 'all';
 const KINDS: JobKind[] = ['proxy.check', 'profile.open', 'proxy.import', 'profile.edit', 'kernel.download'];
 const RANGE_MS: Record<Range, number> = { day: 86_400_000, week: 7 * 86_400_000, month: 30 * 86_400_000, all: Infinity };
-const STATE_ICON: Record<Job['status'], IconName> = { running: 'refresh', done: 'check', partial: 'alert', canceled: 'stop' };
+// How a job went, and each target in it, as in the design: a white mark in a solid circle of its colour (a spinner while
+// running). A job whose targets all failed reads as failed.
+const MARKS: Record<string, IconName> = { done: 'check', ok: 'check', partial: 'bang', failed: 'x', canceled: 'minus' };
 // Jobs that run on a computer (rather than on the server) can only be retried there.
 const pct = (j: Job) => (j.total ? Math.round(((j.ok + j.failed + j.canceled) / j.total) * 100) : 0);
 
@@ -112,8 +114,8 @@ function Bar({ j }: { j: Job }){
 
 function State({ d, j }: { d: Dict; j: Job }){
   const J = d.jobs;
-  const label = j.status === 'partial' && !j.ok ? J.states.failed : J.states[j.status];
-  return <span className={`jb-st ${j.status}`}><Icon name={STATE_ICON[j.status]} />{label}</span>;
+  const s = j.status === 'partial' && !j.ok ? 'failed' : j.status;
+  return <span className={`jb-st ${s}`}>{s === 'running' ? <span className="spin" /> : <Icon name={MARKS[s]} />}{J.states[s]}</span>;
 }
 
 // One job beside the list: who started it and when, how many went which way, each target's result and the job's log,
@@ -166,7 +168,7 @@ function JobPanel({ d, lang, data, job, mine, here, onClose, onFail }: {
               {(detail?.items ?? []).map(i => (
                 <tr key={i.seq} data-item={i.name}>
                   <td className="ellip" title={i.name}>{i.name}</td>
-                  <td><span className={`jb-r ${i.status}`}>{J.results[i.status]}</span></td>
+                  <td><span className={`jb-r ${i.status}`}>{MARKS[i.status] && <Icon name={MARKS[i.status]} />}{J.results[i.status]}</span></td>
                   <td className="ellip" title={i.status === 'failed' ? jobError(d, job.kind, i.error) : undefined}>{i.status === 'failed' ? jobError(d, job.kind, i.error) : '—'}</td>
                 </tr>
               ))}
@@ -184,7 +186,7 @@ function JobPanel({ d, lang, data, job, mine, here, onClose, onFail }: {
         {job.failed > 0 && job.kind !== 'proxy.import' && <p className="hint"><Icon name="info" />{canRetry ? J.retryNote : mine ? J.retryElsewhere : J.retryTheirs}</p>}
         {canCancel && <button type="button" className="btn btn-secondary" onClick={() => data.cancel(job.id)}>{J.cancel}</button>}
         <div className="jb-acts">
-          {job.kind !== 'proxy.import' && <button type="button" className="btn btn-primary" disabled={!canRetry || busy} onClick={() => void retry()}>{J.retry(job.failed)}</button>}
+          {job.kind !== 'proxy.import' && <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={!canRetry || busy} onClick={() => void retry()}>{J.retry(job.failed)}</button>}
           <button type="button" className="btn btn-secondary" disabled={!detail} onClick={() => void download()}>{J.download}</button>
         </div>
       </div>

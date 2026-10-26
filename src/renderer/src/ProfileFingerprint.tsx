@@ -110,7 +110,7 @@ export function FingerprintTab({ d, lang, data, p, h, status, size, risks, other
         {dirty && <span className="pf-dirty"><span className="d warn" aria-hidden="true" /><b>{d.form.unsaved}</b></span>}
         <span className="sp" />
         <button type="button" className="btn btn-secondary" disabled={locked} onClick={f.defaults}>{T.defaults}</button>
-        <button type="button" className="btn btn-primary" disabled={locked || saving || !dirty || f.fp.state !== 'ready'} onClick={() => void save()}>{T.save}</button>
+        <button type="button" className="btn btn-primary" aria-busy={saving || undefined} disabled={locked || saving || !dirty || f.fp.state !== 'ready'} onClick={() => void save()}>{T.save}</button>
       </div>
     </div>
   );

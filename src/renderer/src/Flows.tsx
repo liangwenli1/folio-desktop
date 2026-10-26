@@ -6,7 +6,7 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Empty, Icon, ListFailed, Modal, useToast } from './ui';
+import { Act, Empty, Icon, ListFailed, Modal, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -16,19 +16,19 @@ const STEP_GROUPS: [keyof Dict['flows']['groups'], StepType[]][] = [
   ['page', ['open', 'click', 'type', 'press', 'scroll', 'wait']], ['data', ['extract', 'set', 'screenshot', 'signedIn']], ['logic', ['if', 'loop']], ['other', ['script']]
 ];
 const STEP_ICONS: Record<StepType, string> = {
-  open: 'M6.5 9.5 9.5 6.5M7 4.5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1M9 11.5l-1 1A2.5 2.5 0 0 1 4.5 9l1-1',
-  click: 'M4 3l7.5 3.2-3.1 1.2-1.2 3.1zM8.4 7.4 12 11',
-  type: 'M2 4.5h12v7H2zM4.5 7h.01M7 7h.01M9.5 7h.01M12 7h.01M5 9.5h6',
-  press: 'M3.5 3.5h9v9h-9zM6 9.5l2-3.5 2 3.5',
-  wait: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 5v3l2 1.5',
-  scroll: 'M8 2.5v11M5.5 5 8 2.5 10.5 5M5.5 11 8 13.5 10.5 11',
-  extract: 'M3 3.5h10M3 6.5h6M3 9.5h4M10.5 8v5M8.5 11l2 2 2-2',
-  set: 'M3 5l3.5 6M6.5 5 3 11M9 7h4M9 9.5h4',
-  if: 'M4 2.5v11M4 6c0 2 1.5 3 4 3h3.5M10 7.5 11.5 9 10 10.5',
-  loop: 'M3 8a5 5 0 0 1 8.5-3.5M13 8a5 5 0 0 1-8.5 3.5M11.5 2.5v2h-2M4.5 13.5v-2h2',
-  screenshot: 'M2.5 5h2.5l1-1.5h4l1 1.5h2.5v7.5h-11zM8 10.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  script: 'M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4',
-  signedIn: 'M7.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0zM1.5 13c.5-2.3 2-3.5 3.5-3.5s3 1.2 3.5 3.5M9.5 9l1.5 1.5 3-3'
+  open: 'M9.75 14.25 14.25 9.75M10.5 6.75l1.5 -1.5a3.75 3.75 0 0 1 5.25 5.25l-1.5 1.5M13.5 17.25l-1.5 1.5A3.75 3.75 0 0 1 6.75 13.5l1.5 -1.5',
+  click: 'M6 4.5l11.25 4.8 -4.65 1.8 -1.8 4.65zM12.6 11.1 18 16.5',
+  type: 'M3 6.75h18v10.5H3zM6.75 10.5h0.015M10.5 10.5h0.015M14.25 10.5h0.015M18 10.5h0.015M7.5 14.25h9',
+  press: 'M5.25 5.25h13.5v13.5h-13.5zM9 14.25l3 -5.25 3 5.25',
+  wait: 'M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0zM12 7.5v4.5l3 2.25',
+  scroll: 'M12 3.75v16.5M8.25 7.5 12 3.75 15.75 7.5M8.25 16.5 12 20.25 15.75 16.5',
+  extract: 'M4.5 5.25h15M4.5 9.75h9M4.5 14.25h6M15.75 12v7.5M12.75 16.5l3 3 3 -3',
+  set: 'M4.5 7.5l5.25 9M9.75 7.5 4.5 16.5M13.5 10.5h6M13.5 14.25h6',
+  if: 'M6 3.75v16.5M6 9c0 3 2.25 4.5 6 4.5h5.25M15 11.25 17.25 13.5 15 15.75',
+  loop: 'M4.5 12a7.5 7.5 0 0 1 12.75 -5.25M19.5 12a7.5 7.5 0 0 1 -12.75 5.25M17.25 3.75v3h-3M6.75 20.25v-3h3',
+  screenshot: 'M3.75 7.5h3.75l1.5 -2.25h6l1.5 2.25h3.75v11.25h-16.5zM12 15.75a3 3 0 1 0 0 -6 3 3 0 0 0 0 6z',
+  script: 'M8.25 6 3 12l5.25 6M15.75 6 21 12l-5.25 6',
+  signedIn: 'M11.25 8.25a3.75 3.75 0 1 1 -7.5 0 3.75 3.75 0 0 1 7.5 0zM2.25 19.5c0.75 -3.45 3 -5.25 5.25 -5.25s4.5 1.8 5.25 5.25M14.25 13.5l2.25 2.25 4.5 -4.5'
 };
 const VAR = /^[A-Za-z_][A-Za-z0-9_]{0,39}$/;
 
@@ -139,9 +139,9 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
           </table>
         </div>
         {confirm && (
-          <Modal icon="trash" tone="bad" title={F.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
+          <Modal kind="bad" title={F.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
             <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-            {!users(confirm.id) && <button type="button" className="btn btn-danger solid" onClick={() => void remove(confirm)}>{F.delete}</button>}
+            {!users(confirm.id) && <Act className="btn btn-danger solid" run={() => remove(confirm)}>{F.delete}</Act>}
           </>}>{users(confirm.id) && <p>{F.inUse(users(confirm.id))}</p>}</Modal>
         )}
       </main>
@@ -234,7 +234,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
           <span className="sp" />
           {readOnly
             ? <button type="button" className="btn btn-secondary" onClick={() => flow && onDuplicate(flow)}>{F.duplicateToEdit}</button>
-            : <button type="button" className="btn btn-primary" disabled={!dirty || !!issues || !edit.name.trim() || saving} title={issues ? F.issues(issues) : !edit.name.trim() ? F.nameNeeded : undefined} onClick={() => void save()}>{saving ? F.saving : F.save}</button>}
+            : <button type="button" className="btn btn-primary" aria-busy={saving || undefined} disabled={!dirty || !!issues || !edit.name.trim() || saving} title={issues ? F.issues(issues) : !edit.name.trim() ? F.nameNeeded : undefined} onClick={() => void save()}>{saving ? F.saving : F.save}</button>}
         </header>
         {leaving && (
           <div className="away-note flow-note" role="alertdialog" aria-label={F.leave}>
@@ -278,7 +278,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
 }
 
 const CATEGORY = Object.fromEntries(STEP_GROUPS.flatMap(([g, types]) => types.map(t => [t, g]))) as Record<StepType, string>;
-const StepIcon = ({ t }: { t: StepType }) => <span className={`step-ic ${CATEGORY[t]}`} aria-hidden="true"><svg className="i" viewBox="0 0 16 16"><path d={STEP_ICONS[t]} /></svg></span>;
+const StepIcon = ({ t }: { t: StepType }) => <span className={`stype ${CATEGORY[t]}`} aria-hidden="true"><svg className="i" viewBox="0 0 24 24"><path d={STEP_ICONS[t]} /></svg></span>;
 
 // A step in one line, for its node.
 function summary(d: Dict, s: Step): string {

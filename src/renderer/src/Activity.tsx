@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, fieldName, type Dict, type Lang } from './i18n';
-import { Empty, Icon, LoadFailed, useToast, type IconName } from './ui';
+import { Empty, Icon, LoadFailed, useToast } from './ui';
 import { Select } from './Select';
 import { Pager } from './Pager';
 
@@ -56,8 +56,6 @@ const KINDS: Record<Exclude<Kind, 'all'>, string[]> = {
   extensions: ['extension.add', 'extension.update', 'extension.delete'],
   automation: ['flow.create', 'flow.update', 'flow.delete', 'task.create', 'task.update', 'task.delete', 'run.start', 'run.finish']
 };
-const KIND_ICON: Record<Exclude<Kind, 'all'>, IconName> = { open: 'play', profiles: 'profiles', trash: 'trash', proxies: 'proxies', cookies: 'upload', team: 'team', extensions: 'extensions', automation: 'tasks' };
-const kindOf = (action: string) => (Object.keys(KINDS) as Exclude<Kind, 'all'>[]).find(k => KINDS[k].includes(action)) ?? 'profiles';
 // A date picked in the filter, as the start of that day here.
 const dayStart = (date: string, plus = 0) => { const t = new Date(`${date}T00:00:00`); t.setDate(t.getDate() + plus); return t.toISOString(); };
 
@@ -161,7 +159,7 @@ export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClea
             <tr key={e.seq} data-action={e.action} className={cur === e.seq ? 'cur' : ''} onClick={onPick ? ev => { if (!(ev.target as HTMLElement).closest('button')) onPick(e); } : undefined}>
               <td className="nowrap"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>
               <td><span className="who-cell">{e.actor ? <span className="pav sm" aria-hidden="true">{e.actor.slice(0, 1).toUpperCase()}</span> : null}<b>{who(d, e)}</b></span></td>
-              <td><span className="kind-cell"><span className="kic sm" aria-hidden="true"><Icon name={KIND_ICON[kindOf(e.action)]} /></span>{A.types[e.action]}</span></td>
+              <td>{A.types[e.action]}</td>
               {!profile && <td>{objectOf(e) ? <><span className="l1">{objectOf(e)}</span>{numberOf(e) && <span className="l2 mono">{numberOf(e)}</span>}</> : <span className="muted">—</span>}</td>}
               <td className="lg-what">{onPick ? <button type="button" className="rowlink" onClick={() => onPick(e)}>{said(d, e)}</button> : said(d, e)}</td>
             </tr>

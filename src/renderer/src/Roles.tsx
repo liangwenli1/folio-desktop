@@ -5,7 +5,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { folio, isApiError, type Permission, type Role, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, roleName, type Dict } from './i18n';
-import { Icon, Modal, Switch, useToast } from './ui';
+import { Act, Icon, Modal, Switch, useToast } from './ui';
 import { SelectField } from './Select';
 
 type Section = 'profiles' | 'data' | 'proxies' | 'team';
@@ -96,18 +96,18 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
             {!role.key && <button type="button" className="btn btn-text danger-t" onClick={() => setDeleting(true)}>{P.delete}</button>}
             <span className="sp" />
             {role.defaults && <button type="button" className="btn btn-secondary" disabled={same(perms, role.defaults)} onClick={() => setPerms(role.defaults!)}>{P.reset}</button>}
-            <button type="button" className="btn btn-primary" disabled={!dirty || busy || !name.trim()} onClick={() => void save()}>{P.save}</button>
+            <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={!dirty || busy || !name.trim()} onClick={() => void save()}>{P.save}</button>
           </div>
         )}
       </section>
 
       {adding && <NewRoleDialog d={d} ws={ws} data={data} onClose={() => setAdding(false)} onDone={id => { setAdding(false); setCur(id); }} />}
       {deleting && (
-        <Modal icon="trash" tone="bad" title={P.deleteTitle(role.name)} closeLabel={d.common.close} onClose={() => setDeleting(false)} foot={<>
+        <Modal kind="bad" title={P.deleteTitle(role.name)} closeLabel={d.common.close} onClose={() => setDeleting(false)} foot={<>
           <button type="button" className="btn btn-secondary" onClick={() => setDeleting(false)}>{d.common.cancel}</button>
-          <button type="button" className="btn btn-danger solid" onClick={() => void folio.api('DELETE', `/roles/${role.id}`).then(() => {
+          <Act className="btn btn-danger solid" run={() => folio.api('DELETE', `/roles/${role.id}`).then(() => {
             toast(P.deleted(role.name)); setDeleting(false); setCur(''); data.refresh('members');
-          }, e => { setDeleting(false); toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); })}>{P.delete}</button>
+          }, e => { setDeleting(false); toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); })}>{P.delete}</Act>
         </>}><p>{P.deleteNote}</p></Modal>
       )}
     </div>
@@ -131,7 +131,7 @@ function NewRoleDialog({ d, ws, data, onClose, onDone }: { d: Dict; ws: Workspac
   return (
     <Modal title={P.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-primary" onClick={() => void create()}>{P.create}</button>
+      <Act className="btn btn-primary" run={() => create()}>{P.create}</Act>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}

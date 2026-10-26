@@ -338,7 +338,7 @@ function useJobNotice(d: Dict, data: WorkspaceData){
 function NavItem({ icon, label, badge, active, onClick }: { icon: IconName; label: string; badge?: string; active: boolean; onClick(): void }){
   return (
     <button className={`nav-i${active ? ' active' : ''}`} type="button" aria-current={active ? 'page' : undefined} title={label} onClick={onClick}>
-      <span className="ni"><Icon name={icon} /></span><span className="nav-l">{label}</span>{badge && <span className="cnt on">{badge}</span>}
+      <Icon name={icon} /><span className="nav-l">{label}</span>{badge && <span className="cnt on">{badge}</span>}
     </button>
   );
 }

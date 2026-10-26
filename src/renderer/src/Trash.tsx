@@ -8,7 +8,7 @@ import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { BulkBar, Empty, Icon, ListFailed, Modal, ViewSwitch, useToast, useView } from './ui';
+import { Act, BulkBar, Empty, Icon, ListFailed, Modal, useToast, useView, ViewSwitch } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -150,26 +150,26 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
               </dl>
               <SelectField label={T.restoreTo} value={target} onChange={setTarget} hint={T.restoreToHint} searchPh={d.form.searchPh}
                 options={[{ value: '', label: T.sameGroup }, { value: 'none', label: d.groups.none }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />
-              <button type="button" className="btn btn-primary" onClick={() => void restore(picked)}>{T.restoreN(picked.length)}</button>
+              <Act className="btn btn-primary" run={() => restore(picked)}>{T.restoreN(picked.length)}</Act>
               <button type="button" className="btn btn-danger outline" onClick={() => setConfirm(picked)}>{T.purgeN(picked.length)}</button>
             </aside>
           )}
         </div>
-        {confirm && <PurgeDialog d={d} targets={confirm} onClose={() => setConfirm(null)} onPurge={() => void purge(confirm)} />}
+        {confirm && <PurgeDialog d={d} targets={confirm} onClose={() => setConfirm(null)} onPurge={() => purge(confirm)} />}
       </main>
     </div>
   );
 }
 
 // Deleting for good can't be undone: the profile's name (or, for several, how many) is typed to confirm.
-function PurgeDialog({ d, targets, onClose, onPurge }: { d: Dict; targets: Profile[]; onClose(): void; onPurge(): void }){
+function PurgeDialog({ d, targets, onClose, onPurge }: { d: Dict; targets: Profile[]; onClose(): void; onPurge(): Promise<unknown> }){
   const T = d.trash;
   const [typed, setTyped] = useState('');
   const word = targets.length === 1 ? targets[0].name : String(targets.length);
   return (
-    <Modal icon="trash" tone="bad" title={T.confirmPurge(targets.length)} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal kind="bad" title={T.confirmPurge(targets.length)} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-danger solid" disabled={typed.trim() !== word} onClick={onPurge}>{T.purge}</button>
+      <Act className="btn btn-danger solid" disabled={typed.trim() !== word} run={onPurge}>{T.purge}</Act>
     </>}>
       <div className="m-body">
         <p>{T.confirmNote}</p>

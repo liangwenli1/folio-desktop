@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Workspace } from './ap
 import { kernelKey, type WorkspaceData } from './data';
 import { health } from './checks';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
-import { Avatar, BulkBar, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, Switch, useToast, type GroupColor } from './ui';
+import { Act, Avatar, BulkBar, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, Switch, useToast, type GroupColor } from './ui';
 import { Select, SelectField } from './Select';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
@@ -300,7 +300,7 @@ function GroupSettings({ d, ws, data, meId, group, kids, company, onClose, onDel
         <Switch label={G.inherit} checked={inherit} disabled={!parentId} onChange={setInherit} />
         <p className="hint">{G.inheritHint}</p>
       </div>
-      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void save()}>{G.save}</button>
+      <button type="button" className="btn btn-primary" disabled={busy} aria-busy={busy || undefined} onClick={() => void save()}>{G.save}</button>
       <button type="button" className="btn btn-text danger-t" onClick={onDelete}>{G.delete}</button>
     </aside>
   );
@@ -355,7 +355,7 @@ function NewGroupDialog({ d, ws, data, meId, company, parentId: under, onClose, 
       <span className="hint">{G.createHint}</span>
       <span className="sp" />
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void create()}>{G.create}</button>
+      <button type="button" className="btn btn-primary" disabled={busy} aria-busy={busy || undefined} onClick={() => void create()}>{G.create}</button>
     </>}>
       <div className="m-body gp-new">
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -402,9 +402,9 @@ function DeleteGroupDialog({ d, data, group, onClose, onDone }: { d: Dict; data:
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal icon="trash" tone="bad" title={G.deleteTitle(group.name)} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal kind="bad" title={G.deleteTitle(group.name)} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
-      <button type="button" className="btn btn-danger solid" onClick={() => void remove()}>{G.delete}</button>
+      <Act className="btn btn-danger solid" run={() => remove()}>{G.delete}</Act>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}

@@ -5,7 +5,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Invitation, type Membe
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
-import { Avatar, Empty, Icon, ListFailed, Modal, MoreMenu, Progress, useToast, type IconName } from './ui';
+import { Act, Avatar, Empty, Icon, ListFailed, Modal, MoreMenu, Progress, useToast, type IconName } from './ui';
 import { Select, SelectField } from './Select';
 import { RolesTab } from './Roles';
 
@@ -170,9 +170,9 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
       {dialog?.kind === 'access' && <AccessDialog d={d} ws={ws} data={data} company={company} member={dialog.member} onClose={close} />}
       {dialog?.kind === 'remove' && <RemoveDialog d={d} ws={ws} data={data} member={dialog.member} meId={meId} onClose={close} />}
       {dialog?.kind === 'leave' && (
-        <Modal icon="logout" tone="bad" title={T.leaveTitle(ws.name)} closeLabel={d.common.close} onClose={close} foot={<>
+        <Modal kind="bad" title={T.leaveTitle(ws.name)} closeLabel={d.common.close} onClose={close} foot={<>
           <button className="btn btn-secondary" type="button" onClick={close}>{d.common.cancel}</button>
-          <button className="btn btn-danger solid" type="button" onClick={() => void folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</button>
+          <Act className="btn btn-danger solid" run={() => folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</Act>
         </>}><p>{T.leaveLead}</p></Modal>
       )}
     </div>
@@ -272,7 +272,7 @@ function InviteDialog({ d, ws, data, company, seats, limit, onClose }: {
         {limit !== null && <span className={`hint${after > limit ? ' bad-t' : ''}`}>{T.seatsAfter(after, limit)}</span>}
         <span className="sp" />
         <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-        <button className="btn btn-primary" type="button" disabled={busy || !roleId} onClick={() => void send()}>{T.send}</button>
+        <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || !roleId} onClick={() => void send()}>{T.send}</button>
       </>}>
       {results ? (
         <div className="m-body" role="status">
@@ -344,7 +344,7 @@ function AccessDialog({ d, ws, data, company, member, onClose }: { d: Dict; ws: 
   return (
     <Modal title={T.accessTitle(member.email)} sub={T.accessSub} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="button" disabled={busy || (roleId === member.role.id && !changedGroups)} onClick={() => void save()}>{d.common.save}</button>
+      <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || (roleId === member.role.id && !changedGroups)} onClick={() => void save()}>{d.common.save}</button>
     </>}>
       <div className="m-body inv">
         {error && <p className="notice error" role="alert">{error}</p>}
@@ -377,7 +377,7 @@ function RemoveDialog({ d, ws, data, member, meId, onClose }: { d: Dict; ws: Wor
   return (
     <Modal title={T.removeTitle(member.email)} closeLabel={d.common.close} onClose={onClose} foot={<>
       <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-danger solid" type="button" disabled={!heir} onClick={() => void remove()}>{T.removeDo}</button>
+      <Act className="btn btn-danger solid" disabled={!heir} run={() => remove()}>{T.removeDo}</Act>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
