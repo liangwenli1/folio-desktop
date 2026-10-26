@@ -481,7 +481,6 @@ export interface paths {
                                 defaultKernelVersion: string | null;
                                 defaultGroupId: string | null;
                                 defaultProxyId: string | null;
-                                autoDownloadKernels: boolean;
                                 openDetailAfterLaunch: boolean;
                                 stopOnWindowClose: boolean;
                                 expiryReminder: boolean;
@@ -519,7 +518,6 @@ export interface paths {
                             defaultKernelVersion?: string | null;
                             defaultGroupId?: string | null;
                             defaultProxyId?: string | null;
-                            autoDownloadKernels?: boolean;
                             openDetailAfterLaunch?: boolean;
                             stopOnWindowClose?: boolean;
                             expiryReminder?: boolean;
@@ -543,7 +541,6 @@ export interface paths {
                                 defaultKernelVersion: string | null;
                                 defaultGroupId: string | null;
                                 defaultProxyId: string | null;
-                                autoDownloadKernels: boolean;
                                 openDetailAfterLaunch: boolean;
                                 stopOnWindowClose: boolean;
                                 expiryReminder: boolean;
@@ -1577,9 +1574,11 @@ export interface paths {
                                 /** @enum {string} */
                                 color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                                 parentId: string | null;
+                                description: string | null;
                                 inheritMembers: boolean;
                                 memberIds: string[];
                                 profiles: number;
+                                createdAt: string;
                             }[];
                         };
                     };
@@ -1604,7 +1603,9 @@ export interface paths {
                         color?: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                         /** Format: uuid */
                         parentId?: string | null;
+                        description?: string | null;
                         inheritMembers?: boolean;
+                        memberIds?: string[];
                     };
                 };
             };
@@ -1621,9 +1622,11 @@ export interface paths {
                             /** @enum {string} */
                             color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                             parentId: string | null;
+                            description: string | null;
                             inheritMembers: boolean;
                             memberIds: string[];
                             profiles: number;
+                            createdAt: string;
                         };
                     };
                 };
@@ -1688,6 +1691,7 @@ export interface paths {
                         color?: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                         /** Format: uuid */
                         parentId?: string | null;
+                        description?: string | null;
                         inheritMembers?: boolean;
                         memberIds?: string[];
                     };
@@ -1706,9 +1710,11 @@ export interface paths {
                             /** @enum {string} */
                             color: "red" | "blue" | "green" | "amber" | "purple" | "teal" | "gray";
                             parentId: string | null;
+                            description: string | null;
                             inheritMembers: boolean;
                             memberIds: string[];
                             profiles: number;
+                            createdAt: string;
                         };
                     };
                 };
@@ -2893,6 +2899,7 @@ export interface paths {
                                 username: string | null;
                                 hasPassword: boolean;
                                 backupId: string | null;
+                                notes: string | null;
                                 lastCheck: {
                                     ok: boolean;
                                     ms: number | null;
@@ -2960,6 +2967,7 @@ export interface paths {
                         password?: string | null;
                         /** Format: uuid */
                         backupId?: string | null;
+                        notes?: string | null;
                     };
                 };
             };
@@ -2980,6 +2988,7 @@ export interface paths {
                             username: string | null;
                             hasPassword: boolean;
                             backupId: string | null;
+                            notes: string | null;
                             lastCheck: {
                                 ok: boolean;
                                 ms: number | null;
@@ -3030,7 +3039,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/workspaces/{id}/proxies/import": {
+    "/workspaces/{id}/proxies/import/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -3068,6 +3077,77 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            lines: ({
+                                /** @enum {boolean} */
+                                ok: true;
+                                line: number;
+                                /** @enum {string} */
+                                type: "http" | "https" | "socks5";
+                                host: string;
+                                port: number;
+                                username: string | null;
+                                saved: boolean;
+                                repeat: boolean;
+                            } | {
+                                /** @enum {boolean} */
+                                ok: false;
+                                line: number;
+                                text: string;
+                                /** @enum {string} */
+                                why: "format" | "port";
+                            })[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/proxies/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        text: string;
+                        /**
+                         * @default http
+                         * @enum {string}
+                         */
+                        defaultType?: "http" | "https" | "socks5";
+                        /** @default true */
+                        skipDuplicates?: boolean;
+                        namePattern?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
                             proxies: {
                                 id: string;
                                 name: string;
@@ -3078,6 +3158,7 @@ export interface paths {
                                 username: string | null;
                                 hasPassword: boolean;
                                 backupId: string | null;
+                                notes: string | null;
                                 lastCheck: {
                                     ok: boolean;
                                     ms: number | null;
@@ -3189,6 +3270,7 @@ export interface paths {
                         password?: string | null;
                         /** Format: uuid */
                         backupId?: string | null;
+                        notes?: string | null;
                     };
                 };
             };
@@ -3209,6 +3291,7 @@ export interface paths {
                             username: string | null;
                             hasPassword: boolean;
                             backupId: string | null;
+                            notes: string | null;
                             lastCheck: {
                                 ok: boolean;
                                 ms: number | null;
@@ -3310,6 +3393,7 @@ export interface paths {
                             username: string | null;
                             hasPassword: boolean;
                             backupId: string | null;
+                            notes: string | null;
                             lastCheck: {
                                 ok: boolean;
                                 ms: number | null;
@@ -4654,6 +4738,7 @@ export interface paths {
                                 username: string | null;
                                 password: string | null;
                                 backupRef: string | null;
+                                notes?: string | null;
                             }[];
                             profiles: {
                                 name: string;
@@ -4758,6 +4843,7 @@ export interface paths {
                             username: string | null;
                             password: string | null;
                             backupRef: string | null;
+                            notes?: string | null;
                         }[];
                         profiles: {
                             name: string;

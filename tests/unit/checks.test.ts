@@ -5,7 +5,7 @@ import { health, proxyState } from '../../src/renderer/src/checks';
 
 const seattle = { country: 'US', countryName: 'United States', region: 'Washington', city: 'Seattle', lat: 47.6, lon: -122.3, timezone: 'America/Los_Angeles', locale: 'en-US' };
 const proxy = (id: string, check: Partial<NonNullable<Proxy['lastCheck']>> | null, backupId: string | null = null): Proxy => ({
-  id, name: id, type: 'socks5', host: `${id}.example.net`, port: 1080, username: null, hasPassword: false, backupId, profiles: 1, history: [], lastExit: null,
+  id, name: id, type: 'socks5', host: `${id}.example.net`, port: 1080, username: null, hasPassword: false, notes: null, backupId, profiles: 1, history: [], lastExit: null,
   createdAt: '', updatedAt: '',
   lastCheck: check && { ok: true, ms: 180, ip: '172.58.1.2', geo: seattle, error: null, checkedAt: '2026-10-21T00:00:00Z', ...check }
 });

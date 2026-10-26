@@ -103,12 +103,6 @@ export function SettingsPage({ d, ws, data, manager }: { d: Dict; ws: Workspace;
                   <p className="hint">{S.stopOnCloseHint}</p>
                 </div>
               </section>
-              <section className="sec" aria-label={S.engines}>
-                <h3>{S.engines}</h3>
-                <div className="set-row">
-                  <Switch label={S.autoDownload} checked={set.autoDownloadKernels} disabled={!manager} onChange={v => change('autoDownloadKernels', v)} />
-                </div>
-              </section>
             </>}
 
             {section === 'notices' && (

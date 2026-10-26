@@ -72,7 +72,6 @@ export const en = {
     opening: 'Opening', openingLead: 'What happens when a profile is opened and closed.',
     openDetail: 'Open its details after launching', openDetailHint: 'The profile\u2019s page opens as soon as its browser starts.',
     stopOnClose: 'Stop the profile when its last window closes', stopOnCloseHint: 'With this off, closing the browser leaves the profile running: Go to window opens it again, and Stop ends it and saves its sign-ins.',
-    engines: 'Engines', autoDownload: 'Download the recommended version automatically',
     notices: 'Notices', noticesLead: 'What the app tells you about.',
     expiry: 'Say when the plan is close to its end',
     saved: 'Settings saved', save: 'Save settings'
@@ -768,7 +767,6 @@ export const zh: Dict = {
     opening: '启动偏好', openingLead: '设置环境启动和关闭时的默认行为。',
     openDetail: '启动后打开环境详情', openDetailHint: '浏览器启动后自动打开该环境的详情页。',
     stopOnClose: '关闭窗口后停止环境', stopOnCloseHint: '关闭此项后，关闭浏览器窗口时环境继续运行：点「进入」重新打开窗口，点「停止」才结束并保存登录状态。',
-    engines: '内核', autoDownload: '自动下载推荐版本',
     notices: '通知设置', noticesLead: '设置应用内提醒。',
     expiry: '套餐临近到期时提醒',
     saved: '设置已保存', save: '保存设置'
