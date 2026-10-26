@@ -176,8 +176,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     expect(await kept(a, p.id, stores.page)).toEqual({ local: 'alpha-1', db: 'alpha-1' });
     await stop(winA, p.id);
     await winA.getByRole('button', { name: 'Wallet-01', exact: true }).click();
-    await winA.getByRole('tab', { name: 'Cookies' }).click();
-    await expect(winA.getByTestId('storage').locator('.store')).toContainText('1Extensions');
+    await expect(detail(winA).getByRole('region', { name: 'Basics' })).toContainText(ext.name);
     await a.close();
 
     // Another computer: restored with the sign-ins.

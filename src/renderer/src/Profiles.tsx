@@ -6,6 +6,7 @@ import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
 import { Avatar, BulkBar, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { Pager } from './Pager';
 import { Select } from './Select';
 import { Flag, SEARCH_LOGOS } from './Flag';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
@@ -134,9 +135,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     if (r.saved) toast(d.detail.exported(r.saved, r.path));
     r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code)), undefined, 'bad'));
   }
-  async function importCookies(p: Profile, text: string){
-    try { toast(d.detail.imported((await folio.importCookies(p.id, text)).count)); } catch (e){ fail(e); }
-  }
 
   // Frees the profile from the other computer (its browser closes there) and opens it here.
   async function takeover(p: Profile){
@@ -245,8 +243,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       extensions={curProfile.extensionIds.map(id => extensions.get(id)).filter((x): x is Extension => !!x)}
       onBack={() => setDetail(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
       onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
-      canTakeOver={manager} canTrash={canDelete} canExport={canExport} onTakeover={() => void takeover(curProfile)}
-      onExport={format => void exportCookies([curProfile], format)} onImport={text => void importCookies(curProfile, text)}
+      canTakeOver={manager} canTrash={canDelete} onTakeover={() => void takeover(curProfile)}
+      onExport={format => void exportCookies([curProfile], format)}
       onFix={f => void fix(curProfile, f)} onShowProxy={manager ? onShowProxy : undefined}
     />
   );
@@ -580,27 +578,6 @@ function SyncBar({ d, data, names }: { d: Dict; data: WorkspaceData; names: Map<
       </form>
       <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
     </div>
-  );
-}
-
-// Which page of the list shows, and how many a page holds.
-function Pager({ d, total, page, size, onPage, onSize }: { d: Dict; total: number; page: number; size: number; onPage(p: number): void; onSize(n: number): void }){
-  const G = d.profiles.page, pages = Math.max(1, Math.ceil(total / size)), at = Math.min(page, pages);
-  // The first, the last, and the two either side of the current one; gaps show as an ellipsis.
-  const shown = [...new Set([1, at - 1, at, at + 1, pages])].filter(n => n >= 1 && n <= pages).sort((a, b) => a - b);
-  return (
-    <nav className="pager" aria-label={G.total(total)}>
-      <span className="muted">{G.total(total)}</span>
-      <Select variant="sm" label={G.size(size)} value={String(size)} onChange={v => onSize(Number(v))}
-        options={[20, 50, 100].map(n => ({ value: String(n), label: G.size(n) }))} />
-      <span className="sp" />
-      <button type="button" className="icon-btn" aria-label={G.prev} title={G.prev} disabled={at <= 1} onClick={() => onPage(at - 1)}><Icon name="back" /></button>
-      {shown.map((n, i) => <span key={n} className="pg">
-        {i > 0 && n - shown[i - 1] > 1 && <span className="muted" aria-hidden="true">…</span>}
-        <button type="button" className="pg-n" aria-label={G.go(n)} aria-current={n === at ? 'page' : undefined} onClick={() => onPage(n)}>{n}</button>
-      </span>)}
-      <button type="button" className="icon-btn" aria-label={G.next} title={G.next} disabled={at >= pages} onClick={() => onPage(at + 1)}><Icon name="chevR" /></button>
-    </nav>
   );
 }
 

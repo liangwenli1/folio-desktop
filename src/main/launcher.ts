@@ -20,7 +20,7 @@ import { collectExtensionData, prepareExtensions, writeExtensionData, type Exten
 import { chromiumSearchDue, setChromiumSearch, withFirefoxSearch } from './search';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, CheckupFacts, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
-import type { Cookie } from '../shared/cookies';
+import type { Cookie, CookieKey } from '../shared/cookies';
 import { SEARCH_ENGINES, type SearchEngine } from '../shared/search';
 
 interface LaunchProfile {
@@ -454,9 +454,13 @@ export async function newPage(id: string){
   const r = running.get(id);
   return r ? { page: await r.ctx.newPage(), kernel: r.profile.kernel } : null;
 }
-// Adds imported cookies to the browser, when the profile runs on this computer.
+// Adds imported cookies to the browser, or takes deleted ones out of it, when the profile runs on this computer.
 export async function addCookies(id: string, cookies: Cookie[]){
   await running.get(id)?.ctx.addCookies(cookies);
+}
+export async function removeCookies(id: string, keys: CookieKey[]){
+  const ctx = running.get(id)?.ctx;
+  for (const k of ctx ? keys : []) await ctx!.clearCookies({ name: k.name, domain: k.domain, path: k.path });
 }
 
 // Resolves once the state is saved and the lock released.

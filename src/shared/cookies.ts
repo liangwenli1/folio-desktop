@@ -5,39 +5,52 @@ export interface Cookie {
   expires: number; httpOnly: boolean; secure: boolean; sameSite: 'Strict' | 'Lax' | 'None';
 }
 
+// What identifies a cookie: two with the same name, domain and path are the same cookie.
+export type CookieKey = Pick<Cookie, 'name' | 'domain' | 'path'>;
+export const cookieKey = (c: CookieKey) => `${c.name}\u0000${c.domain}\u0000${c.path}`;
+
 const SAME_SITE: Record<string, Cookie['sameSite']> = { strict: 'Strict', lax: 'Lax', none: 'None', no_restriction: 'None', unspecified: 'Lax' };
 
-// Throws on JSON that does not parse; entries that are not cookies are skipped.
-export function parseCookies(text: string): Cookie[] {
+// Each entry of a file as read: a cookie, or why it is none (a JSON entry without a name, a value or a domain; a
+// cookies.txt line without its seven fields), with the name and domain it gave.
+export type Entry = { cookie: Cookie } | { why: 'name' | 'value' | 'domain' | 'line'; name: string; domain: string };
+
+// Throws on JSON that does not parse. Comments and blank lines of cookies.txt are no entries.
+export function readCookies(text: string): { format: 'json' | 'netscape'; entries: Entry[] } {
   const t = text.trim();
   if (t.startsWith('[') || t.startsWith('{')){
     const data = JSON.parse(t) as unknown;
     const list = Array.isArray(data) ? data : Array.isArray((data as { cookies?: unknown }).cookies) ? (data as { cookies: unknown[] }).cookies : [];
-    return list.flatMap(fromJson);
+    return { format: 'json', entries: list.map(fromJson) };
   }
-  return t.split(/\r?\n/).flatMap(fromNetscape);
+  return { format: 'netscape', entries: t.split(/\r?\n/).flatMap(fromNetscape) };
 }
+// The cookies of a file, leaving out what isn't one.
+export const parseCookies = (text: string) => readCookies(text).entries.flatMap(e => ('cookie' in e ? [e.cookie] : []));
 
-function fromJson(x: unknown): Cookie[] {
-  const c = x as Record<string, unknown>;
-  if (!c || typeof c.name !== 'string' || typeof c.value !== 'string' || typeof c.domain !== 'string' || !c.domain) return [];
+function fromJson(x: unknown): Entry {
+  const c = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
+  const name = typeof c.name === 'string' ? c.name : '', domain = typeof c.domain === 'string' ? c.domain : '';
+  const why = typeof c.name !== 'string' ? 'name' : typeof c.value !== 'string' ? 'value' : !domain ? 'domain' : null;
+  if (why) return { why, name, domain };
   // Playwright says `expires`, Cookie-Editor `expirationDate` (both seconds); session cookies have neither.
   const expires = c.session === true ? -1 : typeof c.expires === 'number' ? c.expires : typeof c.expirationDate === 'number' ? c.expirationDate : -1;
-  return [{
-    name: c.name, value: c.value, domain: c.domain, path: typeof c.path === 'string' && c.path ? c.path : '/',
+  return { cookie: {
+    name, value: c.value as string, domain, path: typeof c.path === 'string' && c.path ? c.path : '/',
     expires: expires > 0 ? Math.round(expires) : -1, httpOnly: c.httpOnly === true, secure: c.secure === true,
     sameSite: SAME_SITE[String(c.sameSite ?? '').toLowerCase()] ?? 'Lax'
-  }];
+  } };
 }
 
-function fromNetscape(line: string): Cookie[] {
+function fromNetscape(line: string): Entry[] {
   const httpOnly = line.startsWith('#HttpOnly_');
   const l = httpOnly ? line.slice('#HttpOnly_'.length) : line;
   if (!l.trim() || l.startsWith('#')) return [];
   const f = l.split('\t');
-  if (f.length < 7 || !f[0]) return [];
+  if (f.length < 7) return [{ why: 'line', name: '', domain: '' }];
   const [domain, , path, secure, expiry, name, ...value] = f;
-  return [{ name, value: value.join('\t'), domain, path: path || '/', expires: Number(expiry) > 0 ? Number(expiry) : -1, httpOnly, secure: secure.toUpperCase() === 'TRUE', sameSite: 'Lax' }];
+  if (!domain) return [{ why: 'domain', name, domain }];
+  return [{ cookie: { name, value: value.join('\t'), domain, path: path || '/', expires: Number(expiry) > 0 ? Number(expiry) : -1, httpOnly, secure: secure.toUpperCase() === 'TRUE', sameSite: 'Lax' } }];
 }
 
 // Cookie-Editor's JSON, which most browser extensions and antidetect browsers import.

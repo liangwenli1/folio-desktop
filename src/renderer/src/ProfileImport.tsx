@@ -2,6 +2,7 @@
 // then missing groups, then a fingerprint per row from the main process, then one bulk create.
 import { useMemo, useState, type ChangeEvent } from 'react';
 import { folio, isApiError, type ProxyImport, type Workspace } from './api';
+import { parseCookies } from '@shared/cookies';
 import { MAX_ROWS, TEMPLATE, readProfiles } from './csv';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
@@ -67,7 +68,7 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
       for (const [i, r] of rows.entries()){
         if (!r.cookies) continue;
         setStep(I.steps.cookies(i + 1, rows.length));
-        await folio.importCookies(created[i].id, r.cookies);
+        await folio.importCookies(created[i].id, parseCookies(r.cookies));
       }
       data.refresh('profiles', 'groups');
       toast(I.done(profiles.length));

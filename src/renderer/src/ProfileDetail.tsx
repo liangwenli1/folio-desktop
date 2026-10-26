@@ -11,6 +11,7 @@ import { runTime, type Dict, type Lang } from './i18n';
 import { Icon, MoreMenu, Progress, bytes, percent, type IconName } from './ui';
 import { Flag, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
+import { CookiesTab } from './ProfileCookies';
 import type { Risk } from './risks';
 
 interface Props {
@@ -21,8 +22,8 @@ interface Props {
   risks: Risk[]; others: Profile[];
   // Its group; the assigned person's email, when there is one; the extensions installed in it.
   group: Group | null; owner: string | null; extensions: Extension[];
-  busy: string | null; canTakeOver: boolean; canTrash: boolean; canExport: boolean;
-  onBack(): void; onStar(): void; onTakeover(): void; onExport(format: 'json' | 'netscape'): void; onImport(text: string): void;
+  busy: string | null; canTakeOver: boolean; canTrash: boolean;
+  onBack(): void; onStar(): void; onTakeover(): void; onExport(format: 'json' | 'netscape'): void;
   onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void; onShowProxy?(id: string): void;
 }
 type Tab = 'overview' | 'fingerprint' | 'cookies' | 'activity';
@@ -37,7 +38,7 @@ export function ProfileDetail(props: Props){
   const { d, lang, ws, data, p, h, status, progress, now, failed, group, owner, extensions, busy, canTakeOver, canTrash, onBack, onStar, onOpen, onStop, onEdit, onTrash, onFix, onTakeover, onShowProxy } = props;
   const P = d.profiles, D = d.detail;
   const [tab, setTab] = useState<Tab>('overview');
-  // Tabs stay as they were once seen, so a half-edited fingerprint survives a look at another tab.
+  // Tabs stay as they were once seen, so a half-edited fingerprint or a filtered cookie list survives a look at another tab.
   const [seen, setSeen] = useState<Set<Tab>>(() => new Set(['overview']));
   const show = (t: Tab) => { setTab(t); setSeen(s => new Set(s).add(t)); };
   const [confirmTakeover, setConfirmTakeover] = useState(false);
@@ -128,7 +129,7 @@ export function ProfileDetail(props: Props){
                 onDirty={setFpDirty} onSaved={() => { setFpDirty(false); setFpRound(r => r + 1); }} />
             </div>
           )}
-          {tab === 'cookies' && <Signins {...props} />}
+          {seen.has('cookies') && <div hidden={tab !== 'cookies'}><CookiesTab d={d} lang={lang} data={data} p={p} running={status?.state === 'running'} onExport={props.onExport} /></div>}
           {tab === 'activity' && <>
             <ActivityTable d={d} lang={lang} entries={log.entries} failed={log.failed} onRetry={() => void log.reload()} />
             {log.more && <button className="btn btn-secondary btn-sm older" type="button" onClick={() => void log.older()}>{d.activity.more}</button>}
@@ -227,39 +228,6 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEd
         : <p className="hint">{D.noActivity}</p>}
     </section>
   </>;
-}
-
-// What the profile keeps between openings, and cookies in and out (the Cookies tab).
-function Signins({ d, lang, p, extensions, canExport, onExport, onImport }: Props){
-  const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
-  return (
-    <section className="sec" aria-label={d.detail.storage} data-testid="storage">
-      <h3>{d.detail.storage}</h3>
-      {p.syncMode === 'local' ? <p className="hint">{d.detail.localOnly}</p> : p.data ? <>
-        <div className="store">
-          <div><b>{p.data.cookies}</b><span>{d.detail.cookies}</span></div>
-          <div><b>{size(p.data.storageBytes)}</b><span>{d.detail.siteData}</span></div>
-          <div><b>{p.data.origins}</b><span>{d.detail.sites}</span></div>
-          <div><b>{extensions.length}</b><span>{d.detail.extensions}</span></div>
-        </div>
-        <p className="hint">{d.detail.savedOn(when(p.data.savedAt), p.data.deviceName)}</p>
-      </> : <p className="hint">{d.detail.notSaved}</p>}
-      <div className="d-actions">
-        {canExport && p.data && p.syncMode === 'cloud' && <>
-          <button type="button" className="btn btn-sm btn-secondary" onClick={() => onExport('json')}>{d.detail.exportAs(d.detail.json)}</button>
-          <button type="button" className="btn btn-sm btn-secondary" onClick={() => onExport('netscape')}>{d.detail.exportAs(d.detail.netscape)}</button>
-          <span className="sp" />
-        </>}
-        <label className="btn btn-sm btn-secondary file-btn">{d.detail.importCookies}
-          <input type="file" accept=".json,.txt,text/plain,application/json" onChange={async e => {
-            const file = e.target.files?.[0];
-            e.target.value = '';
-            if (file) onImport(await file.text());
-          }} />
-        </label>
-      </div>
-    </section>
-  );
 }
 
 // Opening the profile: the engine (downloaded first when this computer lacks it), the proxy, the sign-ins, the browser.

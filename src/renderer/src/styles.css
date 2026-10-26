@@ -530,10 +530,6 @@ tr.empty b{color:var(--ink)}
 .chk .ck-d{display:block;font-size:12.5px;color:var(--ink-2);overflow-wrap:anywhere}
 .chk li > div{display:grid;justify-items:start;gap:6px}
 .report-line{font-size:12.5px;color:var(--ink-2)}
-.store{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.store div{display:grid;gap:1px}
-.store b{font:600 17px var(--f-display);font-variant-numeric:tabular-nums}
-.store span{font-size:12px;color:var(--ink-2)}
 .away-note{display:grid;gap:8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--info) 30%,transparent);border-radius:var(--r);background:var(--info-soft);font-size:13px}
 .notes{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
 .detail .attrib{margin-top:-8px;text-align:right}
@@ -612,6 +608,45 @@ tr.empty b{color:var(--ink)}
 .fpt-form .fpt-h:not(:first-child){margin-top:10px}
 .fpt textarea[readonly]{min-height:62px;color:var(--ink-2);background:var(--panel);font-size:12.5px}
 .fpt-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:8px;margin:0 calc(-1 * var(--gx)) -24px;padding:12px var(--gx);border-top:1px solid var(--line);background:var(--card)}
+
+/* the Cookies tab: the list, a panel for the cookie picked, and bringing cookies in */
+.ck-wrap{display:grid;gap:16px;align-items:start}
+.ck-wrap.with-panel{grid-template-columns:minmax(0,1fr) 360px}
+.ck-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.ck-bar .search{flex:1 1 220px;max-width:340px}
+.ck-meta{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-2)}
+.ck .bulk{margin:0}
+.ck .tw{flex:none;min-height:0}
+.ck td.mono{font-size:13px}
+.ck td.nowrap{white-space:nowrap}
+.ck td.act .actin{flex-wrap:nowrap}
+.ck-flags{display:inline-flex;gap:6px}
+.th-sort{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;color:inherit;cursor:pointer}
+.th-sort .i{width:11px;height:11px;opacity:.3}
+th[aria-sort] .th-sort .i{opacity:1}
+.ck-panel{position:sticky;top:16px}
+.ck-value{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.ck-v{display:flex;align-items:center;gap:6px;min-height:var(--h-ctl);padding:4px 4px 4px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.ck-v code{flex:1;min-width:0;font:13px var(--f-data);overflow-wrap:anywhere}
+.ck-note{display:flex;align-items:flex-start;gap:6px}
+.ck-note .i{width:13px;height:13px;flex:none;margin-top:2px}
+.ck-in{gap:12px}
+.ck-src{width:100%;min-height:150px;padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);font:12.5px/1.6 var(--f-data);resize:vertical}
+.ck-src:focus{outline:none;border-color:var(--ink-3);box-shadow:0 0 0 3px var(--seg)}
+.ck-file{display:flex;align-items:center;gap:12px;padding:20px;border:1px dashed var(--line-2);border-radius:var(--r);background:var(--panel)}
+.ck-h{font-size:14px;font-weight:600}
+.ck-counts{font-size:13px;font-weight:600;color:var(--ink-2)}
+.good-t{color:var(--good-ink)} .bad-t{color:var(--bad)}
+.ck-prev{flex:none;max-height:240px;min-height:0;margin:0}
+.ck-ok,.ck-bad{display:inline-flex;align-items:center;gap:5px;font-size:13px}
+.ck-ok{color:var(--good-ink)} .ck-bad{color:var(--bad)}
+.ck-ok .i,.ck-bad .i{width:13px;height:13px}
+.ck-ok small{margin-left:4px;font-size:12px;color:var(--ink-2)}
+fieldset.ck-conflict{border:0;margin:0;padding:0}
+.ck-checks{align-content:end;gap:10px;padding-bottom:8px}
+.tag.good{background:var(--good-soft);color:var(--good-ink)}
+.btn-text.danger{color:var(--bad)}
+.ck-flags .tag,.ck-panel .tag{margin:0}
 
 /* opening a profile: its four steps, one under the other */
 .opening{display:grid;gap:0;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:0 14px 30px -18px rgba(29,28,43,.4),0 2px 4px rgba(29,28,43,.04)}

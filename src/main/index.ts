@@ -8,8 +8,8 @@ import { watch } from './changes';
 import { firefoxGpuList, generate } from './fingerprint';
 import { install, list as listKernels, pause as pauseKernel, recommended, remove as removeKernel, resolve as resolveKernel, settings as kernelSettings, setSettings as setKernelSettings, upload as uploadKernel, usage as kernelUsage } from './kernels';
 import { forget } from './account';
-import { addCookies, checkup, discard, focus, isRunning, onStatus, open, prune, saveNow, statuses, stop, stopAll, verify } from './launcher';
-import { parseCookies, toJson, toNetscape, type Cookie } from '../shared/cookies';
+import { addCookies, checkup, discard, focus, isRunning, onStatus, open, prune, removeCookies, saveNow, statuses, stop, stopAll, verify } from './launcher';
+import { toJson, toNetscape, type Cookie, type CookieKey } from '../shared/cookies';
 import { api } from './api';
 import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './transfer';
 import { randomUUID } from 'node:crypto';
@@ -141,17 +141,22 @@ ipcMain.handle('folio:exportCookies', async (e, profiles: { id: string; name: st
   return { saved, failed, path: single ?? dir };
 });
 
-// Imports go into the saved state on the server; a profile running here also gets them in its browser.
-ipcMain.handle('folio:importCookies', async (_e, id: string, text: string) => {
-  let cookies: Cookie[];
-  try { cookies = parseCookies(String(text)); } catch { cookies = []; }
-  if (!cookies.length) return { ok: false, error: { code: 'cookies_unreadable', message: 'No cookies found in this file', status: 400 } };
+// Imports and deletions change the saved state on the server; a profile running here also has them in its browser,
+// so closing it doesn't bring deleted cookies back. One kept on this computer has no saved state: there, the
+// running browser is all there is.
+ipcMain.handle('folio:importCookies', async (_e, id: string, cookies: Cookie[]) => {
   const running = isRunning(id);
   if (running) await addCookies(id, cookies);
   const r = await api('POST', `/profiles/${id}/cookies`, { cookies });
-  // A profile kept on this computer has no saved state: the running browser is where they go.
   if (!r.ok && !(running && r.error.code === 'local_only')) return r;
   return { ok: true, data: { count: cookies.length } };
+});
+ipcMain.handle('folio:deleteCookies', async (_e, id: string, keys: CookieKey[]) => {
+  const running = isRunning(id);
+  if (running) await removeCookies(id, keys);
+  const r = await api('DELETE', `/profiles/${id}/cookies`, { cookies: keys });
+  if (!r.ok && !(running && r.error.code === 'local_only')) return r;
+  return { ok: true, data: { count: keys.length } };
 });
 
 // Workspace files. A picked file waits here, by token, until it is unlocked and imported.
