@@ -27,7 +27,7 @@ test('groups nest and count what is under them, and are set up and deleted from 
 
   await win.getByRole('checkbox', { name: 'Select US-2' }).check();
   await win.getByTestId('bulk').getByRole('button', { name: 'Remove from group' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '1 profile taken out of the group' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: '1 profile removed from the group' })).toBeVisible();
   await expect(win.locator('tr[data-id]')).toHaveCount(1);
 
   // Moved to the top level, recoloured and described.

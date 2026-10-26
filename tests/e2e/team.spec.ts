@@ -55,8 +55,8 @@ test('a member removed from the team loses the profile they have open, and its c
   // Removed: the browser closes, the folder goes, the workspace disappears from their workbench.
   await nav(winO, /^Team/).click();
   await winO.getByRole('button', { name: `More for ${member.email}` }).click();
-  await winO.getByRole('menuitem', { name: 'Remove from team' }).click();
-  await winO.getByRole('dialog', { name: `Remove ${member.email}` }).getByRole('button', { name: 'Remove from team' }).click();
+  await winO.getByRole('menuitem', { name: 'Remove from workspace' }).click();
+  await winO.getByRole('dialog', { name: `Remove ${member.email}` }).getByRole('button', { name: 'Remove from workspace' }).click();
   await expect.poll(async () => (await lastStatus(winM, p.id))?.state, { timeout: 15_000 }).toBe('stopped');
   await expect(winM.getByRole('status').filter({ hasText: 'You’re no longer in Larkspur Trading' })).toBeVisible();
   await expect(winM.getByTestId('ws-name')).not.toHaveText('Larkspur Trading');
@@ -106,7 +106,7 @@ test('members work with their own profiles only, and can leave', async () => {
   await nav(winM, /^Team/).click();
   await expect(winM.locator('[data-member]')).toHaveCount(2);
   await expect(winM.getByRole('button', { name: 'Invite' })).toHaveCount(0);
-  await winM.getByRole('button', { name: 'Leave team' }).click();
+  await winM.getByRole('button', { name: 'Leave workspace' }).click();
   await winM.getByRole('dialog', { name: 'Leave Larkspur Trading?' }).getByRole('button', { name: 'Leave' }).click();
   await expect(winM.getByTestId('ws-name')).not.toHaveText('Larkspur Trading');
   const ownerId = (await (await owner.api.get('/me')).json()).user.id;

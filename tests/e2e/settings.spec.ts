@@ -15,7 +15,7 @@ test('the workspace keeps what new profiles start with, and only a manager may c
   await open('Settings');
   await expect(win.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await win.getByLabel('Workspace name').fill('Larkspur Trading');
-  await expect(win.getByLabel('Workspace id')).toHaveValue(owner.workspaceId);
+  await expect(win.getByLabel('Workspace ID')).toHaveValue(owner.workspaceId);
 
   await open('Profile defaults');
   await win.getByRole('combobox', { name: 'Default group' }).click();

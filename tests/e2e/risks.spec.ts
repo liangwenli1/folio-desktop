@@ -31,10 +31,10 @@ test('profiles sharing a proxy are flagged and can be shown together; favourites
 
   // A favourite goes to the top, and has a filter of its own.
   await row('Charlie').hover();
-  await row('Charlie').getByRole('button', { name: 'Add to favourites' }).click();
+  await row('Charlie').getByRole('button', { name: 'Add to favorites' }).click();
   await expect(win.locator('tr[data-id]').first()).toContainText('Charlie');
   await win.getByRole('combobox', { name: 'Status', exact: true }).click();
-  await win.getByRole('listbox').getByRole('option', { name: /^Favourites/ }).click();
+  await win.getByRole('listbox').getByRole('option', { name: /^Favorites/ }).click();
   await expect(win.locator('tr[data-id]')).toHaveCount(1);
   const listed = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; starred: boolean }[];
   expect(listed.find(p => p.name === 'Charlie')!.starred).toBe(true);
@@ -55,7 +55,7 @@ test('the health check reads the profile from inside its browser and passes a we
   await page.getByRole('tab', { name: 'Fingerprint' }).click();
   await page.getByRole('button', { name: 'Health check' }).click();
   const report = win.getByRole('dialog', { name: 'Health check · Checked' });
-  await expect(report.getByTestId('report')).toContainText('PASSED', { timeout: 120_000 });
+  await expect(report.getByTestId('report')).toContainText('Passed', { timeout: 120_000 });
   await expect(report.locator('[data-check="timezone"]')).toContainText('America/Los_Angeles');
   await expect(report.locator('[data-check="ua"]')).toContainText('Windows');
   await report.getByRole('button', { name: 'Close' }).last().click();

@@ -5,7 +5,7 @@ import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { GroupsPage } from './Groups';
 import { JobsPage } from './Jobs';
-import { LANG_NAMES, errorText, roleName, type Dict, type Lang } from './i18n';
+import { errorText, roleName, type Dict, type Lang } from './i18n';
 import { planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
@@ -186,7 +186,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
               <span><Icon name="proxies" />{d.user.language}</span>
               <div className="seg fill">
                 {(['zh', 'en'] as const).map(l => (
-                  <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{LANG_NAMES[l]}</button>
+                  <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{d.user.langs[l]}</button>
                 ))}
               </div>
             </div>

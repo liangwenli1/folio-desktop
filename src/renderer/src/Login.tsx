@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { folio, isApiError } from './api';
-import { LANG_NAMES, type Dict, type Lang } from './i18n';
+import type { Dict, Lang } from './i18n';
 import { Icon, Mark } from './ui';
 import { Flag } from './Flag';
 import { mountDemo, type DemoManifest } from './demo/player';
@@ -78,7 +78,7 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
         </form>
         <p className="login-foot">
           <span>Folio {version}</span><span aria-hidden="true">·</span>
-          <button className="linkish" type="button" onClick={() => onLang(lang === 'zh' ? 'en' : 'zh')}>{LANG_NAMES[lang]}</button>
+          <button className="linkish" type="button" onClick={() => onLang(lang === 'zh' ? 'en' : 'zh')}>{d.user.langs[lang]}</button>
         </p>
       </div>
       <div className="login-r">

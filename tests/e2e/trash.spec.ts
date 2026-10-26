@@ -14,12 +14,12 @@ test('the Trash says how long it keeps profiles, finds them by ID, and restores 
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Trash' }).click();
-  await expect(win.getByText('Kept for 7 days, then deleted for good.')).toBeVisible();
+  await expect(win.getByText('Kept for 7 days, then permanently deleted.')).toBeVisible();
   const rows = win.locator('tr[data-id]');
   await expect(rows).toHaveCount(3);
   await expect(rows.first()).toContainText('7 days');
 
-  const search = win.getByRole('searchbox', { name: 'Search name or ID' });
+  const search = win.getByRole('searchbox', { name: 'Search name or number' });
   await search.fill(`#${String(made[1].number).padStart(4, '0')}`);
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText('Shop-2');

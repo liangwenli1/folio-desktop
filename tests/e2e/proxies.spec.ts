@@ -26,16 +26,16 @@ test('a profile changes proxy from its menu, and proxies are unbound in bulk', a
   await expect(dialog.locator(`tr[data-id="${a}"]`)).toHaveCount(0);
   await dialog.locator(`tr[data-id="${b}"]`).click();
   await dialog.getByRole('button', { name: 'Change proxy' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Shop now goes out through Line-B' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Shop now connects through Line-B' })).toBeVisible();
   const proxyOf = async () => ((await (await acct.api.get(`${base}/profiles`)).json()).profiles[0] as { proxyId: string | null }).proxyId;
   expect(await proxyOf()).toBe(b);
 
   // Taken off in bulk: the profile goes without a proxy.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Proxies' }).click();
   await win.locator(`tr[data-id="${b}"]`).getByRole('checkbox').check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Unbind' }).click();
-  await win.getByRole('dialog', { name: 'Unbind 1 proxy from 1 profile?' }).getByRole('button', { name: 'Unbind' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '1 profile unbound' })).toBeVisible();
+  await win.getByTestId('bulk').getByRole('button', { name: 'Unassign' }).click();
+  await win.getByRole('dialog', { name: 'Unassign 1 proxy from 1 profile?' }).getByRole('button', { name: 'Unassign' }).click();
+  await expect(win.getByRole('status').filter({ hasText: '1 profile unassigned' })).toBeVisible();
   expect(await proxyOf()).toBeNull();
   await app.close();
 });

@@ -58,13 +58,13 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   // Chromium from the Chrome Web Store, Firefox from a file.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Extensions' }).click();
   await win.getByRole('button', { name: 'Add extension' }).click();
-  let dialog = win.getByRole('dialog', { name: 'Add an extension' });
+  let dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('button', { name: 'Chrome Web Store' }).click();
-  await dialog.getByLabel('Link or extension id').fill('https://chromewebstore.google.com/detail/shop-helper/abcdefghijklmnopabcdefghijklmnop');
+  await dialog.getByLabel('Link or extension ID').fill('https://chromewebstore.google.com/detail/shop-helper/abcdefghijklmnopabcdefghijklmnop');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper added to the library' })).toBeVisible();
   await win.getByRole('button', { name: 'Add extension' }).click();
-  dialog = win.getByRole('dialog', { name: 'Add an extension' });
+  dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
   await dialog.getByLabel('Choose a file…').setInputFiles({ name: 'helper.xpi', mimeType: 'application/x-xpinstall', buffer: firefox('1.0') });
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();

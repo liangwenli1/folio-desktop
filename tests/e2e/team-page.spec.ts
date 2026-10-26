@@ -18,7 +18,7 @@ test('someone’s access is edited from their row, and several people are invite
   const app = await launch(dataDir());
   const win = await logIn(app, owner.email);
   await teamPage(win);
-  await expect(win.getByLabel('Seats')).toContainText('2 in use · no limit');
+  await expect(win.getByLabel('Seats')).toContainText('2 in use · unlimited');
   const row = win.locator(`tr[data-member="${member.email}"]`);
   await row.getByRole('button', { name: 'Edit access' }).click();
   const access = win.getByRole('dialog', { name: `Access for ${member.email}` });

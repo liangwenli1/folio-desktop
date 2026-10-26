@@ -12,9 +12,13 @@ export interface CheckVars { ms: number; host: string; city: string; tz: string;
 
 const profilesN = (n: number) => (n === 1 ? '1 profile' : `${n} profiles`);
 const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
+// Field names as a log entry lists them: each once (the window's mode, width and height are one "window size"),
+// the last one joined with "and".
+const uniq = (items: string[]) => [...new Set(items)];
+const andList = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
 
-const enFields: Record<string, string> = { searchEngine: 'search engine', restoreTabs: 'tab restoring', startUrl: 'start page', windowMode: 'window', windowWidth: 'window', windowHeight: 'window', name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'owner', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
-const zhFields: Record<string, string> = { searchEngine: '搜索引擎', restoreTabs: '恢复标签页', startUrl: '启动页', windowMode: '启动窗口', windowWidth: '启动窗口', windowHeight: '启动窗口', name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
+const enFields: Record<string, string> = { searchEngine: 'search engine', restoreTabs: 'tab restoring', startUrl: 'start page', windowMode: 'window size', windowWidth: 'window size', windowHeight: 'window size', name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'assignee', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
+const zhFields: Record<string, string> = { searchEngine: '搜索引擎', restoreTabs: '恢复标签页', startUrl: '启动页', windowMode: '启动窗口尺寸', windowWidth: '启动窗口尺寸', windowHeight: '启动窗口尺寸', name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
 // A profile field as the log names it.
 export const fieldName = (lang: Lang, f: string) => (lang === 'zh' ? zhFields : enFields)[f] ?? f;
 const enSearch = (id: SearchEngine): string => (id === 'none' ? 'None' : SEARCH_ENGINES[id].name);
@@ -33,24 +37,24 @@ export const en = {
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan & billing', help: 'Help', more: 'More' },
   groups: {
     title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name',
-    color: 'Colour', colors: { red: 'Red', blue: 'Blue', green: 'Green', amber: 'Amber', purple: 'Purple', teal: 'Teal', gray: 'Grey' },
-    lead: 'Profiles sorted by business, and who on the team reaches them.', tree: 'Group list', everything: 'All profiles',
+    color: 'Color', colors: { red: 'Red', blue: 'Blue', green: 'Green', amber: 'Amber', purple: 'Purple', teal: 'Teal', gray: 'Gray' },
+    lead: 'Profiles sorted by business, and who on the team can access them.', tree: 'Group list', everything: 'All profiles',
     sum: (n: number, m: number | null) => `${profilesN(n)}${m === null ? '' : ` · ${m === 1 ? '1 member' : `${m} members`}`}`,
     expand: (g: string) => `Show the groups under ${g}`, collapse: (g: string) => `Hide the groups under ${g}`,
-    edit: 'Edit group', addProfile: 'Add profile', search: 'Search name or ID', state: 'Status', owner: 'Member', owners: 'All members', sort: 'Sort by name',
-    states: { all: 'All statuses', running: 'Running', stopped: 'Stopped' },
-    cols: { name: 'Profile', number: 'ID', region: 'Country/region', status: 'Status', owner: 'Member', actions: 'Actions' },
-    empty: 'No profiles in this group yet', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number) => `${profilesN(n)} taken out of the group`,
+    edit: 'Edit group', addProfile: 'Add profile', search: 'Search name or number', state: 'Status', owner: 'Member', owners: 'All members', sort: 'Sort by name',
+    states: { all: 'All statuses', running: 'Running', stopped: 'Not running' },
+    cols: { name: 'Profile', number: 'No.', region: 'Country/region', status: 'Status', owner: 'Member', actions: 'Actions' },
+    empty: 'No profiles in this group yet', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number) => `${profilesN(n)} removed from the group`,
     settings: 'Group settings', name: 'Group name', nameErr: 'Enter a group name.', parent: 'Parent group', parentNone: 'None (top level)', description: 'Description',
     members: 'Member access', people: 'Members of the group', addMember: 'Add member', findMember: 'Search members', noneToAdd: 'Everyone is in this group.',
     roleOf: (e: string) => `Role of ${e}`, removeMember: (e: string) => `Remove ${e}`,
-    roleNote: 'A role applies across the workspace; the group decides which profiles its members reach.',
+    roleNote: 'A role applies across the workspace; the group decides which profiles its members can access.',
     companyOnly: 'Giving members access to a group is part of the Company plan.',
-    access: 'Access', inherit: 'Inherit parent group access', inheritHint: 'When on, members of the parent group also reach this group’s profiles.',
+    access: 'Access', inherit: 'Inherit parent group access', inheritHint: 'When on, members of the parent group also have access to this group’s profiles.',
     save: 'Save settings', saved: 'Group settings saved', delete: 'Delete group',
     deleteTitle: (g: string) => `Delete “${g}”?`, moveTo: (n: number) => `Move its ${profilesN(n)} to`, deleteNote: 'The groups under it move up a level.',
     deleted: (g: string) => `“${g}” deleted`,
-    newTitle: 'New group', newSub: 'Sort profiles by business and choose who reaches them.', create: 'Create group', created: (g: string) => `“${g}” created`,
+    newTitle: 'New group', newSub: 'Sort profiles by business and choose who can access them.', create: 'Create group', created: (g: string) => `“${g}” created`,
     createHint: 'Profiles can be added once it exists.', rolesTitle: 'About roles'
   },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
@@ -59,10 +63,10 @@ export const en = {
   ws: { switch: 'Switch workspace', current: 'Current workspace' },
   plan: {
     usage: (used: number, limit: number) => `${used} of ${limit} profiles`,
-    renews: (date: string, period: string) => `Renews ${date}, ${period}`,
+    renews: (date: string, period: string) => `Renews ${date} · ${period}`,
     ends: (date: string) => `Ends ${date}`,
     trialEnds: (date: string) => `Free trial ends ${date}`,
-    scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
+    scheduled: (plan: string, date: string) => `Changes to ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
   },
   // The Plan & billing page: the plan this workspace is on, what it has used, and what it has paid.
@@ -70,41 +74,43 @@ export const en = {
     title: 'Plan & billing', lead: 'The plan this workspace is on, what it has used of it, and what it has paid.',
     tabs: { plan: 'Plan', usage: 'Usage', payments: 'Payments' },
     current: 'Current plan', change: 'Change plan', since: 'Started', until: 'Runs until', renew: 'Renews automatically',
-    yes: 'Yes', no: 'No', status: 'Status', statusActive: 'In use', statusTrial: 'Free trial',
-    limits: 'What it allows', profiles: 'Profiles', members: 'Members', logDays: 'Activity log',
-    logKept: (n: number) => `${n} days`, unlimited: 'No limit',
-    expiry: 'Tell me when the plan is close to its end', expiryHint: 'The app says so in good time.',
-    payments: 'Payments', invoice: 'Invoice', date: 'Date', amount: 'Amount', paid: 'Paid', refunded: 'Refunded',
+    yes: 'Yes', no: 'No', status: 'Status', statusActive: 'Active', statusTrial: 'Free trial',
+    limits: 'Plan limits', profiles: 'Profiles', members: 'Members', logDays: 'Activity log',
+    logKept: (n: number) => `${n} days`, unlimited: 'Unlimited',
+    expiry: 'Remind before the plan ends', expiryHint: 'Admins get an in-app notice shortly before the plan ends.',
+    payments: 'Payments', invoice: 'Invoice', date: 'Date', item: 'Item', amount: 'Amount', paid: 'Paid', refunded: 'Refunded',
     open: 'Open', none: 'No payments yet', noneHint: 'Payments for this workspace show here.'
   },
   // The Settings page: what the workspace is, what new profiles start with, and how opening one behaves.
   settings: {
     title: 'Settings', lead: 'The workspace, what new profiles start with, and how opening one behaves.',
     tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notices' },
-    basics: 'Basics', basicsLead: 'The workspace\u2019s name, its id and who owns it.',
-    name: 'Workspace name', id: 'Workspace id', idHint: 'The id identifies this workspace and never changes.',
-    owner: 'Owner', ownerHint: 'Whoever made the workspace.',
+    basics: 'Basics', basicsLead: 'The workspace\u2019s name, its ID and who owns it.',
+    name: 'Workspace name', id: 'Workspace ID', idHint: 'The ID identifies this workspace and never changes.',
+    owner: 'Owner', ownerHint: 'The person who created the workspace.',
     defaults: 'Profile defaults', defaultsLead: 'What a new profile starts with.',
-    defaultsNote: 'These only reach profiles made from now on; the ones you already have keep their settings.',
-    trashDays: 'Keep deleted profiles for', trashDaysHint: 'Profiles in the Trash longer than this are deleted for good, with their sign-ins.',
-    engine: 'Default engine', engineNone: 'The recommended one', version: 'Version',
+    defaultsNote: 'These apply only to profiles created from now on; existing ones keep their settings.',
+    trashDays: 'Keep deleted profiles for', trashDaysHint: 'Profiles in the Trash longer than this are permanently deleted, with their sign-ins.',
+    engine: 'Default engine', engineNone: 'Recommended version', version: 'Version',
     group: 'Default group', groupNone: 'No group', proxy: 'Default proxy', proxyNone: 'No proxy',
     opening: 'Opening', openingLead: 'What happens when a profile is opened and closed.',
-    openDetail: 'Open its details after launching', openDetailHint: 'The profile\u2019s page opens as soon as its browser starts.',
+    openDetail: 'Show the profile\u2019s page after it opens', openDetailHint: 'The profile\u2019s page opens as soon as its browser starts.',
     stopOnClose: 'Stop the profile when its last window closes', stopOnCloseHint: 'With this off, closing the browser leaves the profile running: Go to window opens it again, and Stop ends it and saves its sign-ins.',
     notices: 'Notices', noticesLead: 'What the app tells you about.',
-    expiry: 'Say when the plan is close to its end',
+    expiry: 'Remind before the plan ends',
     saved: 'Settings saved', save: 'Save settings'
   },
   user: {
-    account: 'Account', manage: 'Manage account', teams: 'Teams', settings: 'Settings', data: 'Data', language: 'Language',
+    account: 'Account', manage: 'Manage account', teams: 'Workspaces', settings: 'Settings', data: 'Data', language: 'Language',
+    // Each language named in this one: no Chinese script on the English interface.
+    langs: { en: 'English', zh: 'Chinese' },
     exportAll: 'Export all data…', importAll: 'Import data…', logout: 'Log out',
-    startup: 'Start with this computer', startupHint: 'Opens minimized in the tray, so scheduled tasks run on time.'
+    startup: 'Open Folio at startup', startupHint: 'Opens minimized in the tray, so scheduled tasks run on time.'
   },
   tray: { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background so scheduled tasks run on time. Quit it from the tray icon.' },
   notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }) },
   update: {
-    ready: (v: string) => `Folio ${v} is ready to install.`, restart: 'Restart to update', restartNote: 'Open profiles are saved and closed first. Or it installs the next time you quit.',
+    ready: (v: string) => `Folio ${v} is ready to install.`, restart: 'Restart to update', restartNote: 'Open profiles are saved and closed first. Otherwise, it installs the next time you quit Folio.',
     out: (v: string) => `Folio ${v} is out.`, download: 'Download'
   },
   common: {
@@ -119,24 +125,24 @@ export const en = {
     title: 'Profiles', lead: 'Browser profiles that run apart from each other, and what each is doing.', count: profilesN,
     search: 'Search profiles', searchPh: 'Search name, number, city or tag', new: 'New profile', import: 'Import',
     sum: {
-      running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies answering',
-      proxyNote: (down: number, slow: number) => [down && `${down} not answering`, slow && `${slow} slow`].filter(Boolean).join(' · '),
-      risks: 'Link risks', risksOk: 'Nothing links your profiles'
+      running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies responding',
+      proxyNote: (down: number, slow: number) => [down && `${down} not responding`, slow && `${slow} slow`].filter(Boolean).join(' · '),
+      risks: 'Linking risks', risksOk: 'No linking risks found'
     },
     views: { label: 'View', list: 'List', cards: 'Cards' },
     tabs: { all: 'All', running: 'Running', stopped: 'Not running', trash: 'Trash' },
-    filter: { label: 'Status', all: 'All', states: 'All statuses', running: 'Running', stopped: 'Not running', issues: 'Needs attention', starred: 'Favourites', engine: 'Engine', engines: 'All engines' },
+    filter: { label: 'Status', all: 'All', states: 'All statuses', running: 'Running', stopped: 'Not running', issues: 'Needs attention', starred: 'Favorites', engine: 'Engine', engines: 'All engines' },
     reset: 'Reset',
-    page: { total: (n: number) => `${n} in all`, size: (n: number) => `${n} a page`, prev: 'Previous page', next: 'Next page', go: (p: number) => `Page ${p}` },
-    star: 'Add to favourites', unstar: 'Remove from favourites', move: 'Move to group', moveTitle: (n: string) => `Move “${n}” to a group`,
+    page: { total: (n: number) => `${n} in all`, size: (n: number) => `${n} per page`, prev: 'Previous page', next: 'Next page', go: (p: number) => `Page ${p}` },
+    star: 'Add to favorites', unstar: 'Remove from favorites', move: 'Move to group', moveTitle: (n: string) => `Move “${n}” to a group`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
-    cols: { profile: 'Name', group: 'Group', engine: 'Engine / system', proxy: 'Proxy / region', last: 'Last used', status: 'Status', actions: 'Actions' },
+    cols: { profile: 'Name / No.', group: 'Group', engine: 'Engine / system', proxy: 'Proxy / region', last: 'Last used', status: 'Status', actions: 'Actions' },
     open: 'Open', stop: 'Stop', enter: 'Go to window', actionsX: (n: string) => `Actions for ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', noWindow: 'Running · window closed', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
     stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Engine', 'Proxy', 'Sign-ins', 'Browser'],
     map: {
       label: 'Where the profiles’ proxies exit',
-      check: 'Check all proxies', add: 'Add a proxy'
+      check: 'Check all proxies', add: 'Add proxy'
     },
     palette: 'Search everything',
     restoring: 'Restoring sign-ins…', saving: 'Saving sign-ins…', inUseOn: (where: string) => `In use on ${where}`,
@@ -144,15 +150,15 @@ export const en = {
     noProxy: 'No proxy', unchecked: 'Not checked', noResponse: 'No response', ms: (n: number) => `${n} ms`, mismatch: '! Doesn’t match its proxy',
     unassigned: 'Unassigned',
     emptyMatch: 'No profiles match', emptyFor: (q: string) => `Nothing found for “${q}”.`,
-    emptyHint: (n: number) => `Try another search, or clear the filters to see all ${n}.`,
+    emptyHint: (n: number) => (n === 1 ? 'Try another search, or clear the filters to see it.' : `Try another search, or clear the filters to see all ${n}.`),
     bulk: {
-      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Edit together', more: 'More',
+      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Bulk edit', more: 'More',
       tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
       extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall', sync: 'Sync windows', syncTwo: 'Select at least two profiles',
-      confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
+      confirm: (n: number) => `Move ${profilesN(n)} to the Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
-      trashed: (n: number) => `${profilesN(n)} moved to Trash`, moved: (n: number, g: string) => `${profilesN(n)} moved to ${g}`,
+      trashed: (n: number) => `${profilesN(n)} moved to the Trash`, moved: (n: number, g: string) => `${profilesN(n)} moved to ${g}`,
       tagged: (n: number, t: string) => `Tagged ${profilesN(n)} “${t}”`, untagged: (n: number, t: string) => `Removed “${t}” from ${profilesN(n)}`,
       proxySet: (n: number) => `Proxy changed on ${profilesN(n)}`, assigned: (n: number, who: string) => `${profilesN(n)} assigned to ${who}`,
       created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
@@ -164,19 +170,19 @@ export const en = {
   },
   // Several profiles changed at once: what changes, which ones it reaches, and which are skipped.
   bulkEdit: {
-    title: 'Edit profiles together', lead: (n: number) => `${profilesN(n)} selected`,
+    title: 'Bulk edit profiles', lead: (n: number) => `${profilesN(n)} selected`,
     group: 'Group', groupHint: 'The selected profiles move to this group.',
-    proxy: 'Proxy', proxyHint: 'The selected profiles go out through this proxy.',
+    proxy: 'Proxy', proxyHint: 'The selected profiles connect through this proxy.',
     engine: 'Engine version', engineHint: 'The selected profiles of this engine use this version.',
     start: 'Start page', startHint: 'The page the selected profiles open on.', startPh: 'https://',
-    keep: 'Keep as it is', changes: 'What changes', none: 'Nothing chosen yet.',
-    picked: (n: number) => `Selected (${n})`, running: (n: number) => `${n === 1 ? '1 of them is' : `${n} of them are`} running and is left as it is.`,
+    keep: 'No change', changes: 'What changes', none: 'Nothing chosen yet.',
+    picked: (n: number) => `Selected (${n})`, running: (n: number) => (n === 1 ? '1 of them is running and stays as it is.' : `${n} of them are running and stay as they are.`),
     stoppedOnly: 'Only change profiles that are not running', stoppedOnlyHint: 'A running profile keeps its settings until it is closed.',
     counts: (ok: number, skip: number) => `${ok} to change · ${skip} skipped`,
     submit: (n: number) => `Change ${profilesN(n)}`, done: (n: number) => `${profilesN(n)} changed`
   },
   launch: {
-    kernel_missing: 'This engine isn’t downloaded on this computer.', proxy_down: 'The proxy didn’t answer, and there’s no working backup line.',
+    kernel_missing: 'This engine isn’t downloaded on this computer.', proxy_down: 'The proxy didn’t respond, and there’s no working backup line.',
     in_trash: 'This profile is in the Trash.', not_found: 'This profile no longer exists.', launch_failed: 'The browser didn’t start. Try again.',
     download_failed: 'The engine download failed. Check the connection and try again.',
     locked: 'This profile is open on another computer.',
@@ -185,14 +191,14 @@ export const en = {
   } as Record<string, string>,
   detail: {
     profile: 'Profile', crumbs: 'Breadcrumb', basics: 'Basics', proxyCard: 'Proxy connection', dataCard: 'Profile data', manage: 'Manage',
-    viewAll: 'View all', lastOpened: 'Last opened', synced: 'Last saved', answered: (ms: number) => `Answering · ${ms} ms`,
+    viewAll: 'View all', lastOpened: 'Last opened', synced: 'Last saved', answered: (ms: number) => `Responding · ${ms} ms`,
     openProfile: 'Open profile', edit: 'Edit', editProfile: 'Edit profile', trash: 'Move to Trash', viewProxy: 'View proxy',
-    notChecked: 'Exit not checked yet', noExit: 'Proxy not answering', direct: 'Direct connection',
+    notChecked: 'Exit not checked yet', noExit: 'Proxy not responding', direct: 'Direct connection',
     tabs: { overview: 'Overview', fingerprint: 'Fingerprint', cookies: 'Cookies', activity: 'Activity' }, more: 'More actions', fingerprint: 'Fingerprint summary',
-    verdict: { ok: 'All consistent', warn: 'Needs a look', bad: 'Can’t open' },
+    verdict: { ok: 'All consistent', warn: 'Needs attention', bad: 'Can’t open' },
     fields: {
       name: 'Name', number: 'Number', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', window: 'Window size',
-      proxyName: 'Proxy', proxyType: 'Type and address', ip: 'Exit IP', state: 'Status', checked: 'Last checked'
+      proxyName: 'Proxy', proxyType: 'Protocol and address', ip: 'Exit IP', state: 'Status', checked: 'Last checked'
     },
     hostTz: 'This computer’s',
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', todo: 'To do', warn: 'Warning', bad: 'Problem' },
@@ -212,15 +218,15 @@ export const en = {
     cols: { name: 'Name', domain: 'Domain', path: 'Path', expires: 'Expires', flags: 'Flags', actions: 'Actions' },
     session: 'Session', edit: 'Edit', delete: 'Delete',
     deleteN: (n: number) => (n === 1 ? 'Delete this cookie?' : `Delete ${n} cookies?`),
-    deleteNote: 'They are taken out of the saved sign-ins. This can’t be undone.',
-    deleteRunning: 'They are taken out of the saved sign-ins and out of the browser open on this computer. This can’t be undone.',
+    deleteNote: 'Deleted cookies are removed from the saved sign-ins. This can’t be undone.',
+    deleteRunning: 'Deleted cookies are removed from the saved sign-ins and from the browser open on this computer. This can’t be undone.',
     deleted: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} deleted`,
     detail: 'Cookie details', close: 'Close details', value: 'Value', show: 'Show', hide: 'Hide', copy: 'Copy the value', copied: 'Value copied',
     hidden: 'Values stay hidden until asked for; each read is recorded in the activity log.', noValue: 'Your role can’t read cookie values.', on: 'On', off: 'Off',
     none: 'No cookies saved', notSaved: 'Nothing saved yet', notSavedText: 'Cookies are saved when the browser closes, or come in from a file.',
     local: 'Sign-ins stay on the computer that uses this profile; Folio holds no copy to list here.',
     localRunning: 'Sign-ins stay on this computer; cookies imported now go straight into the open browser.',
-    away: 'This profile is open on another computer; its cookies can change once it is closed there.',
+    away: 'This profile is open on another computer; its cookies can be edited once it is closed there.',
     editTitle: 'Edit cookie', newValue: 'Enter the value again: your role can’t read the current one.', save: 'Save cookie',
     sessionOnly: 'Session cookie', domainErr: 'A cookie needs a domain.', expiresErr: 'Choose when it expires, or make it a session cookie.', valueErr: 'Enter a value.',
     importTitle: (name: string) => `Import cookies into ${name}`, modes: { text: 'Paste text', file: 'From a file' }, chooseFile: 'Choose a file…', noFile: 'No file chosen',
@@ -229,7 +235,7 @@ export const en = {
     preview: 'Preview', valid: (n: number) => `${n} valid`, invalid: (n: number) => `${n} invalid`, result: 'Result', ok: 'Valid',
     why: { name: 'No name', value: 'No value', domain: 'No domain', line: 'Not a cookie line' },
     willReplace: 'replaces the saved one', willSkip: 'already saved: kept',
-    conflict: 'When a cookie is already saved', replace: 'Replace it', skip: 'Keep the saved ones', conflictHelp: 'A cookie is the same when its name, domain and path are.',
+    conflict: 'When a cookie is already saved', replace: 'Replace', skip: 'Keep saved', conflictHelp: 'A cookie is the same when its name, domain and path are.',
     submit: (n: number) => `Import ${n} ${n === 1 ? 'cookie' : 'cookies'}`
   },
   // Opening a profile, step by step.
@@ -244,12 +250,12 @@ export const en = {
   // Opening several profiles at once.
   batchOpen: {
     title: (n: number) => `Opening ${profilesN(n)}`, done: (k: number, n: number) => `${k} of ${n} done`,
-    opened: 'Opened', waiting: 'Waiting', retry: 'Retry', fold: 'Fold', unfold: 'Show', close: 'Close'
+    opened: 'Opened', waiting: 'Waiting', retry: 'Retry', fold: 'Collapse', unfold: 'Expand', close: 'Close'
   },
   checks: {
-    'proxy-ok': { t: x => `Proxy answering · ${x.ms} ms`, d: x => x.host },
+    'proxy-ok': { t: x => `Proxy responding · ${x.ms} ms`, d: x => x.host },
     'proxy-slow': { t: x => `Proxy is slow · ${x.ms} ms`, d: x => `${x.host}. Pages may time out.` },
-    'proxy-down': { t: () => 'Proxy didn’t respond', d: x => `${x.host}. The profile can’t open until it answers.` },
+    'proxy-down': { t: () => 'Proxy didn’t respond', d: x => `${x.host}. The profile can’t open until it responds.` },
     'proxy-backup': { t: () => 'Main line didn’t respond; the backup line takes over', d: x => x.host },
     'proxy-none': { t: () => 'No proxy', d: () => 'Sites see this computer’s IP address.' },
     'proxy-unchecked': { t: () => 'Proxy not checked yet', d: x => `${x.host}. Check it to see where it exits.` },
@@ -260,9 +266,9 @@ export const en = {
     'lang-ok': { t: () => 'Language matches the region', d: x => x.lang },
     'lang-mismatch': { t: () => 'Language doesn’t match the exit IP', d: x => `Set by hand to ${x.setLang}, but the proxy exits in ${x.country}.` },
     geo: { t: x => `Geolocation set near ${x.city}`, d: () => 'Accuracy about 50 m' },
-    rtc: { t: () => 'WebRTC shows the proxy IP only', d: () => 'The real IP of this computer stays hidden' },
+    rtc: { t: () => 'WebRTC shows the proxy IP only', d: () => 'The real IP of this computer stays hidden.' },
     'rtc-off': { t: () => 'WebRTC is off', d: () => 'Sites that need calls or video don’t work in this profile.' },
-    'fp-real': { t: x => `${x.real} show this computer’s own values`, d: () => 'Profiles on the same computer can be linked by them.' },
+    'fp-real': { t: x => `Real values from this computer: ${x.real}`, d: () => 'Profiles on the same computer can be linked by them.' },
     'engine-ok': { t: x => `${x.kernel} ${x.version}`, d: () => 'The recommended version' },
     'engine-older': { t: x => `${x.kernel} ${x.version}`, d: x => `${x.latest} is recommended. The fingerprint stays the same when you upgrade.` },
     'engine-missing': { t: x => `${x.kernel} ${x.version} isn’t downloaded yet`, d: x => `${x.size}, once for all profiles. It downloads when you open the profile.` },
@@ -271,7 +277,7 @@ export const en = {
   fixes: { check: 'Check again', backup: 'Make the backup the main line', 'choose-proxy': 'Choose a proxy', 'follow-tz': 'Follow the proxy', 'follow-lang': 'Follow the proxy', download: 'Download', use: (v: string) => `Use ${v}`, edit: 'Change settings' },
   // A profile's fingerprint choices, in the profile form and its details.
   fp: {
-    title: 'Fingerprint', random: 'Random fingerprint',
+    title: 'Fingerprint', random: 'New random fingerprint',
     screen: 'Screen resolution', screenRandom: 'Random for the system', screenHost: 'This computer’s screen',
     screenHostHint: 'Chromium uses this computer’s screen.', cores: 'CPU cores',
     webrtc: 'WebRTC', webrtcOpts: { udp: 'Block non-proxied UDP', replace: 'Show the proxy IP', block: 'Off' },
@@ -279,7 +285,7 @@ export const en = {
     canvas: 'Canvas', canvasOpts: { noise: 'Noise', real: 'This computer’s', engine: 'Set by the engine' }
   },
   form: {
-    newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Give it a name.',
+    newTitle: 'New profile', editTitle: 'Edit profile', name: 'Name', defaultName: (n: number) => `Profile ${n}`, nameErr: 'Enter a name.',
     sections: { basic: 'Basics', proxy: 'Proxy', fp: 'Fingerprint', launch: 'Opening' }, sectionsLabel: 'Sections', hasProblem: 'Something here needs fixing',
     optional: ' (optional)',
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
@@ -290,11 +296,11 @@ export const en = {
     proxyOk: (place: string, ms: number) => `Connected · ${place} · ${ms} ms`, proxyDown: 'Can’t connect',
     checkedAt: (t: string) => `checked at ${t}`, lastChecked: (t: string) => `last checked at ${t}`,
     tags: 'Tags', tagsPh: 'Comma-separated',
-    regenWarn: 'Sites will see a new device; logged-in sites may ask you to verify again.', fpErr: 'Couldn’t make a fingerprint.',
+    regenWarn: 'Sites will see a new device; signed-in sites may ask you to verify again.', fpErr: 'Couldn’t generate a fingerprint.',
     firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
     fpEdit: 'Edit fingerprint', fpHide: 'Hide fingerprint settings', exitUnknown: 'Exit not checked yet',
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy',
-    tzPh: 'Search time zones, e.g. Berlin', langPh: 'de-DE', tzNone: 'No time zone matches.', langErr: 'Use a language tag like de-DE.', searchPh: 'Search…',
+    tzPh: 'Search time zones, e.g., Berlin', langPh: 'de-DE', tzNone: 'No time zone matches.', langErr: 'Use a language tag like de-DE.', searchPh: 'Search…',
     startUrl: 'Start page', startUrlHint: 'Left empty, it opens its last tabs or its search engine’s home page.',
     startUrlErr: 'Use an address that starts with http:// or https://.',
     window: 'Window size', windowModes: { default: 'Default', custom: 'Custom', maximized: 'Maximized' }, width: 'Width', height: 'Height',
@@ -312,7 +318,7 @@ export const en = {
   // The Fingerprint tab of a profile's page.
   fpTab: {
     next: 'Changes apply the next time the profile opens.', locked: 'The profile is running; stop it to change its fingerprint.',
-    browser: 'Browser', screen: 'Screen', langTz: 'Language and time zone', hardware: 'Hardware',
+    browser: 'Browser', screen: 'Screen', langTz: 'Language and time zone', hardware: 'Hardware and media',
     current: 'Saved configuration', consistency: 'Consistency', advanced: 'Advanced',
     ua: 'User-Agent', uaLater: 'Made by the engine from the system and version; run a health check to see it here.',
     screenHint: 'The screen resolution is what sites read; the window size is set when editing the profile.',
@@ -323,56 +329,56 @@ export const en = {
     search: 'Search engine', name: enSearch,
     restore: 'Restore last tabs',
     start: 'On opening', startTabs: 'Restores the last tabs', startHome: (name: string) => `Opens the ${name} home page`, startBlank: 'Opens a blank page',
-    bulk: 'Browser…', on: 'On', off: 'Off',
+    bulk: 'Browser settings…', on: 'On', off: 'Off',
     searchSet: (n: number, name: string) => `Search engine set to ${name} on ${profilesN(n)}`,
-    tabsSet: (n: number, on: boolean) => `Restoring tabs turned ${on ? 'on' : 'off'} on ${profilesN(n)}`
+    tabsSet: (n: number, on: boolean) => `Tab restoring turned ${on ? 'on' : 'off'} for ${profilesN(n)}`
   },
   importer: {
     title: 'Import profiles', lead: 'One profile per row with a header row. Save Excel sheets as CSV first; up to 500 rows at a time.',
     columns: 'Columns: name (required), group, tags (separated by |), os (windows, macos, linux), engine (chromium, firefox), proxy, timezone, language, search engine (google, bing, baidu, duckduckgo, yahoo, yandex or none), restore tabs (yes or no), notes, cookies (JSON or cookies.txt text).',
     example: 'Insert an example', file: 'Choose a file…', pasteLabel: 'CSV', ready: (n: number) => `${profilesN(n)} ready to import.`,
     problems: 'Fix these rows first:', row: (n: number) => `Row ${n}`, header: 'The first row needs a “name” column.',
-    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags of 24 characters', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', cookies: 'no cookies could be read', search: 'unknown search engine', restoreTabs: 'use yes or no', header: '' } satisfies Record<Problem | 'proxy', string>,
+    errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags, 24 characters each', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', cookies: 'no cookies could be read', search: 'unknown search engine', restoreTabs: 'use yes or no', header: '' } satisfies Record<Problem | 'proxy', string>,
     tooMany: 'Up to 500 rows at a time.', room: (free: number) => `The plan has room for ${profilesN(free)} more.`, firefox: 'Some rows use Firefox: download its engine first.',
     submit: (n: number) => `Import ${profilesN(n)}`, steps: { proxies: 'Adding proxies…', groups: 'Creating groups…', fingerprints: (i: number, n: number) => `Making fingerprints… ${i} / ${n}`, saving: 'Saving…', cookies: (i: number, n: number) => `Importing cookies… ${i} / ${n}` },
     done: (n: number) => `${profilesN(n)} imported`
   },
   proxies: {
-    title: 'Proxies', lead: 'Lines the profiles go out through, how they answer and what uses them.',
+    title: 'Proxies', lead: 'The proxies your profiles connect through, how they respond and which profiles use them.',
     search: 'Search proxies', searchPh: 'Search name, host or city', add: 'Add proxy', import: 'Import', checkAll: 'Check all',
-    sum: { total: 'Proxies', ok: 'Answering', issues: 'Problems', unbound: 'Unused' },
-    filter: { type: 'Type', types: 'All types', region: 'Region', regions: 'All regions', state: 'Status', states: 'All statuses' },
-    cols: { name: 'Name', type: 'Type', address: 'Address', exit: 'Exit', status: 'Status', latency: 'Latency', profiles: 'Profiles', actions: 'Actions' },
+    sum: { total: 'Proxies', ok: 'Responding', issues: 'Problems', unbound: 'Unused' },
+    filter: { type: 'Protocol', types: 'All protocols', region: 'Region', regions: 'All regions', state: 'Status', states: 'All statuses' },
+    cols: { name: 'Name', type: 'Protocol', address: 'Address', exit: 'Exit', status: 'Status', latency: 'Latency', profiles: 'Profiles', actions: 'Actions' },
     labels: { latency: 'Latency', uptime: 'Uptime', profiles: 'Profiles' }, backupOf: (n: string) => `backup ${n}`, noExit: 'Exit unknown',
-    downNote: (n: number, when: string | null) => `${n === 1 ? 'No response the last time' : `No response the last ${n} times`}${when ? ` · last answered ${when}` : ''}`,
-    states: { ok: 'Answering', slow: 'Slow', down: 'Not answering', unchecked: 'Not checked', issues: 'Slow or not answering', unbound: 'Unused' },
+    downNote: (n: number, when: string | null) => `${n === 1 ? 'No response the last time' : `No response the last ${n} times`}${when ? ` · last responded ${when}` : ''}`,
+    states: { ok: 'Responding', slow: 'Slow', down: 'Not responding', unchecked: 'Not checked', issues: 'Slow or not responding', unbound: 'Unused' },
     history: (n: number) => `Last ${n} ${n === 1 ? 'check' : 'checks'}`, never: 'Not checked',
     emptyTitle: 'No proxies yet', empty: 'Add one, or import a list from your provider.', addFirst: 'Add the first proxy', importList: 'Import a list',
-    bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use them keep working without a proxy.',
+    bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use a deleted proxy keep working without one.',
     bulk: {
-      unbind: 'Unbind', unbindTitle: (n: number, m: number) => `Unbind ${proxiesN(n)} from ${profilesN(m)}?`,
-      unbindNote: 'Those profiles go out without a proxy until another is chosen; running ones change the next time they open.',
-      unbound: (m: number) => `${profilesN(m)} unbound`
+      unbind: 'Unassign', unbindTitle: (n: number, m: number) => `Unassign ${proxiesN(n)} from ${profilesN(m)}?`,
+      unbindNote: 'Those profiles connect without a proxy until another is assigned; running ones change the next time they open.',
+      unbound: (m: number) => `${profilesN(m)} unassigned`
     },
     deleted: (n: number) => `${proxiesN(n)} deleted`, checked: (n: number) => `Checked ${proxiesN(n)}`, actionsX: (n: string) => `Actions for ${n}`,
     detail: {
       label: 'Proxy', exitIp: 'Exit IP', region: 'Region', latency: 'Latency', profiles: 'Profiles', config: 'Connection', history: 'Recent checks',
-      ok: (ms: number) => `Answered · ${ms} ms`, failed: 'No response', passSet: 'Saved', passNone: 'None', uptime: 'Uptime',
-      uptimeOf: (pct: number, n: number) => `${pct}% of the last ${n}`, bound: (n: number) => `Profiles (${n})`,
+      ok: (ms: number) => `Responded · ${ms} ms`, failed: 'No response', passSet: 'Saved', passNone: 'None', uptime: 'Uptime',
+      uptimeOf: (pct: number, n: number) => `${pct}% of the last ${n === 1 ? 'check' : `${n} checks`}`, bound: (n: number) => `Profiles (${n})`,
       none: 'No profile uses it.', noHistory: 'Not checked yet.',
       created: 'Added', lastChecked: 'Last checked', viewAll: 'View all', manage: 'Manage', details: 'View details',
       tabs: { overview: 'Overview', bound: 'Profiles', checks: 'Checks' },
       createdOn: (when: string) => `Added ${when}`, checkedOn: (when: string) => `last checked ${when}`, authOn: 'On', authOff: 'Off',
       runningWarn: 'Stop the running profiles that use this proxy before changing how it connects.', viewProfile: 'View profile'
     },
-    formAdd: 'Add proxy', formEdit: 'Edit proxy', formSub: 'Fill in how it connects, and check that it answers.', save: 'Save proxy',
+    formAdd: 'Add proxy', formEdit: 'Edit proxy', formSub: 'Fill in how it connects, and check that it responds.', save: 'Save proxy',
     name: 'Name', namePh: 'Defaults to host:port', type: 'Protocol', host: 'Host', port: 'Port', notes: 'Notes',
     auth: 'Authentication', authHint: 'When on, the proxy is reached with a username and password.',
     user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
     lastTest: (when: string) => `Last checked: ${when}`, justNow: 'just now',
-    test: 'Test connection', testOk: 'Connected', testBad: 'Can’t connect', why: { timeout: 'Timed out', unreachable: 'Unreachable' } as Record<string, string>,
+    test: 'Check connection', testOk: 'Connected', testBad: 'Can’t connect', why: { timeout: 'Timed out', unreachable: 'Unreachable' } as Record<string, string>,
     addMore: 'Add another after saving',
-    backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t answer.',
+    backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t respond.',
     hostErr: 'Enter a host name or IP address.', portErr: 'Ports go from 1 to 65535.',
     imp: {
       title: 'Import proxies', sub: 'Bring in a list as text or from a file.', modes: { text: 'Paste text', file: 'From a file' },
@@ -391,24 +397,24 @@ export const en = {
       done: (added: number, reused: number) => `${proxiesN(added)} added${reused ? `, ${reused} already saved` : ''}`
     },
     replace: {
-      title: 'Change proxy', lead: (name: string) => `Choose the proxy ${name} goes out through.`, current: 'Current proxy', state: 'Status',
+      title: 'Change proxy', lead: (name: string) => `Choose the proxy ${name} connects through.`, current: 'Current proxy', state: 'Status',
       pick: 'Pick', test: 'Check the chosen proxy', confirm: 'Change proxy',
       running: 'The profile is running; stop it to change its proxy.', warn: 'After changing it, check the profile’s time zone and language.',
-      done: (profile: string, proxy: string) => `${profile} now goes out through ${proxy}`
+      done: (profile: string, proxy: string) => `${profile} now connects through ${proxy}`
     }
   },
   trash: {
-    title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it for good.', empty: 'The Trash is empty',
-    restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete forever', purgeAll: 'Empty Trash',
-    cols: { profile: 'Profile', number: 'ID', group: 'Group', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by', left: 'Days left' },
-    keeps: (n: number) => `Kept for ${n} days, then deleted for good. Change it in Settings.`,
-    search: 'Search name or ID', when: 'Deleted between', anyone: 'Anyone', days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
+    title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it permanently.', empty: 'The Trash is empty',
+    restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete permanently', purgeAll: 'Empty Trash',
+    cols: { profile: 'Profile', number: 'No.', group: 'Group', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by', left: 'Days left' },
+    keeps: (n: number) => `Kept for ${n} days, then permanently deleted. Change it in Settings.`,
+    search: 'Search name or number', when: 'Deleted between', anyone: 'Anyone', days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
     picked: (n: number) => `${n} selected`, restoreTo: 'Restore to', restoreToHint: 'Unless another is picked, each goes back to its own group.', sameGroup: 'Its own group',
-    restoreN: (n: number) => `Restore (${n})`, purgeN: (n: number) => `Delete forever (${n})`,
+    restoreN: (n: number) => `Restore (${n})`, purgeN: (n: number) => `Delete permanently (${n})`,
     typeName: (name: string) => `Type ${name} to confirm`, typeCount: (n: number) => `Type ${n} to confirm`,
     sites: (n: number) => (n ? `${n} ${n === 1 ? 'site' : 'sites'}` : 'None'), byAt: (who: string, when: string) => `${who} deleted it ${when}`,
-    confirmPurge: (n: number) => `Delete ${profilesN(n)} forever?`, confirmNote: 'This can’t be undone: their fingerprints and settings can’t be recovered.',
-    restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} deleted forever`
+    confirmPurge: (n: number) => `Permanently delete ${profilesN(n)}?`, confirmNote: 'This can’t be undone: their fingerprints and settings can’t be recovered.',
+    restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} permanently deleted`
   },
   engines: {
     title: 'Engines', lead: 'Browser engine versions: the one new profiles start with, and how updates arrive.',
@@ -426,7 +432,7 @@ export const en = {
     noneDownloaded: 'Nothing downloaded yet', noneDownloadedText: 'Download a version from All engines; a profile also downloads its own when it opens.',
     outdated: (n: number, kernel: string) => `${profilesN(n)} ${n === 1 ? 'uses' : 'use'} the older ${kernel}`, upgrade: (v: string) => `Upgrade to ${v}`,
     upgradeNote: (v: string) => `After the upgrade to ${v}, sites see the same fingerprint as before.`,
-    upgradeSkip: (n: number) => `${n === 1 ? 'One is' : `${n} are`} running and stay as they are; upgrade them once they stop.`,
+    upgradeSkip: (n: number) => (n === 1 ? '1 is running and stays as it is; upgrade it once it stops.' : `${n} are running and stay as they are; upgrade them once they stop.`),
     paused: (pct: number) => `Paused at ${pct}%`, pause: 'Pause', resume: 'Resume',
     disk: (size: string) => `Engines on this computer take ${size}`, cleanup: 'Delete unused versions', nothingToClean: 'Every downloaded version is in use or recommended.',
     cleanupTitle: (n: number) => `Delete ${n === 1 ? '1 unused version' : `${n} unused versions`}?`, cleanupNote: (size: string) => `Frees ${size}. A version downloads again if a profile needs it.`,
@@ -434,34 +440,34 @@ export const en = {
     settings: 'Download settings', autoDownload: 'Download updates automatically', autoHint: 'Existing profiles keep their version',
     autoHelp: 'New recommended versions download to this computer in the background. Profiles stay on their version until you upgrade them.',
     idleOnly: 'Download only while idle',
-    upgraded: (n: number, v: string) => `${profilesN(n)} now use ${v}`,
+    upgraded: (n: number, v: string) => `${profilesN(n)} now ${n === 1 ? 'uses' : 'use'} ${v}`,
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple silicon', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
     notes: {
       title: 'Version notes', version: 'Version', released: 'Released', size: 'Size', profiles: 'Profiles', changes: 'What changed', none: 'No notes for this version.',
       systems: 'Systems', switchWarn: 'Stop the profiles involved before switching engines', switchWhy: 'That way their data is saved and nothing is lost.'
     },
     admin: {
-      upload: 'Upload a version', title: 'Upload an engine version', kind: 'Engine', version: 'Version', versionPh: 'e.g. 151.0.7900.10', platform: 'System',
+      upload: 'Upload a version', title: 'Upload an engine version', kind: 'Engine', version: 'Version', versionPh: 'e.g., 151.0.7900.10', platform: 'System',
       file: 'Package', choose: 'Choose a file…', fileHint: 'The package as the engine publishes it: .zip, .tar.xz or .dmg. It goes straight to Folio’s storage.',
       hashing: (pct: number) => `Checking the file… ${pct}%`, uploading: (pct: number) => `Uploading… ${pct}%`, send: 'Upload', done: (v: string) => `${v} added to the catalog`,
-      recommend: 'Make recommended', recommended: (v: string) => `${v} is now recommended`, retire: 'Remove', unfinished: 'Upload unfinished',
+      recommend: 'Make recommended', recommended: (v: string) => `${v} is now recommended`, retire: 'Retire', unfinished: 'Upload unfinished',
       recommendTitle: (v: string) => `Make ${v} the recommended version?`, recommendNote: 'Workspaces without a default engine start new profiles on it; the note below shows in its version notes.', note: 'What changed (optional)',
-      retireTitle: (v: string) => `Remove ${v} from the catalog?`,
-      retireConfirm: (n: number) => `${n ? `${profilesN(n)} use it. ` : ''}Computers that downloaded it keep it; elsewhere its profiles are offered another version.`,
-      retiredDone: (v: string) => `${v} removed from the catalog`
+      retireTitle: (v: string) => `Retire ${v} from the catalog?`,
+      retireConfirm: (n: number) => `${n ? `${profilesN(n)} in all workspaces ${n === 1 ? 'uses' : 'use'} it. ` : ''}Computers that downloaded it keep it; elsewhere its profiles are offered another version.`,
+      retiredDone: (v: string) => `${v} retired from the catalog`
     }
   },
   team: {
-    title: 'Team', lead: 'Who is in the workspace, what they may do and what they may reach.',
-    invite: 'Invite people', you: 'you', remove: 'Remove from team', leave: 'Leave team',
+    title: 'Team', lead: 'Who is in the workspace, what they can do and what they can access.',
+    invite: 'Invite people', you: 'you', remove: 'Remove from workspace', leave: 'Leave workspace',
     tabs: { members: 'Members', invites: 'Invitations', roles: 'Roles' },
-    cols: { person: 'Person', role: 'Role', scope: 'Groups', status: 'Status', active: 'Last active', actions: 'Actions', invitedBy: 'Invited by', expires: 'Expires' },
+    cols: { person: 'Member', role: 'Role', scope: 'Groups', status: 'Status', active: 'Last active', actions: 'Actions', invitedBy: 'Invited by', expires: 'Expires' },
     scopeAll: 'All profiles', scopeOwn: 'Their own profiles', joined: 'Joined',
-    seats: 'Seats', seatsFree: (n: number) => `${n} in use · no limit`, allRoles: 'All roles', noInvites: 'No invitations waiting',
+    seats: 'Seats', seatsFree: (n: number) => `${n} in use · unlimited`, allRoles: 'All roles', noInvites: 'No invitations waiting',
     defsTitle: 'What the roles mean', editAccess: 'Edit access', accessTitle: (e: string) => `Access for ${e}`,
-    accessSub: 'The role is theirs across the workspace; the groups decide which profiles they reach.', saved: 'Access saved',
+    accessSub: 'The role is theirs across the workspace; the groups decide which profiles they can access.', saved: 'Access saved',
     viaParent: 'through its parent', noGroups: 'There are no groups yet.',
-    search: 'Search people', meTag: '(you)', moreX: (e: string) => `More for ${e}`,
+    search: 'Search members', meTag: '(you)', moreX: (e: string) => `More for ${e}`,
     copiedNew: 'A new invitation link was copied; the earlier one no longer works.',
     roleHelp: {
       owner: 'Has every permission: people, groups, every profile and the workspace’s settings. Can’t be changed.',
@@ -469,13 +475,13 @@ export const en = {
       member: 'Sees and opens their own profiles and those in their groups; can create and edit, not delete.',
       viewer: 'Sees their own profiles and those in their groups; changes nothing.'
     } as Record<string, string>,
-    roleActions: (n: number) => `${n} ${n === 1 ? 'action' : 'actions'}`,
+    roleActions: (n: number) => `${n} ${n === 1 ? 'permission' : 'permissions'}`,
     copyLink: 'Copy link', copied: 'Invitation link copied', resend: 'Send again', withdraw: 'Withdraw', withdrawn: 'Invitation withdrawn',
-    inviteTitle: 'Invite people', inviteSub: 'Their email, their role and the groups they will reach.', email: 'Email', emailErr: 'Enter an email address.', role: 'Role',
+    inviteTitle: 'Invite people', inviteSub: 'Their email, their role and the groups they will have access to.', email: 'Email', emailErr: 'Enter an email address.', role: 'Role',
     emails: 'Emails', emailsPh: 'name@company.com', emailsHint: 'Up to 10 at a time; press Enter or type a comma after each.',
     emailBad: (e: string) => `${e} isn’t an email address.`, tooMany: 'Invite up to 10 people at a time.', removeEmail: (e: string) => `Remove ${e}`,
-    summaryTitle: 'What they will reach', summaryAll: 'This role reaches every profile in the workspace.',
-    summaryGroups: (n: number) => `Their own profiles and those in the ${n === 1 ? 'group' : `${n} groups`} ticked; the role decides what they may do.`,
+    summaryTitle: 'What they will have access to', summaryAll: 'This role can access every profile in the workspace.',
+    summaryGroups: (n: number) => `Their own profiles and those in the ${n === 1 ? 'group' : `${n} groups`} selected; the role decides what they may do.`,
     summaryOwn: 'Only the profiles given to them; the role decides what they may do.',
     validity: 'Link works for', days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
     seatsAfter: (n: number, max: number) => `Seats after inviting: ${n} / ${max}`,
@@ -483,14 +489,14 @@ export const en = {
     sentShort: 'Invitation sent', notSentShort: 'Not emailed: copy the link and pass it on',
     done: 'Done',
     removeTitle: (e: string) => `Remove ${e}`, removeLead: 'Their profiles go to the person you choose. Anything they have open closes on their computer, and their copies there are deleted.',
-    heir: 'Give their profiles to', removeDo: 'Remove from team', removed: (e: string) => `${e} was removed`,
+    heir: 'Give their profiles to', removeDo: 'Remove from workspace', removed: (e: string) => `${e} was removed`,
     leaveTitle: (ws: string) => `Leave ${ws}?`, leaveLead: 'Your profiles there go to the owner, and you lose access to the workspace.', leaveDo: 'Leave',
     removedYou: (ws: string) => `You’re no longer in ${ws}. Its profiles were closed and removed from this computer.`,
     groupAccess: 'Group access',
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
   },
   jobs: {
-    title: 'Task center', lead: 'How batch operations went: what each reached, and why anything failed.',
+    title: 'Task center', lead: 'How batch operations went: their progress, results and why anything failed.',
     live: 'Auto-refresh', kind: 'Type', range: 'Time',
     tabs: { all: 'All tasks', running: 'Running', done: 'Done', partial: 'Partly failed', canceled: 'Canceled' },
     kinds: { all: 'All types', 'proxy.check': 'Check proxies', 'profile.open': 'Open profiles', 'proxy.import': 'Import proxies', 'profile.edit': 'Edit profiles', 'kernel.download': 'Download engine' },
@@ -509,7 +515,7 @@ export const en = {
   states: {
     noProfiles: 'No profiles yet', noProfilesText: 'Create one to set its fingerprint and proxy; each opens in a browser of its own.', create: 'Create profile',
     noMatch: 'Nothing matches', noMatchText: 'Try other words, or clear the filters.', clear: 'Clear filters',
-    proxyDown: 'The proxy doesn’t answer', proxyDownText: (addr: string) => `${addr} couldn’t be reached. Check its details or the network, then check again.`,
+    proxyDown: 'The proxy doesn’t respond', proxyDownText: (addr: string) => `${addr} couldn’t be reached. Check its details or the network, then check again.`,
     checkAgain: 'Check again', editProxy: 'Edit proxy',
     launchFailed: 'The profile didn’t start', launchFailedText: (n: string) => `${n} couldn’t start. Check its proxy, the network or its engine, then try again.`,
     why: 'See why', retry: 'Try again',
@@ -517,14 +523,14 @@ export const en = {
     noAccessText: (admin: string | null) => `Your role doesn’t include this. Ask ${admin ? `the workspace’s owner (${admin})` : 'whoever runs the workspace'} for access.`,
     contact: 'Email the owner', askSubject: 'Folio: access request',
     offline: 'No connection', offlineText: 'Folio can’t reach its server. Check your network, then connect again.', reconnect: 'Connect again',
-    loadFailedText: 'Something went wrong on the way. Load it again.',
+    loadFailedText: 'Something went wrong while loading. Try again.',
     underway: (what: string) => `${what}: under way`, resultsThere: 'The task center will have the results.', viewTask: 'View task',
     partly: (what: string, ok: number, failed: number) => `${what}: ${ok} done, ${failed} failed`, seeWhy: 'See why'
   },
   rolesPage: {
     list: 'Roles', add: 'New role', note: 'A role decides what someone may do; the groups they are in decide which profiles.',
-    descs: { owner: 'Built in, with every permission', admin: 'Manages the team and every resource', member: 'Uses the profiles in their groups', viewer: 'Looks, changes nothing' } as Record<string, string>,
-    customOf: (n: number) => `Workspace role · ${n} ${n === 1 ? 'permission' : 'permissions'}`, customHint: 'A role of this workspace’s own.',
+    descs: { owner: 'Built in, with every permission', admin: 'Manages the team and every resource', member: 'Uses the profiles in their groups', viewer: 'View only' } as Record<string, string>,
+    customOf: (n: number) => `Custom role · ${n} ${n === 1 ? 'permission' : 'permissions'}`, customHint: 'A custom role for this workspace.',
     people: (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`, ownerNote: 'The owner’s role always has every permission.',
     col: 'Permission', what: 'Allows', allow: 'Allowed',
     sections: { profiles: 'Profiles', data: 'Data', proxies: 'Proxies', team: 'Team' },
@@ -534,57 +540,57 @@ export const en = {
       'profiles.delete': ['Delete profiles', 'Move profiles to the Trash and delete them'],
       'cookies.import': ['Import cookies', 'Bring cookies into a profile'], 'cookies.export': ['Export cookies', 'Take a profile’s cookies out, and read their values'],
       'profiles.export': ['Export profiles', 'Export profiles with their settings and cookies'],
-      'proxies.view': ['View proxies', 'See the proxy list and each proxy’s details'], 'proxies.bind': ['Bind proxies', 'Put a profile on a proxy or take it off'],
+      'proxies.view': ['View proxies', 'See the proxy list and each proxy’s details'], 'proxies.bind': ['Assign proxies', 'Assign a proxy to a profile or unassign it'],
       'proxies.edit': ['Edit proxies', 'Add, change and delete proxies'],
-      'team.manage': ['Manage the team', 'Invite and remove people, set roles and groups, and run the workspace’s settings and plan'],
+      'team.manage': ['Manage the team', 'Invite and remove people, set roles and groups, and manage the workspace settings and plan'],
       'activity.view': ['View the activity log', 'See what the team has done']
     } as Record<string, [string, string]>,
     reset: 'Restore defaults', save: 'Save permissions', saved: (r: string) => `${r} saved`,
-    delete: 'Delete role', deleteTitle: (r: string) => `Delete the role ${r}?`, deleteNote: 'Only a role nobody holds, and no invitation waits with, can go.', deleted: (r: string) => `${r} deleted`,
+    delete: 'Delete role', deleteTitle: (r: string) => `Delete the role ${r}?`, deleteNote: 'Only roles that no member holds and no pending invitation uses can be deleted.', deleted: (r: string) => `${r} deleted`,
     newTitle: 'New role', name: 'Role name', nameErr: 'Enter a role name.', from: 'Start from', fromNone: 'No permissions', create: 'Create role'
   },
   activity: {
     title: 'Activity log', lead: 'What has been done in this workspace, by whom and when.', person: 'Person', everyone: 'Everyone', kind: 'Action',
-    search: 'Search by name, person or entry number', cols: { time: 'Time', person: 'Person', type: 'Action', object: 'Done to', what: 'What happened' },
+    search: 'Search by name, person or entry number', cols: { time: 'Time', person: 'Person', type: 'Action', object: 'Target', what: 'What happened' },
     kinds: { all: 'All actions', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
     dates: 'Dates', from: 'From', until: 'Until', to: 'to',
     partial: 'Your role shows your own actions and what was done to the profiles you can see.',
     export: 'Export log', exported: (path: string) => `Saved to ${path}`, empty: 'Nothing recorded yet', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
     today: 'Today', yesterday: 'Yesterday',
     detail: {
-      title: 'Entry details', number: 'Entry', person: 'By', time: 'Time', type: 'Action', object: 'Done to', device: 'Computer', what: 'What happened',
+      title: 'Entry details', number: 'Entry', person: 'By', time: 'Time', type: 'Action', object: 'Target', device: 'Computer', what: 'What happened',
       fields: 'What changed', change: 'Renamed', note: 'The log never keeps passwords or cookie values.'
     },
     types: {
       'profile.create': 'Create profile', 'profile.update': 'Edit profile', 'profile.move': 'Move to group', 'profile.tag': 'Add tag', 'profile.untag': 'Remove tag',
-      'profile.set-proxy': 'Change proxy', 'profile.assign': 'Assign profile', 'profile.trash': 'Move to Trash', 'profile.restore': 'Restore profile', 'profile.purge': 'Delete forever',
+      'profile.set-proxy': 'Change proxy', 'profile.assign': 'Assign profile', 'profile.trash': 'Move to Trash', 'profile.restore': 'Restore profile', 'profile.purge': 'Delete permanently',
       'profile.open': 'Open profile', 'profile.close': 'Close profile', 'profile.takeover': 'Take over profile',
       'proxy.create': 'Add proxy', 'proxy.import': 'Import proxies', 'proxy.update': 'Edit proxy', 'proxy.delete': 'Delete proxy',
       'group.create': 'Create group', 'group.rename': 'Rename group', 'group.delete': 'Delete group', 'group.members': 'Group access',
-      'member.invite': 'Invite', 'member.join': 'Join', 'member.role': 'Change role', 'member.groups': 'Change groups', 'member.remove': 'Remove member', 'member.leave': 'Leave team',
+      'member.invite': 'Invite', 'member.join': 'Join', 'member.role': 'Change role', 'member.groups': 'Change groups', 'member.remove': 'Remove member', 'member.leave': 'Leave workspace',
       'invitation.withdraw': 'Withdraw invitation', 'role.create': 'Create role', 'role.update': 'Edit role', 'role.delete': 'Delete role',
       'cookies.export': 'Export cookies', 'cookies.import': 'Import cookies', 'cookies.delete': 'Delete cookies', 'workspace.export': 'Export workspace', 'workspace.import': 'Import workspace',
-      'flow.create': 'Create flow', 'flow.update': 'Edit flow', 'flow.delete': 'Delete flow', 'task.create': 'Create task', 'task.update': 'Edit task', 'task.delete': 'Delete task',
+      'flow.create': 'Create flow', 'flow.update': 'Edit flow', 'flow.delete': 'Delete flow', 'task.create': 'Create scheduled task', 'task.update': 'Edit scheduled task', 'task.delete': 'Delete scheduled task',
       'run.start': 'Start run', 'run.finish': 'Finish run', 'extension.add': 'Add extension', 'extension.update': 'Update extension', 'extension.delete': 'Delete extension',
       'profile.add-extension': 'Install extension', 'profile.remove-extension': 'Uninstall extension', 'profile.set-kernel': 'Change engine', 'profile.set-browser': 'Browser settings'
     } as Record<string, string>,
     actions: {
-      'profile.create': p => `created ${p}`, 'profile.update': (p, x) => `changed the ${x.fields?.map((f: string) => enFields[f] ?? f).join(', ')} of ${p}`,
+      'profile.create': p => `created ${p}`, 'profile.update': (p, x) => `changed the ${andList(uniq((x.fields ?? []).map((f: string) => enFields[f] ?? f)))} of ${p}`,
       'profile.move': (p, x) => (x.group ? `moved ${p} to ${x.group}` : `took ${p} out of its group`), 'profile.tag': (p, x) => `tagged ${p} “${x.tag}”`,
       'profile.untag': (p, x) => `removed the tag “${x.tag}” from ${p}`, 'profile.set-proxy': (p, x) => (x.proxy ? `set the proxy of ${p} to ${x.proxy}` : `removed the proxy of ${p}`),
       'profile.assign': (p, x) => (x.to ? `assigned ${p} to ${x.to}` : `unassigned ${p}`),
-      'profile.trash': p => `moved ${p} to the Trash`, 'profile.restore': p => `restored ${p}`, 'profile.purge': p => `deleted ${p} for good`,
+      'profile.trash': p => `moved ${p} to the Trash`, 'profile.restore': p => `restored ${p}`, 'profile.purge': p => `permanently deleted ${p}`,
       'profile.open': (p, x) => (x.via === 'api' ? `opened ${p} through the API` : `opened ${p}`), 'profile.close': p => `closed ${p}`, 'profile.takeover': (p, x) => `took over ${p} from ${x.from ?? 'another computer'}`,
       'proxy.create': (_p, x) => `added the proxy ${x.name}`, 'proxy.import': (_p, x) => `imported ${x.added} ${x.added === 1 ? 'proxy' : 'proxies'}`,
       'proxy.update': (_p, x) => `changed the proxy ${x.name}`, 'proxy.delete': (_p, x) => `deleted the proxy ${x.name}`,
-      'group.members': (_p, x) => `changed who may reach ${x.name}`,
+      'group.members': (_p, x) => `changed who can access ${x.name}`,
       'group.create': (_p, x) => `created the group ${x.name}`, 'group.rename': (_p, x) => `renamed the group ${x.from} to ${x.name}`, 'group.delete': (_p, x) => `deleted the group ${x.name}`,
       'member.invite': (_p, x) => `invited ${x.email} as ${x.role}`, 'member.join': (_p, x) => `joined as ${x.role}`,
-      'member.role': (_p, x) => `made ${x.email} ${x.role}`, 'member.groups': (_p, x) => `changed the groups ${x.email} reaches`, 'member.remove': (_p, x) => `removed ${x.email}; their profiles went to ${x.to}`,
-      'member.leave': () => 'left the team', 'invitation.withdraw': (_p, x) => `withdrew the invitation to ${x.email}`,
-      'role.create': (_p, x) => `made the role ${x.name}`, 'role.update': (_p, x) => `changed what ${x.name} may do`, 'role.delete': (_p, x) => `deleted the role ${x.name}`,
-      'cookies.delete': (p, x) => `deleted ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} of ${p}`,
-      'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} of ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`,
+      'member.role': (_p, x) => `made ${x.email} ${x.role}`, 'member.groups': (_p, x) => `changed the groups ${x.email} can access`, 'member.remove': (_p, x) => `removed ${x.email}; their profiles went to ${x.to}`,
+      'member.leave': () => 'left the workspace', 'invitation.withdraw': (_p, x) => `withdrew the invitation to ${x.email}`,
+      'role.create': (_p, x) => `created the role ${x.name}`, 'role.update': (_p, x) => `changed what ${x.name} may do`, 'role.delete': (_p, x) => `deleted the role ${x.name}`,
+      'cookies.delete': (p, x) => `deleted ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} from ${p}`,
+      'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} from ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`,
       'workspace.export': (_p, x) => `exported all data (${profilesN(x.profiles)}, ${x.proxies} ${x.proxies === 1 ? 'proxy' : 'proxies'})`,
       'workspace.import': (_p, x) => `imported ${profilesN(x.profiles)}, ${x.proxies} new ${x.proxies === 1 ? 'proxy' : 'proxies'} and ${x.groups} new ${x.groups === 1 ? 'group' : 'groups'}`,
       'flow.create': (_p, x) => `created the flow ${x.name}`, 'flow.update': (_p, x) => (x.from ? `renamed the flow ${x.from} to ${x.name}` : `changed the flow ${x.name}`),
@@ -600,7 +606,7 @@ export const en = {
   },
   transfer: {
     exportTitle: 'Export all data', exportLead: 'One file with every profile (fingerprints and settings), its sign-ins, the groups and the proxies with their passwords. Profiles in the Trash stay behind.',
-    passphrase: 'Passphrase', confirm: 'Passphrase again', passHelp: 'At least 10 characters. The file opens only with it, and it is not kept anywhere: if it is lost, so is the file.',
+    passphrase: 'Passphrase', confirm: 'Confirm passphrase', passHelp: 'At least 10 characters. The file opens only with it, and it is not kept anywhere: if it is lost, so is the file.',
     passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exporting: 'Exporting…', exported: (path: string) => `Saved to ${path}`,
     importTitle: 'Import data', importLead: 'Brings a .folio file into this workspace: its profiles are added and numbered here, and identical proxies and same-named groups are reused.',
     choose: 'Choose a .folio file…', unlock: 'Unlock', unlocking: 'Unlocking…',
@@ -609,7 +615,7 @@ export const en = {
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}`
   },
   flows: {
-    title: 'Flows', lead: 'Steps a profile can be made to follow, saved for the team.', new: 'New flow',
+    title: 'Flows', lead: 'Automated steps that run in profiles, shared with the team.', new: 'New flow',
     template: 'Sign-in check template', templateName: 'Sign-in check',
     cols: { name: 'Flow', steps: 'Steps', by: 'Created by', updated: 'Changed' },
     emptyTitle: 'No flows yet', empty: 'A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
@@ -653,7 +659,7 @@ export const en = {
       repeat: 'Repeat', repeatTimes: 'A number of times', repeatEach: 'For each matching element', times: 'Times',
       eachHint: 'Inside, @item is the current element (@item >> a looks inside it) and {{loop.index}} counts from 1.', timesHint: 'Inside, {{loop.index}} counts from 1.',
       signedBy: 'Signed in when', signedPresent: 'This element shows up', signedAbsent: 'This element doesn’t show up',
-      signedHint: 'For example an avatar or account menu that only signed-in visitors see, or a “Log in” button that only signed-out visitors see. A profile found signed out stops there and, in a task, you get a desktop notification.'
+      signedHint: 'For example an avatar or account menu that only signed-in visitors see, or a “Sign in” button that only signed-out visitors see. A profile found signed out stops there; in a task, you also get a desktop notification.'
     },
     trial: {
       title: 'Trial run', lead: 'Runs the steps as they are now, saved or not, in a new tab of the profile. The browser stays open afterwards.',
@@ -673,16 +679,16 @@ export const en = {
     emptyTitle: 'No tasks yet', empty: 'A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
     cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', on: 'Runs on', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
     views: { label: 'View', list: 'List', calendar: 'Calendar' },
-    here: 'This computer', starter: 'Whoever runs it', n: (n: number) => String(n),
+    here: 'This computer', starter: 'The computer that starts it', n: (n: number) => String(n),
     latest: (task: string) => `Latest run · ${task}`, took: (s: number) => (s < 60 ? `took ${s} s` : `took ${Math.floor(s / 60)} min ${s % 60} s`),
     calendar: {
       prev: 'Previous week', next: 'Next week', thisWeek: 'This week', none: 'No scheduled times this week.',
       range: (a: Date, b: Date) => `${a.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${b.toLocaleDateString('en-US', a.getMonth() === b.getMonth() ? { day: 'numeric' } : { month: 'short', day: 'numeric' })}, ${b.getFullYear()}`,
       at: (time: string, n: number) => `${time} · ${n}`
     },
-    never: 'Not run yet', manual: 'By hand', next: (at: string) => `Next: ${at}`, done: 'Its time has passed', on: (device: string) => `On ${device}`,
+    never: 'Not run yet', manual: 'Manual', next: (at: string) => `Next: ${at}`, done: 'Its time has passed', on: (device: string) => `On ${device}`,
     once: (at: string) => `Once, ${at}`, everyDay: 'Every day', weekdays: 'Weekdays', weekends: 'Weekends', dayNames: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    onlyOpen: 'Scheduled tasks run on their computer while Folio is open and logged in there; times missed are recorded, not run late.', enableStartup: 'Start Folio with this computer',
+    onlyOpen: 'Scheduled tasks run on their computer while Folio is open and logged in there; times missed are recorded, not run late.', enableStartup: 'Open Folio at startup',
     run: 'Run', runX: (n: string) => `Run ${n}`, stop: 'Stop', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     noProfilesHere: 'None of its profiles are yours to run.', runningElsewhere: 'It is running now.',
     confirmDelete: (n: string) => `Delete “${n}” and its runs?`, deleted: (n: string) => `${n} deleted`, started: (n: string) => `${n} started on this computer`,
@@ -695,18 +701,18 @@ export const en = {
     missedNote: (at: string, device: string) => `Nothing ran at ${at}: Folio wasn’t open and logged in on ${device || 'its computer'}, or the computer was asleep.`,
     busyNote: (at: string) => `Nothing ran at ${at}: the run before was still going.`, runNow: 'Run it now',
     startedBy: (who: string, device: string | null, when: string) => `${who}${device ? ` on ${device}` : ''}, ${when}`,
-    rerun: (n: number) => `Run the ${n === 1 ? 'one' : n} that didn’t finish again`, export: 'Export CSV', exported: (path: string) => `Saved to ${path}`,
+    rerun: (n: number) => `Rerun the ${n === 1 ? 'one' : n} that didn’t succeed`, export: 'Export CSV', exported: (path: string) => `Saved to ${path}`,
     csv: { number: 'Number', profile: 'Profile', status: 'Result', attempts: 'Tries', problem: 'Problem' },
     item: { pending: 'Waiting', running: 'Running', ok: 'Done', failed: 'Failed', signed_out: 'Signed out', skipped: 'Skipped', canceled: 'Not run' },
     noLog: 'Nothing was logged.', attempt: (n: number) => `Try ${n}`, shotsWhere: (device: string) => (device ? `Screenshots are kept on ${device}.` : 'Screenshots are kept on the computer that ran it.'),
-    skip: { locked: 'Open on another computer.', not_found: 'The profile no longer exists.', in_trash: 'The profile is in the Trash.', forbidden: 'Not one of your profiles any more.', scripted: 'A script was driving it through the local API.' } as Record<string, string>,
+    skip: { locked: 'Open on another computer.', not_found: 'The profile no longer exists.', in_trash: 'The profile is in the Trash.', forbidden: 'Not one of your profiles anymore.', scripted: 'A script was driving it through the local API.' } as Record<string, string>,
     form: {
       newTitle: 'New task', editTitle: 'Edit task', create: 'Create task', save: 'Save changes', name: 'Name', flow: 'Flow',
       profiles: (n: number) => `Profiles · ${n} selected`, search: 'Search profiles', all: 'Select all shown', none: 'No profiles match.',
       concurrency: 'At a time', retries: 'When one fails', retriesN: (n: number) => (n === 0 ? 'Don’t retry' : n === 1 ? 'Retry once' : `Retry up to ${n} times`),
       timeout: 'Time limit per profile', minutes: (n: number) => (n === 1 ? '1 minute' : `${n} minutes`),
       memory: 'Each open profile takes roughly 300–500 MB of memory; set how many run at a time to suit this computer.',
-      when: 'When it runs', kinds: { none: 'By hand', once: 'Once', daily: 'Daily' }, at: 'Date and time', time: 'Time', days: 'Days',
+      when: 'When it runs', kinds: { none: 'Manual', once: 'Once', daily: 'Daily' }, at: 'Date and time', time: 'Time', days: 'Days',
       runsHere: 'It runs on this computer, at this computer’s time.', runsOn: (device: string, email: string) => `It runs on ${device} (${email}), at that computer’s time.`,
       moveHere: 'Run it on this computer instead', scheduleHelp: 'Folio has to be open and logged in there; a time missed is recorded and can be run from its record.',
       vars: 'Variables per profile', varsHelp: 'Optional. A spreadsheet whose first column names the profile (name or number) and whose other columns are variables, used in the flow as {{column}}. Kept encrypted; only people who can edit the task see them.',
@@ -724,16 +730,16 @@ export const en = {
     unthrottled: 'Company plan: no limit on requests.',
     security: 'The debugging address has no password: while a profile opened through the API is running, any program on this computer can control it. Profiles you open yourself have no debugging address.',
     tokens: 'Tokens',
-    newToken: 'Copy this token now; it isn’t shown again.', done: 'Done', tokenName: 'Name, e.g. order sync', createToken: 'Make a token', defaultName: 'Token',
-    made: (date: string) => `Made ${date}`, used: (date: string) => `last used ${date}`, unused: 'not used yet', revoke: 'Revoke', revokeX: (n: string) => `Revoke ${n}`, otherWorkspace: 'Another workspace',
+    newToken: 'Copy this token now; it isn’t shown again.', done: 'Done', tokenName: 'Name, e.g., order sync', createToken: 'Create token', defaultName: 'Token',
+    made: (date: string) => `Created ${date}`, used: (date: string) => `last used ${date}`, unused: 'not used yet', revoke: 'Revoke', revokeX: (n: string) => `Revoke ${n}`, otherWorkspace: 'Another workspace',
     examples: 'Examples', exampleNames: { playwright: 'Playwright', puppeteer: 'Puppeteer', selenium: 'Selenium', firefox: 'Firefox profiles' },
     copyAddress: 'Copy address', limited: 'over the limit',
-    placeholder: 'Replace <token> with one of your tokens; a token is shown only when it is made.',
+    placeholder: 'Replace <token> with one of your tokens; a token is shown only when it is created.',
     calls: 'Recent calls', noCalls: 'No script has called it yet. Calls show up here as they happen.', noToken: 'No valid token'
   },
   extensions: {
     title: 'Extensions', lead: 'The workspace\u2019s extension library, and the profiles each one is installed in.', add: 'Add extension',
-    memberNote: 'Owners and admins keep the library. You can install its extensions in your own profiles, from the profile form or the bulk actions.',
+    memberNote: 'The owner and admins manage the library. You can install its extensions in your own profiles, from the profile form or the bulk actions.',
     emptyTitle: 'No extensions yet', empty: 'Add one from a file or its store, then install it in profiles.',
     cols: { name: 'Extension', engine: 'Engine', version: 'Version', signature: 'Signature', profiles: 'Profiles', updated: 'Changed' },
     search: 'Search extensions', inProfiles: (n: number) => profilesN(n),
@@ -742,12 +748,12 @@ export const en = {
     deleteNote: 'Profiles keep working without it; it can be added again later.',
     uploaded: 'Uploaded file', update: 'New version', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     signed: 'Signature checked', signedNote: 'Before installing it in a profile, Folio checks the package against its signature and checksum, and leaves it out if either fails.',
-    confirmDelete: (n: string, count: number) => (count ? `Delete “${n}”? It comes off ${profilesN(count)}.` : `Delete “${n}”?`),
+    confirmDelete: (n: string, count: number) => (count ? `Delete “${n}”? It will be uninstalled from ${profilesN(count)}.` : `Delete “${n}”?`),
     deleted: (n: string) => `${n} deleted`, added: (n: string) => `${n} added to the library`, updated: (n: string) => `${n} updated; profiles get it the next time they open`,
-    addTitle: 'Add an extension', updateTitle: (n: string) => `New version of ${n}`, from: 'From', fromFile: 'A file', fromStore: (k: string): string => (k === 'chromium' ? 'Chrome Web Store' : 'addons.mozilla.org'),
+    addTitle: 'Add extension', updateTitle: (n: string) => `New version of ${n}`, from: 'From', fromFile: 'A file', fromStore: (k: string): string => (k === 'chromium' ? 'Chrome Web Store' : 'addons.mozilla.org'),
     chooseFile: 'Choose a file…', fileHintChromium: 'A .crx or .zip with manifest.json at the top.', fileHintFirefox: 'An .xpi (or .zip) with manifest.json at the top.',
-    storeChromium: 'Link or extension id', storeFirefox: 'Link to the add-on (or its short name)',
-    idNote: 'Folio gives the extension a key of its own so it has the same id on every computer and its data can follow the profile. Its id differs from the store’s, which a few extensions that pair with a desktop program or a site rely on.',
+    storeChromium: 'Link or extension ID', storeFirefox: 'Link to the add-on (or its short name)',
+    idNote: 'Folio gives the extension a key of its own so it has the same ID on every computer and its data can follow the profile. Its ID differs from the store’s, which a few extensions that pair with a desktop program or a site rely on.',
     uuidNote: 'Each profile gets its own internal address for the add-on, so sites can’t link profiles through it.',
     addDo: 'Add', updateDo: 'Upload', uploading: 'Uploading…', fetching: 'Downloading from the store…',
     failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
@@ -762,7 +768,7 @@ export const en = {
     ops: { label: 'Repeat', click: 'Clicks', typing: 'Typing', scroll: 'Scrolling' },
     delay: 'Random pause', seconds: 's', delayMin: 'Shortest pause, in seconds', delayMax: 'Longest pause, in seconds',
     synced: (n: number, bad: number) => `${n === 1 ? '1 window' : `${n} windows`} in sync${bad ? ` · ${bad} with a problem` : ''}`,
-    workHere: 'Work here', inSync: 'In sync', shotWait: 'Waiting for a picture…',
+    workHere: 'Work here', inSync: 'In sync', shotWait: 'Waiting for a preview…',
     notFound: (label: string | null) => (label ? `Couldn’t find “${label}”` : 'Element not found'), failed: 'Couldn’t repeat',
     issues: {
       coords: (label: string | null) => `${label ? `Couldn’t find “${label}”` : 'Couldn’t find the element the leader clicked'}, so the click went to the same place in this window.`,
@@ -791,8 +797,8 @@ export const en = {
   palette: {
     title: 'Command palette', placeholder: 'Search profiles, pages or actions', groups: { profiles: 'Profiles', actions: 'Actions', pages: 'Pages' },
     none: 'Nothing matches.', move: 'select', run: 'run', close: 'close', open: 'open', switchTo: 'switch to its window', stop: (n: string) => `Stop ${n}`,
-    newProfile: 'New profile', importProfiles: 'Import profiles', checkProxies: 'Check all proxies', addProxy: 'Add a proxy',
-    switchWs: (n: string) => `Switch to ${n}`, language: 'Switch to 简体中文'
+    newProfile: 'New profile', importProfiles: 'Import profiles', checkProxies: 'Check all proxies', addProxy: 'Add proxy',
+    switchWs: (n: string) => `Switch to ${n}`, language: 'Switch to Chinese'
   },
   risks: {
     title: (n: number) => (n === 1 ? '1 thing could link your profiles' : `${n} things could link your profiles`), show: 'Show', hide: 'Hide',
@@ -808,7 +814,7 @@ export const en = {
     }
   },
   checkup: {
-    run: 'Health check', running: 'Checking…', title: (n: string) => `Health check · ${n}`, card: 'FOLIO · HEALTH CHECK', passed: 'PASSED', review: 'REVIEW',
+    run: 'Health check', running: 'Checking…', title: (n: string) => `Health check · ${n}`, card: 'Folio · Health check', passed: 'Passed', review: 'Review',
     last: (when: string, ok: boolean) => `Last health check ${when}: ${ok ? 'passed' : 'needs attention'}`, view: 'View report', again: 'Check again',
     lead: 'Opens a check page in the profile’s browser and reads what sites can see.', failed: 'The health check couldn’t run in this profile.',
     seen: 'Seen: ', want: 'expected: ', none: 'none',
@@ -816,13 +822,13 @@ export const en = {
       webrtc: { t: 'WebRTC shows no other address', fix: 'A real or local address leaked through WebRTC. Check that the profile has a proxy and opens through it.' },
       timezone: { t: 'Time zone matches the exit', fix: 'Set the time zone to follow the proxy, in Edit.' },
       language: { t: 'Language matches the exit', fix: 'Set the language to follow the proxy, in Edit.' },
-      ua: { t: 'User agent matches the system', fix: 'The browser reports another system than the profile’s. Regenerate its fingerprint.' },
-      canvas: { t: 'Canvas drawing is unique in the team', fix: 'Another profile draws canvas the same way. Regenerate the fingerprint of one of them.' },
+      ua: { t: 'User-Agent matches the system', fix: 'The browser reports another system than the profile’s. Regenerate its fingerprint.' },
+      canvas: { t: 'Canvas drawing is unique in the workspace', fix: 'Another profile draws canvas the same way. Regenerate the fingerprint of one of them.' },
       webgl: { t: 'WebGL', fix: '' }
     }
   },
   errors: {
-    invalid_credentials: 'The email or password is not right.',
+    invalid_credentials: 'The email or password is incorrect.',
     unauthenticated: 'Your session has ended. Log in again.',
     rate_limited: 'Too many attempts. Wait a minute and try again.',
     validation: 'Enter your email and password.',
@@ -831,21 +837,21 @@ export const en = {
     plan_limit: 'The plan has no room for more profiles. Move some to the Trash or add profiles to the plan.',
     group_exists: 'There’s already a group with that name.',
     bad_reference: 'That group, proxy or person is no longer in the workspace. Pick another one.',
-    forbidden: 'Your role doesn’t allow that. Ask an owner or admin.',
+    forbidden: 'Your role doesn’t allow that. Ask the owner or an admin.',
     seat_limit: 'The plan has no free seat. Upgrade it to invite more people.',
-    already_member: 'This person is already in the team.',
-    group_cycle: 'A group cannot sit inside itself.',
-    plan_required: 'Authorising people for a group comes with the Company plan.',
-    owner: 'The owner stays in the team and keeps their role.',
+    already_member: 'This person is already on the team.',
+    group_cycle: 'A group can’t be moved into itself or one of its subgroups.',
+    plan_required: 'Giving members access to a group is part of the Company plan.',
+    owner: 'The owner stays on the team and keeps their role.',
     wrong_account: 'This invitation is for a different email address.',
-    email_unverified: 'Confirm your email address on the Folio website first.',
+    email_unverified: 'Verify your email address on the Folio website first.',
     invitation_expired: 'This invitation has expired. Ask for a new one.',
     local_only: 'This profile keeps its sign-ins on the computer that uses it. Open it there to export or import cookies.',
     cookies_unreadable: 'No cookies found in that file. Use JSON (Cookie-Editor, EditThisCookie) or cookies.txt.',
     locked: 'This profile is open on another computer.',
     not_found: 'Nothing has been saved for this profile yet.',
-    wrong_passphrase: 'That passphrase does not open this file.',
-    not_folio: 'That is not a Folio export file.',
+    wrong_passphrase: 'That passphrase doesn’t open this file.',
+    not_folio: 'That isn’t a Folio export file.',
     passphrase_short: 'Use a passphrase of at least 10 characters.',
     flow_too_deep: 'Steps can nest four levels deep at most.',
     flow_too_long: 'A flow can have up to 300 steps.',
@@ -853,16 +859,16 @@ export const en = {
     task_running: 'This task is already running.',
     no_profiles: 'None of this task’s profiles can run (they are gone, in the Trash, or not yours).',
     run_finished: 'This run has already finished.',
-    extension_exists: 'This add-on is already in the library. Upload the new version to it instead.',
-    extension_mismatch: 'That package is a different add-on.',
+    extension_exists: 'This extension is already in the library. Upload the new version to it instead.',
+    extension_mismatch: 'That package is a different extension.',
     extension_unreadable: 'That isn’t a readable extension package (crx, zip or xpi with manifest.json at the top).',
     extension_kernel: 'That extension is made for the other engine.',
-    store_ref: 'That doesn’t look like a store link or id.',
+    store_ref: 'That doesn’t look like a store link or ID.',
     store_failed: 'The store didn’t hand over the extension. Check the link, or download it and upload the file.',
     no_device: 'Log out and back in to this app once before scheduling tasks on this computer.',
     already_run: 'This scheduled time has already run.',
     kernel_exists: 'This version is already in the catalog for that system.',
-    upload_incomplete: 'The upload did not finish. Upload the file again.',
+    upload_incomplete: 'The upload didn’t finish. Upload the file again.',
     upload_failed: 'The upload failed. Check the connection and try again.',
     kernel_archive: 'Choose a .zip, .tar.xz or .dmg package.',
     checkup_failed: 'The health check couldn’t run in this profile.'
@@ -883,7 +889,7 @@ export const zh: Dict = {
   nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '账号与计费', help: '帮助中心', more: '更多' },
   groups: {
     title: '分组', all: '全部分组', none: '未分组', add: '新建分组', namePh: '请输入分组名称',
-    color: '分组颜色', colors: { red: '红色', blue: '蓝色', green: '绿色', amber: '橙色', purple: '紫色', teal: '青色', gray: '灰色' },
+    color: '分组颜色', colors: { red: '红色', blue: '蓝色', green: '绿色', amber: '琥珀色', purple: '紫色', teal: '青色', gray: '灰色' },
     lead: '管理环境分组、成员权限及相关设置。', tree: '分组列表', everything: '全部',
     sum: (n: number, m: number | null) => `包含 ${n} 个环境${m === null ? '' : ` · ${m} 位成员`}`,
     expand: (g: string) => `展开 ${g}`, collapse: (g: string) => `收起 ${g}`,
@@ -892,7 +898,7 @@ export const zh: Dict = {
     cols: { name: '环境名称', number: '环境 ID', region: '国家/地区', status: '状态', owner: '所属成员', actions: '操作' },
     empty: '该分组暂无环境', move: '移动到分组…', moveOut: '移出分组', movedOut: (n: number) => `已将 ${n} 个环境移出分组`,
     settings: '分组设置', name: '分组名称', nameErr: '请填写分组名称。', parent: '上级分组', parentNone: '无（顶级分组）', description: '分组说明',
-    members: '成员权限', people: '搜索并添加成员', addMember: '添加成员', findMember: '搜索成员', noneToAdd: '所有成员均已在该分组中。',
+    members: '成员权限', people: '分组成员', addMember: '添加成员', findMember: '搜索成员', noneToAdd: '所有成员均已在该分组中。',
     roleOf: (e: string) => `${e} 的角色`, removeMember: (e: string) => `移除 ${e}`,
     roleNote: '角色在整个工作空间内生效，分组决定成员可访问的环境范围。',
     companyOnly: '为分组授权成员是公司版功能。',
@@ -923,7 +929,7 @@ export const zh: Dict = {
     limits: '套餐额度', profiles: '环境', members: '席位', logDays: '操作日志',
     logKept: (n: number) => `保留 ${n} 天`, unlimited: '不限',
     expiry: '到期提醒', expiryHint: '在套餐临近到期时，通过站内通知提醒管理员。',
-    payments: '账单记录', invoice: '订单号', date: '创建时间', amount: '金额', paid: '已支付', refunded: '已退款',
+    payments: '账单记录', invoice: '发票号', date: '创建时间', item: '项目', amount: '金额', paid: '已支付', refunded: '已退款',
     open: '查看', none: '暂无账单记录', noneHint: '未来的账单记录将显示在这里，便于您随时查看。'
   },
   settings: {
@@ -946,6 +952,7 @@ export const zh: Dict = {
   },
   user: {
     account: '账户', manage: '管理账号', teams: '团队', settings: '设置', data: '数据', language: '语言',
+    langs: { en: 'English', zh: '简体中文' },
     exportAll: '导出全部数据…', importAll: '导入数据…', logout: '退出登录',
     startup: '开机自动启动', startupHint: '开机后最小化到托盘，定时任务照常运行。'
   },
@@ -1354,8 +1361,8 @@ export const zh: Dict = {
     launchFailed: '环境启动失败', launchFailedText: (n: string) => `环境 ${n} 启动失败。请检查代理、网络或内核配置后重试。`,
     why: '查看原因', retry: '重试',
     noAccess: '暂无访问权限',
-    noAccessText: (admin: string | null) => `当前角色没有访问此内容的权限，请联系管理员${admin ? `（${admin}）` : ''}申请访问权限。`,
-    contact: '联系管理员', askSubject: 'Folio 访问权限申请',
+    noAccessText: (admin: string | null) => `当前角色没有访问此内容的权限，请联系所有者${admin ? `（${admin}）` : ''}申请访问权限。`,
+    contact: '联系所有者', askSubject: 'Folio 访问权限申请',
     offline: '网络连接中断', offlineText: '与服务器的网络连接已中断，请检查网络状态后重新连接。', reconnect: '重新连接',
     loadFailedText: '加载时出现问题，请重新加载。',
     underway: (what: string) => `${what}进行中`, resultsThere: '完成后将在任务中心显示结果。', viewTask: '查看任务',
@@ -1409,7 +1416,7 @@ export const zh: Dict = {
       'profile.add-extension': '安装扩展', 'profile.remove-extension': '卸载扩展', 'profile.set-kernel': '变更内核', 'profile.set-browser': '浏览器设置'
     } as Record<string, string>,
     actions: {
-      'profile.create': p => `创建了 ${p}`, 'profile.update': (p, x) => `修改了 ${p} 的${x.fields?.map((f: string) => zhFields[f] ?? f).join('、')}`,
+      'profile.create': p => `创建了 ${p}`, 'profile.update': (p, x) => `修改了 ${p} 的${uniq((x.fields ?? []).map((f: string) => zhFields[f] ?? f)).join('、')}`,
       'profile.move': (p, x) => (x.group ? `将 ${p} 移至「${x.group}」` : `将 ${p} 移出分组`), 'profile.tag': (p, x) => `为 ${p} 添加标签「${x.tag}」`,
       'profile.untag': (p, x) => `移除 ${p} 的标签「${x.tag}」`, 'profile.set-proxy': (p, x) => (x.proxy ? `将 ${p} 的代理更换为 ${x.proxy}` : `移除 ${p} 的代理`),
       'profile.assign': (p, x) => (x.to ? `将 ${p} 分配给 ${x.to}` : `取消 ${p} 的负责人`),
@@ -1709,8 +1716,6 @@ export const zh: Dict = {
 };
 
 export const dicts: Record<Lang, Dict> = { en, zh };
-// Each language by its own name, for the switches between them.
-export const LANG_NAMES: Record<Lang, string> = { en: 'English', zh: '简体中文' };
 
 const locale = (lang: Lang) => (lang === 'zh' ? 'zh-CN' : 'en-US');
 export const day = (iso: string, lang: Lang) =>

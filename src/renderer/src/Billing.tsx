@@ -93,7 +93,7 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
           <div className="tw top-gap">
             <table>
               <thead>
-                <tr><th scope="col">{B.invoice}</th><th scope="col">{B.date}</th><th scope="col">{d.plans[s.plan]}</th>
+                <tr><th scope="col">{B.invoice}</th><th scope="col">{B.date}</th><th scope="col">{B.item}</th>
                   <th scope="col" className="num">{B.amount}</th><th scope="col">{B.status}</th><th className="act" scope="col">{d.profiles.cols.actions}</th></tr>
               </thead>
               <tbody>

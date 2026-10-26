@@ -12,9 +12,9 @@ const base: Subscription = {
 
 describe('planStatus', () => {
   it('says when a paid plan renews, ends or changes', () => {
-    expect(planStatus(base, en, 'en')).toBe('Renews Dec 1, 2026, monthly');
+    expect(planStatus(base, en, 'en')).toBe('Renews Dec 1, 2026 · monthly');
     expect(planStatus({ ...base, cancelAtPeriodEnd: true }, en, 'en')).toBe('Ends Dec 1, 2026');
-    expect(planStatus({ ...base, plan: 'company', scheduledPlan: 'studio' }, en, 'en')).toBe('Becomes Studio on Dec 1, 2026');
+    expect(planStatus({ ...base, plan: 'company', scheduledPlan: 'studio' }, en, 'en')).toBe('Changes to Studio on Dec 1, 2026');
   });
 
   it('shows the trial end and nothing for Free', () => {

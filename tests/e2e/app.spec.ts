@@ -45,7 +45,7 @@ test('a wrong password explains what went wrong', async () => {
   await win.fill('#email', email);
   await win.fill('#password', 'not the password');
   await win.click('button[type="submit"]');
-  await expect(win.getByRole('alert')).toHaveText('The email or password is not right.');
+  await expect(win.getByRole('alert')).toHaveText('The email or password is incorrect.');
   await app.close();
 });
 

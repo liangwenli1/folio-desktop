@@ -109,7 +109,7 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bing');
   await expect(win.getByRole('status').filter({ hasText: 'Search engine set to Bing on 2 profiles' })).toBeVisible();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'On');
-  await expect(win.getByRole('status').filter({ hasText: 'Restoring tabs turned on on 2 profiles' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Tab restoring turned on for 2 profiles' })).toBeVisible();
   const profiles = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; searchEngine: string; restoreTabs: boolean }[];
   expect(profiles.map(p => [p.name, p.searchEngine, p.restoreTabs])).toEqual([['Shop-1', 'bing', true], ['Shop-2', 'bing', true]]);
   await row.getByRole('button', { name: 'Shop-2', exact: true }).click();

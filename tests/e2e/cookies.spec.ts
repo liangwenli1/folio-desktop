@@ -59,7 +59,7 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await page.getByRole('button', { name: 'Import cookies' }).click();
   await dialog.getByRole('textbox', { name: 'Paste text' }).fill(JSON.stringify([{ name: 'sid', value: 'new', domain: '.shop.example', path: '/' }, { name: 'lang', value: 'de', domain: 'shop.example', path: '/' }]));
   await expect(dialog.locator('tr[data-entry="1"]')).toContainText('replaces the saved one');
-  await dialog.getByRole('radio', { name: 'Keep the saved ones' }).check();
+  await dialog.getByRole('radio', { name: 'Keep saved' }).check();
   await expect(dialog.locator('tr[data-entry="1"]')).toContainText('already saved: kept');
   await dialog.getByRole('button', { name: 'Import 1 cookie' }).click();
   await expect(rows).toHaveCount(3);

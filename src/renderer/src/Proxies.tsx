@@ -337,7 +337,7 @@ function BoundTable({ d, data, profiles, onOpenProfile, onReplace }: { d: Dict; 
   return (
     <div className="tw bound-t dense">
       <table>
-        <thead><tr><th scope="col">{d.profiles.cols.profile}</th><th scope="col">{d.profiles.cols.group}</th><th scope="col">{d.profiles.cols.status}</th><th className="act" scope="col">{d.profiles.cols.actions}</th></tr></thead>
+        <thead><tr><th scope="col">{d.form.name}</th><th scope="col">{d.profiles.cols.group}</th><th scope="col">{d.profiles.cols.status}</th><th className="act" scope="col">{d.profiles.cols.actions}</th></tr></thead>
         <tbody>
           {profiles.map(x => {
             const run = data.status[x.id]?.state === 'running', g = x.groupId ? groups.get(x.groupId) : null;

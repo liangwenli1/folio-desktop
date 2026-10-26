@@ -35,10 +35,10 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   await menu(winA, 'Export all data…');
   const ex = winA.getByRole('dialog', { name: 'Export all data' });
   await ex.getByLabel('Passphrase', { exact: true }).fill(PASS);
-  await ex.getByLabel('Passphrase again').fill('something else entirely');
+  await ex.getByLabel('Confirm passphrase').fill('something else entirely');
   await ex.getByRole('button', { name: 'Export' }).click();
   await expect(ex.getByRole('alert')).toHaveText('The two passphrases differ.');
-  await ex.getByLabel('Passphrase again').fill(PASS);
+  await ex.getByLabel('Confirm passphrase').fill(PASS);
   await ex.getByRole('button', { name: 'Export' }).click();
   await expect(winA.getByRole('status').filter({ hasText: `Saved to ${file}` })).toBeVisible();
   expect(existsSync(file)).toBe(true);
@@ -55,7 +55,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   await im.getByRole('button', { name: 'Choose a .folio file…' }).click();
   await im.getByLabel('Passphrase').fill('not the right one!');
   await im.getByRole('button', { name: 'Unlock' }).click();
-  await expect(im.getByRole('alert')).toHaveText('That passphrase does not open this file.');
+  await expect(im.getByRole('alert')).toHaveText('That passphrase doesn’t open this file.');
   await im.getByLabel('Passphrase').fill(PASS);
   await im.getByRole('button', { name: 'Unlock' }).click();
   await expect(im.getByRole('status')).toHaveText('From Larkspur Trading: 2 profiles (1 with sign-ins), 1 proxy, 1 group.');

@@ -29,8 +29,8 @@ async function apiToken(win: Page){
   await server.getByLabel('On').check();
   await expect(server.getByRole('status')).toContainText(`Listening on ${LOCAL}`);
   const tokens = win.getByRole('region', { name: 'Tokens' });
-  await tokens.getByLabel('Name, e.g. order sync').fill('ci');
-  await tokens.getByRole('button', { name: 'Make a token' }).click();
+  await tokens.getByLabel('Name, e.g., order sync').fill('ci');
+  await tokens.getByRole('button', { name: 'Create token' }).click();
   const token = await tokens.locator('.token-new code').textContent();
   await tokens.getByRole('button', { name: 'Done' }).click();
   await expect(tokens.locator('[data-token="ci"]')).toBeVisible();

@@ -78,7 +78,7 @@ test('while it runs, what it was started with waits until it is stopped', async 
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await expect(form.getByRole('combobox', { name: 'Browser engine' })).toBeDisabled();
   await expect(form.getByRole('radio', { name: 'No proxy' })).toBeDisabled();
-  await expect(form.getByRole('button', { name: 'Random fingerprint' })).toBeDisabled();
+  await expect(form.getByRole('button', { name: 'New random fingerprint' })).toBeDisabled();
   // The rest can still change, for the next time it opens.
   await expect(form.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled();
 

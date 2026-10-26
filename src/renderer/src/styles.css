@@ -1435,7 +1435,8 @@ tr.bad-row td{background:var(--bad-soft)}
 .report{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);overflow:hidden}
 .report-stamp{position:absolute;right:16px;top:44px;width:92px;height:92px}
 .report-stamp.ok{color:var(--good)}
-.report-stamp .s-main{font-size:13px}
+.report-stamp .s-main{font-size:13px;text-transform:uppercase}
+.report .id-head > span:first-child{text-transform:uppercase}
 html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .report-list{display:grid;gap:0;margin:12px 0 0;padding:0;list-style:none}
 .report-list li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;padding:9px 108px 9px 0;border-top:1px solid var(--line)}

@@ -28,7 +28,7 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await proxyForm.getByLabel('Username').fill('alice');
   await proxyForm.getByLabel('Password').fill('s3cret');
   // Checked before it is saved: where it comes out and how fast.
-  await proxyForm.getByRole('button', { name: 'Test connection' }).click();
+  await proxyForm.getByRole('button', { name: 'Check connection' }).click();
   await expect(proxyForm.getByTestId('proxy-test')).toContainText('Connected', { timeout: 20_000 });
   await expect(proxyForm.getByTestId('proxy-test')).toContainText('127.0.0.1');
   await proxyForm.getByRole('button', { name: 'Save proxy' }).click();
@@ -124,7 +124,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await choose(bulk.getByRole('combobox', { name: 'More' }), 'Delete');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await expect(row(win, 'P-1')).toBeHidden();
-  await win.getByRole('status').filter({ hasText: '2 profiles moved to Trash' }).getByRole('button', { name: 'Undo' }).click();
+  await win.getByRole('status').filter({ hasText: '2 profiles moved to the Trash' }).getByRole('button', { name: 'Undo' }).click();
   await expect(row(win, 'P-1')).toBeVisible();
 
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
@@ -138,12 +138,12 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   const trashed = win.locator('tr[data-id]', { hasText: 'P-1' });
   await trashed.getByRole('button', { name: 'Restore' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'no room for more profiles' })).toBeVisible();
-  await trashed.getByRole('button', { name: 'Delete forever' }).click();
-  // Deleting for good asks for the profile's name.
-  const purge = win.getByRole('dialog', { name: 'Delete 1 profile forever?' });
-  await expect(purge.getByRole('button', { name: 'Delete forever' })).toBeDisabled();
+  await trashed.getByRole('button', { name: 'Delete permanently' }).click();
+  // Deleting permanently asks for the profile's name.
+  const purge = win.getByRole('dialog', { name: 'Permanently delete 1 profile?' });
+  await expect(purge.getByRole('button', { name: 'Delete permanently' })).toBeDisabled();
   await purge.getByRole('textbox', { name: 'Type P-1 to confirm' }).fill('P-1');
-  await purge.getByRole('button', { name: 'Delete forever' }).click();
+  await purge.getByRole('button', { name: 'Delete permanently' }).click();
   await expect(win.getByText('The Trash is empty')).toBeVisible();
   await app.close();
 });
@@ -221,7 +221,7 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
   // A quick look beside the list, then the proxy's own page.
   await rows.getByRole('button', { name: 'US-Line', exact: true }).click();
   const panel = win.getByRole('complementary', { name: 'Proxy', exact: true });
-  await expect(panel.getByTestId('check-log')).toContainText('Answered · 120 ms');
+  await expect(panel.getByTestId('check-log')).toContainText('Responded · 120 ms');
   await expect(panel).toContainText('On-US');
   await panel.getByRole('button', { name: 'View details' }).click();
   const page = win.getByRole('main', { name: 'Proxy', exact: true });
@@ -268,7 +268,7 @@ test('fingerprint choices when creating a profile; filters by engine; a profile 
   await row(win, 'Real-GPU').getByRole('button', { name: 'Real-GPU', exact: true }).click();
   await expect(detail(win).getByRole('region', { name: 'Fingerprint summary' })).toContainText('This computer’s GPU');
   await detail(win).getByRole('tab', { name: 'Fingerprint' }).click();
-  await expect(detail(win).locator('[data-check="fp-real"]')).toContainText('Canvas and WebGL show this computer’s own values');
+  await expect(detail(win).locator('[data-check="fp-real"]')).toContainText('Real values from this computer: Canvas and WebGL');
   await win.keyboard.press('Escape');
 
   // Firefox: an exact screen, and WebRTC off.
@@ -313,7 +313,7 @@ test('the consistency check fixes a hand-set time zone and moves a dead line to 
   await row(win, 'Fix-Me').getByRole('button', { name: 'Fix-Me', exact: true }).click();
   const card = detail(win);
   await card.getByRole('tab', { name: 'Fingerprint' }).click();
-  await expect(card.getByTestId('verdict')).toHaveText('Needs a look');
+  await expect(card.getByTestId('verdict')).toHaveText('Needs attention');
   await expect(card.locator('[data-check="proxy-backup"]')).toBeVisible();
   await card.locator('[data-check="tz-mismatch"]').getByRole('button', { name: 'Follow the proxy' }).click();
   await expect(card.locator('[data-check="tz-ok"]')).toBeVisible();

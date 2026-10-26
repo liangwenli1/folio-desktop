@@ -74,10 +74,10 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await expect(banner).toHaveCount(0);
 
     await row.getByRole('button', { name: `Actions for Chromium ${version}` }).click();
-    await win.getByRole('menuitem', { name: 'Remove' }).click();
-    const removing = win.getByRole('dialog', { name: `Remove Chromium ${version} from the catalog?` });
-    await expect(removing).toContainText('2 profiles use it');
-    await removing.getByRole('button', { name: 'Remove' }).click();
+    await win.getByRole('menuitem', { name: 'Retire' }).click();
+    const removing = win.getByRole('dialog', { name: `Retire Chromium ${version} from the catalog?` });
+    await expect(removing).toContainText('2 profiles in all workspaces use it');
+    await removing.getByRole('button', { name: 'Retire' }).click();
     await expect(row).toHaveCount(0);
   } finally {
     // The seeded version is the recommended one again, for the other tests.

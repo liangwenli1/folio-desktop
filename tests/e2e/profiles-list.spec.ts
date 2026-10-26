@@ -44,8 +44,8 @@ test('editing several at once skips the running ones, and says so', async () => 
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
 
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Edit together' }).click();
-  const dialog = win.getByRole('dialog', { name: 'Edit profiles together' });
+  await win.getByTestId('bulk').getByRole('button', { name: 'Bulk edit' }).click();
+  const dialog = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await dialog.getByRole('checkbox', { name: 'Group' }).check();
   await choose(dialog.getByRole('combobox', { name: 'Group' }), 'EU stores');
   await dialog.getByRole('checkbox', { name: 'Start page' }).check();
@@ -77,7 +77,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   // With the box cleared, the running one is changed too.
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Edit together' }).click();
+  await win.getByTestId('bulk').getByRole('button', { name: 'Bulk edit' }).click();
   await dialog.getByRole('checkbox', { name: 'Start page' }).check();
   await dialog.getByRole('textbox').fill('https://other.example/');
   await dialog.getByRole('checkbox', { name: 'Only change profiles that are not running' }).uncheck();
