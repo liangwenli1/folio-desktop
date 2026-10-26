@@ -482,13 +482,13 @@ button.kc:hover{border-color:var(--line-2)}
 .flow-steps.skel-list{display:grid;gap:10px}
 .flow-steps.skel-list i{height:60px;width:100%;border-radius:var(--r-card)}
 .search .kbd-btn{position:absolute;right:8px;top:9px;border:0;padding:0;background:none;cursor:pointer}
-.search input{padding-right:64px}
+.search:has(.kbd-btn) input{padding-right:64px}
 kbd{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--bg);font:500 12px/1.4 var(--f-data);color:var(--ink-2);white-space:nowrap}
 .os-cell > .i{color:var(--ink-2)}
 .away-note{display:grid;gap:8px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);border-radius:var(--r);background:var(--warn-soft);font-size:13px}
 .away-note .d-actions{margin-top:0}
 tr.empty td{padding:44px 20px;text-align:center;color:var(--ink-2);cursor:default}
-tr.empty:hover td{background:transparent}
+.tw tbody tr.empty:hover td{background:transparent}
 tr.empty p{margin-bottom:12px}
 tr.empty b{color:var(--ink)}
 
@@ -660,6 +660,7 @@ body:has(.tray) .toasts{right:392px}
 .tray-h{display:flex;align-items:center;gap:8px;padding:11px 10px 11px 14px;border-bottom:1px solid var(--line)}
 .tray-h b{font-size:13.5px;font-weight:600}
 .tray-h small{margin-left:auto;font-size:12px;color:var(--ink-2)}
+.tray-task{font-size:12px}
 .tray ol{display:grid;max-height:280px;margin:0;padding:0;overflow-y:auto;list-style:none}
 .tray li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .tray li > div{display:grid;justify-items:start;min-width:0}
@@ -728,6 +729,20 @@ body:has(.tray) .toasts{right:392px}
 .toast span{flex:1;min-width:0}
 .toast button{flex:none;border:0;background:none;color:var(--ink);font-weight:600;cursor:pointer}
 .toast button:hover{color:var(--accent-ink)}
+.toast .t-acts{display:flex;align-items:center;gap:14px;flex:none}
+.toast.two{flex-wrap:wrap}
+.toast.two .t-acts{width:100%;justify-content:flex-end;padding-left:40px}
+/* something under way: a spinner, how far it has got, and the task center */
+.toast.notice{position:relative;align-items:flex-start;padding-right:40px}
+.toast.notice > .t-ic{background:var(--info-soft);color:var(--info)}
+.toast.notice .spin{width:14px;height:14px;border-width:2px}
+.toast .n-body{display:grid;gap:8px;flex:1;min-width:0}
+.n-t{display:flex;align-items:baseline;gap:8px;margin:0}
+.n-t small{margin-left:auto;font:500 12px var(--f-data);color:var(--ink-2);white-space:nowrap}
+.n-foot{display:flex;align-items:center;gap:12px}
+.n-sub{flex:1;margin:0;font-size:12px;color:var(--ink-2)}
+.toast .t-x{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:24px;height:24px;color:var(--ink-3)}
+.toast .t-x .i{width:14px;height:14px}
 
 /* dialogs' contents */
 .pxcheck{display:flex;gap:8px}
@@ -864,6 +879,19 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .role .i{width:12px;height:12px}
 .role.owner{background:var(--accent-soft);color:var(--accent-ink)} .role.admin{background:var(--info-soft);color:var(--info)}
 .tw.flow{flex:none;min-height:0;overflow:visible;margin-bottom:14px}
+
+/* what a page shows instead of its rows (the design's ST01–ST06): an icon, a line, what it means, what to do */
+.es{display:grid;justify-items:center;gap:8px;max-width:440px;margin:0 auto;padding:28px 16px;text-align:center}
+.es-ic{display:grid;place-items:center;width:52px;height:52px;border-radius:14px;background:var(--seg);color:var(--ink-2)}
+.es-ic .i{width:24px;height:24px}
+.es.bad .es-ic{background:var(--bad-soft);color:var(--bad)}
+.es-t{font-size:16px;font-weight:600;color:var(--ink)}
+.es p{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+.es-acts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+.splash .es,.pd-body > .es{max-width:none;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
+.splash .es{width:min(460px,calc(100vw - 32px));padding:32px 28px}
+.pd-body > .es{width:100%;margin:0;padding:22px 20px}
+.pd-body > .es.bad{border-color:color-mix(in srgb,var(--bad) 30%,var(--line))}
 
 /* the task center: jobs with their progress, and one job's results and log beside them */
 .jb-live{display:inline-flex;align-items:center;gap:8px;height:var(--h-ctl);padding:0 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
@@ -1531,7 +1559,8 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .page-tabs{margin:0 var(--gx) 2px;flex:none}
 .page-tabs button small{margin-left:6px;font:600 12px var(--f-data);color:var(--ink-3)}
 .page-tabs button[aria-selected="true"] small{color:var(--accent-ink)}
-.filters .search{margin-left:0;width:min(360px,100%)}
+/* the search gives way first, so a row of filters stays on one line */
+.filters .search{margin-left:0;flex:1 1 220px;width:auto;max-width:360px}
 .btn-start{background:var(--card);border-color:var(--accent);color:var(--accent-ink)}
 .btn-start > .i{color:var(--accent)}
 .btn-start:hover:not(:disabled){background:var(--accent-soft)}

@@ -8,7 +8,7 @@ import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { BulkBar, Icon, LoadFailed, Modal, ViewSwitch, useToast, useView } from './ui';
+import { BulkBar, Empty, Icon, ListFailed, Modal, ViewSwitch, useToast, useView } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -70,6 +70,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
     onToggle: () => toggle(p.id), onRestore: () => void restore([p]), onPurge: () => setConfirm([p])
   });
   const shownSel = list.filter(p => sel.has(p.id)).length;
+  const clear = () => { setQ(''); setFrom(''); setTo(''); setBy('all'); };
 
   return (
     <div className="page">
@@ -93,7 +94,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
           </span>
           <span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy}
             options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: email.get(id) ?? d.activity.someone }))]} /></span>
-          {filtered && <button type="button" className="btn btn-text" onClick={() => { setQ(''); setFrom(''); setTo(''); setBy('all'); }}>{d.profiles.clearFilters}</button>}
+          {filtered && <button type="button" className="btn btn-text" onClick={clear}>{d.states.clear}</button>}
           <span className="sp" />
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
@@ -108,8 +109,12 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
         <div className={`side-wrap${picked.length ? ' with-panel' : ''}`}>
           <div className="side-main">
             {data.loadFailed.has('trash')
-              ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('trash')} /></div>
-              : data.trash !== null && !list.length && <div className="cards-empty"><p>{all.length ? d.profiles.emptyMatch : T.empty}</p></div>}
+              ? <div className="cards-empty"><ListFailed d={d} data={data} kind="trash" /></div>
+              : data.trash !== null && !list.length && <div className="cards-empty">{all.length
+                ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={clear}>{d.states.clear}</button>
+                  </Empty>
+                : <Empty icon="trash" title={T.empty} />}</div>}
             {list.length > 0 && (view === 'cards'
               ? <ul className="pgrid">{list.map(p => <TrashCard key={p.id} {...item(p)} />)}</ul>
               : (

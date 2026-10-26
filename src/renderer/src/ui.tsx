@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { folio } from './api';
+import type { Kind, WorkspaceData } from './data';
 import type { Dict } from './i18n';
 
 const PATHS = {
@@ -59,7 +61,11 @@ const PATHS = {
   info: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 7.3v3.9M8 4.8v.01',
   folder: 'M2 4.5a1 1 0 0 1 1-1h3.2l1.5 1.5H13a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z',
   lock: 'M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 4 0v2',
-  jobs: 'M5.5 3.5h-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-1M6 2.5h4v2H6zM6 9.5l1.5 1.5 3-3'
+  jobs: 'M5.5 3.5h-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-1M6 2.5h4v2H6zM6 9.5l1.5 1.5 3-3',
+  newFile: 'M9 2.5H4.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4M9 2.5l3 3V8M9 2.5v3h3M12 10.5v4M10 12.5h4',
+  xCircle: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM6 6l4 4M10 6l-4 4',
+  wifiOff: 'M2 6a9 9 0 0 1 12 0M4 8.5a5.5 5.5 0 0 1 8 0M6.2 11a2.5 2.5 0 0 1 3.6 0M8 13.5h.01M2.5 2.5l11 11',
+  cookie: 'M14 8.4A6 6 0 1 1 7.6 2a2 2 0 0 0 2.4 2.4 2 2 0 0 0 2.4 2.4A2 2 0 0 0 14 8.4zM5.5 6.5v.01M5.8 10.2v.01M9 9.5v.01M10 12v.01'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;
@@ -171,33 +177,44 @@ export function useNow(on: boolean){
   return now;
 }
 
-// `bad` for something that went wrong; anything else is news of something done.
-interface ToastItem { id: number; msg: string; action?: { label: string; fn(): void }; tone?: 'bad' }
-type Push = (msg: string, action?: ToastItem['action'], tone?: 'bad') => void;
+// `bad` for something that went wrong; anything else is news of something done. One action, or two (a partly failed
+// batch: why, and running the failed ones again).
+interface ToastAction { label: string; fn(): void }
+interface ToastItem { id: number; msg: string; actions: ToastAction[]; tone?: 'bad' }
+type Push = (msg: string, action?: ToastAction | ToastAction[], tone?: 'bad') => void;
 const ToastContext = createContext<Push>(() => {});
 export const useToast = () => useContext(ToastContext);
+// Something under way, shown above the toasts until it is replaced, or cleared with null.
+const NoticeContext = createContext<(notice: ReactNode) => void>(() => {});
+export const useNotice = () => useContext(NoticeContext);
 
 export function Toasts({ children }: { children: ReactNode }){
   const [list, setList] = useState<ToastItem[]>([]);
+  const [notice, setNotice] = useState<ReactNode>(null);
   const seq = useRef(0);
   const drop = (id: number) => setList(l => l.filter(t => t.id !== id));
   const push = useCallback<Push>((msg, action, tone) => {
-    const id = ++seq.current;
-    setList(l => [...l.slice(-2), { id, msg, action, tone }]);
-    setTimeout(() => drop(id), action ? 8000 : 4500);
+    const id = ++seq.current, actions = action ? [action].flat() : [];
+    setList(l => [...l.slice(-2), { id, msg, actions, tone }]);
+    setTimeout(() => drop(id), actions.length ? 8000 : 4500);
   }, []);
   return (
     <ToastContext.Provider value={push}>
-      {children}
-      <div className="toasts" aria-live="polite">
-        {list.map(t => (
-          <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}`} role="status">
-            <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'alert' : 'check'} /></span>
-            <span>{t.msg}</span>
-            {t.action && <button type="button" onClick={() => { drop(t.id); t.action!.fn(); }}>{t.action.label}</button>}
-          </div>
-        ))}
-      </div>
+      <NoticeContext.Provider value={setNotice}>
+        {children}
+        <div className="toasts" aria-live="polite">
+          {notice}
+          {list.map(t => (
+            <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}${t.actions.length > 1 ? ' two' : ''}`} role="status">
+              <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'alert' : 'check'} /></span>
+              <span>{t.msg}</span>
+              {t.actions.length > 0 && <span className="t-acts">{t.actions.map(a => (
+                <button key={a.label} type="button" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>
+              ))}</span>}
+            </div>
+          ))}
+        </div>
+      </NoticeContext.Provider>
     </ToastContext.Provider>
   );
 }
@@ -235,14 +252,34 @@ export function Modal({ title, sub, closeLabel, onClose, foot, icon, tone, wide,
 // An extension's own icon (a jigsaw piece when it has none).
 export const ExtIcon = ({ src }: { src?: string | null }) => <span className="ext-ic">{src ? <img src={src} alt="" /> : <Icon name="extensions" />}</span>;
 
+// What a page shows instead of its rows (the design's ST01–ST06): nothing yet, nothing that matches, something that
+// failed (a proxy that doesn't answer, a profile that didn't start, a list that didn't load), no access, no
+// connection. An icon, a line, what it means, and what to do about it.
+export function Empty({ icon, tone, title, text, children }: { icon: IconName; tone?: 'bad'; title: string; text?: ReactNode; children?: ReactNode }){
+  return (
+    <div className={`es${tone ? ` ${tone}` : ''}`} role={tone ? 'alert' : undefined}>
+      <span className="es-ic" aria-hidden="true"><Icon name={icon} /></span>
+      <b className="es-t">{title}</b>
+      {text && <p>{text}</p>}
+      {children && <div className="es-acts">{children}</div>}
+    </div>
+  );
+}
+
 // A list whose load failed: it says so where the rows would be and offers to load it again, so a failure never
-// reads as "there is nothing here" (or as a skeleton that never settles). Goes in a table's empty row or in a
-// .cards-empty box, whichever the page uses.
-export const LoadFailed = ({ d, onRetry }: { d: Dict; onRetry(): void }) => (
-  <>
-    <p><b>{d.common.loadFailed}</b></p>
-    <button type="button" className="btn btn-sm btn-secondary" onClick={onRetry}>{d.common.loadRetry}</button>
-  </>
+// reads as "there is nothing here" (or as a skeleton that never settles). A list the role may not see says that
+// instead, with whom to ask (`admin`) and an email to them. Goes in a table's empty row or in a .cards-empty box,
+// whichever the page uses.
+export const LoadFailed = ({ d, code, admin, onRetry }: { d: Dict; code?: string | null; admin?: string | null; onRetry(): void }) => (code === 'forbidden'
+  ? <Empty icon="lock" title={d.states.noAccess} text={d.states.noAccessText(admin ?? null)}>
+      {admin && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.mail(admin, d.states.askSubject)}>{d.states.contact}</button>}
+    </Empty>
+  : <Empty icon="alert" tone="bad" title={d.common.loadFailed} text={d.states.loadFailedText}>
+      <button type="button" className="btn btn-sm btn-secondary" onClick={onRetry}>{d.common.loadRetry}</button>
+    </Empty>);
+// One of the workspace's lists, when its last load failed.
+export const ListFailed = ({ d, data, kind }: { d: Dict; data: WorkspaceData; kind: Kind }) => (
+  <LoadFailed d={d} code={data.loadFailed.get(kind)} admin={data.admin} onRetry={() => data.refresh(kind)} />
 );
 
 // What to do with the rows ticked on a page: how many, the actions, and a cross that clears the selection.

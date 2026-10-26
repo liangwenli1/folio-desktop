@@ -9,7 +9,7 @@ import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { BulkBar, CopyBtn, Icon, LoadFailed, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { BulkBar, CopyBtn, Empty, Icon, ListFailed, Modal, MoreMenu, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
@@ -73,9 +73,18 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   const curProxy = cur ? byId.get(cur) ?? null : null;
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
 
+  // Several at once are a job (a long one shows its progress meanwhile). When some don't answer, the task center says
+  // why, and the failed ones can run again.
   async function check(targets: string[]){
-    await data.check(targets);
-    toast(X.checked(targets.length));
+    const r = await data.check(targets);
+    checked(r.job, targets.length - r.failed, r.failed);
+  }
+  function checked(job: string | null, ok: number, failed: number){
+    if (!failed || !job) return toast(X.checked(ok + failed));
+    toast(d.states.partly(d.jobs.kinds['proxy.check'], ok, failed), [
+      { label: d.states.seeWhy, fn: () => data.showJob(job) },
+      { label: d.jobs.retry(failed), fn: () => void data.rerun(job).then(j => checked(job, j.ok, j.failed), fail) }
+    ], 'bad');
   }
   async function remove(targets: string[]){
     setConfirm(null);
@@ -167,8 +176,15 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
         <div className={`side-wrap${curProxy ? ' with-panel' : ''}`}>
           <div className="side-main">
             {data.loadFailed.has('proxies')
-              ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('proxies')} /></div>
-              : !list.length && <div className="cards-empty"><p>{data.proxies.length ? d.profiles.emptyMatch : X.empty}</p></div>}
+              ? <div className="cards-empty"><ListFailed d={d} data={data} kind="proxies" /></div>
+              : !list.length && <div className="cards-empty">{data.proxies.length
+                ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setType('all'); setRegion('all'); setStatus('all'); reset(); }}>{d.states.clear}</button>
+                  </Empty>
+                : <Empty icon="proxies" title={X.emptyTitle} text={X.empty}>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={onAdd}><Icon name="plus" />{X.addFirst}</button>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={onImport}><Icon name="upload" />{X.importList}</button>
+                  </Empty>}</div>}
             {list.length > 0 && (view === 'cards'
               ? <ul className="pxg">{rows.map(p => <ProxyCard key={p.id} {...item(p)} />)}</ul>
               : (
@@ -418,6 +434,12 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
               <div><dt>{D.profiles}</dt><dd>{profiles.length}</dd></div>
             </dl>
             {ex?.geo && <p className="attrib">{d.common.attribution}</p>}
+            {s === 'down' && (
+              <Empty icon="alert" tone="bad" title={d.states.proxyDown} text={d.states.proxyDownText(`${p.host}:${p.port}`)}>
+                <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={onCheck}>{d.states.checkAgain}</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={onEdit}>{d.states.editProxy}</button>
+              </Empty>
+            )}
             <div className="pd-grid px-grid">
               <div className="pd-col">
                 <section className="sec" aria-label={D.config}>
@@ -665,12 +687,13 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
     try {
       const r = await folio.api<ProxyImport>('POST', `/workspaces/${wsId}/proxies/import`, { text, defaultType: type, skipDuplicates: skip, ...(pattern.trim() ? { namePattern: pattern.trim() } : {}) });
       // The lines as a job the task center lists, settled at once: what was brought in, and why the rest wasn't.
-      void folio.api('POST', `/workspaces/${wsId}/jobs`, { kind: 'proxy.import', finish: true, items: (lines ?? []).map(l => ({
+      const job = await folio.api<{ id: string }>('POST', `/workspaces/${wsId}/jobs`, { kind: 'proxy.import', finish: true, items: (lines ?? []).map(l => ({
         targetId: String(l.line), name: l.ok ? `${l.host}:${l.port}` : l.text.slice(0, 200), result: l.ok ? { ok: true } : { ok: false, error: l.why }
-      })) }).catch(() => {});
+      })) }).catch(() => null);
       data.refresh('proxies');
       void data.check(r.proxies.filter(p => !p.lastCheck).map(p => p.id));
-      toast(I.done(r.added, new Set(r.proxies.map(p => p.id)).size - r.added));
+      if (bad && job) toast(d.states.partly(d.jobs.kinds['proxy.import'], valid.length, bad), { label: d.states.seeWhy, fn: () => data.showJob(job.id) }, 'bad');
+      else toast(I.done(r.added, new Set(r.proxies.map(p => p.id)).size - r.added));
       onClose();
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
@@ -794,7 +817,9 @@ export function ReplaceProxyDialog({ d, data, profile, onClose, onDone }: { d: D
           <table>
             <thead><tr><th scope="col" className="cb">{R.pick}</th><th scope="col">{X.cols.name}</th><th scope="col">{X.cols.type}</th><th scope="col">{X.cols.exit}</th><th scope="col">{X.cols.status}</th><th scope="col">{X.cols.latency}</th><th scope="col">{X.cols.profiles}</th></tr></thead>
             <tbody>
-              {!list.length && <tr className="empty"><td colSpan={7}><p>{data.proxies.length > 1 ? d.profiles.emptyMatch : X.empty}</p></td></tr>}
+              {!list.length && <tr className="empty"><td colSpan={7}>{data.proxies.length > 1
+                ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText} />
+                : <Empty icon="proxies" title={X.emptyTitle} text={X.empty} />}</td></tr>}
               {list.map(p => {
                 const down = proxyState(p) === 'down';
                 return (

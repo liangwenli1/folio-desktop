@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from '
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { BulkBar, ExtIcon, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
+import { BulkBar, Empty, ExtIcon, Icon, ListFailed, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
@@ -71,8 +71,12 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
         </div>
 
         {data.loadFailed.has('extensions')
-          ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('extensions')} /></div>
-          : !list.length && <div className="cards-empty"><p>{data.extensions.length ? X.noMatch : X.empty}</p></div>}
+          ? <div className="cards-empty"><ListFailed d={d} data={data} kind="extensions" /></div>
+          : !list.length && <div className="cards-empty">{data.extensions.length
+            ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setFilter('all'); }}>{d.states.clear}</button>
+              </Empty>
+            : <Empty icon="extensions" title={X.emptyTitle} text={X.empty} />}</div>}
         {list.length > 0 && (view === 'cards'
           ? <ul className="ext-grid">{list.map(e => <ExtCard key={e.id} {...item(e)} />)}</ul>
           : (

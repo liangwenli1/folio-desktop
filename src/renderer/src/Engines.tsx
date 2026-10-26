@@ -10,7 +10,7 @@ import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { Select, SelectField, type Opt } from './Select';
 import { EngineLogo } from './Flag';
-import { Icon, Modal, MoreMenu, Progress, Switch, bytes, percent, useToast } from './ui';
+import { Empty, Icon, Modal, MoreMenu, Progress, Switch, bytes, percent, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
@@ -220,7 +220,12 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
                   {!filtered && KINDS.filter(kind => !rows.some(r => r.kind === kind)).map(kind => (
                     <tr key={kind}><td colSpan={8}><span className="l1"><EngineLogo kernel={kind} size={18} /><b>{ENGINES[kind]}</b></span><span className="l2">{E.none}</span></td></tr>
                   ))}
-                  {filtered && !shown.length && <tr className="empty"><td colSpan={8}><p>{E.noMatch}</p></td></tr>}
+                  {filtered && !shown.length && <tr className="empty"><td colSpan={8}>{needle || system !== 'all'
+                    ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setSystem('all'); }}>{d.states.clear}</button>
+                      </Empty>
+                    : tab === 'updates' ? <Empty icon="check" title={E.upToDate} />
+                    : <Empty icon="engines" title={E.noneDownloaded} text={E.noneDownloadedText} />}</td></tr>}
                   {shown.map(r => (
                     <tr key={r.key} className={side?.key === r.key ? 'cur' : ''} data-engine={r.kind} data-version={r.version}
                       onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) setCur(r.key); }}>

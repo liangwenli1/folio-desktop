@@ -142,10 +142,10 @@ function keeper(kernel: 'chromium' | 'firefox'){
     : { manifest_version: 2, name: 'Keeper', version: '1.0', permissions: ['storage'], browser_specific_settings: { gecko: { id: 'keeper@folio.test' } }, background: { scripts: ['bg.js'] }, content_scripts: [{ matches: ['<all_urls>'], js: ['c.js'] }] };
   return zip({ 'manifest.json': JSON.stringify(manifest), 'bg.js': bg, 'c.js': content });
 }
-// Waits for the extension to answer on the page.
+// Waits for the extension to answer on the page, in a tab of its own: the profile's restored tabs may still be loading.
 const kept = (app: ElectronApplication, id: string, url: string) => app.evaluate(async (_e, { id, url }) => {
   const r = (globalThis as unknown as { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> }).__folioRunning.get(id)!;
-  const page = r.ctx.pages()[0] ?? await r.ctx.newPage();
+  const page = await r.ctx.newPage();
   await page.goto(url);
   for (let i = 0; i < 60; i++){
     const v = await page.evaluate(() => document.documentElement.dataset.helper ?? null);

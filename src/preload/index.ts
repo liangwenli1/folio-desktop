@@ -20,6 +20,7 @@ const bridge: FolioBridge = {
   hasSession: () => ipcRenderer.invoke('folio:hasSession'),
   api: (method, path, body) => unwrap(ipcRenderer.invoke('folio:api', method, path, body)),
   openSite: path => ipcRenderer.invoke('folio:openSite', path),
+  mail: (to, subject) => ipcRenderer.invoke('folio:mail', to, subject),
   saveFile: (name, content) => ipcRenderer.invoke('folio:saveFile', name, content),
   exportCookies: (profiles, format) => ipcRenderer.invoke('folio:exportCookies', profiles, format),
   importCookies: (id, cookies) => unwrap(ipcRenderer.invoke('folio:importCookies', id, cookies)),

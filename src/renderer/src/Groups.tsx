@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Workspace } from './ap
 import { kernelKey, type WorkspaceData } from './data';
 import { health } from './checks';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
-import { Avatar, BulkBar, GROUP_COLORS, Icon, Modal, MoreMenu, Switch, useToast, type GroupColor } from './ui';
+import { Avatar, BulkBar, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, Switch, useToast, type GroupColor } from './ui';
 import { Select, SelectField } from './Select';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
@@ -71,6 +71,8 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
   const ids = [...sel].filter(id => list.some(p => p.id === id));
   const shownSel = rows.filter(p => sel.has(p.id)).length;
   const reset = () => setPage(1);
+  // The table needs both lists; the first that failed to load says so in its place.
+  const failed = (['profiles', 'groups'] as const).find(k => data.loadFailed.has(k));
 
   async function move(targets: string[], groupId: string | null){
     try {
@@ -161,7 +163,12 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
                   </tr>
                 </thead>
                 <tbody>
-                  {!rows.length && <tr className="empty"><td colSpan={7}><p>{shown.length ? d.profiles.emptyMatch : G.empty}</p></td></tr>}
+                  {failed && <tr className="empty"><td colSpan={7}><ListFailed d={d} data={data} kind={failed} /></td></tr>}
+                  {!failed && !rows.length && <tr className="empty"><td colSpan={7}>{shown.length
+                    ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setRun('all'); setOwner('all'); reset(); }}>{d.states.clear}</button>
+                      </Empty>
+                    : <Empty icon="folder" title={G.empty} />}</td></tr>}
                   {rows.map(p => {
                     const h = health(p, proxies, data.kernels), [tone, text] = stateOf(d, p, h, data.status[p.id], data.progress[kernelKey(p.kernel, p.kernelVersion)]);
                     return (

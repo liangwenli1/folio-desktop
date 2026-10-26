@@ -7,7 +7,7 @@ import { cookieKey, readCookies, type Cookie } from '@shared/cookies';
 import { can, folio, isApiError, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Icon, Modal, useToast } from './ui';
+import { Empty, Icon, LoadFailed, Modal, useToast } from './ui';
 import { Pager } from './Pager';
 import { Select } from './Select';
 import { dayLabel, time } from './Activity';
@@ -134,8 +134,14 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
               </thead>
               <tbody>
                 {list === null && state !== 'failed' && Array.from({ length: 4 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i /></td><td><i /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td /></tr>)}
-                {state === 'failed' && <tr className="empty"><td colSpan={7}><p><b>{d.common.loadFailed}</b></p><button type="button" className="btn btn-sm btn-secondary" onClick={() => void load()}>{d.common.loadRetry}</button></td></tr>}
-                {list !== null && !shown.length && state !== 'failed' && <tr className="empty"><td colSpan={7}><p>{state === 'none' ? C.notSaved : all.length ? C.noMatch : C.none}</p></td></tr>}
+                {state === 'failed' && <tr className="empty"><td colSpan={7}><LoadFailed d={d} onRetry={() => void load()} /></td></tr>}
+                {list !== null && !shown.length && state !== 'failed' && <tr className="empty"><td colSpan={7}>{state === 'none'
+                  ? <Empty icon="clock" title={C.notSaved} text={C.notSavedText} />
+                  : all.length
+                    ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setDomain('all'); setPage(1); }}>{d.states.clear}</button>
+                      </Empty>
+                    : <Empty icon="cookie" title={C.none} />}</td></tr>}
                 {rows.map(c => {
                   const k = cookieKey(c);
                   return (

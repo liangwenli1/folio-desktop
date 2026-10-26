@@ -8,7 +8,7 @@ import { ActivityTable, dayLabel, said, time, useActivity } from './Activity';
 import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
 import { runTime, type Dict, type Lang } from './i18n';
-import { Icon, MoreMenu, Progress, bytes, percent, type IconName } from './ui';
+import { Empty, Icon, MoreMenu, Progress, bytes, percent, type IconName } from './ui';
 import { Flag, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
 import { CookiesTab } from './ProfileCookies';
@@ -136,7 +136,7 @@ export function ProfileDetail(props: Props){
           )}
           {seen.has('cookies') && <div hidden={tab !== 'cookies'}><CookiesTab d={d} lang={lang} data={data} p={p} running={status?.state === 'running'} onExport={props.onExport} /></div>}
           {tab === 'activity' && <>
-            <ActivityTable d={d} lang={lang} entries={log.entries} failed={log.failed} onRetry={() => void log.reload()} profile />
+            <ActivityTable d={d} lang={lang} entries={log.entries} failed={log.failed} admin={data.admin} onRetry={() => void log.reload()} profile />
             {log.total > 0 && <Pager d={d} total={log.total} page={logPage} size={logSize} onPage={setLogPage} onSize={n => { setLogSize(n); setLogPage(1); }} />}
           </>}
         </div>
@@ -146,7 +146,19 @@ export function ProfileDetail(props: Props){
 }
 
 // The overview: its basics, its proxy, a summary of its fingerprint, the data it keeps, and what was done lately.
-function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
+// Its last launch here failed: what that means, the reason on request, and trying again.
+function LaunchFailed({ d, p, why, onOpen }: { d: Dict; p: Profile; why: string; onOpen(): void }){
+  const S = d.states;
+  const [shown, setShown] = useState(false);
+  return (
+    <Empty icon="xCircle" tone="bad" title={S.launchFailed} text={<>{S.launchFailedText(p.name)}{shown && <><br /><b>{d.launch[why] ?? d.launch.launch_failed}</b></>}</>}>
+      <button type="button" className="btn btn-secondary btn-sm" aria-expanded={shown} onClick={() => setShown(x => !x)}>{S.why}</button>
+      <button type="button" className="btn btn-primary btn-sm" onClick={onOpen}>{S.retry}</button>
+    </Empty>
+  );
+}
+
+function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, failed, status, onOpen, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
   const D = d.detail, F = d.fp;
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
   const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
@@ -158,6 +170,7 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEd
     <div className="sec-row"><h3>{title}</h3>{action && <button type="button" className="linkish act-link" onClick={action[1]}>{icon && <Icon name={icon} />}{action[0]}</button>}</div>
   );
   return <>
+    {failed && !status && <LaunchFailed d={d} p={p} why={failed} onOpen={onOpen} />}
     <div className="pd-grid">
       <section className="sec" aria-label={D.basics}>
         {head(D.basics, [D.edit, onEdit], 'edit')}
@@ -230,7 +243,7 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, onEd
         ? <ol className="timeline" data-testid="recent">{entries.slice(0, 4).map(e => (
             <li key={e.seq}><time>{when(e.at)}</time><div><b>{said(d, e)}</b><small>{d.activity.by(e.actor ?? d.activity.someone)}</small></div></li>
           ))}</ol>
-        : <p className="hint">{D.noActivity}</p>}
+        : <p className="hint">{d.activity.empty}</p>}
     </section>
   </>;
 }

@@ -5,7 +5,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Invitation, type Membe
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
-import { Avatar, Icon, LoadFailed, Modal, MoreMenu, Progress, useToast, type IconName } from './ui';
+import { Avatar, Empty, Icon, ListFailed, Modal, MoreMenu, Progress, useToast, type IconName } from './ui';
 import { Select, SelectField } from './Select';
 import { RolesTab } from './Roles';
 
@@ -92,8 +92,12 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                     </tr>
                   </thead>
                   <tbody>
-                    {data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}><LoadFailed d={d} onRetry={() => data.refresh('members')} /></td></tr>}
-                    {!people.length && !data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}><p>{d.profiles.emptyMatch}</p></td></tr>}
+                    {data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="members" /></td></tr>}
+                    {!people.length && !data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}>
+                      <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setRoleId('all'); }}>{d.states.clear}</button>
+                      </Empty>
+                    </td></tr>}
                     {people.map(m => {
                       const me = m.userId === meId, editable = manager && m.role.key !== 'owner' && !me;
                       return (
@@ -138,7 +142,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                   </tr>
                 </thead>
                 <tbody>
-                  {!invites.length && <tr className="empty"><td colSpan={6}><p>{T.noInvites}</p></td></tr>}
+                  {!invites.length && <tr className="empty"><td colSpan={6}><Empty icon="mail" title={T.noInvites} /></td></tr>}
                   {invites.map(i => (
                     <tr key={i.id} data-invitation={i.email}>
                       <td><span className="prof-cell"><Avatar text={i.email} /><span className="l1"><b>{i.email}</b></span></span></td>

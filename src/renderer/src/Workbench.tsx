@@ -22,7 +22,7 @@ import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
-import { Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type IconName } from './ui';
+import { Icon, Mark, Progress, Switch, Toasts, useNotice, useOutsideClose, useToast, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Flag } from './Flag';
 import { health } from './checks';
@@ -51,12 +51,14 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [openId, setOpenId] = useState<string | null>(null);
   // A proxy to show the details of when the Proxies page opens (from a profile's page).
   const [proxyId, setProxyId] = useState<string | null>(null);
+  // A job to show when the task center opens (from a toast about it).
+  const [jobId, setJobId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [wsOpen, setWsOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const wsRef = useOutsideClose(wsOpen, () => setWsOpen(false));
   const userRef = useOutsideClose(userOpen, () => setUserOpen(false));
-  const manager = can(ws.role, MANAGE);
+  const manager = can(ws.role, MANAGE), creates = can(ws.role, 'profiles.create');
   const limit = s.entitlements.profiles;
 
   const data = useWorkspaceData(ws.id, ws.role, {
@@ -73,13 +75,15 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     extensionErrors(st: ProfileStatus){
       const p = data.profiles?.find(x => x.id === st.id);
       toast(d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []), undefined, 'bad');
-    }
+    },
+    job(id){ go('jobs'); setJobId(id); }
   });
+  useJobNotice(d, data);
   const used = data.profiles?.length ?? ws.usage.profiles;
   const editing = dialog?.kind === 'edit' ? data.profiles?.find(p => p.id === dialog.id) : undefined;
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
-  const go = (p: Page) => { setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); };
+  const go = (p: Page) => { setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); };
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
@@ -98,16 +102,17 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     const n = new Notification(d.notify.signedOut(e.task, e.profiles).title, { body: d.notify.signedOut(e.task, e.profiles).body });
     n.onclick = () => { void folio.showWindow(); setPage('tasks'); setFocus({ taskId: e.taskId, runId: e.runId }); };
   }), [d]);
-  // Ctrl+K (⌘K) opens the command palette anywhere; Ctrl+N (⌘N) a new profile when no dialog is open.
+  // Ctrl+K (⌘K) opens the command palette anywhere; Ctrl+N (⌘N) a new profile when no dialog is open (and the role
+  // may create one).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
       if (e.key.toLowerCase() === 'k'){ e.preventDefault(); setPalette(o => !o); }
-      else if (e.key.toLowerCase() === 'n' && !document.querySelector('.modal')){ e.preventDefault(); setPalette(false); go('profiles'); setDialog({ kind: 'new' }); }
+      else if (creates && e.key.toLowerCase() === 'n' && !document.querySelector('.modal')){ e.preventDefault(); setPalette(false); go('profiles'); setDialog({ kind: 'new' }); }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [creates]);
   // The order the delivery spec gives, then the pages it does not draw, then the Trash.
   const pages: [Page, IconName, string, boolean][] = [
     ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['engines', 'engines', d.nav.engines, true], ['groups', 'folder', d.nav.groups, true],
@@ -132,7 +137,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
     return [
       ...profiles,
-      act('new', C.newProfile, 'plus', () => { go('profiles'); setDialog({ kind: 'new' }); }, `${mod} N`),
+      ...(creates ? [act('new', C.newProfile, 'plus', () => { go('profiles'); setDialog({ kind: 'new' }); }, `${mod} N`)] : []),
       ...(manager ? [
         act('import', C.importProfiles, 'upload', () => { go('profiles'); setDialog({ kind: 'import' }); }),
         act('add-proxy', C.addProxy, 'proxies', () => setDialog({ kind: 'proxy' })),
@@ -286,7 +291,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         onShowProfiles={ids => { go('profiles'); setOnly(new Set(ids)); }} />}
       {shown === 'groups' && <GroupsPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data}
         onOpenProfile={id => { go('profiles'); setOpenId(id); }} onNewProfile={g => setDialog({ kind: 'new', group: g })} />}
-      {shown === 'jobs' && <JobsPage d={d} lang={lang} meId={me.user.id} data={data} />}
+      {shown === 'jobs' && <JobsPage key={jobId ?? ''} d={d} lang={lang} meId={me.user.id} data={data} openId={jobId} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'settings' && <SettingsPage d={d} ws={ws} data={data} manager={manager} />}
@@ -305,6 +310,29 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
     </div>
   );
+}
+
+// A check of many proxies under way here (the design's "processing" notice): how far it has got, and where the
+// results will be. It goes when the check ends (the page that started it says how it went), or when closed.
+function useJobNotice(d: Dict, data: WorkspaceData){
+  const notice = useNotice();
+  const [closed, setClosed] = useState<string | null>(null);
+  const j = data.jobs.find(x => x.kind === 'proxy.check' && x.status === 'running' && x.total > 5 && data.mine.has(x.id) && x.id !== closed);
+  const done = j ? j.ok + j.failed + j.canceled : 0;
+  useEffect(() => {
+    notice(j && (
+      <div className="toast notice" role="status" aria-label={d.states.underway(d.jobs.kinds[j.kind])}>
+        <span className="t-ic" aria-hidden="true"><span className="spin" /></span>
+        <div className="n-body">
+          <p className="n-t"><b>{d.states.underway(d.jobs.kinds[j.kind])}</b><small>{done} / {j.total}</small></p>
+          <Progress done={done} total={j.total} />
+          <div className="n-foot"><p className="n-sub">{d.states.resultsThere}</p><button type="button" onClick={() => data.showJob(j.id)}>{d.states.viewTask}</button></div>
+        </div>
+        <button type="button" className="t-x" aria-label={d.common.close} title={d.common.close} onClick={() => setClosed(j.id)}><Icon name="x" /></button>
+      </div>
+    ));
+  }, [j?.id, j?.total, done, d]);
+  useEffect(() => () => notice(null), [notice]);
 }
 
 function NavItem({ icon, label, badge, active, onClick }: { icon: IconName; label: string; badge?: string; active: boolean; onClick(): void }){

@@ -31,7 +31,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
   const app = await launch(dataDir());
   const win = await logIn(app, owner.email);
   await nav(win, 'Flows').click();
-  await expect(win.getByText('No flows yet.')).toBeVisible();
+  await expect(win.getByText('No flows yet')).toBeVisible();
   await win.getByRole('button', { name: 'New flow' }).click();
   await win.getByLabel('Flow name').fill('Morning check');
 

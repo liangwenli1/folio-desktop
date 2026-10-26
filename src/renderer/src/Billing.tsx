@@ -5,7 +5,7 @@ import { folio, isApiError, type Payment, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
 import { isPaid, planStatus } from './plan';
-import { LoadFailed, Switch, useToast } from './ui';
+import { Empty, LoadFailed, Switch, useToast } from './ui';
 
 type Tab = 'plan' | 'usage' | 'payments';
 
@@ -99,7 +99,7 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
               <tbody>
                 {failed && <tr className="empty"><td colSpan={6}><LoadFailed d={d} onRetry={() => void load()} /></td></tr>}
                 {!failed && payments !== null && !payments.length && (
-                  <tr className="empty"><td colSpan={6}><p><b>{B.none}</b></p><p className="hint">{B.noneHint}</p></td></tr>
+                  <tr className="empty"><td colSpan={6}><Empty icon="billing" title={B.none} text={B.noneHint} /></td></tr>
                 )}
                 {(payments ?? []).map(x => (
                   <tr key={x.id}>

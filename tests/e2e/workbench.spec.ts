@@ -144,7 +144,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await expect(purge.getByRole('button', { name: 'Delete forever' })).toBeDisabled();
   await purge.getByRole('textbox', { name: 'Type P-1 to confirm' }).fill('P-1');
   await purge.getByRole('button', { name: 'Delete forever' }).click();
-  await expect(win.getByText('The Trash is empty.')).toBeVisible();
+  await expect(win.getByText('The Trash is empty')).toBeVisible();
   await app.close();
 });
 
@@ -163,7 +163,8 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await expect(pi.locator('tr[data-line="4"]')).toContainText('Port must be 1–65535');
   await pi.getByRole('textbox', { name: 'Naming' }).fill('Ops-{n}');
   await pi.getByRole('button', { name: 'Import 2 proxies' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '2 proxies added' })).toBeVisible();
+  // Lines that couldn't be read make it a partly failed job, which the task center explains.
+  await expect(win.getByRole('status').filter({ hasText: 'Import proxies: 2 done, 2 failed' })).toBeVisible();
   await expect(pi).toBeHidden();
   // Proxies show as a table first, named from the pattern.
   await expect(win.locator('tr[data-id]')).toHaveCount(2);

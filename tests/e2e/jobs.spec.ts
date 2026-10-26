@@ -14,19 +14,23 @@ test('proxies checked together are a job, and a retry runs the failed ones again
   const win = await logIn(app, acct.email);
   await nav(win, 'Proxies');
   await win.getByRole('button', { name: 'Check all' }).click();
-  await nav(win, 'Task center');
+  // How it went: why the failed ones failed is a click away, and so is running them again.
+  const told = win.getByRole('status').filter({ hasText: 'Check proxies: 0 done, 2 failed' });
+  await expect(told.getByRole('button', { name: 'Retry failed (2)' })).toBeVisible({ timeout: 60_000 });
+  await told.getByRole('button', { name: 'See why' }).click();
   const row = win.locator('tr[data-job="proxy.check"]');
-  await expect(row).toContainText('Failed', { timeout: 60_000 });
+  await expect(row).toContainText('Failed');
   await expect(row).toContainText('2 / 2');
-  await row.getByRole('button', { name: 'View' }).click();
   const panel = win.getByRole('complementary', { name: 'Check proxies' });
   await expect(panel.locator('tr[data-item]')).toHaveCount(2);
   await expect(panel.locator('tr[data-item="Dead-1"]')).toContainText('Failed');
   await panel.getByRole('button', { name: 'Retry failed (2)' }).click();
-  const jobs = async () => (await (await acct.api.get(`${base}/jobs`)).json()).jobs as { id: string; kind: string; status: string; failed: number }[];
-  await expect.poll(async () => (await jobs())[0], { timeout: 60_000 }).toMatchObject({ kind: 'proxy.check', status: 'partial', failed: 2 });
-  const items = (await (await acct.api.get(`${API}/jobs/${(await jobs())[0].id}`)).json()).items as { attempts: number }[];
-  expect(items.map(i => i.attempts)).toEqual([2, 2]);
+  // Settled again only once both were tried a second time (until then it still reads as it did before the retry).
+  const job = (await (await acct.api.get(`${base}/jobs`)).json()).jobs[0] as { id: string };
+  await expect.poll(async () => {
+    const j = (await (await acct.api.get(`${API}/jobs/${job.id}`)).json()) as { kind: string; status: string; failed: number; items: { attempts: number }[] };
+    return { kind: j.kind, status: j.status, failed: j.failed, attempts: j.items.map(i => i.attempts) };
+  }, { timeout: 60_000 }).toEqual({ kind: 'proxy.check', status: 'partial', failed: 2, attempts: [2, 2] });
   await panel.getByRole('tab', { name: 'Log' }).click();
   await expect(panel.getByRole('listitem')).not.toHaveCount(0);
   await app.close();

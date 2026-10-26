@@ -1,10 +1,10 @@
 // The activity log: who did what, to what, when and from which computer. Searched by word or entry number, filtered
 // by person, kind and dates, newest or oldest first, a page at a time; an entry's details show beside the table.
 import { useCallback, useEffect, useState } from 'react';
-import { MANAGE, can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
+import { can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, fieldName, type Dict, type Lang } from './i18n';
-import { Icon, LoadFailed, useToast, type IconName } from './ui';
+import { Empty, Icon, LoadFailed, useToast, type IconName } from './ui';
 import { Select } from './Select';
 import { Pager } from './Pager';
 
@@ -29,17 +29,20 @@ export function dayLabel(iso: string, d: Dict, lang: Lang){
 }
 const stamp = (iso: string) => { const t = new Date(iso); return `${t.toLocaleDateString('sv-SE')} ${t.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`; };
 
-// Reads a page of the log with the given filters; reloads on change events.
+// Reads a page of the log with the given filters; reloads on change events. `failed` says why the last read failed
+// ('forbidden' for a role that may not see the log).
 export function useActivity(wsId: string, query: string, data: WorkspaceData, page = 1, size = 20, enabled = true){
   const [entries, setEntries] = useState<ActivityEntry[] | null>(null);
   const [total, setTotal] = useState(0);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const load = useCallback(async () => {
-    const r = await folio.api<{ entries: ActivityEntry[]; total: number }>('GET', `/workspaces/${wsId}/activity?limit=${size}&offset=${(page - 1) * size}${query}`);
-    setEntries(r.entries); setTotal(r.total); setFailed(false);
+    try {
+      const r = await folio.api<{ entries: ActivityEntry[]; total: number }>('GET', `/workspaces/${wsId}/activity?limit=${size}&offset=${(page - 1) * size}${query}`);
+      setEntries(r.entries); setTotal(r.total); setFailed(null);
+    } catch (e){ setFailed(isApiError(e) ? e.code : 'internal'); }
   }, [wsId, query, page, size]);
-  useEffect(() => { if (enabled) void load().catch(() => setFailed(true)); }, [enabled, load, data.profiles, data.proxies, data.groups, data.members]);
-  return { entries, total, failed, reload: () => load().catch(() => setFailed(true)) };
+  useEffect(() => { if (enabled) void load(); }, [enabled, load, data.profiles, data.proxies, data.groups, data.members]);
+  return { entries, total, failed, reload: load };
 }
 
 // Which filter of the log an entry belongs to (the server's grouping), for its icon.
@@ -76,7 +79,8 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
   const query = [person && `&actorId=${person}`, kind !== 'all' && `&kind=${kind}`, q && `&q=${encodeURIComponent(q)}`,
     from && `&from=${encodeURIComponent(dayStart(from))}`, to && `&to=${encodeURIComponent(dayStart(to, 1))}`, asc && '&order=asc'].filter(Boolean).join('');
   const { entries, total, failed, reload } = useActivity(ws.id, query, data, page, size);
-  const canExport = can(data.role, MANAGE) && ws.subscription.plan === 'company';
+  // A role that may not view the log reads only its own part of it.
+  const whole = can(data.role, 'activity.view'), canExport = whole && ws.subscription.plan === 'company';
   const filtered = !!(person || kind !== 'all' || q || from || to);
   const reset = () => { setPerson(''); setKind('all'); setTyped(''); setQ(''); setFrom(''); setTo(''); setPage(1); };
   const pick = (f: () => void) => { f(); setPage(1); };
@@ -97,6 +101,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
           <span className="sp" />
           {canExport && <button className="btn btn-secondary" type="button" onClick={() => void exportCsv()}><Icon name="upload" />{A.export}</button>}
         </header>
+        {!whole && <p className="hint page-note">{A.partial}</p>}
         <div className="filters lg-f">
           <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
             <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
@@ -110,12 +115,12 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
             <span aria-hidden="true">{A.to}</span>
             <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
           </span>
-          {filtered && <button type="button" className="btn btn-text" onClick={reset}>{d.profiles.clearFilters}</button>}
+          {filtered && <button type="button" className="btn btn-text" onClick={reset}>{d.states.clear}</button>}
         </div>
         <div className={`side-wrap${cur ? ' with-panel' : ''}`}>
           <div className="side-main">
-            <ActivityTable d={d} lang={lang} entries={entries} failed={failed} onRetry={() => void reload()} cur={cur?.seq ?? null} onPick={setCur}
-              asc={asc} onSort={() => pick(() => setAsc(x => !x))} />
+            <ActivityTable d={d} lang={lang} entries={entries} failed={failed} admin={data.admin} onRetry={() => void reload()} onClear={filtered ? reset : undefined}
+              cur={cur?.seq ?? null} onPick={setCur} asc={asc} onSort={() => pick(() => setAsc(x => !x))} />
             {total > 0 && <Pager d={d} total={total} page={page} size={size} onPage={setPage} onSize={n => { setSize(n); setPage(1); }} />}
           </div>
           {cur && <EntryPanel d={d} lang={lang} e={cur} onClose={() => setCur(null)} />}
@@ -126,8 +131,9 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
 }
 
 // The log as a table: here (with what each entry was done to), and on a profile's page for that profile alone.
-export function ActivityTable({ d, lang, entries, failed, onRetry, cur, onPick, asc, onSort, profile }: {
-  d: Dict; lang: Lang; entries: ActivityEntry[] | null; failed: boolean; onRetry(): void;
+// `onClear` is there while filters hide every entry.
+export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClear, cur, onPick, asc, onSort, profile }: {
+  d: Dict; lang: Lang; entries: ActivityEntry[] | null; failed: string | null; admin: string | null; onRetry(): void; onClear?(): void;
   cur?: number | null; onPick?(e: ActivityEntry): void; asc?: boolean; onSort?(): void; profile?: boolean;
 }){
   const A = d.activity;
@@ -145,8 +151,12 @@ export function ActivityTable({ d, lang, entries, failed, onRetry, cur, onPick, 
         </thead>
         <tbody>
           {entries === null && !failed && Array.from({ length: 6 }, (_, i) => <tr key={i} className="skel" aria-hidden="true">{Array.from({ length: cols }, (_, j) => <td key={j}><i /></td>)}</tr>)}
-          {failed && <tr className="empty"><td colSpan={cols}><LoadFailed d={d} onRetry={onRetry} /></td></tr>}
-          {!failed && entries !== null && !entries.length && <tr className="empty"><td colSpan={cols}><p>{A.empty}</p></td></tr>}
+          {failed && <tr className="empty"><td colSpan={cols}><LoadFailed d={d} code={failed} admin={admin} onRetry={onRetry} /></td></tr>}
+          {!failed && entries !== null && !entries.length && <tr className="empty"><td colSpan={cols}>{onClear
+            ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={onClear}>{d.states.clear}</button>
+              </Empty>
+            : <Empty icon="activity" title={A.empty} />}</td></tr>}
           {entries?.map(e => (
             <tr key={e.seq} data-action={e.action} className={cur === e.seq ? 'cur' : ''} onClick={onPick ? ev => { if (!(ev.target as HTMLElement).closest('button')) onPick(e); } : undefined}>
               <td className="nowrap"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>

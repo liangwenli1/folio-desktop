@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Icon, LoadFailed, Modal, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
+import { Empty, Icon, ListFailed, Modal, Switch, ViewSwitch, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -97,8 +97,8 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
               </thead>
               <tbody>
                 {data.loadFailed.has('tasks')
-                  ? <tr className="empty"><td colSpan={6}><LoadFailed d={d} onRetry={() => data.refresh('tasks')} /></td></tr>
-                  : !data.tasks.length && <tr className="empty"><td colSpan={6}><p>{T.empty}</p></td></tr>}
+                  ? <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="tasks" /></td></tr>
+                  : !data.tasks.length && <tr className="empty"><td colSpan={6}><Empty icon="tasks" title={T.emptyTitle} text={T.empty} /></td></tr>}
                 {data.tasks.map(t => {
                   const here = data.active.find(a => a.taskId === t.id);
                   return (

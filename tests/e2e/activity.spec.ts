@@ -43,7 +43,35 @@ test('the activity log says who did what, and each profile shows its recent entr
   await choose(kinds, 'Profile changes');
   await expect(items).toHaveCount(2);
   await choose(kinds, 'Team');
-  await expect(win.getByText('Nothing here yet.')).toBeVisible();
+  await expect(win.getByText('Nothing matches')).toBeVisible();
   await expect(win.getByRole('button', { name: 'Export log' })).toHaveCount(0);
+  await app.close();
+});
+
+test('a role is told what it may not see: no profiles at all, and only its own part of the log', async () => {
+  const owner = await account({ buy: { plan: 'studio', period: 'monthly' } });
+  const member = await account();
+  const base = `/workspaces/${owner.workspaceId}`;
+  await owner.api.patch(base, { data: { name: 'Larkspur Trading' } });
+  await owner.api.post(`${base}/profiles`, { data: chromiumProfile('Shop-07') });
+  const desk = await (await owner.api.post(`${base}/roles`, { data: { name: 'Proxy desk', permissions: ['proxies.view'] } })).json();
+  await owner.api.post(`${base}/invitations`, { data: { email: member.email, roleId: desk.id } });
+  const app = await launch(dataDir());
+  const win = await logIn(app, member.email);
+  await win.getByTestId('ws-name').click();
+  await win.locator('[data-invite="Larkspur Trading"]').getByRole('button', { name: 'Join' }).click();
+  await expect(win.getByTestId('ws-name')).toHaveText('Larkspur Trading');
+
+  // Profiles are out of the role's reach: the list says so, and whom to ask, instead of a load that failed.
+  await expect(win.getByText('No access', { exact: true })).toBeVisible();
+  await expect(win.getByText(`Ask the workspace’s owner (${owner.email}) for access.`, { exact: false })).toBeVisible();
+  await expect(win.getByRole('button', { name: 'Email the owner' })).toBeVisible();
+  await expect(win.getByRole('button', { name: 'Load again' })).toHaveCount(0);
+
+  // Without "view the log", the log is the person's own part of it, and says so.
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Activity log' }).click();
+  await expect(win.getByText('Your role shows your own actions and what was done to the profiles you can see.')).toBeVisible();
+  await expect(win.locator('tr[data-action]')).toHaveCount(1);
+  await expect(win.locator('tr[data-action="member.join"]')).toBeVisible();
   await app.close();
 });

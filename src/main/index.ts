@@ -107,6 +107,10 @@ ipcMain.handle('folio:api', (_e, method: Method, path: string, body?: unknown) =
 ipcMain.handle('folio:openSite', async (_e, path: string) => {
   if (typeof path === 'string' && path.startsWith('/') && !path.startsWith('//')) await shell.openExternal(SITE_URL + path);
 });
+// An email to one address (asking the workspace's owner for access), started in the computer's mail app.
+ipcMain.handle('folio:mail', async (_e, to: string, subject: string) => {
+  if (typeof to === 'string' && /^[^\s@?&#<>"]+@[^\s@?&#<>"]+$/.test(to)) await shell.openExternal(`mailto:${to}?subject=${encodeURIComponent(String(subject).slice(0, 200))}`);
+});
 ipcMain.handle('folio:saveFile', async (e, name: string, content: string) => {
   const win = BrowserWindow.fromWebContents(e.sender);
   const r = await (win ? dialog.showSaveDialog(win, { defaultPath: join(app.getPath('downloads'), basename(String(name))) }) : dialog.showSaveDialog({ defaultPath: String(name) }));

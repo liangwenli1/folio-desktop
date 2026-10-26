@@ -6,7 +6,7 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Icon, LoadFailed, Modal, useToast } from './ui';
+import { Empty, Icon, ListFailed, Modal, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -118,8 +118,8 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
             </thead>
             <tbody>
               {data.loadFailed.has('flows')
-                ? <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={() => data.refresh('flows')} /></td></tr>
-                : !data.flows.length && <tr className="empty"><td colSpan={5}><p>{F.empty}</p></td></tr>}
+                ? <tr className="empty"><td colSpan={5}><ListFailed d={d} data={data} kind="flows" /></td></tr>
+                : !data.flows.length && <tr className="empty"><td colSpan={5}><Empty icon="flows" title={F.emptyTitle} text={F.empty} /></td></tr>}
               {data.flows.map(f => (
                 <tr key={f.id} data-flow={f.name}>
                   <td><span className="flow-cell"><span className="flow-ic" aria-hidden="true"><Icon name="flows" /></span>

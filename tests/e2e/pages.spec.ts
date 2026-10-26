@@ -25,7 +25,7 @@ test('the Trash shows who deleted each profile, picks several on cards, and rest
   await expect(win.getByTestId('bulk')).toContainText('2 selected');
   await win.getByTestId('bulk').locator('.bb.close').click();
   await win.getByRole('button', { name: 'Restore all' }).click();
-  await expect(win.getByText('The Trash is empty.')).toBeVisible();
+  await expect(win.getByText('The Trash is empty')).toBeVisible();
   await app.close();
 });
 

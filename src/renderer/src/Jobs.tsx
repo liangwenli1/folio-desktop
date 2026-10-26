@@ -7,7 +7,7 @@ import { folio, isApiError, type Job, type JobDetail, type JobKind } from './api
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Icon, LoadFailed, Switch, useToast, type IconName } from './ui';
+import { Empty, Icon, ListFailed, Switch, useToast, type IconName } from './ui';
 import { Select } from './Select';
 
 type Tab = 'all' | 'running' | 'done' | 'partial' | 'canceled';
@@ -29,7 +29,7 @@ export function jobError(d: Dict, kind: JobKind, code: string | null){
   return kind === 'kernel.download' ? code : errorText(d, code);
 }
 
-export function JobsPage({ d, lang, meId, data }: { d: Dict; lang: Lang; meId: string; data: WorkspaceData }){
+export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang; meId: string; data: WorkspaceData; openId: string | null }){
   const J = d.jobs;
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('all');
@@ -37,7 +37,7 @@ export function JobsPage({ d, lang, meId, data }: { d: Dict; lang: Lang; meId: s
   const [range, setRange] = useState<Range>('week');
   const [live, setLive] = useState(true);
   const [held, setHeld] = useState<Job[]>([]);
-  const [cur, setCur] = useState<string | null>(null);
+  const [cur, setCur] = useState<string | null>(openId);
   const [device, setDevice] = useState<string | null>(null);
   useEffect(() => { void folio.info().then(i => setDevice(i.deviceId)); }, []);
   // Auto-refresh off: the list stays as it was when it was turned off.
@@ -75,8 +75,8 @@ export function JobsPage({ d, lang, meId, data }: { d: Dict; lang: Lang; meId: s
                   <tr><th scope="col">{J.cols.name}</th><th scope="col">{J.cols.by}</th><th scope="col">{J.cols.progress}</th><th scope="col">{J.cols.status}</th><th scope="col">{J.cols.created}</th><th className="act" scope="col">{J.cols.actions}</th></tr>
                 </thead>
                 <tbody>
-                  {data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><LoadFailed d={d} onRetry={() => data.refresh('jobs')} /></td></tr>}
-                  {!shown.length && !data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><p>{J.empty}</p></td></tr>}
+                  {data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="jobs" /></td></tr>}
+                  {!shown.length && !data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><Empty icon="jobs" title={J.empty} /></td></tr>}
                   {shown.map(j => (
                     <tr key={j.id} data-job={j.kind} className={cur === j.id ? 'cur' : ''} onClick={e => { if (!(e.target as HTMLElement).closest('button')) setCur(j.id); }}>
                       <td><b>{J.kinds[j.kind]}</b></td>

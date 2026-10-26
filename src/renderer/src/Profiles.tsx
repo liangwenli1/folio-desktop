@@ -6,7 +6,7 @@ import { startJob, type JobRun } from './jobRun';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
-import { Avatar, BulkBar, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
+import { Avatar, BulkBar, Empty, Icon, ListFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select } from './Select';
@@ -56,6 +56,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const [batch, setBatch] = useState<string[] | null>(null);
   // The job the tray's profiles open in, and when it is over.
   const batchJob = useRef<{ run: JobRun | null; done: Promise<unknown> } | null>(null);
+  const [batchJobId, setBatchJobId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   // The profile whose proxy is being changed.
   const [replacing, setReplacing] = useState<Profile | null>(null);
@@ -133,6 +134,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     setBatch(targets.map(p => p.id));
     const run = await startJob(ws.id, 'profile.open', targets.map(p => ({ targetId: p.id, name: p.name })));
     batchJob.current = { run, done: data.openMany(targets, run ?? undefined) };
+    setBatchJobId(run?.id ?? null);
   }
   // A failed one again: once its job is over, by retrying that target of it.
   async function retry(p: Profile){
@@ -239,13 +241,16 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     setMoving(null);
     try { await data.batch('move', [p.id], { groupId }); toast(P.done.moved(1, groupId ? groupName.get(groupId) ?? '' : d.groups.none)); } catch (e){ fail(e); }
   }
-  const failed = data.loadFailed.has('profiles');
+  const failed = data.loadFailed.has('profiles'), S = d.states;
   const empty = failed
-    ? <LoadFailed d={d} onRetry={() => data.refresh('profiles')} />
+    ? <ListFailed d={d} data={data} kind="profiles" />
     : data.profiles !== null && !list.length && (all.length
-      ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>{P.clearFilters}</button></>
-      : <p><b>{P.emptyNone}</b></p>);
+      ? <Empty icon="search" title={P.emptyMatch} text={<>{q && P.emptyFor(q)} {P.emptyHint(all.length)}</>}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>{S.clear}</button>
+        </Empty>
+      : <Empty icon="newFile" title={S.noProfiles} text={S.noProfilesText}>
+          {can(data.role, 'profiles.create') && <button type="button" className="btn btn-primary btn-sm" onClick={onNew}><Icon name="plus" />{S.create}</button>}
+        </Empty>);
 
   if (curProfile) return (<>
     <ProfileDetail
@@ -271,7 +276,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           <div className="ttl"><h1>{P.title}</h1><p className="sub">{P.lead}</p></div>
           <span className="sp" />
           {manager && <button className="btn btn-secondary" type="button" onClick={onImport}><Icon name="upload" />{P.import}</button>}
-          <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
+          {can(data.role, 'profiles.create') && <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>}
         </header>
 
         <div className="tabs page-tabs" role="tablist" aria-label={P.filter.label}>
@@ -423,7 +428,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       </main>
 
       {batch && <Tray d={d} data={data} profiles={batch.map(id => all.find(p => p.id === id)).filter((p): p is Profile => !!p)}
-        onRetry={p => void retry(p)} onClose={() => setBatch(null)} />}
+        onRetry={p => void retry(p)} onClose={() => setBatch(null)} onTask={batchJobId ? () => data.showJob(batchJobId) : undefined} />}
 
     </div>
   );
@@ -539,7 +544,7 @@ function Card(props: ItemProps){
 }
 
 // Profiles opened together: each one's progress, why it couldn't open, and a retry. Folds away; goes once they all opened.
-function Tray({ d, data, profiles, onRetry, onClose }: { d: Dict; data: WorkspaceData; profiles: Profile[]; onRetry(p: Profile): void; onClose(): void }){
+function Tray({ d, data, profiles, onRetry, onClose, onTask }: { d: Dict; data: WorkspaceData; profiles: Profile[]; onRetry(p: Profile): void; onClose(): void; onTask?(): void }){
   const T = d.batchOpen, P = d.profiles;
   const [folded, setFolded] = useState(false);
   const rows = profiles.map(p => {
@@ -566,6 +571,7 @@ function Tray({ d, data, profiles, onRetry, onClose }: { d: Dict; data: Workspac
     <section className={`tray${folded ? ' folded' : ''}`} aria-label={T.title(rows.length)} role="status">
       <header className="tray-h">
         <b>{T.title(rows.length)}</b><small>{T.done(settled, rows.length)}</small>
+        {onTask && <button type="button" className="linkish tray-task" onClick={onTask}>{d.states.viewTask}</button>}
         <button type="button" className="icon-btn bare" aria-label={folded ? T.unfold : T.fold} title={folded ? T.unfold : T.fold} onClick={() => setFolded(f => !f)}><Icon name="chev" /></button>
         {settled === rows.length && <button type="button" className="icon-btn bare" aria-label={T.close} title={T.close} onClick={onClose}><Icon name="x" /></button>}
       </header>

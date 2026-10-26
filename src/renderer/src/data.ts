@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus, WindowSync } from '@shared/bridge';
 import { GROUP_COLORS } from './ui';
-import { MANAGE, can, folio, isApiError, type Extension, type Flow, type Group, type Invitation, type Job, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
+import { MANAGE, can, folio, isApiError, type Extension, type Flow, type Group, type Invitation, type Job, type JobDetail, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
 import { ENGINES } from './checks';
 import { jobRun, retryJob, startJob, type JobRun } from './jobRun';
 
@@ -24,6 +24,8 @@ export interface WorkspaceData {
   profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
   // The team: everyone in it, and (for whoever manages members) invitations still open.
   members: Member[]; invitations: Invitation[];
+  // Whom to ask for access: the owner's email.
+  admin: string | null;
   flows: Flow[]; tasks: Task[]; extensions: Extension[];
   // Batch operations of the last while, for the task center (whoever administers the workspace sees everyone's).
   jobs: Job[];
@@ -35,18 +37,20 @@ export interface WorkspaceData {
   // Why each profile's last launch on this computer failed, until it is opened again.
   failed: Record<string, string>;
   refresh(...kinds: Kind[]): void;
-  // Lists whose last load failed: their table says so and offers `refresh` again, instead of an endless skeleton
-  // or an empty list that looks like there is nothing there.
-  loadFailed: Set<Kind>;
+  // Lists whose last load failed, with why ('forbidden' when the role may not see it): their table says so and offers
+  // `refresh` again, instead of an endless skeleton or an empty list that looks like there is nothing there.
+  loadFailed: Map<Kind, string>;
+  // Opens the task center, at a job when one is given.
+  showJob(id: string | null): void;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
   batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean; startUrl?: string | null }): Promise<number>;
   // The id of the group with this name, created when there is none.
   ensureGroup(name: string): Promise<string>;
   // Checks proxies two at a time; `checking` holds the ones under way. Several at once are a job; a job being retried
-  // passes itself in.
+  // passes itself in. Resolves with the job and how many didn't answer.
   checking: Set<string>;
-  check(ids: string[], job?: JobRun): Promise<void>;
+  check(ids: string[], job?: JobRun): Promise<{ job: string | null; failed: number }>;
   // Downloads an engine version, as a job; resolves true once it is here.
   install(kind: KernelKind, version: string, job?: JobRun): Promise<boolean>;
   // Opens several profiles as a job, each reported once it runs or fails to start.
@@ -54,8 +58,9 @@ export interface WorkspaceData {
   // A bulk edit as a job: profiles skipped because they run are reported failed, so a retry reaches them once stopped.
   // Resolves with why it failed, or null.
   applyEdit(change: BulkChange, ps: Profile[], job?: JobRun): Promise<string | null>;
-  // Runs a job's failed targets again (or just the ones given) on this computer, reporting to the same job.
-  rerun(id: string, seqs?: number[]): Promise<void>;
+  // Runs a job's failed targets again (or just the ones given) on this computer, reporting to the same job; resolves
+  // with the job as it ended.
+  rerun(id: string, seqs?: number[]): Promise<JobDetail>;
   // Stops a job running on this computer: what it hasn't reached is canceled.
   cancel(id: string): void;
   // Jobs this computer is running now.
@@ -69,7 +74,7 @@ export interface WorkspaceData {
   reloadKernels(): Promise<KernelState[]>;
 }
 
-export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void }): WorkspaceData {
+export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void; job(id: string | null): void }): WorkspaceData {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [trash, setTrash] = useState<Profile[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -89,7 +94,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   const [progress, setProgress] = useState<Record<string, KernelProgress>>({});
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [checking, setChecking] = useState<Set<string>>(() => new Set());
-  const [loadFailed, setLoadFailed] = useState<Set<Kind>>(() => new Set());
+  const [loadFailed, setLoadFailed] = useState<Map<Kind, string>>(() => new Map());
   const handlers = useRef(on);
   handlers.current = on;
   const waiting = useRef(new Map<string, (p: KernelProgress) => void>());
@@ -110,9 +115,14 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
 
   const refresh = useCallback((...kinds: Kind[]) => {
     const base = `/workspaces/${wsId}`;
-    const mark = (k: Kind, failed: boolean) => setLoadFailed(f => (f.has(k) === failed ? f : new Set([...f].filter(x => x !== k).concat(failed ? [k] : []))));
+    const mark = (k: Kind, why: string | null) => setLoadFailed(f => {
+      if ((f.get(k) ?? null) === why) return f;
+      const n = new Map(f);
+      if (why) n.set(k, why); else n.delete(k);
+      return n;
+    });
     const run = <T>(k: Kind, path: string, set: (v: T) => void) =>
-      folio.api<T>('GET', path).then(v => { set(v); mark(k, false); }).catch(() => mark(k, true));
+      folio.api<T>('GET', path).then(v => { set(v); mark(k, null); }).catch(e => mark(k, isApiError(e) ? e.code : 'internal'));
     for (const k of kinds){
       if (k === 'profiles') void run<{ profiles: Profile[] }>(k, `${base}/profiles`, r => setProfiles(r.profiles));
       if (k === 'trash') void run<{ profiles: Profile[] }>(k, `${base}/profiles?trash=1`, r => setTrash(r.profiles));
@@ -131,7 +141,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   }, [wsId, manages]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setJobs([]); setLoadFailed(new Set());
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setJobs([]); setLoadFailed(new Map());
     refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks', 'extensions', 'jobs');
     void folio.watch(wsId);
     return folio.onChange(c => {
@@ -213,19 +223,21 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
     const queue = [...new Set(ids)];
     const mark = (id: string, on: boolean) => setChecking(s => { const n = new Set(s); if (on) n.add(id); else n.delete(id); return n; });
     const job = run ?? (queue.length > 1 ? await startJob(wsId, 'proxy.check', queue.map(id => ({ targetId: id, name: proxies.find(x => x.id === id)?.name ?? id }))) : null);
-    let canceled = false;
+    let canceled = false, failed = 0;
     if (job) own(job.id, () => { canceled = true; queue.length = 0; });
     await Promise.all([0, 1].map(async () => {
       for (let id = queue.shift(); id; id = queue.shift()){
         mark(id, true);
         try {
           const r = await folio.checkProxy(id);
+          if (!r.ok) failed++;
           await job?.report(id, r.ok ? null : r.error ?? 'failed');
-        } catch { await job?.report(id, 'failed'); } finally { mark(id, false); }
+        } catch { failed++; await job?.report(id, 'failed'); } finally { mark(id, false); }
       }
     }));
     if (job){ await job.finish(canceled); done(job.id); }
     refresh('proxies');
+    return { job: job?.id ?? null, failed };
   }, [refresh, wsId, proxies]);
 
   // Resolves when the download finishes (true) or fails or is paused (false). Starting it twice shares one download,
@@ -310,9 +322,11 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
     else if (j.kind === 'profile.edit') await applyEdit(j.detail as unknown as BulkChange, found, run);
     else if (j.kind === 'kernel.download') await install(j.detail.kind as KernelKind, String(j.detail.version), run);
     else await run.finish();
+    return folio.api<JobDetail>('GET', `/jobs/${id}`);
   }, [profiles, check, openMany, applyEdit, install]);
 
   const cancel = useCallback((id: string) => { stops.current.get(id)?.(); }, []);
+  const showJob = useCallback((id: string | null) => handlers.current.job(id), []);
 
   const reloadKernels = useCallback(() => folio.kernels().then(k => { setKernels(k); return k; }), []);
   const removeKernel = useCallback(async (kind: KernelKind, version: string) => {
@@ -323,6 +337,6 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
 
   return {
     role, roles: roleList, profiles, trash, groups, proxies, members, invitations, flows, tasks, extensions, jobs, runsSeq, active, sync, status, kernels, progress, failed,
-    checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, openMany, applyEdit, rerun, cancel, mine, removeKernel, reloadKernels
+    admin: members.find(m => m.role.key === 'owner')?.email ?? null, checking, loadFailed, showJob, refresh, patch, batch, ensureGroup, check, install, launch, openMany, applyEdit, rerun, cancel, mine, removeKernel, reloadKernels
   };
 }
