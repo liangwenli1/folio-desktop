@@ -239,7 +239,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{P.title}</h1></div>
+          <div className="ttl"><h1>{P.title}</h1><p className="sub">{P.lead}</p></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{P.search}</span>
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />

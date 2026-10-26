@@ -86,7 +86,7 @@ export function ProxiesPage({ d, lang, data, onAdd, onEdit, onImport, onShowProf
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{X.title}</h1></div>
+          <div className="ttl"><h1>{X.title}</h1><p className="sub">{X.lead}</p></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{X.search}</span>
             <input type="search" placeholder={X.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />

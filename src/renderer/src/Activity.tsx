@@ -84,7 +84,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{A.title}</h1></div>
+          <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.lead}</p></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{A.search}</span>
             <input type="search" placeholder={A.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />

@@ -62,7 +62,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1></div>
+          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.lead}</p></div>
           <label className="search">
             <Icon name="search" /><span className="sr">{T.search}</span>
             <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />

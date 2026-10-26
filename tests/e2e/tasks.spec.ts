@@ -41,7 +41,7 @@ test('a flow runs on 10 profiles 3 at a time, failures are retried, and the resu
   const base = `/workspaces/${owner.workspaceId}`;
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, owner.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   for (let i = 1; i <= 8; i++) await owner.api.post(`${base}/profiles`, { data: chromiumProfile(`Shop-${String(i).padStart(2, '0')}`) });
   for (const name of ['Shop-09', 'Shop-10']){
     const fp = await win.evaluate(() => window.folio.newFingerprint('firefox', 'linux'));

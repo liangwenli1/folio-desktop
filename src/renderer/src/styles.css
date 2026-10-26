@@ -220,10 +220,10 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
    account at its right) above the page */
 .app{display:grid;grid-template-columns:208px minmax(0,1fr);grid-template-rows:var(--tb) minmax(0,1fr);height:100%}
 .app > :not(.side):not(.top){grid-column:2;grid-row:2}
-.side{grid-row:1/-1;display:flex;flex-direction:column;gap:4px;min-height:0;overflow:hidden;background:var(--side);border-right:1px solid var(--line);padding:14px 12px}
+/* The account panel opens out of the rail, so the rail may not clip it; the group list scrolls on its own. */
+.side{grid-row:1/-1;display:flex;flex-direction:column;gap:4px;min-height:0;background:var(--side);border-right:1px solid var(--line);padding:14px 12px}
 html[data-platform="darwin"] .side{padding-top:calc(var(--tb) + 2px)}
-.top{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 14px;-webkit-app-region:drag}
-.top > *{-webkit-app-region:no-drag}
+.top{grid-column:2;grid-row:1;-webkit-app-region:drag}
 /* Windows draws its minimize, maximize and close buttons over the strip's right end. */
 html[data-platform="win32"] .top{padding-right:150px}
 .brand{display:flex;align-items:center;gap:9px;padding:2px 6px 10px}
@@ -277,18 +277,20 @@ html[data-platform="win32"] .top{padding-right:150px}
 .move-to:hover{background:var(--hover)}
 .move-to[aria-current="true"]{font-weight:600}
 .move-to .i{width:14px;height:14px;margin-left:auto;color:var(--accent)}
-.plan{flex:none;display:grid;gap:2px;margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);font-size:12px;color:var(--ink-2)}
-.plan b{font-size:13px;font-weight:600;color:var(--ink)}
-.plan .meter{margin-top:6px;height:4px}
 .update{flex:none;display:grid;justify-items:start;gap:6px;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);font-size:13px}
-/* the account, at the right of the strip */
-.me{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px 0 3px;border:1px solid transparent;border-radius:99px;background:transparent;font-size:13px;font-weight:600;cursor:pointer}
-.me:hover,.me[aria-expanded="true"]{background:var(--card);border-color:var(--line);box-shadow:0 1px 2px rgba(29,28,43,.06)}
+/* the pages under the main ones: help, settings, billing */
+.foot-nav{flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+/* the account, at the foot of the rail */
+.me{display:flex;align-items:center;gap:9px;width:100%;margin-top:4px;padding:7px 8px;border:1px solid transparent;border-radius:var(--r);background:transparent;font-size:13px;font-weight:600;text-align:left;cursor:pointer}
+.me:hover,.me[aria-expanded="true"]{background:var(--hover);border-color:var(--line)}
+.me-who{display:grid;flex:1;min-width:0}
+.me-who b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-who small{font-size:12px;font-weight:400;color:var(--ink-2)}
 .me .i{color:var(--ink-3)}
 .me .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
 .av{display:inline-grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:11.5px;font-weight:700}
 .av.lg{width:44px;height:44px;font-size:17px;box-shadow:0 6px 14px -8px var(--accent)}
-.account{position:absolute;z-index:31;right:0;top:calc(100% + 6px);width:min(520px,calc(100vw - 260px));border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop);overflow:hidden}
+.account{position:absolute;z-index:31;left:0;bottom:calc(100% + 6px);width:min(520px,calc(100vw - 48px));border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop);overflow:hidden}
 .acc-h{display:flex;align-items:center;gap:12px;padding:16px 16px 14px;border-bottom:1px solid var(--line)}
 .acc-h > div{display:grid;flex:1;min-width:0}
 .acc-h b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1225,3 +1227,29 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .px-exit{display:flex;align-items:center;gap:7px}
 .grp-pick{flex:none;min-width:150px}
 .pc-px{display:grid;gap:2px}
+
+/* settings: the sections on the left, the one in view on the right */
+.setup{display:grid;grid-template-columns:200px minmax(0,1fr);gap:14px;align-items:start;margin:0 var(--gx) 24px;min-width:0}
+.setup-nav{display:grid;gap:2px;padding:8px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
+.setup-body{display:grid;gap:14px;min-width:0}
+.setup-body .sec{gap:14px;padding:18px 20px}
+.setup-body .sec h3{font-size:14px;font-weight:600;color:var(--ink)}
+.setup-body .sec > .hint{margin-top:-10px}
+.set-row{display:grid;gap:4px}
+.set-row .hint{padding-left:42px}
+.kv-plain{font-size:14px}
+.notice.warn{background:var(--warn-soft);color:var(--warn-ink);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent)}
+@media (max-width:1023px){ .setup{grid-template-columns:minmax(0,1fr)} }
+
+/* plan and billing */
+.dgrid.bill{margin:0 var(--gx) 24px;align-items:start}
+.bill .sec{padding:18px 20px}
+.bill .kvl{grid-template-columns:132px minmax(0,1fr);font-size:14px}
+.bill-plan{font:var(--w-display) 24px/1.2 var(--f-display);letter-spacing:-.02em}
+.use{margin:0 var(--gx) 24px;padding:18px 20px}
+.use h3{font-size:14px;font-weight:600;color:var(--ink)}
+.use-list{display:grid;gap:16px;margin:0}
+.use-list > div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px}
+.use-list dt{font-size:14px}
+.use-list dd{margin:0;justify-self:end;font:600 14px var(--f-data);font-variant-numeric:tabular-nums}
+.use-list .meter{grid-column:1/-1}

@@ -72,7 +72,7 @@ export function EnginesPage({ d, data, admin }: { d: Dict; data: WorkspaceData; 
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{E.title}</h1></div>
+          <div className="ttl"><h1>{E.title}</h1><p className="sub">{E.lead}</p></div>
           <span className="sp" />
           {admin && <button type="button" className="btn btn-secondary" onClick={() => setUploading(true)}><Icon name="upload" />{E.admin.upload}</button>}
         </header>

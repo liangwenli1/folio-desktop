@@ -74,7 +74,7 @@ test('cookies imported into a running profile reach its browser at once', async 
   const p = await (await acct.api.post(`/workspaces/${acct.workspaceId}/profiles`, { data: chromiumProfile('Live') })).json();
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   expect(await opened(win, p.id)).toMatchObject({ state: 'running' });
   await win.getByRole('button', { name: 'Live', exact: true }).click();
   await importFile(win, cookies);

@@ -4,7 +4,7 @@ import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Worksp
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { LANG_NAMES, errorText, roleName, type Dict, type Lang } from './i18n';
-import { isPaid, planStatus } from './plan';
+import { planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
 import { ProfilesPage, type GroupFilter } from './Profiles';
@@ -18,6 +18,8 @@ import { WindowSyncPage } from './WindowSync';
 import { ActivityPage } from './Activity';
 import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
+import { SettingsPage } from './Settings';
+import { BillingPage } from './Billing';
 import { GROUP_COLORS, Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type GroupColor, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Flag } from './Flag';
@@ -28,7 +30,7 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'activity' | 'trash';
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'activity' | 'trash' | 'settings' | 'billing';
 type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 
 export function Workbench(props: Props){
@@ -73,8 +75,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
   const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); setOnly(null); setOpenId(null); };
-  // Proxies and the Trash are for owners and admins.
-  const shown: Page = !manager && (page === 'proxies' || page === 'trash') ? 'profiles' : page;
+  // Proxies, the Trash and billing are for whoever administers the workspace.
+  const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
   // Invitations to this account from other workspaces, in the workspace menu.
   const [invites, setInvites] = useState<MyInvitation[]>([]);
@@ -101,10 +103,13 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+  // The order the delivery spec gives, then the pages it does not draw, then the Trash.
   const pages: [Page, IconName, string, boolean][] = [
-    ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['extensions', 'extensions', d.nav.extensions, true],
-    ['team', 'team', d.nav.team, true], ['sync', 'sync', d.nav.sync, true], ['flows', 'flows', d.nav.flows, true], ['tasks', 'tasks', d.nav.tasks, true],
-    ['api', 'api', d.nav.api, true], ['engines', 'engines', d.nav.engines, true], ['activity', 'activity', d.nav.activity, true], ['trash', 'trash', d.nav.trash, manager]
+    ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['engines', 'engines', d.nav.engines, true],
+    ['team', 'team', d.nav.team, true], ['activity', 'activity', d.nav.activity, true], ['tasks', 'tasks', d.nav.tasks, true],
+    ['extensions', 'extensions', d.nav.extensions, true], ['sync', 'sync', d.nav.sync, true], ['flows', 'flows', d.nav.flows, true],
+    ['api', 'api', d.nav.api, true], ['trash', 'trash', d.nav.trash, manager],
+    ['settings', 'settings', d.nav.settings, true], ['billing', 'billing', d.nav.billing, manager]
   ];
   function commands(): Command[] {
     const C = d.palette, P = d.profiles;
@@ -143,6 +148,58 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
   }
 
+  const accountPanel = (
+      <section className="account" role="dialog" aria-label={d.user.account}>
+        <header className="acc-h">
+          <span className="av lg" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
+          <div><b>{me.user.email}</b><small>{ws.name} · {roleName(d, ws.role)}</small></div>
+          <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/account/`)}>{d.user.manage}<Icon name="chevR" /></button>
+        </header>
+        <div className="acc-two">
+          <section aria-label={d.user.teams}>
+            <p className="acc-t">{d.user.teams}</p>
+            <ul className="acc-list" role="listbox" aria-label={d.ws.switch}>
+              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setUserOpen(false); go('profiles'); onSwitch(w); }} onAnswer={answer} />
+            </ul>
+            {/* The plan itself lives on the Plan & billing page; this is the way to it. */}
+            {manager && (
+              <div className="acc-plan">
+                <b>{d.plans[s.plan]}</b>
+                <span>{[d.plan.usage(used, limit), planStatus(s, d, lang)].filter(Boolean).join(' · ')}</span>
+                <button className="linkish" type="button" onClick={() => { setUserOpen(false); go('billing'); }}>{d.nav.billing} ›</button>
+              </div>
+            )}
+          </section>
+          <section aria-label={d.user.settings}>
+            <p className="acc-t">{d.user.settings}</p>
+            <div className="acc-row">
+              <span><Icon name="proxies" />{d.user.language}</span>
+              <div className="seg fill">
+                {(['zh', 'en'] as const).map(l => (
+                  <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{LANG_NAMES[l]}</button>
+                ))}
+              </div>
+            </div>
+            {startup?.supported && (
+              <div className="acc-switch">
+                <Switch label={d.user.startup} checked={startup.enabled} onChange={on => void folio.setStartup(on).then(() => folio.startup()).then(setStartup)} />
+                <p className="hint">{d.user.startupHint}</p>
+              </div>
+            )}
+            {manager && <>
+              <p className="acc-t">{d.user.data}</p>
+              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}><Icon name="upload" />{d.user.exportAll}</button>
+              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}><Icon name="download" />{d.user.importAll}</button>
+            </>}
+          </section>
+        </div>
+        <footer className="acc-f">
+          <span>Folio {version}</span>
+          <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}><Icon name="logout" />{d.user.logout}</button>
+        </footer>
+      </section>
+  );
+
   return (
     <div className="app">
       <aside className="side" aria-label={d.ws.current}>
@@ -164,14 +221,14 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         <nav className="nav" aria-label="Main">
           <NavItem icon="profiles" label={d.nav.profiles} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
           {manager && <NavItem icon="proxies" label={d.nav.proxies} active={shown === 'proxies'} onClick={() => go('proxies')} />}
-          <NavItem icon="extensions" label={d.nav.extensions} active={shown === 'extensions'} onClick={() => go('extensions')} />
+          <NavItem icon="engines" label={d.nav.engines} active={shown === 'engines'} onClick={() => go('engines')} />
           <NavItem icon="team" label={d.nav.team} active={shown === 'team'} onClick={() => go('team')} />
+          <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
+          <NavItem icon="tasks" label={d.nav.tasks} active={shown === 'tasks'} onClick={() => go('tasks')} />
+          <NavItem icon="extensions" label={d.nav.extensions} active={shown === 'extensions'} onClick={() => go('extensions')} />
           <NavItem icon="sync" label={d.nav.sync} badge={data.sync ? d.windowSync.onBadge : undefined} active={shown === 'sync'} onClick={() => go('sync')} />
           <NavItem icon="flows" label={d.nav.flows} active={shown === 'flows'} onClick={() => go('flows')} />
-          <NavItem icon="tasks" label={d.nav.tasks} active={shown === 'tasks'} onClick={() => go('tasks')} />
           <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
-          <NavItem icon="engines" label={d.nav.engines} active={shown === 'engines'} onClick={() => go('engines')} />
-          <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
           {manager && <NavItem icon="trash" label={d.nav.trash} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
 
@@ -187,77 +244,25 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           </section>
         )}
 
-        <section className="plan" aria-label={d.plans[s.plan]}>
-          <b data-testid="plan-name">{d.plans[s.plan]}</b>
-          <span data-testid="plan-usage">{d.plan.usage(used, limit)}</span>
-          {planStatus(s, d, lang) && <span data-testid="plan-status">{planStatus(s, d, lang)}</span>}
-          <span className="meter"><i style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></span>
-        </section>
-      </aside>
+        <nav className="nav foot-nav" aria-label={d.nav.more}>
+          <NavItem icon="help" label={d.nav.help} active={false} onClick={() => folio.openSite(`${site}/docs/`)} />
+          <NavItem icon="settings" label={d.nav.settings} active={shown === 'settings'} onClick={() => go('settings')} />
+          {manager && <NavItem icon="billing" label={d.nav.billing} active={shown === 'billing'} onClick={() => go('billing')} />}
+        </nav>
 
-      <header className="top">
         <div className="me-wrap" ref={userRef}>
           <button className="me" type="button" aria-haspopup="dialog" aria-expanded={userOpen} aria-label={d.user.account} onClick={() => setUserOpen(o => !o)}>
-            <span className="av" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>{me.user.email}
+            <span className="av" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
+            <span className="me-who"><b>{me.user.email}</b><small>{roleName(d, ws.role)}</small></span>
             {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
             <Icon name="chev" />
           </button>
-          {userOpen && (
-            <section className="account" role="dialog" aria-label={d.user.account}>
-              <header className="acc-h">
-                <span className="av lg" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
-                <div><b>{me.user.email}</b><small>{ws.name} · {roleName(d, ws.role)}</small></div>
-                <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/account/`)}>{d.user.manage}<Icon name="chevR" /></button>
-              </header>
-              <div className="acc-two">
-                <section aria-label={d.user.teams}>
-                  <p className="acc-t">{d.user.teams}</p>
-                  <ul className="acc-list" role="listbox" aria-label={d.ws.switch}>
-                    <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setUserOpen(false); go('profiles'); onSwitch(w); }} onAnswer={answer} />
-                  </ul>
-                  <div className="acc-plan">
-                    <b>{d.plans[s.plan]}</b>
-                    <span>{[d.plan.usage(used, limit), planStatus(s, d, lang)].filter(Boolean).join(' · ')}</span>
-                    <span className="meter"><i style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></span>
-                    {manager && <>
-                      <button className="linkish" type="button" data-testid="plan-buy" onClick={() => folio.openSite(`${site}/checkout/?ws=${ws.id}`)}>
-                        {isPaid(s) ? d.plan.addProfiles : d.plan.upgrade} ›
-                      </button>
-                      <button className="linkish" type="button" onClick={() => folio.openSite(`${site}/account/?ws=${ws.id}`)}>{d.plan.manage} ›</button>
-                    </>}
-                  </div>
-                </section>
-                <section aria-label={d.user.settings}>
-                  <p className="acc-t">{d.user.settings}</p>
-                  <div className="acc-row">
-                    <span><Icon name="proxies" />{d.user.language}</span>
-                    <div className="seg fill">
-                      {(['zh', 'en'] as const).map(l => (
-                        <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{LANG_NAMES[l]}</button>
-                      ))}
-                    </div>
-                  </div>
-                  {startup?.supported && (
-                    <div className="acc-switch">
-                      <Switch label={d.user.startup} checked={startup.enabled} onChange={on => void folio.setStartup(on).then(() => folio.startup()).then(setStartup)} />
-                      <p className="hint">{d.user.startupHint}</p>
-                    </div>
-                  )}
-                  {manager && <>
-                    <p className="acc-t">{d.user.data}</p>
-                    <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}><Icon name="upload" />{d.user.exportAll}</button>
-                    <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}><Icon name="download" />{d.user.importAll}</button>
-                  </>}
-                </section>
-              </div>
-              <footer className="acc-f">
-                <span>Folio {version}</span>
-                <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}><Icon name="logout" />{d.user.logout}</button>
-              </footer>
-            </section>
-          )}
+          {userOpen && accountPanel}
         </div>
-      </header>
+      </aside>
+
+      {/* On Windows and macOS this strip is the title bar: it is what the window is dragged by. */}
+      <header className="top" />
 
       {shown === 'profiles' && (
         <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
@@ -275,6 +280,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'engines' && <EnginesPage d={d} data={data} admin={me.admin} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
+      {shown === 'settings' && <SettingsPage d={d} ws={ws} data={data} manager={manager} />}
+      {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
         <ProfileForm d={d} wsId={ws.id} data={data} onClose={close} profile={editing}

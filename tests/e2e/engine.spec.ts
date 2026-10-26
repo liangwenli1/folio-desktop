@@ -23,7 +23,7 @@ async function setupProfile(kernel: 'chromium' | 'firefox', proxyPass = 's3cret'
   if (backupId) await acct.api.patch(`/proxies/${proxyId}`, { data: { backupId } });
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   const { fingerprint, kernelVersion } = await win.evaluate(k => window.folio.newFingerprint(k, 'linux')
     .catch(e => { throw new Error(JSON.stringify(e)); }), kernel);
   const profile = await (await acct.api.post(`/workspaces/${acct.workspaceId}/profiles`, {
@@ -69,7 +69,7 @@ test('changes made elsewhere arrive as live events', async () => {
   const acct = await account();
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await win.evaluate(ws => {
     const w = window as unknown as { changes: unknown[] };
     w.changes = [];

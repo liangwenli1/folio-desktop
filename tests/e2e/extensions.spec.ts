@@ -50,7 +50,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   const userData = dataDir();
   const app = await launch(userData, { ...ENGINE_ENV, ...stores.env });
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   const cr = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Shop-CR') })).json();
   const fp = await win.evaluate(() => window.folio.newFingerprint('firefox', 'linux'));
   const ff = await (await acct.api.post(`${base}/profiles`, { data: { name: 'Shop-FF', kernel: 'firefox', os: 'linux', ...fp } })).json();
@@ -116,7 +116,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   expect((await acct.api.post(`${API}/dev/extensions/${crExt.id}/tamper`)).status()).toBe(204);
   const other = await launch(dataDir(), { ...ENGINE_ENV, ...stores.env });
   const win2 = await logIn(other, acct.email);
-  await expect(win2.getByTestId('plan-name')).toBeVisible();
+  await expect(win2.getByRole('navigation', { name: 'Main' })).toBeVisible();
   expect(await opened(win2, cr.id)).toMatchObject({ state: 'running', extensionErrors: ['Shop Helper'] });
   await expect(win2.getByRole('status').filter({ hasText: 'Shop-CR opened without Shop Helper: it didn’t pass the integrity check.' })).toBeVisible();
   expect(await helper(other, cr.id, stores.page)).toBeNull();
@@ -164,7 +164,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     const ext = await (await acct.api.post(`${base}/extensions?kernel=${kernel}`, { headers: { 'content-type': 'application/octet-stream' }, data: keeper(kernel) })).json();
     const a = await launch(dataDir(), ENGINE_ENV);
     const winA = await logIn(a, acct.email);
-    await expect(winA.getByTestId('plan-name')).toBeVisible();
+    await expect(winA.getByRole('navigation', { name: 'Main' })).toBeVisible();
     const body = kernel === 'chromium' ? chromiumProfile('Wallet-01') : { name: 'Wallet-01', kernel, os: 'linux', ...(await winA.evaluate(() => window.folio.newFingerprint('firefox', 'linux'))) };
     const p = await (await acct.api.post(`${base}/profiles`, { data: { ...body, extensionIds: [ext.id] } })).json();
 
@@ -183,7 +183,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     // Another computer: restored with the sign-ins.
     const b = await launch(dataDir(), ENGINE_ENV);
     const winB = await logIn(b, acct.email);
-    await expect(winB.getByTestId('plan-name')).toBeVisible();
+    await expect(winB.getByRole('navigation', { name: 'Main' })).toBeVisible();
     expect(await opened(winB, p.id)).toMatchObject({ state: 'running' });
     expect(await kept(b, p.id, stores.page)).toEqual({ local: 'alpha-1', db: 'alpha-1' });
     await stop(winB, p.id);

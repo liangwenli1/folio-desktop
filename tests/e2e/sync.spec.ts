@@ -56,7 +56,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
 
     const a = await launch(dataDir(), ENGINE_ENV);
     const winA = await logIn(a, acct.email);
-    await expect(winA.getByTestId('plan-name')).toBeVisible();
+    await expect(winA.getByRole('navigation', { name: 'Main' })).toBeVisible();
     const { fingerprint, kernelVersion } = await winA.evaluate(k => window.folio.newFingerprint(k, 'linux'), kernel);
     const p = await (await acct.api.post(`${base}/profiles`, { data: { name: 'Shop', kernel, kernelVersion, os: 'linux', fingerprint, proxyId: proxy.id } })).json();
 
@@ -72,7 +72,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     // Computer B opens it signed in: cookie, local storage and IndexedDB.
     const b = await launch(dataDir(), ENGINE_ENV);
     const winB = await logIn(b, acct.email);
-    await expect(winB.getByTestId('plan-name')).toBeVisible();
+    await expect(winB.getByRole('navigation', { name: 'Main' })).toBeVisible();
     expect(await opened(winB, p.id)).toMatchObject({ state: 'running' });
     expect(await browse(b, p.id, `${site.url}/whoami`, 'checked')).toEqual({ cookie: 'alice', local: 'alice', idb: 'alice' });
 

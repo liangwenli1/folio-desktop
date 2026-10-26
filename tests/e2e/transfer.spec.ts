@@ -30,7 +30,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
 
   const a = await launch(dataDir());
   const winA = await logIn(a, from.email);
-  await expect(winA.getByTestId('plan-name')).toBeVisible();
+  await expect(winA.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await dialogs(a, file);
   await menu(winA, 'Export all data…');
   const ex = winA.getByRole('dialog', { name: 'Export all data' });
@@ -48,7 +48,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   const to = await account();
   const b = await launch(dataDir());
   const winB = await logIn(b, to.email);
-  await expect(winB.getByTestId('plan-name')).toBeVisible();
+  await expect(winB.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await dialogs(b, file);
   await menu(winB, 'Import data…');
   const im = winB.getByRole('dialog', { name: 'Import data' });

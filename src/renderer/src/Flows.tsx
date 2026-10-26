@@ -106,7 +106,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{F.title}</h1></div>
+          <div className="ttl"><h1>{F.title}</h1><p className="sub">{F.lead}</p></div>
           <span className="sp" />
           <button className="btn btn-secondary" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
           <button className="btn btn-primary" type="button" onClick={() => setOpen({ id: null })}><Icon name="plus" />{F.new}</button>

@@ -103,7 +103,7 @@ await page.goto('https://example.com');`
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{A.title}</h1></div>
+          <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.lead}</p></div>
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/docs/api/`)}><Icon name="api" />{A.reference}</button>
         </header>

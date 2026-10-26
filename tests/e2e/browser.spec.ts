@@ -62,7 +62,7 @@ async function setup(){
   const userData = dataDir();
   const app = await launch(userData, ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   const userId = (await (await acct.api.get('/me')).json()).user.id as string;
   const folder = (id: string) => join(userData, 'profiles', userId, id);
   const create = async (name: string, kernel: 'chromium' | 'firefox', extra: Record<string, unknown>) => {

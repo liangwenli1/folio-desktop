@@ -34,5 +34,6 @@ export type Run = Ok<'/workspaces/{id}/runs', 'get'>['runs'][number];
 export type RunItem = Ok<'/runs/{id}', 'get'>['items'][number];
 export type Extension = Ok<'/workspaces/{id}/extensions', 'get'>['extensions'][number];
 export type Kernel = Ok<'/kernels', 'get'>['kernels'][number];
+export type Payment = Ok<'/workspaces/{id}/payments', 'get'>['payments'][number];
 
 export const isApiError = (e: unknown): e is ApiErrorBody => typeof e === 'object' && e !== null && 'code' in e && 'status' in e;

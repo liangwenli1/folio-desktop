@@ -102,7 +102,7 @@ for (const kernel of ['chromium', 'firefox'] as const){
     const acct = await account();
     const app = await launch(dataDir(), ENGINE_ENV);
     const win = await logIn(app, acct.email);
-    await expect(win.getByTestId('plan-name')).toBeVisible();
+    await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
     const body = kernel === 'chromium' ? chromiumProfile('Shop-01')
       : { name: 'Shop-01', kernel, os: 'linux', ...(await win.evaluate(() => window.folio.newFingerprint('firefox', 'linux'))) };
     await acct.api.post(`/workspaces/${acct.workspaceId}/profiles`, { data: body });

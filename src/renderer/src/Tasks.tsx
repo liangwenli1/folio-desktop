@@ -77,7 +77,7 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1></div>
+          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.lead}</p></div>
           <span className="sp" />
           {!data.flows.length && <span className="hint">{T.needFlow}</span>}
           <ViewSwitch label={T.views.label} value={view} onChange={setView} options={[['list', 'list', T.views.list], ['calendar', 'calendar', T.views.calendar]]} />

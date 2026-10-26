@@ -75,7 +75,7 @@ test('the leader’s clicks, typing, scrolling, addresses and tabs repeat in a C
   const base = `/workspaces/${acct.workspaceId}`;
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   const lead = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Lead') })).json();
   const cr = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Follow-CR') })).json();
   const fp = await win.evaluate(() => window.folio.newFingerprint('firefox', 'linux'));
@@ -194,7 +194,7 @@ test('only the chosen operations repeat, each after the pause; the log counts th
   const dir = dataDir();
   const app = await launch(dir, ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   const lead = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Lead') })).json();
   const f = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Follower') })).json();
   for (const [p, who] of [[lead, 'lead'], [f, 'f']] as const){

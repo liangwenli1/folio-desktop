@@ -7,14 +7,20 @@ test('the plan bought on the website shows up after logging in', async () => {
   const app = await launch(dataDir());
   const win = await logIn(app, email);
 
+  // Plan & billing sits under the main pages, in the rail's second group.
+  const nav = (name: string) => win.getByRole('button', { name, exact: true });
+  await nav('Plan & billing').click();
   await expect(win.getByTestId('plan-name')).toHaveText('Studio');
-  await expect(win.getByTestId('plan-usage')).toHaveText('0 of 100 profiles');
   await expect(win.getByTestId('plan-status')).toContainText('Renews');
+  await win.getByRole('tab', { name: 'Usage' }).click();
+  await expect(win.getByTestId('plan-usage')).toHaveText('0 / 100');
 
   await win.click('.ws');
   await win.getByRole('option', { name: /EU stores/ }).click();
   await expect(win.getByTestId('ws-name')).toHaveText('EU stores');
-  await expect(win.getByTestId('plan-usage')).toHaveText('0 of 5 profiles');
+  await nav('Plan & billing').click();
+  await win.getByRole('tab', { name: 'Usage' }).click();
+  await expect(win.getByTestId('plan-usage')).toHaveText('0 / 5');
   await app.close();
 });
 
@@ -48,12 +54,12 @@ test('the session survives a restart and ends on log out', async () => {
   const dir = dataDir();
   let app = await launch(dir);
   let win = await logIn(app, email);
-  await expect(win.getByTestId('plan-name')).toHaveText('Free');
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await app.close();
 
   app = await launch(dir);
   win = await app.firstWindow();
-  await expect(win.getByTestId('plan-name')).toHaveText('Free');
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await win.click('.me');
   await win.getByRole('menuitem', { name: 'Log out' }).click();
   await expect(win.locator('#email')).toBeVisible();
@@ -73,9 +79,10 @@ test('Chinese accounts get the Chinese workbench, and upgrading opens the site c
     shell.openExternal = async (url: string) => { opened.push(url); };
   });
   const win = await logIn(app, email);
+  await win.getByRole('button', { name: '账号与计费', exact: true }).click();
   await expect(win.getByTestId('plan-name')).toHaveText('体验版');
-  await expect(win.getByTestId('plan-usage')).toHaveText('已用 0 / 5 个环境');
-  await win.locator('.me').click();
+  await win.getByRole('tab', { name: '用量' }).click();
+  await expect(win.getByTestId('plan-usage')).toHaveText('0 / 5');
   await win.getByTestId('plan-buy').click();
   await expect.poll(() => app.evaluate(() => (globalThis as { opened?: string[] }).opened)).toEqual([`${SITE}/zh/checkout/?ws=${workspaceId}`]);
   await app.close();
@@ -90,7 +97,7 @@ test('a newer version shows in the sidebar: restart to install on Windows, downl
     shell.openExternal = async (url: string) => { opened.push(url); };
   });
   const win = await logIn(app, email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   // What the update check reports, sent the way the main process sends it.
   const announce = (u: { version: string; installs: boolean }) => app.evaluate(({ BrowserWindow }, u) => BrowserWindow.getAllWindows()[0].webContents.send('app:update', u), u);
 

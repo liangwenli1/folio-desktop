@@ -28,7 +28,7 @@ export const en = {
     walkthrough: 'Workbench walkthrough: checking proxies, opening a browser profile, restoring tabs, a health check, installing an extension, batch opening, window sync and teamwork.',
     pause: 'Pause walkthrough', play: 'Play walkthrough'
   },
-  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines' },
+  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines', settings: 'Settings', billing: 'Plan & billing', help: 'Help', more: 'More' },
   groups: {
     title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name', more: (g: string) => `More for ${g}`,
     rename: 'Rename', delete: 'Delete', deleteConfirm: (g: string) => `Delete “${g}”? Its profiles stay, without a group.`,
@@ -45,6 +45,37 @@ export const en = {
     trialEnds: (date: string) => `Free trial ends ${date}`,
     scheduled: (plan: string, date: string) => `Becomes ${plan} on ${date}`,
     upgrade: 'Upgrade', addProfiles: 'Add profiles', manage: 'Billing'
+  },
+  // The Plan & billing page: the plan this workspace is on, what it has used, and what it has paid.
+  billing: {
+    title: 'Plan & billing', lead: 'The plan this workspace is on, what it has used of it, and what it has paid.',
+    tabs: { plan: 'Plan', usage: 'Usage', payments: 'Payments' },
+    current: 'Current plan', change: 'Change plan', since: 'Started', until: 'Runs until', renew: 'Renews automatically',
+    yes: 'Yes', no: 'No', status: 'Status', statusActive: 'In use', statusTrial: 'Free trial',
+    limits: 'What it allows', profiles: 'Profiles', members: 'Members', logDays: 'Activity log',
+    logKept: (n: number) => `${n} days`, unlimited: 'No limit',
+    expiry: 'Tell me when the plan is close to its end', expiryHint: 'The app says so in good time.',
+    payments: 'Payments', invoice: 'Invoice', date: 'Date', amount: 'Amount', paid: 'Paid', refunded: 'Refunded',
+    open: 'Open', none: 'No payments yet.', noneHint: 'Payments for this workspace show here.'
+  },
+  // The Settings page: what the workspace is, what new profiles start with, and how opening one behaves.
+  settings: {
+    title: 'Settings', lead: 'The workspace, what new profiles start with, and how opening one behaves.',
+    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notices' },
+    basics: 'Basics', basicsLead: 'The workspace\u2019s name, its id and who owns it.',
+    name: 'Workspace name', id: 'Workspace id', idHint: 'The id identifies this workspace and never changes.',
+    owner: 'Owner', ownerHint: 'Whoever made the workspace.',
+    defaults: 'Profile defaults', defaultsLead: 'What a new profile starts with.',
+    defaultsNote: 'These only reach profiles made from now on; the ones you already have keep their settings.',
+    engine: 'Default engine', engineNone: 'The recommended one', version: 'Version',
+    group: 'Default group', groupNone: 'No group', proxy: 'Default proxy', proxyNone: 'No proxy',
+    opening: 'Opening', openingLead: 'What happens when a profile is opened and closed.',
+    openDetail: 'Open its details after launching', openDetailHint: 'The profile\u2019s page opens as soon as its browser starts.',
+    stopOnClose: 'Stop the profile when its last window closes', stopOnCloseHint: 'With this off, it keeps running and you can open a window again from the list.',
+    engines: 'Engines', autoDownload: 'Download the recommended version automatically',
+    notices: 'Notices', noticesLead: 'What the app tells you about.',
+    expiry: 'Say when the plan is close to its end',
+    saved: 'Settings saved', save: 'Save settings'
   },
   user: {
     account: 'Account', manage: 'Manage account', teams: 'Teams', settings: 'Settings', data: 'Data', language: 'Language',
@@ -66,7 +97,7 @@ export const en = {
   },
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
   profiles: {
-    title: 'Profiles', count: profilesN,
+    title: 'Profiles', lead: 'Browser profiles that run apart from each other, and what each is doing.', count: profilesN,
     search: 'Search profiles', searchPh: 'Search name, number, city or tag', new: 'New profile', import: 'Import',
     sum: {
       running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies answering',
@@ -220,7 +251,7 @@ export const en = {
     done: (n: number) => `${profilesN(n)} imported`
   },
   proxies: {
-    title: 'Proxies',
+    title: 'Proxies', lead: 'Lines the profiles go out through, how they answer and what uses them.',
     search: 'Search proxies', searchPh: 'Search name, host or city', add: 'Add proxy', import: 'Import', checkAll: 'Check all',
     sum: { total: 'Proxies', ok: 'Answering', issues: 'Problems', unbound: 'Unused' },
     filter: { type: 'Type', types: 'All types', region: 'Region', regions: 'All regions', state: 'Status', states: 'All statuses' },
@@ -249,7 +280,7 @@ export const en = {
     badLines: 'These lines couldn’t be read:', line: (n: number) => `Line ${n}`
   },
   trash: {
-    title: 'Trash', empty: 'The Trash is empty.',
+    title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it for good.', empty: 'The Trash is empty.',
     restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete forever', purgeAll: 'Empty Trash',
     cols: { profile: 'Profile', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by' },
     sites: (n: number) => (n ? `${n} ${n === 1 ? 'site' : 'sites'}` : 'None'), byAt: (who: string, when: string) => `${who} deleted it ${when}`,
@@ -257,7 +288,7 @@ export const en = {
     restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} deleted forever`
   },
   engines: {
-    title: 'Engines',
+    title: 'Engines', lead: 'The browser engine versions on this computer, and which profiles use them.',
     cols: { version: 'Version', platforms: 'Systems', size: 'Size', released: 'Released', profiles: 'Profiles', status: 'Status', actions: 'Actions' },
     recommended: 'Recommended', installed: 'Downloaded', notDownloaded: 'Not downloaded', download: (size: string) => `Download · ${size}`, failed: 'Download failed',
     downloadingPct: (pct: number) => `Downloading ${pct}%`, everywhere: (n: number) => `${n} in all workspaces`, actionsX: (v: string) => `Actions for ${v}`,
@@ -285,7 +316,7 @@ export const en = {
     }
   },
   team: {
-    title: 'Team',
+    title: 'Team', lead: 'Who is in the workspace, what they may do and what they may reach.',
     invite: 'Invite people', you: 'you', remove: 'Remove from team', leave: 'Leave team',
     tabs: { members: 'Members', groups: 'Group access' },
     cols: { person: 'Person', role: 'Role', scope: 'Can see', status: 'Status' },
@@ -309,7 +340,7 @@ export const en = {
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
   },
   activity: {
-    title: 'Activity log', person: 'Person', everyone: 'Everyone', kind: 'Showing',
+    title: 'Activity log', lead: 'What has been done in this workspace, by whom and when.', person: 'Person', everyone: 'Everyone', kind: 'Showing',
     search: 'Search profiles, people or actions', cols: { time: 'Time', person: 'Person', what: 'What happened', kind: 'Kind', device: 'Computer' },
     kinds: { all: 'Everything', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
     export: 'Export CSV', exported: (path: string) => `Saved to ${path}`, more: 'Show older', empty: 'Nothing here yet.', someone: 'Someone', recent: 'Recent activity',
@@ -355,7 +386,7 @@ export const en = {
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}`
   },
   flows: {
-    title: 'Flows', new: 'New flow',
+    title: 'Flows', lead: 'Steps a profile can be made to follow, saved for the team.', new: 'New flow',
     template: 'Sign-in check template', templateName: 'Sign-in check',
     cols: { name: 'Flow', steps: 'Steps', by: 'Created by', updated: 'Changed' },
     empty: 'No flows yet. A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
@@ -415,7 +446,7 @@ export const en = {
     }
   },
   tasks: {
-    title: 'Scheduled tasks', new: 'New task', needFlow: 'Make a flow first, on the Flows page.',
+    title: 'Scheduled tasks', lead: 'Flows that run on their own, on this computer, at the times you set.', new: 'New task', needFlow: 'Make a flow first, on the Flows page.',
     empty: 'No tasks yet. A task runs a flow on a set of profiles, a few at a time, and keeps each run’s results.',
     cols: { task: 'Task', profiles: 'Profiles', when: 'When', last: 'Last run', on: 'Runs on', by: 'Created by', profile: 'Profile', status: 'Result', attempts: 'Tries', time: 'Time', result: 'Details' },
     views: { label: 'View', list: 'List', calendar: 'Calendar' },
@@ -463,7 +494,7 @@ export const en = {
     }
   },
   apiPage: {
-    title: 'API & scripts', reference: 'API reference',
+    title: 'API & scripts', lead: 'Let scripts on this computer open profiles and run flows.', reference: 'API reference',
     server: 'Local API', enable: 'On', listening: 'Listening on', off: 'Off. Turn it on to let scripts on this computer use it.', copy: 'Copy', copied: 'Copied',
     errors: { port_in_use: 'Another program uses this port. Pick another one.', listen_failed: 'The API couldn’t start on this port. Pick another one.' },
     port: 'Port', limit: 'Up to 60 requests a minute (starting, stopping, looking things up). What scripts send to the browser itself isn’t counted. Company is unthrottled.',
@@ -478,7 +509,7 @@ export const en = {
     calls: 'Recent calls', noCalls: 'No script has called it yet. Calls show up here as they happen.', noToken: 'No valid token'
   },
   extensions: {
-    title: 'Extensions', add: 'Add extension',
+    title: 'Extensions', lead: 'The workspace\u2019s extension library, and the profiles each one is installed in.', add: 'Add extension',
     memberNote: 'Owners and admins keep the library. You can install its extensions in your own profiles, from the profile form or the bulk actions.',
     empty: 'No extensions yet. Add one from a file or its store, then install it in profiles.',
     cols: { name: 'Extension', engine: 'Engine', version: 'Version', signature: 'Signature', profiles: 'Profiles', updated: 'Changed' },
@@ -499,7 +530,7 @@ export const en = {
     failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
   },
   windowSync: {
-    title: 'Window sync', on: 'Window sync is on.', onBadge: 'On',
+    title: 'Window sync', lead: 'Repeat what you do in one window across the others.', on: 'Window sync is on.', onBadge: 'On',
     summary: (leader: string, n: number) => `${leader} leads and ${n === 1 ? '1 window follows' : `${n} windows follow`}.`,
     leaderTag: 'Leader', followerTag: 'Sync', makeLeader: 'Make leader', stop: 'Stop sync', current: 'Syncing now',
     address: 'Address for every window', addressPh: 'Open an address in every window', open: 'Open',
@@ -627,7 +658,7 @@ export const zh: Dict = {
     walkthrough: '工作台操作演示：检查代理、打开浏览器环境、恢复标签页、体检、安装扩展、批量打开、窗口同步与团队协作。',
     pause: '暂停演示', play: '播放演示'
   },
-  nav: { profiles: '环境', proxies: '代理', extensions: '扩展', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队', activity: '操作日志', trash: '回收站', engines: '内核' },
+  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', trash: '回收站', engines: '内核管理', settings: '设置', billing: '账号与计费', help: '帮助中心', more: '更多' },
   groups: {
     title: '分组', all: '全部分组', none: '未分组', add: '新建分组', namePh: '分组名称', more: (g: string) => `${g} 的更多操作`,
     rename: '重命名', delete: '删除', deleteConfirm: (g: string) => `删除「${g}」？组内环境将保留并变为未分组。`,
@@ -644,6 +675,35 @@ export const zh: Dict = {
     trialEnds: (date: string) => `试用于 ${date} 结束`,
     scheduled: (plan: string, date: string) => `${date} 起变更为${plan}`,
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
+  },
+  billing: {
+    title: '账号与计费', lead: '查看当前套餐、资源使用情况及账单记录，便于合理规划团队使用。',
+    tabs: { plan: '当前套餐', usage: '用量', payments: '账单记录' },
+    current: '当前套餐', change: '变更套餐', since: '生效时间', until: '到期时间', renew: '自动续期',
+    yes: '已开启', no: '未开启', status: '套餐状态', statusActive: '正常使用', statusTrial: '试用中',
+    limits: '套餐额度', profiles: '环境', members: '席位', logDays: '操作日志',
+    logKept: (n: number) => `保留 ${n} 天`, unlimited: '不限',
+    expiry: '到期提醒', expiryHint: '在套餐临近到期时，通过站内通知提醒管理员。',
+    payments: '账单记录', invoice: '订单号', date: '创建时间', amount: '金额', paid: '已支付', refunded: '已退款',
+    open: '查看', none: '暂无账单记录', noneHint: '未来的账单记录将显示在这里，便于您随时查看。'
+  },
+  settings: {
+    title: '设置', lead: '管理工作空间的基本信息与默认设置，这些设置将影响后续创建的环境。',
+    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置' },
+    basics: '基础信息', basicsLead: '管理工作空间的名称、标识和所有者信息。',
+    name: '工作空间名称', id: '工作空间 ID', idHint: '工作空间 ID 用于标识该工作空间，创建后不可修改。',
+    owner: '所有者', ownerHint: '工作空间的创建者。',
+    defaults: '环境默认值', defaultsLead: '设置后续创建环境时的默认配置。',
+    defaultsNote: '环境默认值仅应用于后续创建的环境，不会影响已有的环境。',
+    engine: '默认内核', engineNone: '使用推荐版本', version: '版本',
+    group: '默认分组', groupNone: '未分组', proxy: '默认代理', proxyNone: '不使用代理',
+    opening: '启动偏好', openingLead: '设置环境启动和关闭时的默认行为。',
+    openDetail: '启动后打开环境详情', openDetailHint: '浏览器启动后自动打开该环境的详情页。',
+    stopOnClose: '关闭窗口后停止环境', stopOnCloseHint: '关闭此项后，环境将继续运行，可从列表再次打开窗口。',
+    engines: '内核', autoDownload: '自动下载推荐版本',
+    notices: '通知设置', noticesLead: '设置应用内提醒。',
+    expiry: '套餐临近到期时提醒',
+    saved: '设置已保存', save: '保存设置'
   },
   user: {
     account: '账户', manage: '管理账号', teams: '团队', settings: '设置', data: '数据', language: '语言',
@@ -665,7 +725,7 @@ export const zh: Dict = {
   },
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
   profiles: {
-    title: '环境', count: (n: number) => `${n} 个环境`,
+    title: '环境管理', lead: '统一管理独立的浏览器环境与运行状态。', count: (n: number) => `${n} 个环境`,
     search: '搜索环境', searchPh: '搜索名称、编号、城市或标签', new: '新建环境', import: '导入',
     sum: {
       running: '运行中', proxy: '代理异常', proxyOk: '全部代理响应正常',
@@ -815,7 +875,7 @@ export const zh: Dict = {
     done: (n: number) => `已导入 ${n} 个环境`
   },
   proxies: {
-    title: '代理',
+    title: '代理管理', lead: '集中配置代理资源，监测连接状态与环境绑定情况。',
     search: '搜索代理', searchPh: '搜索名称、地址或城市', add: '添加代理', import: '导入', checkAll: '全部检测',
     sum: { total: '代理总数', ok: '连接正常', issues: '连接异常', unbound: '未绑定' },
     filter: { type: '协议', types: '全部协议', region: '地区', regions: '全部地区', state: '状态', states: '全部状态' },
@@ -844,7 +904,7 @@ export const zh: Dict = {
     badLines: '以下行无法识别：', line: (n: number) => `第 ${n} 行`
   },
   trash: {
-    title: '回收站', empty: '回收站为空。',
+    title: '回收站', lead: '恢复误删环境或永久删除记录。', empty: '回收站为空。',
     restore: '恢复', restoreAll: '全部恢复', purge: '彻底删除', purgeAll: '清空回收站',
     cols: { profile: '环境', fingerprint: '指纹', signins: '登录状态', deleted: '删除时间', by: '删除人' },
     sites: (n: number) => (n ? `${n} 个站点` : '无'), byAt: (who: string, when: string) => `${who} 删除于 ${when}`,
@@ -852,7 +912,7 @@ export const zh: Dict = {
     restored: (n: number) => `已恢复 ${n} 个环境`, purged: (n: number) => `已彻底删除 ${n} 个环境`
   },
   engines: {
-    title: '内核',
+    title: '内核管理', lead: '管理浏览器内核版本，配置默认内核与更新策略。',
     cols: { version: '内核版本', platforms: '支持平台', size: '大小', released: '发布日期', profiles: '使用环境', status: '状态', actions: '操作' },
     recommended: '推荐', installed: '已下载', notDownloaded: '未下载', download: (size: string) => `下载 · ${size}`, failed: '下载失败',
     downloadingPct: (pct: number) => `下载中 ${pct}%`, everywhere: (n: number) => `全平台 ${n} 个`, actionsX: (v: string) => `${v} 的操作`,
@@ -880,7 +940,7 @@ export const zh: Dict = {
     }
   },
   team: {
-    title: '团队',
+    title: '团队成员', lead: '管理工作空间成员及其访问权限，邀请成员。',
     invite: '邀请成员', you: '我', remove: '移出团队', leave: '退出团队',
     tabs: { members: '团队成员', groups: '分组授权' },
     cols: { person: '成员', role: '角色', scope: '权限范围', status: '状态' },
@@ -904,7 +964,7 @@ export const zh: Dict = {
     invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请您成为${role}`
   },
   activity: {
-    title: '操作日志', person: '成员', everyone: '所有人', kind: '显示',
+    title: '操作日志', lead: '查看工作空间内的操作记录、操作人与时间。', person: '成员', everyone: '所有人', kind: '显示',
     search: '搜索环境、成员或操作', cols: { time: '时间', person: '成员', what: '操作', kind: '类别', device: '电脑' },
     kinds: { all: '全部', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
     export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`, more: '查看更早的', empty: '暂无记录。', someone: '有人', recent: '最近活动',
@@ -950,7 +1010,7 @@ export const zh: Dict = {
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个含登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组${r.extensions ? `、${r.extensions} 个扩展` : ''}`
   },
   flows: {
-    title: '流程', new: '新建流程',
+    title: '流程', lead: '编排环境中的自动化步骤，供团队共用。', new: '新建流程',
     template: '登录检查模板', templateName: '登录检查',
     cols: { name: '流程', steps: '步骤', by: '创建人', updated: '修改时间' },
     empty: '暂无流程。流程由一系列步骤组成（打开网页、点击、输入、提取等），可在一个或多个环境中运行。',
@@ -1009,7 +1069,7 @@ export const zh: Dict = {
     }
   },
   tasks: {
-    title: '定时任务', new: '新建任务', needFlow: '请先在「流程」页创建流程。',
+    title: '定时任务', lead: '设置流程的运行时间，由本机按时执行。', new: '新建任务', needFlow: '请先在「流程」页创建流程。',
     empty: '暂无任务。任务将流程分批运行在一组环境上，并保留每次运行的结果。',
     cols: { task: '任务', profiles: '环境', when: '时间', last: '上次运行', on: '运行在', by: '创建人', profile: '环境', status: '结果', attempts: '尝试', time: '用时', result: '详情' },
     views: { label: '视图', list: '列表', calendar: '日历' },
@@ -1057,7 +1117,7 @@ export const zh: Dict = {
     }
   },
   apiPage: {
-    title: 'API 与脚本', reference: 'API 参考',
+    title: 'API 与脚本', lead: '允许本机脚本打开环境、运行流程。', reference: 'API 参考',
     server: '本机 API', enable: '开启', listening: '正在监听', off: '已关闭。开启后本机脚本方可调用。', copy: '复制', copied: '已复制',
     errors: { port_in_use: '该端口已被其他程序占用，请更换端口。', listen_failed: '该端口启动失败，请更换端口。' },
     port: '端口', limit: '每分钟最多 60 次请求（含打开、关闭与查询），脚本直接发送给浏览器的指令不计入；公司版不限速。',
@@ -1072,7 +1132,7 @@ export const zh: Dict = {
     calls: '最近调用', noCalls: '暂无脚本调用，调用发生时将在此实时显示。', noToken: '令牌无效'
   },
   extensions: {
-    title: '扩展', add: '添加扩展',
+    title: '扩展管理', lead: '管理工作空间的扩展库，查看各扩展的安装情况。', add: '添加扩展',
     memberNote: '扩展库由所有者和管理员维护。成员可在环境编辑或批量操作中，为自己的环境安装库中的扩展。',
     empty: '暂无扩展。可从文件或商店添加，再安装到环境中。',
     cols: { name: '扩展', engine: '内核', version: '版本', signature: '签名', profiles: '环境', updated: '修改时间' },
@@ -1093,7 +1153,7 @@ export const zh: Dict = {
     failedCheck: (profile: string, names: string[]) => `${profile} 已打开，但 ${names.join('、')} 未通过完整性校验，未安装。`
   },
   windowSync: {
-    title: '窗口同步', on: '窗口同步已开启。', onBadge: '开启',
+    title: '窗口同步', lead: '将一个窗口中的操作同步到其他窗口。', on: '窗口同步已开启。', onBadge: '开启',
     summary: (leader: string, n: number) => `${leader} 主控，${n} 个窗口跟随。`,
     leaderTag: '主控', followerTag: '同步', makeLeader: '设为主控', stop: '停止同步', current: '同步中',
     address: '所有窗口一起打开的网址', addressPh: '在所有窗口中打开网址', open: '打开',

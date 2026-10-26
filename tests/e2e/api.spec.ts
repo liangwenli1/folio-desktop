@@ -44,7 +44,7 @@ test('scripts open profiles through the API and take them over: Playwright for C
   const base = `/workspaces/${acct.workspaceId}`;
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
-  await expect(win.getByTestId('plan-name')).toBeVisible();
+  await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   const shop = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Shop-01') })).json();
   const fp = await win.evaluate(() => window.folio.newFingerprint('firefox', 'linux'));
   const fox = await (await acct.api.post(`${base}/profiles`, { data: { name: 'Shop-02', kernel: 'firefox', os: 'linux', ...fp } })).json();

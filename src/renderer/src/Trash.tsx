@@ -44,7 +44,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1></div>
+          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.lead}</p></div>
           <span className="sp" />
           <button className="btn btn-secondary" type="button" disabled={!list.length} onClick={() => void run('restore', list.map(p => p.id))}><Icon name="refresh" />{T.restoreAll}</button>
           <button className="btn btn-danger outline" type="button" disabled={!list.length} onClick={() => setConfirm(list.map(p => p.id))}><Icon name="trash" />{T.purgeAll}</button>
