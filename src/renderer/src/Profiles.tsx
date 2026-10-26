@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
@@ -63,7 +63,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const riskOf = useMemo(() => byProfile(riskList), [riskList]);
   const risky = (id: string) => (riskOf.get(id) ?? []).some(r => r.level !== 'info');
   const now = useNow(Object.values(data.status).some(s => s.state === 'running'));
-  const manager = data.role !== 'member';
+  const manager = can(data.role, MANAGE);
   const email = useMemo(() => new Map(data.members.map(m => [m.userId, m.email])), [data.members]);
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
   const issue = (p: Profile) => healthOf.get(p.id)!.level !== 'ok' || risky(p.id);

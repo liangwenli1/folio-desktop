@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { ProfileStatus, Update } from '@shared/bridge';
-import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
-import { LANG_NAMES, errorText, type Dict, type Lang } from './i18n';
+import { LANG_NAMES, errorText, roleName, type Dict, type Lang } from './i18n';
 import { isPaid, planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
@@ -49,7 +49,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [userOpen, setUserOpen] = useState(false);
   const wsRef = useOutsideClose(wsOpen, () => setWsOpen(false));
   const userRef = useOutsideClose(userOpen, () => setUserOpen(false));
-  const manager = ws.role !== 'member';
+  const manager = can(ws.role, MANAGE);
   const limit = s.entitlements.profiles;
 
   const data = useWorkspaceData(ws.id, ws.role, {
@@ -206,7 +206,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
             <section className="account" role="dialog" aria-label={d.user.account}>
               <header className="acc-h">
                 <span className="av lg" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
-                <div><b>{me.user.email}</b><small>{ws.name} · {d.roles[ws.role]}</small></div>
+                <div><b>{me.user.email}</b><small>{ws.name} · {roleName(d, ws.role)}</small></div>
                 <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/account/`)}>{d.user.manage}<Icon name="chevR" /></button>
               </header>
               <div className="acc-two">
@@ -306,7 +306,7 @@ function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me:
       <li key={w.id} role="option" aria-selected={w.id === ws.id} className="ws-item">
         <button type="button" className="acc-ws" aria-current={w.id === ws.id} onClick={() => onPick(w.id)}>
           <span className="ws-av" aria-hidden="true">{[...w.name][0]?.toUpperCase()}</span>
-          <span><b>{w.name}</b><small>{d.plans[w.plan]} · {d.roles[w.role]}</small></span>
+          <span><b>{w.name}</b><small>{d.plans[w.plan]} · {roleName(d, w.role)}</small></span>
           {w.id === ws.id && <Icon name="check" />}
         </button>
       </li>
@@ -314,7 +314,7 @@ function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me:
     {invites.length > 0 && <li className="menu-t" role="presentation">{d.team.invites}</li>}
     {invites.map(i => (
       <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
-        <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', d.roles[i.role])}</small></span>
+        <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', roleName(d, i.role))}</small></span>
         <span className="invite-acts">
           <button type="button" className="btn btn-sm btn-primary" onClick={() => onAnswer(i, true)}>{d.team.join}</button>
           <button type="button" className="btn btn-sm btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>

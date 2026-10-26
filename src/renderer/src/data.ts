@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus, WindowSync } from '@shared/bridge';
 import { GROUP_COLORS } from './ui';
-import { folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type Profile, type Proxy, type Role, type Task } from './api';
+import { MANAGE, can, folio, isApiError, type Department, type Extension, type Flow, type Group, type Invitation, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
 
 export type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'set-department' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
@@ -12,7 +12,9 @@ export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | '
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 
 export interface WorkspaceData {
-  role: Role;
+  role: MyRole;
+  // The workspace's roles, with what each may do: the team page's picker and the scope column read them.
+  roles: Role[];
   profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
   // The team: everyone in it, its departments, and (for owners and admins) invitations still open.
   members: Member[]; departments: Department[]; invitations: Invitation[];
@@ -46,7 +48,7 @@ export interface WorkspaceData {
   reloadKernels(): void;
 }
 
-export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void }): WorkspaceData {
+export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void }): WorkspaceData {
   const [profiles, setProfiles] = useState<Profile[] | null>(null);
   const [trash, setTrash] = useState<Profile[] | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -54,6 +56,7 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   const [members, setMembers] = useState<Member[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [roleList, setRoles] = useState<Role[]>([]);
   const [flows, setFlows] = useState<Flow[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [extensions, setExtensions] = useState<Extension[]>([]);
@@ -72,6 +75,10 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
   // Downloads paused by the person: the profile that waited on one doesn't open, and that isn't an error.
   const paused = useRef<Record<string, boolean>>({});
 
+  // `role` is a fresh object every time the workspace is fetched, so the effects below depend on this instead:
+  // an unstable dependency would tear the change stream down and set it up again on every refresh.
+  const manages = can(role, MANAGE);
+
   const refresh = useCallback((...kinds: Kind[]) => {
     const base = `/workspaces/${wsId}`;
     const mark = (k: Kind, failed: boolean) => setLoadFailed(f => (f.has(k) === failed ? f : new Set([...f].filter(x => x !== k).concat(failed ? [k] : []))));
@@ -88,13 +95,14 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
       if (k === 'members'){
         void run<{ members: Member[] }>(k, `${base}/members`, r => setMembers(r.members));
         void run<{ departments: Department[] }>(k, `${base}/departments`, r => setDepartments(r.departments));
-        if (role !== 'member') void run<{ invitations: Invitation[] }>(k, `${base}/invitations`, r => setInvitations(r.invitations));
+        void run<{ roles: Role[] }>(k, `${base}/roles`, r => setRoles(r.roles));
+        if (manages) void run<{ invitations: Invitation[] }>(k, `${base}/invitations`, r => setInvitations(r.invitations));
       }
     }
-  }, [wsId, role]);
+  }, [wsId, manages]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setFlows([]); setTasks([]); setExtensions([]); setLoadFailed(new Set());
+    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setDepartments([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setLoadFailed(new Set());
     refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks', 'extensions');
     void folio.watch(wsId);
     return folio.onChange(c => {
@@ -201,5 +209,5 @@ export function useWorkspaceData(wsId: string, role: Role, on: { workspace(): vo
     reloadKernels();
   }, [reloadKernels]);
 
-  return { role, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
+  return { role, roles: roleList, profiles, trash, groups, proxies, members, departments, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };
 }

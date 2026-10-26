@@ -16,7 +16,13 @@ export type Group = Ok<'/workspaces/{id}/groups', 'get'>['groups'][number];
 export type Proxy = Ok<'/workspaces/{id}/proxies', 'get'>['proxies'][number];
 export type ProxyImport = Ok<'/workspaces/{id}/proxies/import', 'post'>;
 export type Geo = NonNullable<NonNullable<Proxy['lastCheck']>['geo']>;
-export type Role = Workspace['role'];
+export type MyRole = Workspace['role'];
+export type Permission = MyRole['permissions'][number];
+export type Role = Ok<'/workspaces/{id}/roles', 'get'>['roles'][number];
+// What the person may do here. Administering the workspace — members, roles, settings, the extension library,
+// the subscription — goes with being able to manage members.
+export const can = (role: MyRole, p: Permission) => role.permissions.includes(p);
+export const MANAGE = 'team.manage' as const;
 export type Member = Ok<'/workspaces/{id}/members', 'get'>['members'][number];
 export type Invitation = Ok<'/workspaces/{id}/invitations', 'get'>['invitations'][number];
 export type MyInvitation = Ok<'/me/invitations', 'get'>['invitations'][number];

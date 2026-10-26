@@ -358,8 +358,13 @@ export interface paths {
                             workspaces: {
                                 id: string;
                                 name: string;
-                                /** @enum {string} */
-                                role: "owner" | "admin" | "member";
+                                role: {
+                                    id: string;
+                                    /** @enum {string|null} */
+                                    key: "owner" | "admin" | "member" | "viewer" | null;
+                                    name: string;
+                                    permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                                };
                                 /** @enum {string} */
                                 plan: "free" | "studio" | "company";
                                 /** @enum {string} */
@@ -440,8 +445,13 @@ export interface paths {
                         "application/json": {
                             id: string;
                             name: string;
-                            /** @enum {string} */
-                            role: "owner" | "admin" | "member";
+                            role: {
+                                id: string;
+                                /** @enum {string|null} */
+                                key: "owner" | "admin" | "member" | "viewer" | null;
+                                name: string;
+                                permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                            };
                             subscription: {
                                 /** @enum {string} */
                                 plan: "free" | "studio" | "company";
@@ -545,8 +555,13 @@ export interface paths {
                         "application/json": {
                             id: string;
                             name: string;
-                            /** @enum {string} */
-                            role: "owner" | "admin" | "member";
+                            role: {
+                                id: string;
+                                /** @enum {string|null} */
+                                key: "owner" | "admin" | "member" | "viewer" | null;
+                                name: string;
+                                permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                            };
                             /** @enum {string} */
                             plan: "free" | "studio" | "company";
                             /** @enum {string} */
@@ -3709,8 +3724,12 @@ export interface paths {
                             members: {
                                 userId: string;
                                 email: string;
-                                /** @enum {string} */
-                                role: "owner" | "admin" | "member";
+                                role: {
+                                    id: string;
+                                    /** @enum {string|null} */
+                                    key: "owner" | "admin" | "member" | "viewer" | null;
+                                    name: string;
+                                };
                                 joinedAt: string;
                                 departmentIds: string[];
                                 profiles: number;
@@ -3778,8 +3797,8 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @enum {string} */
-                        role: "admin" | "member";
+                        /** Format: uuid */
+                        roleId: string;
                     };
                 };
             };
@@ -3862,8 +3881,12 @@ export interface paths {
                             invitations: {
                                 id: string;
                                 email: string;
-                                /** @enum {string} */
-                                role: "admin" | "member";
+                                role: {
+                                    id: string;
+                                    /** @enum {string|null} */
+                                    key: "owner" | "admin" | "member" | "viewer" | null;
+                                    name: string;
+                                };
                                 departmentIds: string[];
                                 invitedBy: string | null;
                                 createdAt: string;
@@ -3889,8 +3912,8 @@ export interface paths {
                     "application/json": {
                         /** Format: email */
                         email: string;
-                        /** @enum {string} */
-                        role: "admin" | "member";
+                        /** Format: uuid */
+                        roleId: string;
                         /** @default [] */
                         departmentIds?: string[];
                         /** @default true */
@@ -3909,8 +3932,12 @@ export interface paths {
                             invitation: {
                                 id: string;
                                 email: string;
-                                /** @enum {string} */
-                                role: "admin" | "member";
+                                role: {
+                                    id: string;
+                                    /** @enum {string|null} */
+                                    key: "owner" | "admin" | "member" | "viewer" | null;
+                                    name: string;
+                                };
                                 departmentIds: string[];
                                 invitedBy: string | null;
                                 createdAt: string;
@@ -3995,8 +4022,12 @@ export interface paths {
                             workspaceName: string;
                             inviter: string | null;
                             email: string;
-                            /** @enum {string} */
-                            role: "admin" | "member";
+                            role: {
+                                id: string;
+                                /** @enum {string|null} */
+                                key: "owner" | "admin" | "member" | "viewer" | null;
+                                name: string;
+                            };
                             expired: boolean;
                             expiresAt: string;
                         };
@@ -4040,8 +4071,12 @@ export interface paths {
                                 workspaceId: string;
                                 workspaceName: string;
                                 inviter: string | null;
-                                /** @enum {string} */
-                                role: "admin" | "member";
+                                role: {
+                                    id: string;
+                                    /** @enum {string|null} */
+                                    key: "owner" | "admin" | "member" | "viewer" | null;
+                                    name: string;
+                                };
                                 expiresAt: string;
                             }[];
                         };
@@ -4086,8 +4121,13 @@ export interface paths {
                         "application/json": {
                             id: string;
                             name: string;
-                            /** @enum {string} */
-                            role: "owner" | "admin" | "member";
+                            role: {
+                                id: string;
+                                /** @enum {string|null} */
+                                key: "owner" | "admin" | "member" | "viewer" | null;
+                                name: string;
+                                permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                            };
                             /** @enum {string} */
                             plan: "free" | "studio" | "company";
                             /** @enum {string} */
@@ -4138,6 +4178,159 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/workspaces/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            roles: {
+                                id: string;
+                                /** @enum {string|null} */
+                                key: "owner" | "admin" | "member" | "viewer" | null;
+                                name: string;
+                                permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                                members: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string|null} */
+                            key: "owner" | "admin" | "member" | "viewer" | null;
+                            name: string;
+                            permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                            members: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name?: string;
+                        permissions?: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string|null} */
+                            key: "owner" | "admin" | "member" | "viewer" | null;
+                            name: string;
+                            permissions: ("profiles.view" | "profiles.create" | "profiles.edit" | "profiles.open" | "profiles.delete" | "cookies.import" | "cookies.export" | "profiles.export" | "proxies.view" | "proxies.bind" | "proxies.edit" | "team.manage" | "activity.view")[];
+                            members: number;
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/workspaces/{id}/departments": {
@@ -4318,7 +4511,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.set-department" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "department.create" | "department.update" | "department.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
                                 profile: {
                                     id: string | null;
                                     name: string;

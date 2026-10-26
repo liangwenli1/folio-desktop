@@ -3,7 +3,7 @@
 // profile form or the bulk actions.
 import { useState, type ChangeEvent, type ReactNode } from 'react';
 import type { KernelKind } from '@shared/bridge';
-import { folio, isApiError, type Extension, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
@@ -17,7 +17,7 @@ type Filter = 'all' | KernelKind;
 export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: WorkspaceData }){
   const X = d.extensions;
   const toast = useToast();
-  const manager = data.role !== 'member';
+  const manager = can(data.role, MANAGE);
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [view, setView] = useView<'cards' | 'table'>('extensions', 'cards');

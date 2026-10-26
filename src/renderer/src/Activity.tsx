@@ -1,6 +1,6 @@
 // The activity log: who did what, when and on which computer, newest first and grouped by day.
 import { useCallback, useEffect, useState } from 'react';
-import { folio, isApiError, type ActivityEntry, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, type Dict, type Lang } from './i18n';
 import { Icon, LoadFailed, useToast, type IconName } from './ui';
@@ -46,7 +46,7 @@ const KINDS: Record<Exclude<Kind, 'all'>, string[]> = {
   trash: ['profile.trash', 'profile.restore', 'profile.purge'],
   proxies: ['proxy.create', 'proxy.import', 'proxy.update', 'proxy.delete', 'group.create', 'group.rename', 'group.delete'],
   cookies: ['cookies.export', 'cookies.import', 'workspace.export', 'workspace.import'],
-  team: ['member.invite', 'member.join', 'member.role', 'member.remove', 'member.leave', 'invitation.withdraw', 'department.create', 'department.update', 'department.delete'],
+  team: ['member.invite', 'member.join', 'member.role', 'member.remove', 'member.leave', 'invitation.withdraw', 'role.create', 'role.update', 'role.delete', 'department.create', 'department.update', 'department.delete'],
   extensions: ['extension.add', 'extension.update', 'extension.delete'],
   automation: ['flow.create', 'flow.update', 'flow.delete', 'task.create', 'task.update', 'task.delete', 'run.start', 'run.finish']
 };
@@ -60,7 +60,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
   const [kind, setKind] = useState<Kind>('all');
   const [q, setQ] = useState('');
   const { entries, more, failed, reload, older } = useActivity(ws.id, `${person ? `&actorId=${person}` : ''}${kind !== 'all' ? `&kind=${kind}` : ''}`, data);
-  const canExport = data.role !== 'member' && ws.subscription.plan === 'company';
+  const canExport = can(data.role, MANAGE) && ws.subscription.plan === 'company';
 
   async function exportCsv(){
     try {

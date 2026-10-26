@@ -3,7 +3,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { _electron as electron, expect, request, type ElectronApplication, type Locator, type Page } from '@playwright/test';
+import { _electron as electron, expect, request, type APIRequestContext, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 
 export const API = process.env.API_URL ?? 'http://localhost:47110';
 export const SITE = 'http://localhost:47120';
@@ -77,6 +77,12 @@ export async function account({ locale = 'en', buy }: { locale?: 'en' | 'zh'; bu
     await api.post(`/billing/checkouts/${checkoutId}/pay`, { data: { card: { number: '4242424242424242', expMonth: 12, expYear: 2030, cvc: '123' } } });
   }
   return { email, workspaceId, api };
+}
+
+// Invitations and role changes name a role by id; every workspace starts with the same four.
+export async function roleId(api: APIRequestContext, workspaceId: string, key: 'admin' | 'member' | 'viewer'){
+  const { roles } = await (await api.get(`/workspaces/${workspaceId}/roles`)).json() as { roles: { id: string; key: string }[] };
+  return roles.find(r => r.key === key)!.id;
 }
 
 export const dataDir = () => mkdtempSync(join(tmpdir(), 'folio-'));

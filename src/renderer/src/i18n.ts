@@ -14,9 +14,7 @@ const profilesN = (n: number) => (n === 1 ? '1 profile' : `${n} profiles`);
 const proxiesN = (n: number) => (n === 1 ? '1 proxy' : `${n} proxies`);
 
 const enFields: Record<string, string> = { searchEngine: 'search engine', restoreTabs: 'tab restoring', name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'owner', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
-const enRoles: Record<string, string> = { admin: 'an admin', member: 'a member', owner: 'the owner' };
 const zhFields: Record<string, string> = { searchEngine: '搜索引擎', restoreTabs: '恢复标签页', name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
-const zhRoles: Record<string, string> = { admin: '管理员', member: '成员', owner: '所有者' };
 const enSearch = (id: SearchEngine): string => (id === 'none' ? 'None' : SEARCH_ENGINES[id].name);
 const zhSearch = (id: SearchEngine): string => (id === 'none' ? '无' : id === 'baidu' ? '百度' : SEARCH_ENGINES[id].name);
 
@@ -38,7 +36,7 @@ export const en = {
   },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
   periods: { monthly: 'monthly', yearly: 'yearly' },
-  roles: { owner: 'Owner', admin: 'Admin', member: 'Member' },
+  roles: { owner: 'Owner', admin: 'Admin', member: 'Member', viewer: 'Viewer' },
   ws: { switch: 'Switch workspace', current: 'Current workspace' },
   plan: {
     usage: (used: number, limit: number) => `${used} of ${limit} profiles`,
@@ -295,7 +293,8 @@ export const en = {
     search: 'Search people', meTag: '(you)', moreX: (e: string) => `More for ${e}`, roleOf: (e: string) => `Role of ${e}`,
     deptSum: (people: number, n: number) => `${people === 1 ? '1 person' : `${people} people`} · ${profilesN(n)}`,
     copiedNew: 'A new invitation link was copied; the earlier one no longer works.',
-    roleHelp: { admin: 'Sees and manages every profile, proxy and person.', member: 'Sees and opens the profiles assigned to them; can create and edit, not delete.' },
+    roleHelp: { admin: 'Sees and manages every profile, proxy and person.', member: 'Sees and opens the profiles assigned to them; can create and edit, not delete.', viewer: 'Sees what they are given; changes nothing.' } as Record<string, string>,
+    roleActions: (n: number) => `${n} ${n === 1 ? 'action' : 'actions'}`,
     expires: (date: string) => `Expires ${date}`,
     copyLink: 'Copy link', copied: 'Invitation link copied', resend: 'Send again', withdraw: 'Withdraw', withdrawn: 'Invitation withdrawn',
     inviteTitle: 'Invite to the team', email: 'Email', emailErr: 'Enter an email address.', role: 'Role', departments: 'Departments',
@@ -325,9 +324,10 @@ export const en = {
       'proxy.create': (_p, x) => `added the proxy ${x.name}`, 'proxy.import': (_p, x) => `imported ${x.added} ${x.added === 1 ? 'proxy' : 'proxies'}`,
       'proxy.update': (_p, x) => `changed the proxy ${x.name}`, 'proxy.delete': (_p, x) => `deleted the proxy ${x.name}`,
       'group.create': (_p, x) => `created the group ${x.name}`, 'group.rename': (_p, x) => `renamed the group ${x.from} to ${x.name}`, 'group.delete': (_p, x) => `deleted the group ${x.name}`,
-      'member.invite': (_p, x) => `invited ${x.email} as ${enRoles[x.role]}`, 'member.join': (_p, x) => `joined as ${enRoles[x.role]}`,
-      'member.role': (_p, x) => `made ${x.email} ${enRoles[x.role]}`, 'member.remove': (_p, x) => `removed ${x.email}; their profiles went to ${x.to}`,
+      'member.invite': (_p, x) => `invited ${x.email} as ${x.role}`, 'member.join': (_p, x) => `joined as ${x.role}`,
+      'member.role': (_p, x) => `made ${x.email} ${x.role}`, 'member.remove': (_p, x) => `removed ${x.email}; their profiles went to ${x.to}`,
       'member.leave': () => 'left the team', 'invitation.withdraw': (_p, x) => `withdrew the invitation to ${x.email}`,
+      'role.create': (_p, x) => `made the role ${x.name}`, 'role.update': (_p, x) => `changed what ${x.name} may do`, 'role.delete': (_p, x) => `deleted the role ${x.name}`,
       'department.create': (_p, x) => `created the department ${x.name}`, 'department.update': (_p, x) => (x.from ? `renamed the department ${x.from} to ${x.name}` : `changed who is in ${x.name}`),
       'department.delete': (_p, x) => `deleted the department ${x.name}`,
       'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} of ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`,
@@ -635,7 +635,7 @@ export const zh: Dict = {
   },
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
   periods: { monthly: '月付', yearly: '年付' },
-  roles: { owner: '所有者', admin: '管理员', member: '成员' },
+  roles: { owner: '所有者', admin: '管理员', member: '成员', viewer: '仅查看' },
   ws: { switch: '切换团队', current: '当前团队' },
   plan: {
     usage: (used: number, limit: number) => `已用 ${used} / ${limit} 个环境`,
@@ -888,7 +888,8 @@ export const zh: Dict = {
     search: '搜索成员', meTag: '（我）', moreX: (e: string) => `${e} 的更多操作`, roleOf: (e: string) => `${e} 的角色`,
     deptSum: (people: number, n: number) => `${people} 人 · ${n} 个环境`,
     copiedNew: '已复制新的邀请链接，原链接已失效。',
-    roleHelp: { admin: '可查看和管理全部环境、代理与成员。', member: '仅可查看和打开分配给自己的环境；可新建和编辑，不可删除。' },
+    roleHelp: { admin: '可查看和管理全部环境、代理与成员。', member: '仅可查看和打开分配给自己的环境；可新建和编辑，不可删除。', viewer: '仅可查看已授权的内容，不能做任何修改。' } as Record<string, string>,
+    roleActions: (n: number) => `${n} 项权限`,
     expires: (date: string) => `${date} 过期`,
     copyLink: '复制链接', copied: '邀请链接已复制', resend: '重新发送', withdraw: '撤回', withdrawn: '邀请已撤回',
     inviteTitle: '邀请加入团队', email: '邮箱', emailErr: '请填写邮箱地址。', role: '角色', departments: '部门',
@@ -918,9 +919,10 @@ export const zh: Dict = {
       'proxy.create': (_p, x) => `添加了代理 ${x.name}`, 'proxy.import': (_p, x) => `导入了 ${x.added} 个代理`,
       'proxy.update': (_p, x) => `修改了代理 ${x.name}`, 'proxy.delete': (_p, x) => `删除了代理 ${x.name}`,
       'group.create': (_p, x) => `创建了分组「${x.name}」`, 'group.rename': (_p, x) => `将分组「${x.from}」重命名为「${x.name}」`, 'group.delete': (_p, x) => `删除了分组「${x.name}」`,
-      'member.invite': (_p, x) => `邀请 ${x.email} 成为${zhRoles[x.role]}`, 'member.join': (_p, x) => `以${zhRoles[x.role]}身份加入`,
-      'member.role': (_p, x) => `将 ${x.email} 设为${zhRoles[x.role]}`, 'member.remove': (_p, x) => `移除了 ${x.email}，其环境已转交 ${x.to}`,
+      'member.invite': (_p, x) => `邀请 ${x.email} 成为${x.role}`, 'member.join': (_p, x) => `以${x.role}身份加入`,
+      'member.role': (_p, x) => `将 ${x.email} 设为${x.role}`, 'member.remove': (_p, x) => `移除了 ${x.email}，其环境已转交 ${x.to}`,
       'member.leave': () => '退出了团队', 'invitation.withdraw': (_p, x) => `撤回了给 ${x.email} 的邀请`,
+      'role.create': (_p, x) => `新建了角色「${x.name}」`, 'role.update': (_p, x) => `调整了角色「${x.name}」的权限`, 'role.delete': (_p, x) => `删除了角色「${x.name}」`,
       'department.create': (_p, x) => `创建了部门「${x.name}」`, 'department.update': (_p, x) => (x.from ? `将部门「${x.from}」重命名为「${x.name}」` : `调整了「${x.name}」的成员`),
       'department.delete': (_p, x) => `删除了部门「${x.name}」`,
       'cookies.export': (p, x) => `导出了 ${p} 的 ${x.count} 个 Cookie`, 'cookies.import': (p, x) => `向 ${p} 导入了 ${x.count} 个 Cookie`,
@@ -1232,3 +1234,5 @@ export function runTime(ms: number){
   return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
 }
 export const errorText = (d: Dict, code: string) => d.errors[code] ?? d.errors.internal;
+// A role's wording: the four every workspace starts with are translated, a workspace's own keeps its name.
+export const roleName = (d: Dict, r: { key: string | null; name: string }) => (r.key ? d.roles[r.key as keyof Dict['roles']] : r.name);

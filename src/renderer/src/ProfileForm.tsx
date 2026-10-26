@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { CheckResult, Fingerprint, FingerprintAsk, KernelKind, Os } from '@shared/bridge';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
-import { folio, isApiError, type Profile, type ProxyImport } from './api';
+import { MANAGE, can, folio, isApiError, type Profile, type ProxyImport } from './api';
 import { ENGINES, fingerprintFacts, gpuName, latencyTone, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
@@ -45,7 +45,7 @@ export function ProfileForm({ d, wsId, data, profile, defaultGroup, onClose, onD
   const [proxyId, setProxyId] = useState(profile?.proxyId ?? '');
   const [pxMode, setPxMode] = useState<PxMode>((profile ? profile.proxyId : data.proxies.length) ? 'saved' : 'none');
   // Owners and admins choose who it is assigned to (new profiles default to whoever creates them) and its department.
-  const manager = data.role !== 'member';
+  const manager = can(data.role, MANAGE);
   const [ownerId, setOwnerId] = useState(profile ? profile.ownerId ?? '' : '');
   const [departmentId, setDepartmentId] = useState(profile?.departmentId ?? '');
   const [paste, setPaste] = useState('');

@@ -1,9 +1,9 @@
 // The team: people with their roles and what they can see, invitations still open in the same list, and (Company)
 // departments.
 import { useState, type FormEvent } from 'react';
-import { folio, isApiError, type Department, type Member, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Department, type Member, type Role, type Workspace } from './api';
 import type { WorkspaceData } from './data';
-import { day, errorText, type Dict, type Lang } from './i18n';
+import { day, errorText, roleName, type Dict, type Lang } from './i18n';
 import { Avatar, Icon, LoadFailed, Modal, MoreMenu, useToast, type IconName } from './ui';
 import { Select, SelectField } from './Select';
 
@@ -16,7 +16,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const [dialog, setDialog] = useState<Dialog>(null);
   const [q, setQ] = useState('');
   const [tab, setTab] = useState<'members' | 'depts'>('members');
-  const manager = data.role !== 'member';
+  const manager = can(data.role, MANAGE);
   const company = ws.subscription.plan === 'company';
   const deptName = new Map(data.departments.map(x => [x.id, x.name]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
@@ -24,26 +24,30 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const needle = q.trim().toLowerCase();
   const people = data.members.filter(m => !needle || m.email.toLowerCase().includes(needle));
   const invites = manager ? data.invitations.filter(i => !needle || i.email.toLowerCase().includes(needle)) : [];
-  // What someone sees: owners and admins everything; members their own profiles and their departments'.
-  const scope = (role: Member['role'], departmentIds: string[]) => (role !== 'member' ? T.scopeAll
+  // What someone sees: everything if their role administers the workspace; otherwise their own profiles and
+  // their departments'.
+  const seesAll = (role: Member['role']) => data.roles.find(r => r.id === role.id)?.permissions.includes(MANAGE) ?? false;
+  const scope = (role: Member['role'], departmentIds: string[]) => (seesAll(role) ? T.scopeAll
     : departmentIds.length ? departmentIds.map(id => deptName.get(id)).filter(Boolean).join(lang === 'zh' ? '、' : ', ') : T.scopeOwn);
+  // Every role but the owner's can be given out.
+  const givable = data.roles.filter(r => r.key !== 'owner');
   const self = data.members.find(m => m.userId === meId);
 
-  async function setRole(m: Member, role: 'admin' | 'member'){
-    try { await folio.api('PATCH', `/workspaces/${ws.id}/members/${m.userId}`, { role }); } catch (e){ fail(e); }
+  async function setRole(m: Member, roleId: string){
+    try { await folio.api('PATCH', `/workspaces/${ws.id}/members/${m.userId}`, { roleId }); } catch (e){ fail(e); }
     data.refresh('members');
   }
-  async function resend(emailAddr: string, role: 'admin' | 'member', departmentIds: string[]){
+  async function resend(emailAddr: string, roleId: string, departmentIds: string[]){
     try {
-      const r = await folio.api<{ emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, role, departmentIds });
+      const r = await folio.api<{ emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, roleId, departmentIds });
       if (r.emailed) toast(T.sent(emailAddr)); else toast(T.notSent, undefined, 'bad');
     } catch (e){ fail(e); }
     data.refresh('members');
   }
   // Links are stored hashed: copying one makes a new link (not emailed), and the one before stops working.
-  async function copyLink(emailAddr: string, role: 'admin' | 'member', departmentIds: string[]){
+  async function copyLink(emailAddr: string, roleId: string, departmentIds: string[]){
     try {
-      const r = await folio.api<{ link: string }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, role, departmentIds, notify: false });
+      const r = await folio.api<{ link: string }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr, roleId, departmentIds, notify: false });
       await navigator.clipboard.writeText(r.link);
       toast(T.copiedNew);
     } catch (e){ fail(e); }
@@ -63,7 +67,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
             <Icon name="search" /><span className="sr">{T.search}</span>
             <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
           </label>
-          {self && self.role !== 'owner' && <button className="btn btn-danger" type="button" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
+          {self && self.role.key !== 'owner' && <button className="btn btn-danger" type="button" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
         </header>
 
@@ -85,14 +89,14 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
               <tbody>
                 {data.loadFailed.has('members') && <tr className="empty"><td colSpan={5}><LoadFailed d={d} onRetry={() => data.refresh('members')} /></td></tr>}
                 {people.map(m => {
-                  const me = m.userId === meId, editable = manager && m.role !== 'owner' && !me;
+                  const me = m.userId === meId, editable = manager && m.role.key !== 'owner' && !me;
                   return (
                     <tr key={m.userId} data-member={m.email}>
                       <td><span className="prof-cell"><Avatar text={m.email} /><span className="l1"><b>{m.email}</b>{me && <span className="muted">{T.meTag}</span>}</span></span></td>
                       <td>{editable
-                        ? <span className="role-pick"><Select variant="sm" label={T.roleOf(m.email)} value={m.role} onChange={r => void setRole(m, r as 'admin' | 'member')}
-                          options={(['admin', 'member'] as const).map(r => ({ value: r, label: d.roles[r] }))} /></span>
-                        : <span className={`role ${m.role}`}><Icon name={ROLE_ICON[m.role]} />{d.roles[m.role]}</span>}</td>
+                        ? <span className="role-pick"><Select variant="sm" label={T.roleOf(m.email)} value={m.role.id} onChange={r => void setRole(m, r)}
+                          options={givable.map(r => ({ value: r.id, label: roleName(d, r) }))} /></span>
+                        : <span className={`role ${m.role.key ?? 'custom'}`}><Icon name={roleIcon(m.role)} />{roleName(d, m.role)}</span>}</td>
                       <td>{scope(m.role, m.departmentIds)}</td>
                       <td><span className="dot-st run">{T.joined}</span></td>
                       <td className="act">{editable && <MoreMenu label={T.moreX(m.email)} items={[{ label: T.remove, onClick: () => setDialog({ kind: 'remove', member: m }), danger: true }]} />}</td>
@@ -102,12 +106,12 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                 {invites.map(i => (
                   <tr key={i.id} data-invitation={i.email}>
                     <td><span className="prof-cell"><Avatar text={i.email} /><span className="l1"><b>{i.email}</b></span></span></td>
-                    <td><span className={`role ${i.role}`}><Icon name={ROLE_ICON[i.role]} />{d.roles[i.role]}</span></td>
+                    <td><span className={`role ${i.role.key ?? 'custom'}`}><Icon name={roleIcon(i.role)} />{roleName(d, i.role)}</span></td>
                     <td>{scope(i.role, i.departmentIds)}</td>
                     <td><span className="dot-st boot" title={T.expires(day(i.expiresAt, lang))}>{T.invited}</span></td>
                     <td className="act"><MoreMenu label={T.moreX(i.email)} items={[
-                      { label: T.copyLink, onClick: () => void copyLink(i.email, i.role, i.departmentIds) },
-                      { label: T.resend, onClick: () => void resend(i.email, i.role, i.departmentIds) },
+                      { label: T.copyLink, onClick: () => void copyLink(i.email, i.role.id, i.departmentIds) },
+                      { label: T.resend, onClick: () => void resend(i.email, i.role.id, i.departmentIds) },
                       { label: T.withdraw, onClick: () => void withdraw(i.id), danger: true }
                     ]} /></td>
                   </tr>
@@ -146,12 +150,15 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   );
 }
 
-const ROLE_ICON: Record<Member['role'], IconName> = { owner: 'crown', admin: 'key', member: 'team' };
+const ROLE_ICON: Record<string, IconName> = { owner: 'crown', admin: 'key', member: 'team', viewer: 'eye' };
+const roleIcon = (r: Member['role']): IconName => ROLE_ICON[r.key ?? ''] ?? 'team';
 function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspace; data: WorkspaceData; company: boolean; onClose(): void }){
   const T = d.team;
   const toast = useToast();
   const [emailAddr, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const givable = data.roles.filter(r => r.key !== 'owner');
+  const [roleId, setRoleId] = useState('');
+  const role = givable.find(r => r.id === roleId) ?? givable.find(r => r.key === 'member') ?? givable[0];
   const [depts, setDepts] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ link: string; emailed: boolean; email: string } | null>(null);
@@ -162,7 +169,7 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
     if (!emailAddr.includes('@')){ setError(T.emailErr); return; }
     setBusy(true); setError(null);
     try {
-      const r = await folio.api<{ link: string; emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr.trim(), role, departmentIds: depts });
+      const r = await folio.api<{ link: string; emailed: boolean }>('POST', `/workspaces/${ws.id}/invitations`, { email: emailAddr.trim(), roleId: role.id, departmentIds: depts });
       setResult({ ...r, email: emailAddr.trim() });
       data.refresh('members');
     } catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); } finally { setBusy(false); }
@@ -195,10 +202,10 @@ function InviteDialog({ d, ws, data, company, onClose }: { d: Dict; ws: Workspac
           </div>
           <fieldset className="field choices">
             <legend className="label">{T.role}</legend>
-            {(['member', 'admin'] as const).map(r => (
-              <label key={r} className="choice">
-                <input type="radio" name="inv-role" checked={role === r} onChange={() => setRole(r)} />
-                <span><b>{d.roles[r]}</b><span className="hint">{T.roleHelp[r]}</span></span>
+            {givable.map(r => (
+              <label key={r.id} className="choice">
+                <input type="radio" name="inv-role" checked={role?.id === r.id} onChange={() => setRoleId(r.id)} />
+                <span><b>{roleName(d, r)}</b><span className="hint">{(r.key && T.roleHelp[r.key]) || T.roleActions(r.permissions.length)}</span></span>
               </label>
             ))}
           </fieldset>
@@ -284,7 +291,7 @@ function DepartmentDialog({ d, ws, data, dept, onClose }: { d: Dict; ws: Workspa
         </div>
         <fieldset className="field choices">
           <legend className="label">{T.deptMembers}</legend>
-          {data.members.filter(m => m.role === 'member').map(m => (
+          {data.members.filter(m => m.role.key !== 'owner').map(m => (
             <label key={m.userId} className="check-row">
               <input type="checkbox" checked={memberIds.includes(m.userId)} onChange={e => setMemberIds(s => (e.target.checked ? [...s, m.userId] : s.filter(id => id !== m.userId)))} />{m.email}
             </label>

@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, launch, logIn } from './helpers';
+import { ENGINE_ENV, account, choose, chromiumProfile, dataDir, hasKernels, launch, logIn, roleId } from './helpers';
 
 test.setTimeout(420_000);
 const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
@@ -95,7 +95,7 @@ test('a flow runs on 10 profiles 3 at a time, failures are retried, and the resu
 
   // Another person in the team sees the same run and its results.
   const admin = await account();
-  const inv = await owner.api.post(`${base}/invitations`, { data: { email: admin.email, role: 'admin', departmentIds: [] } });
+  const inv = await owner.api.post(`${base}/invitations`, { data: { email: admin.email, roleId: await roleId(owner.api, owner.workspaceId, 'admin'), departmentIds: [] } });
   expect(inv.ok()).toBe(true);
   await owner.api.patch(base, { data: { name: 'Larkspur Trading' } });
   const app2 = await launch(dataDir());

@@ -2,7 +2,7 @@
 // the engines' download settings, copying a waiting invitation's link again, and a profile's browser settings.
 import { strToU8, zipSync } from 'fflate';
 import { expect, test } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, launch, logIn } from './helpers';
+import { account, choose, chromiumProfile, dataDir, launch, logIn, roleId } from './helpers';
 
 const STUDIO = { plan: 'studio', period: 'monthly' };
 const nav = (win: import('@playwright/test').Page, name: RegExp) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
@@ -70,7 +70,7 @@ test('the engines’ download settings stay on this computer', async () => {
 
 test('a waiting invitation’s link can be copied again, which replaces the old link', async () => {
   const acct = await account({ buy: STUDIO });
-  const sent = await (await acct.api.post(`/workspaces/${acct.workspaceId}/invitations`, { data: { email: `copy-${Date.now()}@example.com`, role: 'member' } })).json();
+  const sent = await (await acct.api.post(`/workspaces/${acct.workspaceId}/invitations`, { data: { email: `copy-${Date.now()}@example.com`, roleId: await roleId(acct.api, acct.workspaceId, 'member') } })).json();
   const token = new URL(sent.link).searchParams.get('token');
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);

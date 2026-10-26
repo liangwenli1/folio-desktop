@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { folio, isApiError, type Profile, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Profile, type Workspace } from './api';
 import type { BatchAction, WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
@@ -18,7 +18,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
   const groupName = new Map(data.groups.map(g => [g.id, g.name]));
   const email = new Map(data.members.map(m => [m.userId, m.email]));
   const country = (p: Profile) => data.proxies.find(x => x.id === p.proxyId)?.lastCheck?.geo?.country ?? null;
-  const manager = ws.role !== 'member';
+  const manager = can(ws.role, MANAGE);
 
   async function run(action: BatchAction, targets: string[]){
     setConfirm(null);

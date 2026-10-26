@@ -2,7 +2,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logIn } from './helpers';
+import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logIn, roleId } from './helpers';
 
 test.setTimeout(180_000);
 const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
@@ -71,7 +71,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
   // A member sees it but can't change it; duplicating gives them their own copy to edit.
   const member = await account();
   await owner.api.patch(`/workspaces/${owner.workspaceId}`, { data: { name: 'Larkspur Trading' } });
-  await owner.api.post(`/workspaces/${owner.workspaceId}/invitations`, { data: { email: member.email, role: 'member', departmentIds: [] } });
+  await owner.api.post(`/workspaces/${owner.workspaceId}/invitations`, { data: { email: member.email, roleId: await roleId(owner.api, owner.workspaceId, 'member'), departmentIds: [] } });
   const app2 = await launch(dataDir());
   const win2 = await logIn(app2, member.email);
   await win2.getByTestId('ws-name').click();

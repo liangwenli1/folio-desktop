@@ -4,7 +4,7 @@
 // does and how to get it.
 import { useEffect, useState } from 'react';
 import type { SyncAction, SyncLogEntry, SyncOptions, WindowSync } from '@shared/bridge';
-import { folio, type Profile, type Workspace } from './api';
+import { MANAGE, can, folio, type Profile, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import type { Dict, Lang } from './i18n';
 import { Flag } from './Flag';
@@ -66,7 +66,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
             <p className="hint">{W.upsell.lead}</p>
             <ul>{W.upsell.points.map(x => <li key={x}><Icon name="check" />{x}</li>)}</ul>
             <p className="hint">{W.upgrade}</p>
-            {ws.role !== 'member'
+            {can(ws.role, MANAGE)
               ? <button type="button" className="btn btn-primary" onClick={() => folio.openSite(`/${lang}/checkout/?ws=${ws.id}`)}>{d.plan.upgrade}</button>
               : <p className="hint">{W.upsell.ask}</p>}
           </section>
