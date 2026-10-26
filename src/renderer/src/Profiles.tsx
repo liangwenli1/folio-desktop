@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type BulkChange, type WorkspaceData } from './data';
-import { startJob, type JobRun } from './jobs';
+import { startJob, type JobRun } from './jobRun';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';

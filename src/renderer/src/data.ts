@@ -6,7 +6,7 @@ import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus,
 import { GROUP_COLORS } from './ui';
 import { MANAGE, can, folio, isApiError, type Extension, type Flow, type Group, type Invitation, type Job, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
 import { ENGINES } from './checks';
-import { jobRun, retryJob, startJob, type JobRun } from './jobs';
+import { jobRun, retryJob, startJob, type JobRun } from './jobRun';
 
 export type Kind = 'profiles' | 'trash' | 'groups' | 'proxies' | 'members' | 'flows' | 'tasks' | 'extensions' | 'jobs';
 export type BatchAction = 'move' | 'tag' | 'untag' | 'set-proxy' | 'assign' | 'add-extension' | 'remove-extension' | 'set-kernel' | 'set-browser' | 'trash' | 'restore' | 'purge';
