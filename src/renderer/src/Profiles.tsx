@@ -429,17 +429,20 @@ interface ItemProps {
   onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onEnter(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void; onReplace(): void;
 }
 
-// What the profile is doing: a coloured dot and a word.
-function Status({ d, p, h, status, progress }: ItemProps){
+// What a profile is doing, as a dot's tone and a word: running (with or without a window), starting or saving, its
+// engine downloading, open on another computer, its proxy down, or stopped.
+export function stateOf(d: Dict, p: Profile, h: Health, status: ProfileStatus | undefined, progress: Progress | undefined): [string, string] {
   const P = d.profiles, away = elsewhere(p);
-  const downloading = progress && !progress.finished && !progress.error;
-  const [tone, text] = status?.state === 'running' ? ['run', status.noWindow ? P.st.noWindow : P.st.running]
+  return status?.state === 'running' ? ['run', status.noWindow ? P.st.noWindow : P.st.running]
     : status ? ['boot', status.state === 'saving' ? busyLabel(d, status.state) : status.state === 'restoring' ? P.stage.restore : status.stage === 'launch' ? P.stage.launch : P.stage.proxy]
-    : downloading ? ['boot', P.downloading(percent(progress))]
+    : progress && !progress.finished && !progress.error ? ['boot', P.downloading(percent(progress))]
     : away ? ['away', P.inUseOn(away.deviceName ?? away.email)]
     : h.checks[0]?.id === 'proxy-down' ? ['bad', P.st.proxyDown]
     : ['idle', P.st.idle];
-  return <span className={`dot-st ${tone}`} title={away?.email} role={tone === 'boot' ? 'status' : undefined}>{text}</span>;
+}
+function Status({ d, p, h, status, progress }: ItemProps){
+  const [tone, text] = stateOf(d, p, h, status, progress);
+  return <span className={`dot-st ${tone}`} title={elsewhere(p)?.email} role={tone === 'boot' ? 'status' : undefined}>{text}</span>;
 }
 
 // Everything to do with the profile, in its ⋯ menu.

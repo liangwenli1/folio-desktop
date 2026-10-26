@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import type { ProfileStatus, Update } from '@shared/bridge';
 import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
+import { GroupsPage } from './Groups';
 import { LANG_NAMES, errorText, roleName, type Dict, type Lang } from './i18n';
 import { planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
@@ -20,7 +21,7 @@ import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
-import { GROUP_COLORS, Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type GroupColor, type IconName } from './ui';
+import { Icon, Mark, Switch, Toasts, useOutsideClose, useToast, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Flag } from './Flag';
 import { health } from './checks';
@@ -30,8 +31,9 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'activity' | 'trash' | 'settings' | 'billing';
-type Dialog = { kind: 'new' } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'trash' | 'settings' | 'billing';
+// A new profile can start in a group picked on the Groups page.
+type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 
 export function Workbench(props: Props){
   return <Toasts><Shell {...props} /></Toasts>;
@@ -76,7 +78,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const editing = dialog?.kind === 'edit' ? data.profiles?.find(p => p.id === dialog.id) : undefined;
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
-  const go = (p: Page, g: GroupFilter = 'all') => { setPage(p); setGroup(g); setOnly(null); setOpenId(null); setProxyId(null); };
+  const go = (p: Page) => { setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); };
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
@@ -107,7 +109,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   }, []);
   // The order the delivery spec gives, then the pages it does not draw, then the Trash.
   const pages: [Page, IconName, string, boolean][] = [
-    ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['engines', 'engines', d.nav.engines, true],
+    ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['engines', 'engines', d.nav.engines, true], ['groups', 'folder', d.nav.groups, true],
     ['team', 'team', d.nav.team, true], ['activity', 'activity', d.nav.activity, true], ['tasks', 'tasks', d.nav.tasks, true],
     ['extensions', 'extensions', d.nav.extensions, true], ['sync', 'sync', d.nav.sync, true], ['flows', 'flows', d.nav.flows, true],
     ['api', 'api', d.nav.api, true], ['trash', 'trash', d.nav.trash, manager],
@@ -221,9 +223,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         </div>
 
         <nav className="nav" aria-label="Main">
-          <NavItem icon="profiles" label={d.nav.profiles} active={page === 'profiles' && group === 'all'} onClick={() => go('profiles')} />
+          <NavItem icon="profiles" label={d.nav.profiles} active={shown === 'profiles'} onClick={() => go('profiles')} />
           {manager && <NavItem icon="proxies" label={d.nav.proxies} active={shown === 'proxies'} onClick={() => go('proxies')} />}
           <NavItem icon="engines" label={d.nav.engines} active={shown === 'engines'} onClick={() => go('engines')} />
+          <NavItem icon="folder" label={d.nav.groups} active={shown === 'groups'} onClick={() => go('groups')} />
           <NavItem icon="team" label={d.nav.team} active={shown === 'team'} onClick={() => go('team')} />
           <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
           <NavItem icon="tasks" label={d.nav.tasks} active={shown === 'tasks'} onClick={() => go('tasks')} />
@@ -233,8 +236,6 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
           {manager && <NavItem icon="trash" label={d.nav.trash} active={shown === 'trash'} onClick={() => go('trash')} />}
         </nav>
-
-        <Groups d={d} data={data} manager={manager} group={shown === 'profiles' ? group : null} onPick={g => go('profiles', g)} />
 
         {update && (
           <section className="update" role="status" aria-label={update.installs ? d.update.ready(update.version) : d.update.out(update.version)}>
@@ -281,6 +282,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'api' && <ApiPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'engines' && <EnginesPage d={d} ws={ws} data={data} admin={me.admin} manager={manager}
         onShowProfiles={ids => { go('profiles'); setOnly(new Set(ids)); }} />}
+      {shown === 'groups' && <GroupsPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data}
+        onOpenProfile={id => { go('profiles'); setOpenId(id); }} onNewProfile={g => setDialog({ kind: 'new', group: g })} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'settings' && <SettingsPage d={d} ws={ws} data={data} manager={manager} />}
@@ -288,7 +291,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
         <ProfileForm d={d} lang={lang} ws={ws} data={data} onClose={close} profile={editing}
-          defaultGroup={group !== 'all' && group !== 'none' ? group : null}
+          defaultGroup={dialog.kind === 'new' && dialog.group !== undefined ? dialog.group : group !== 'all' && group !== 'none' ? group : null}
           onDone={p => { close(); toast(dialog.kind === 'new' ? d.profiles.done.created(p.name) : d.profiles.done.saved); }} />
       )}
       {dialog?.kind === 'import' && <ProfileImportDialog d={d} ws={ws} data={data} onClose={close} />}
@@ -332,87 +335,4 @@ function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me:
       </li>
     ))}
   </>;
-}
-
-// Groups in the sidebar: filter the profile list, add, rename and delete.
-function Groups({ d, data, manager, group, onPick }: { d: Dict; data: WorkspaceData; manager: boolean; group: GroupFilter | null; onPick(g: GroupFilter): void }){
-  const toast = useToast();
-  const G = d.groups;
-  const [adding, setAdding] = useState(false);
-  const [renaming, setRenaming] = useState<string | null>(null);
-  const [menu, setMenu] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const menuRef = useOutsideClose(!!menu, () => setMenu(null));
-  const ungrouped = (data.profiles ?? []).filter(p => !p.groupId).length;
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
-
-  async function save(e: FormEvent){
-    e.preventDefault();
-    const n = name.trim();
-    if (!n) return;
-    try {
-      if (renaming) await folio.api('PATCH', `/groups/${renaming}`, { name: n });
-      else await data.ensureGroup(n);
-      setAdding(false); setRenaming(null); setName('');
-    } catch (err){ fail(err); }
-    data.refresh('groups');
-  }
-  async function recolor(id: string, color: GroupColor){
-    try { await folio.api('PATCH', `/groups/${id}`, { color }); } catch (err){ fail(err); }
-    data.refresh('groups');
-  }
-  async function remove(id: string){
-    setConfirm(null);
-    try { await folio.api('DELETE', `/groups/${id}`); } catch (err){ fail(err); }
-    if (group === id) onPick('all');
-    data.refresh('groups', 'profiles');
-  }
-  const form = (
-    <form className="grp-form" onSubmit={save}>
-      <input aria-label={G.namePh} placeholder={G.namePh} value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus
-        onKeyDown={e => { if (e.key === 'Escape'){ setAdding(false); setRenaming(null); } }} />
-    </form>
-  );
-
-  return (
-    <div className="groups">
-      <div className="grp-t-row">
-        <p className="grp-t">{G.title}</p>
-        {manager && <button type="button" className="grp-add" aria-label={G.add} title={G.add} onClick={() => { setAdding(true); setRenaming(null); setName(''); }}>+</button>}
-      </div>
-      <div className="nav">
-        {data.groups.map(g => renaming === g.id ? <div key={g.id}>{form}</div> : (
-          <div key={g.id} className="grp-item" ref={menu === g.id ? menuRef : undefined}>
-            <button type="button" className={`nav-i${group === g.id ? ' active' : ''}`} aria-current={group === g.id ? 'true' : undefined} onClick={() => onPick(g.id)}>
-              <span className={`sq gc-${g.color}`} aria-hidden="true" />{g.name}
-            </button>
-            {manager && <button type="button" className="grp-more" aria-label={G.more(g.name)} title={G.more(g.name)} aria-expanded={menu === g.id} onClick={() => setMenu(m => (m === g.id ? null : g.id))}>⋯</button>}
-            {menu === g.id && (
-              <div className="menu" role="menu">
-                <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setRenaming(g.id); setName(g.name); }}>{G.rename}</button>
-                <div className="swatches" role="group" aria-label={G.color}>
-                  {GROUP_COLORS.map(c => <button key={c} type="button" className={`sw gc-${c}`} aria-label={G.colors[c]} title={G.colors[c]} aria-pressed={g.color === c} onClick={() => { setMenu(null); void recolor(g.id, c); }} />)}
-                </div>
-                <button className="menu-item" type="button" role="menuitem" onClick={() => { setMenu(null); setConfirm(g.id); }}>{G.delete}</button>
-              </div>
-            )}
-            {confirm === g.id && (
-              <div className="grp-confirm" role="alertdialog" aria-label={G.deleteConfirm(g.name)}>
-                <p>{G.deleteConfirm(g.name)}</p>
-                <div><button type="button" className="btn btn-sm btn-text" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
-                  <button type="button" className="btn btn-sm btn-danger solid" onClick={() => void remove(g.id)}>{G.delete}</button></div>
-              </div>
-            )}
-          </div>
-        ))}
-        {data.groups.length > 0 && ungrouped > 0 && (
-          <button type="button" className={`nav-i${group === 'none' ? ' active' : ''}`} onClick={() => onPick('none')}>
-            <span className="sq" aria-hidden="true" />{G.none}
-          </button>
-        )}
-        {adding && form}
-      </div>
-    </div>
-  );
 }

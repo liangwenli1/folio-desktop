@@ -250,23 +250,8 @@ html[data-platform="win32"] .top{padding-right:150px}
 .cnt{margin-left:auto;font:500 11.5px var(--f-data);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .nav-i.active .cnt{color:var(--accent-ink)}
 .cnt.on{font-family:var(--f-body);font-weight:600;color:var(--good-ink);background:var(--good-soft);padding:0 7px;border-radius:99px}
-.groups{display:flex;flex-direction:column;gap:1px;flex:1 1 auto;min-height:72px}
-.groups > .nav{overflow-y:auto;min-height:0;scrollbar-width:thin}
-.groups .nav-i{height:32px}
-.grp-t-row{display:flex;align-items:center;justify-content:space-between;padding:14px 4px 4px 9px}
-.grp-t{font-size:12px;font-weight:600;color:var(--ink-3)}
-.grp-add,.grp-more{width:24px;height:24px;flex:none;border:0;border-radius:6px;background:transparent;color:var(--ink-3);cursor:pointer;line-height:1}
-.grp-add:hover,.grp-more:hover{background:var(--hover);color:var(--ink)}
-.grp-item{position:relative;display:flex;align-items:center}
-.grp-item .nav-i{padding-right:30px}
-.grp-item .grp-more{position:absolute;right:3px;opacity:0}
-.grp-item:hover .grp-more,.grp-item .grp-more:focus-visible,.grp-item .grp-more[aria-expanded="true"]{opacity:1}
-.grp-form input{width:100%;height:30px;padding:0 10px;border:1px solid var(--ink-3);border-radius:var(--r);background:var(--card);font-size:13px}
-.grp-confirm{position:absolute;z-index:11;left:0;right:0;top:calc(100% + 4px);display:grid;gap:8px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-pop);font-size:13px}
-.grp-confirm div{display:flex;justify-content:flex-end;gap:6px}
 .sq{width:8px;height:8px;flex:none;margin:0 8px;border-radius:3px;background:var(--line-2)}
-.nav-i.active .sq:not([class*="gc-"]){background:var(--accent)}
-/* group colours: the square in the sidebar, the dot in lists, the swatches in a group's menu */
+/* group colours: the square and dot in lists, the folder in the group tree, the swatches in a group's settings */
 .gc-red{--gc:#D2445E} .gc-blue{--gc:#2F6FD6} .gc-green{--gc:#1E8A63} .gc-amber{--gc:#C98A12} .gc-purple{--gc:#7A4FC4} .gc-teal{--gc:#1F8A97} .gc-gray{--gc:#8A8F98}
 .sq[class*="gc-"],.d[class*="gc-"]{background:var(--gc)}
 .swatches{display:flex;gap:7px;padding:8px 10px}
@@ -812,15 +797,6 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .ext-pick .mono{font-size:12px}
 
 /* team: departments as cards, people in a table with their role and latest activity, invitations waiting */
-.depts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin:2px var(--gx) 14px;flex:none}
-.dept{display:flex;align-items:center;gap:12px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);text-align:left;cursor:pointer}
-.dept:disabled{cursor:default}
-.dept:hover:not(:disabled){border-color:var(--line-2)}
-.dept > span:last-child{display:grid;min-width:0}
-.dept b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dept small{font-size:12.5px;color:var(--ink-2)}
-.dept.add{border-style:dashed;background:transparent;box-shadow:none}
-.dept .kic{margin:0}
 .kic.accent{background:var(--accent-soft);color:var(--accent)}
 .pav{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;border-radius:50%;color:#fff;font-size:12.5px;font-weight:700;box-shadow:0 3px 8px -3px rgba(29,28,43,.4)}
 .pav.c0{background:#D2445E} .pav.c1{background:#2F6FD6} .pav.c2{background:#1E8A63} .pav.c3{background:#C98A12} .pav.c4{background:#7A4FC4} .pav.c5{background:#1F8A97}
@@ -1230,6 +1206,52 @@ tr.bad-row td{background:var(--bad-soft)}
 /* with the notes open on a narrower window, size and release date go (the notes show them) */
 @container (max-width:1000px){.en-t .c-size,.en-t .c-rel{display:none}}
 .en-foot{display:flex;align-items:center;gap:12px;margin:0}
+
+/* groups: the tree, the picked group's profiles, and its settings */
+.gp{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
+.gp.with-panel{grid-template-columns:240px minmax(0,1fr) 320px}
+.gp .sec-row h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
+.gp-tree{position:sticky;top:12px;align-content:start}
+.gp-tree ul{margin:0;padding:0;list-style:none}
+.gt-row{display:flex;align-items:center;gap:2px;border-radius:var(--r)}
+.gt-row:hover{background:var(--hover)}
+.gt-row.cur{background:var(--sel)}
+.gt-fold{display:inline-grid;place-items:center;width:20px;height:20px;flex:none;padding:0;border:0;background:none;color:var(--ink-3);cursor:pointer}
+.gt-fold .i{width:14px;height:14px}
+.gt-pick{display:flex;align-items:center;gap:8px;flex:1;min-width:0;height:36px;padding:0 8px 0 2px;border:0;background:none;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
+.gt-row.cur .gt-pick{color:var(--accent-ink);font-weight:600}
+.gt-ic{display:inline-grid;place-items:center;color:var(--ink-3)}
+.gt-ic[class*="gc-"]{color:var(--gc)}
+.gt-ic .i{width:16px;height:16px}
+.gt-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gt-c{font:500 12px var(--f-data);color:var(--ink-3);font-variant-numeric:tabular-nums}
+.gt-row.cur .gt-c{color:var(--accent-ink)}
+.gp-main{gap:12px;min-width:0;container-type:inline-size}
+/* beside the tree and the settings on a narrower window, the country column goes so the rest stays in view */
+@container (max-width:640px){.gp-t .c-region{display:none}}
+.gp-t table{min-width:0}
+.gp-main .filters .search{flex:1;width:auto;min-width:150px}
+.gp-main .filters .grp-pick{min-width:120px}
+.gp-head{display:flex;align-items:flex-start;gap:10px}
+.gp-head h2{font-size:18px;line-height:26px;font-weight:600}
+.gp-main .filters{padding:0}
+.gp-main .tw,.gp-main .bulk{margin:0;flex:none;min-height:0}
+.gp-main td.ellip{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gp-set .field{margin:0}
+.gp-set > .btn{width:100%}
+.gp-del{color:var(--bad)}
+.swatches.big{padding:4px 0}
+.swatches.big .sw{width:24px;height:24px}
+.gm-list{display:grid;margin:0;padding:0;list-style:none}
+.gm-list li{display:grid;grid-template-columns:auto minmax(0,1fr) 116px auto;align-items:center;gap:8px;padding:6px 0}
+.gm-list li + li{border-top:1px solid var(--line)}
+.gm-e{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.gm-r .sel{width:100%}
+.gp-new{gap:14px}
+.gp-h{padding-top:12px;border-top:1px solid var(--line);font-size:15px;font-weight:600}
+.pi-notes ul{margin:0;padding-left:18px;color:var(--ink-2);line-height:1.8}
+.pi-notes li b{margin-right:8px;color:var(--ink)}
+.gp-t .rowlink{white-space:nowrap}
 .en-notes{margin:0;padding-left:18px;font-size:13px;line-height:1.8}
 .en-warn{display:flex;align-items:flex-start;gap:8px;font-size:13px}
 .en-warn > .i{flex:none;width:16px;height:16px;margin-top:2px}
@@ -1339,7 +1361,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
   .side{padding:14px 10px}
   .brand{justify-content:center;padding:2px 0 10px}
   /* The workspace switcher, the plan and the invitation dot are all in the account menu as well. */
-  .brand-word,.nav-l,.cnt,.grp-t-row,.groups,.plan,.update,.ws{display:none}
+  .brand-word,.nav-l,.cnt,.plan,.update,.ws{display:none}
   .nav-i{justify-content:center;gap:0;padding:0}
 }
 

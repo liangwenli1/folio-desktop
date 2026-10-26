@@ -90,10 +90,13 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   await expect(detail(winA).getByTestId('detail-name')).toHaveText('Shared-01', { timeout: 5000 });
 
   await winB.keyboard.press('Escape');
+  await winB.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Groups' }).click();
   await winB.getByRole('button', { name: 'New group' }).click();
-  await winB.getByLabel('Group name').fill('EU stores');
-  await winB.getByLabel('Group name').press('Enter');
-  await expect(winA.locator('.groups')).toContainText('EU stores', { timeout: 5000 });
+  const newGroup = winB.getByRole('dialog', { name: 'New group' });
+  await newGroup.getByRole('textbox', { name: /^Group name/ }).fill('EU stores');
+  await newGroup.getByRole('button', { name: 'Create group' }).click();
+  await winA.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Groups' }).click();
+  await expect(winA.getByRole('tree', { name: 'Group list' })).toContainText('EU stores', { timeout: 5000 });
   await Promise.all([a.close(), b.close()]);
 });
 
@@ -174,13 +177,13 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await expect(row(win, 'CSV-01')).toContainText('macOS');
   await choose(win.getByRole('combobox', { name: 'Groups' }), 'Imported');
   await expect(win.locator('tr[data-id]')).toHaveText([/CSV-0/, /CSV-0/]);
-  await expect(win.locator('.groups')).toContainText('Imported');
-  // A group's colour, picked from its menu.
-  const imported = win.locator('.grp-item', { hasText: 'Imported' });
-  await imported.hover();
-  await win.getByRole('button', { name: 'More for Imported' }).click();
-  await win.getByRole('button', { name: 'Teal' }).click();
-  await expect(imported.locator('.sq')).toHaveClass(/gc-teal/);
+  // A group's colour, picked in its settings on the Groups page.
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Groups' }).click();
+  await win.getByRole('tree', { name: 'Group list' }).getByRole('button', { name: /^Imported/ }).click();
+  const settings = win.getByRole('complementary', { name: 'Group settings' });
+  await settings.getByRole('button', { name: 'Teal' }).click();
+  await settings.getByRole('button', { name: 'Save settings' }).click();
+  await expect(win.locator('[data-group="Imported"] .gt-ic')).toHaveClass(/gc-teal/);
   expect((await (await acct.api.get(`/workspaces/${acct.workspaceId}/proxies`)).json()).proxies).toHaveLength(2);
   await app.close();
 });
