@@ -1518,7 +1518,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .dot-st{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);white-space:nowrap}
 .dot-st::before{content:'';width:7px;height:7px;flex:none;border-radius:50%;background:var(--ink-3)}
 /* in a table a long status (in use on someone's computer) takes a second line, so the row's actions keep theirs */
-.tw td .dot-st{white-space:normal;align-items:flex-start}
+.tw td .dot-st{white-space:normal;word-break:keep-all;align-items:flex-start}
 .tw td .dot-st::before{margin-top:6px}
 .dot-st.run{color:var(--good-ink)} .dot-st.run::before{background:var(--good)}
 .dot-st.boot{color:var(--warn-ink)} .dot-st.boot::before{background:var(--warn)}
