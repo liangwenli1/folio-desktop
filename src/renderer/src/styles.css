@@ -865,6 +865,39 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .role.owner{background:var(--accent-soft);color:var(--accent-ink)} .role.admin{background:var(--info-soft);color:var(--info)}
 .tw.flow{flex:none;min-height:0;overflow:visible;margin-bottom:14px}
 
+/* the task center: jobs with their progress, and one job's results and log beside them */
+.jb-live{display:inline-flex;align-items:center;gap:8px;height:var(--h-ctl);padding:0 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.jb-live > .i{width:15px;height:15px;color:var(--ink-3)}
+.jb-main{gap:12px;min-width:0}
+.jb-main .filters{padding:0}
+.jb-t{margin:0;flex:none;min-height:0}
+.jb-t tbody tr[data-job]{cursor:pointer}
+.jb-t td.nowrap{white-space:nowrap}
+.jb-bar{display:grid;grid-template-columns:auto minmax(60px,1fr) auto;align-items:center;gap:4px 8px;min-width:150px}
+.jb-bar .mono{font-size:12.5px}
+.jb-bar small{font-size:11.5px;color:var(--ink-3)}
+.meter.good i{background:var(--good)} .meter.warn i{background:var(--warn)}
+.jb-st{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;white-space:nowrap}
+.jb-st .i{width:14px;height:14px}
+.jb-st.running{color:var(--info)} .jb-st.done{color:var(--good-ink)} .jb-st.partial{color:var(--warn-ink)} .jb-st.canceled{color:var(--ink-3)}
+.jb-panel .sec-row{justify-content:flex-start}
+.jb-panel .sec-row .icon-btn{margin-left:auto}
+.jb-stats{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
+.jb-items{margin:0;max-height:300px;flex:none;min-height:0}
+.side-wrap.with-panel.jb-wrap{grid-template-columns:minmax(0,1fr) 400px}
+.jb-items table{min-width:0}
+.jb-items .ellip{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jb-r{font-size:12.5px;font-weight:600}
+.jb-r.ok{color:var(--good-ink)} .jb-r.failed{color:var(--bad)} .jb-r.pending,.jb-r.canceled{color:var(--ink-3)}
+.jb-log{display:grid;gap:6px;max-height:300px;margin:0;padding:0;overflow:auto;list-style:none;font-size:12.5px}
+.jb-log li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px}
+.jb-log time{font:12px var(--f-data);color:var(--ink-3)}
+.jb-log li.failed span{color:var(--bad)}
+.jb-foot{display:grid;gap:10px;padding-top:6px;border-top:1px solid var(--line)}
+.jb-foot .hint{display:flex;align-items:center;gap:6px}
+.jb-foot .hint .i{width:14px;height:14px;flex:none}
+.jb-acts{display:grid;grid-template-columns:3fr 2fr;gap:10px}
+
 /* activity: the filters in a band, the log as a table with an entry's details beside it */
 .seg.wrap{flex-wrap:wrap}
 .lg-f{margin:0 var(--gx) 12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}

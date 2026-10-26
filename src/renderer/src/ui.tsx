@@ -58,7 +58,8 @@ const PATHS = {
   edit: 'M10.5 2.5l3 3-8 8h-3v-3zM9 4l3 3',
   info: 'M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0zM8 7.3v3.9M8 4.8v.01',
   folder: 'M2 4.5a1 1 0 0 1 1-1h3.2l1.5 1.5H13a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z',
-  lock: 'M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 4 0v2'
+  lock: 'M4.5 7.5h7v6h-7zM6 7.5V5.5a2 2 0 0 1 4 0v2',
+  jobs: 'M5.5 3.5h-1a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-1M6 2.5h4v2H6zM6 9.5l1.5 1.5 3-3'
 };
 export type IconName = keyof typeof PATHS;
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 16 16" aria-hidden="true"><path d={PATHS[name]} /></svg>;

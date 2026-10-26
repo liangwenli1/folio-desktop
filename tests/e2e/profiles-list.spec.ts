@@ -59,7 +59,24 @@ test('editing several at once skips the running ones, and says so', async () => 
   expect(list.find(p => p.id === b.id)).toMatchObject({ groupId: group.id, startUrl: 'https://shop.example/' });
   expect(list.find(p => p.id === a.id)).toMatchObject({ groupId: null, startUrl: null });
 
+  // The task center has the edit as a job: the running one failed for being open; once it stops, a retry reaches it.
+  const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
+  await nav('Task center');
+  const job = win.locator('tr[data-job="profile.edit"]');
+  await expect(job).toContainText('Partly failed');
+  await job.getByRole('button', { name: 'View' }).click();
+  const panel = win.getByRole('complementary', { name: 'Edit profiles' });
+  await expect(panel.locator('tr[data-item="Edit-A"]')).toContainText('The profile was running');
+  await win.evaluate(id => window.folio.stopProfile(id), a.id);
+  await expect.poll(async () => (await win.evaluate(id => window.folio.statuses(), a.id)).length, { timeout: 60_000 }).toBe(0);
+  await panel.getByRole('button', { name: 'Retry failed (1)' }).click();
+  await expect(job).toContainText('Done', { timeout: 30_000 });
+  expect(((await (await acct.api.get(`${base}/profiles`)).json()).profiles as { id: string; groupId: string | null }[]).find(p => p.id === a.id)).toMatchObject({ groupId: group.id });
+  await nav('Profiles');
+
   // With the box cleared, the running one is changed too.
+  expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
+  for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
   await win.getByTestId('bulk').getByRole('button', { name: 'Edit together' }).click();
   await dialog.getByRole('checkbox', { name: 'Start page' }).check();
   await dialog.getByRole('textbox').fill('https://other.example/');

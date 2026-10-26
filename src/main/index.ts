@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, Notification, s
 import { writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import type { ExtensionSource, FingerprintAsk, KernelKind, Labels, Method, Os, ProxyDraft, Step, SyncOptions } from '../shared/bridge';
-import { SITE_URL, forRenderer, login, logout } from './api';
+import { SITE_URL, deviceId, forRenderer, login, logout } from './api';
 import { getToken, loadToken } from './session';
 import { watch } from './changes';
 import { firefoxGpuList, generate } from './fingerprint';
@@ -199,7 +199,7 @@ ipcMain.handle('folio:runImport', async (_e, token: string, workspaceId: string)
   } catch (err){ return failure((err as Error).message); }
 });
 
-ipcMain.handle('folio:info', () => ({ locale: app.getLocale(), version: app.getVersion(), siteUrl: SITE_URL, platform: process.platform }));
+ipcMain.handle('folio:info', () => ({ locale: app.getLocale(), version: app.getVersion(), siteUrl: SITE_URL, platform: process.platform, deviceId: deviceId() }));
 
 // The open workspace: live changes, plus a proxy health check every ten minutes. A change to profiles may be a
 // takeover of one running here, so their locks are checked right away.

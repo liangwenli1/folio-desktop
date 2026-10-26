@@ -6,7 +6,8 @@ import type { Cookie, CookieKey } from './cookies';
 export interface ApiErrorBody { code: string; message: string; status: number }
 export type ApiResult<T = unknown> = { ok: true; data: T } | { ok: false; error: ApiErrorBody };
 export type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export interface AppInfo { locale: string; version: string; siteUrl: string; platform: string }
+// `deviceId`: this install's, as the server knows it (the computer a batch job ran on).
+export interface AppInfo { locale: string; version: string; siteUrl: string; platform: string; deviceId: string }
 
 export type KernelKind = 'chromium' | 'firefox';
 export type Os = 'windows' | 'macos' | 'linux';
@@ -48,7 +49,7 @@ export interface KernelSettings { autoDownload: boolean; idleOnly: boolean }
 export interface KernelUpload { stage: 'hash' | 'upload'; done: number; total: number }
 export interface KernelProgress { kind: KernelKind; version: string; done: number; total: number; error?: string; finished?: boolean; paused?: boolean }
 export interface ImportPreview { workspace: string; exportedAt: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }
-export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions'; ids?: string[] }
+export interface Change { kind: 'profiles' | 'proxies' | 'groups' | 'workspace' | 'members' | 'removed' | 'flows' | 'tasks' | 'runs' | 'extensions' | 'jobs'; ids?: string[] }
 export type ExtensionSource = { file: Uint8Array } | { store: string };
 // The window sync under way: the leader and every window in it. `coords`: a follower didn't have the element the
 // leader clicked (`label`, what it said) and got the click at the same place in its window; `failed`: something

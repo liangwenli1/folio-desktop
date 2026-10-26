@@ -30,7 +30,7 @@ export const en = {
     walkthrough: 'Workbench walkthrough: checking proxies, opening a browser profile, restoring tabs, a health check, installing an extension, batch opening, window sync and teamwork.',
     pause: 'Pause walkthrough', play: 'Play walkthrough'
   },
-  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan & billing', help: 'Help', more: 'More' },
+  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan & billing', help: 'Help', more: 'More' },
   groups: {
     title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name',
     color: 'Colour', colors: { red: 'Red', blue: 'Blue', green: 'Green', amber: 'Amber', purple: 'Purple', teal: 'Teal', gray: 'Grey' },
@@ -482,6 +482,23 @@ export const en = {
     groupAccess: 'Group access',
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
   },
+  jobs: {
+    title: 'Task center', lead: 'How batch operations went: what each reached, and why anything failed.',
+    live: 'Auto-refresh', kind: 'Type', range: 'Time',
+    tabs: { all: 'All tasks', running: 'Running', done: 'Done', partial: 'Partly failed', canceled: 'Canceled' },
+    kinds: { all: 'All types', 'proxy.check': 'Check proxies', 'profile.open': 'Open profiles', 'proxy.import': 'Import proxies', 'profile.edit': 'Edit profiles', 'kernel.download': 'Download engine' },
+    ranges: { day: 'Last 24 hours', week: 'Last 7 days', month: 'Last 30 days', all: 'Any time' },
+    cols: { name: 'Task', by: 'Started by', progress: 'Progress', status: 'Status', created: 'Created', actions: 'Actions', target: 'Target', result: 'Result', reason: 'Why it failed', at: 'Finished' },
+    states: { running: 'Running', done: 'Done', partial: 'Partly failed', failed: 'Failed', canceled: 'Canceled' },
+    results: { pending: 'Waiting', ok: 'Done', failed: 'Failed', canceled: 'Canceled' },
+    me: 'You', view: 'View', empty: 'No tasks in this period.', by: (who: string) => `Started by ${who}`,
+    total: 'Total', ok: 'Done', failed: 'Failed', canceled: 'Canceled', resultsTab: 'Results', logTab: 'Log',
+    started: (n: number) => `Started on ${n === 1 ? '1 target' : `${n} targets`}`, finished: (s: string) => `Finished: ${s}`,
+    retry: (n: number) => `Retry failed (${n})`, retryNote: 'Only the failed ones run again; the ones done stay as they are.',
+    retryElsewhere: 'It ran on another computer: retry it there.', retryTheirs: 'Only whoever started it can retry it.',
+    cancel: 'Cancel task', download: 'Download results', saved: (p: string) => `Saved to ${p}`,
+    errors: { running: 'The profile was running', gone: 'The profile was deleted', paused: 'The download was paused', failed: 'Failed', canceled: 'Canceled' } as Record<string, string>
+  },
   rolesPage: {
     list: 'Roles', add: 'New role', note: 'A role decides what someone may do; the groups they are in decide which profiles.',
     descs: { owner: 'Built in, with every permission', admin: 'Manages the team and every resource', member: 'Uses the profiles in their groups', viewer: 'Looks, changes nothing' } as Record<string, string>,
@@ -841,7 +858,7 @@ export const zh: Dict = {
     walkthrough: '工作台操作演示：检查代理、打开浏览器环境、恢复标签页、体检、安装扩展、批量打开、窗口同步与团队协作。',
     pause: '暂停演示', play: '播放演示'
   },
-  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '账号与计费', help: '帮助中心', more: '更多' },
+  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '账号与计费', help: '帮助中心', more: '更多' },
   groups: {
     title: '分组', all: '全部分组', none: '未分组', add: '新建分组', namePh: '请输入分组名称',
     color: '分组颜色', colors: { red: '红色', blue: '蓝色', green: '绿色', amber: '橙色', purple: '紫色', teal: '青色', gray: '灰色' },
@@ -1282,6 +1299,23 @@ export const zh: Dict = {
     removedYou: (ws: string) => `您已不在「${ws}」中，其环境已在本机关闭并删除。`,
     groupAccess: '分组授权',
     invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请您成为${role}`
+  },
+  jobs: {
+    title: '任务中心', lead: '查看批量操作进度、执行结果与失败原因。',
+    live: '自动刷新', kind: '任务类型', range: '时间范围',
+    tabs: { all: '全部任务', running: '进行中', done: '已完成', partial: '部分失败', canceled: '已取消' },
+    kinds: { all: '全部类型', 'proxy.check': '批量检测代理', 'profile.open': '批量启动环境', 'proxy.import': '导入代理', 'profile.edit': '批量更新环境', 'kernel.download': '内核下载' },
+    ranges: { day: '最近 24 小时', week: '最近 7 天', month: '最近 30 天', all: '全部时间' },
+    cols: { name: '任务名称', by: '发起人', progress: '进度', status: '状态', created: '创建时间', actions: '操作', target: '对象', result: '结果', reason: '失败原因', at: '完成时间' },
+    states: { running: '进行中', done: '已完成', partial: '部分失败', failed: '失败', canceled: '已取消' },
+    results: { pending: '等待中', ok: '成功', failed: '失败', canceled: '已取消' },
+    me: '我', view: '查看', empty: '该时间段内暂无任务。', by: (who: string) => `发起人：${who}`,
+    total: '总数', ok: '成功', failed: '失败', canceled: '已取消', resultsTab: '执行结果', logTab: '任务日志',
+    started: (n: number) => `开始执行，共 ${n} 项`, finished: (s: string) => `执行结束：${s}`,
+    retry: (n: number) => `重试失败项（${n}）`, retryNote: '仅重试失败项，已成功项保持当前结果。',
+    retryElsewhere: '该任务在其他电脑上执行，请在那台电脑上重试。', retryTheirs: '仅任务发起人可重试。',
+    cancel: '取消任务', download: '下载结果', saved: (p: string) => `已保存到 ${p}`,
+    errors: { running: '环境正在运行', gone: '环境已删除', paused: '下载已暂停', failed: '执行失败', canceled: '已取消' } as Record<string, string>
   },
   rolesPage: {
     list: '角色列表', add: '新建角色', note: '角色决定操作能力，分组授权决定资源范围。',

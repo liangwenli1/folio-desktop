@@ -4,6 +4,7 @@ import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Worksp
 import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { GroupsPage } from './Groups';
+import { JobsPage } from './Jobs';
 import { LANG_NAMES, errorText, roleName, type Dict, type Lang } from './i18n';
 import { planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
@@ -31,7 +32,7 @@ interface Props {
   onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
 }
 
-type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'trash' | 'settings' | 'billing';
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'jobs' | 'trash' | 'settings' | 'billing';
 // A new profile can start in a group picked on the Groups page.
 type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 
@@ -110,7 +111,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   // The order the delivery spec gives, then the pages it does not draw, then the Trash.
   const pages: [Page, IconName, string, boolean][] = [
     ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['engines', 'engines', d.nav.engines, true], ['groups', 'folder', d.nav.groups, true],
-    ['team', 'team', d.nav.team, true], ['activity', 'activity', d.nav.activity, true], ['tasks', 'tasks', d.nav.tasks, true],
+    ['team', 'team', d.nav.team, true], ['activity', 'activity', d.nav.activity, true], ['jobs', 'jobs', d.nav.jobs, true], ['tasks', 'tasks', d.nav.tasks, true],
     ['extensions', 'extensions', d.nav.extensions, true], ['sync', 'sync', d.nav.sync, true], ['flows', 'flows', d.nav.flows, true],
     ['api', 'api', d.nav.api, true], ['trash', 'trash', d.nav.trash, manager],
     ['settings', 'settings', d.nav.settings, true], ['billing', 'billing', d.nav.billing, manager]
@@ -229,6 +230,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           <NavItem icon="folder" label={d.nav.groups} active={shown === 'groups'} onClick={() => go('groups')} />
           <NavItem icon="team" label={d.nav.team} active={shown === 'team'} onClick={() => go('team')} />
           <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
+          <NavItem icon="jobs" label={d.nav.jobs} active={shown === 'jobs'} onClick={() => go('jobs')} />
           <NavItem icon="tasks" label={d.nav.tasks} active={shown === 'tasks'} onClick={() => go('tasks')} />
           <NavItem icon="extensions" label={d.nav.extensions} active={shown === 'extensions'} onClick={() => go('extensions')} />
           <NavItem icon="sync" label={d.nav.sync} badge={data.sync ? d.windowSync.onBadge : undefined} active={shown === 'sync'} onClick={() => go('sync')} />
@@ -284,6 +286,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         onShowProfiles={ids => { go('profiles'); setOnly(new Set(ids)); }} />}
       {shown === 'groups' && <GroupsPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data}
         onOpenProfile={id => { go('profiles'); setOpenId(id); }} onNewProfile={g => setDialog({ kind: 'new', group: g })} />}
+      {shown === 'jobs' && <JobsPage d={d} lang={lang} meId={me.user.id} data={data} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'settings' && <SettingsPage d={d} ws={ws} data={data} manager={manager} />}

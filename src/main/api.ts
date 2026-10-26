@@ -44,8 +44,8 @@ async function call<T>(method: Method, path: string, body?: unknown, withToken =
   return { ok: true, data: data as T };
 }
 
-// This install's id, sent when logging in, so the server knows which computer a scheduled task runs on.
-function deviceId(){
+// This install's id, sent when logging in, so the server knows which computer a scheduled task (or a batch job) runs on.
+export function deviceId(){
   const file = join(app.getPath('userData'), 'device.json');
   try { return (JSON.parse(readFileSync(file, 'utf8')) as { id: string }).id; } catch {
     const id = randomUUID();

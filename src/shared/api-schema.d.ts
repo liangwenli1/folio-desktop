@@ -5936,6 +5936,386 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/workspaces/{id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    since?: unknown;
+                    kind?: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            jobs: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                                detail: {
+                                    [key: string]: unknown;
+                                };
+                                /** @enum {string} */
+                                status: "running" | "done" | "partial" | "canceled";
+                                startedBy: string | null;
+                                startedById: string | null;
+                                deviceId: string | null;
+                                deviceName: string | null;
+                                total: number;
+                                ok: number;
+                                failed: number;
+                                canceled: number;
+                                createdAt: string;
+                                finishedAt: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        kind: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                        /** @default {} */
+                        detail?: {
+                            [key: string]: unknown;
+                        };
+                        items: {
+                            targetId?: string | null;
+                            name: string;
+                            result?: {
+                                ok: boolean;
+                                error?: string | null;
+                            };
+                        }[];
+                        /** @default false */
+                        finish?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                            detail: {
+                                [key: string]: unknown;
+                            };
+                            /** @enum {string} */
+                            status: "running" | "done" | "partial" | "canceled";
+                            startedBy: string | null;
+                            startedById: string | null;
+                            deviceId: string | null;
+                            deviceName: string | null;
+                            total: number;
+                            ok: number;
+                            failed: number;
+                            canceled: number;
+                            createdAt: string;
+                            finishedAt: string | null;
+                            items: {
+                                seq: number;
+                                targetId: string | null;
+                                name: string;
+                                /** @enum {string} */
+                                status: "pending" | "ok" | "failed" | "canceled";
+                                error: string | null;
+                                attempts: number;
+                                at: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                            detail: {
+                                [key: string]: unknown;
+                            };
+                            /** @enum {string} */
+                            status: "running" | "done" | "partial" | "canceled";
+                            startedBy: string | null;
+                            startedById: string | null;
+                            deviceId: string | null;
+                            deviceName: string | null;
+                            total: number;
+                            ok: number;
+                            failed: number;
+                            canceled: number;
+                            createdAt: string;
+                            finishedAt: string | null;
+                            items: {
+                                seq: number;
+                                targetId: string | null;
+                                name: string;
+                                /** @enum {string} */
+                                status: "pending" | "ok" | "failed" | "canceled";
+                                error: string | null;
+                                attempts: number;
+                                at: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        results: {
+                            seq: number;
+                            ok: boolean;
+                            error?: string | null;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @default false */
+                        canceled?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                            detail: {
+                                [key: string]: unknown;
+                            };
+                            /** @enum {string} */
+                            status: "running" | "done" | "partial" | "canceled";
+                            startedBy: string | null;
+                            startedById: string | null;
+                            deviceId: string | null;
+                            deviceName: string | null;
+                            total: number;
+                            ok: number;
+                            failed: number;
+                            canceled: number;
+                            createdAt: string;
+                            finishedAt: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/jobs/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        seqs?: number[];
+                    } | null;
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            kind: "proxy.check" | "profile.open" | "proxy.import" | "profile.edit" | "kernel.download";
+                            detail: {
+                                [key: string]: unknown;
+                            };
+                            /** @enum {string} */
+                            status: "running" | "done" | "partial" | "canceled";
+                            startedBy: string | null;
+                            startedById: string | null;
+                            deviceId: string | null;
+                            deviceName: string | null;
+                            total: number;
+                            ok: number;
+                            failed: number;
+                            canceled: number;
+                            createdAt: string;
+                            finishedAt: string | null;
+                            items: {
+                                seq: number;
+                                targetId: string | null;
+                                name: string;
+                                /** @enum {string} */
+                                status: "pending" | "ok" | "failed" | "canceled";
+                                error: string | null;
+                                attempts: number;
+                                at: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/workspaces/{id}/extensions": {
         parameters: {
             query?: never;

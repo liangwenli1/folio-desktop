@@ -664,6 +664,10 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
     setBusy(true); setError(null);
     try {
       const r = await folio.api<ProxyImport>('POST', `/workspaces/${wsId}/proxies/import`, { text, defaultType: type, skipDuplicates: skip, ...(pattern.trim() ? { namePattern: pattern.trim() } : {}) });
+      // The lines as a job the task center lists, settled at once: what was brought in, and why the rest wasn't.
+      void folio.api('POST', `/workspaces/${wsId}/jobs`, { kind: 'proxy.import', finish: true, items: (lines ?? []).map(l => ({
+        targetId: String(l.line), name: l.ok ? `${l.host}:${l.port}` : l.text.slice(0, 200), result: l.ok ? { ok: true } : { ok: false, error: l.why }
+      })) }).catch(() => {});
       data.refresh('proxies');
       void data.check(r.proxies.filter(p => !p.lastCheck).map(p => p.id));
       toast(I.done(r.added, new Set(r.proxies.map(p => p.id)).size - r.added));

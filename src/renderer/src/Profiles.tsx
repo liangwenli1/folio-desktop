@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
-import { kernelKey, type BatchAction, type WorkspaceData } from './data';
+import { kernelKey, type BatchAction, type BulkChange, type WorkspaceData } from './data';
+import { startJob, type JobRun } from './jobs';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
@@ -53,7 +54,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const [riskOpen, setRiskOpen] = useState(false);
   // Profiles opened together from the bulk actions, shown in the tray; why the ones that couldn't start didn't.
   const [batch, setBatch] = useState<string[] | null>(null);
-  const [batchFail, setBatchFail] = useState<Record<string, string>>({});
+  // The job the tray's profiles open in, and when it is over.
+  const batchJob = useRef<{ run: JobRun | null; done: Promise<unknown> } | null>(null);
   const [editing, setEditing] = useState(false);
   // The profile whose proxy is being changed.
   const [replacing, setReplacing] = useState<Profile | null>(null);
@@ -125,15 +127,19 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     // The workspace may want a profile's page to show as it starts.
     else if (ws.settings.openDetailAfterLaunch) pick(p.id);
   }
-  // Several at once: their progress goes to the tray instead of toasts.
-  function launch(p: Profile){
-    setBatchFail(m => { const n = { ...m }; delete n[p.id]; return n; });
-    void data.launch(p).then(w => { if (w) setBatchFail(m => ({ ...m, [p.id]: why(w) })); });
-  }
-  function openMany(targets: Profile[]){
+  // Several at once: a job (the task center lists it), with their progress in the tray instead of toasts.
+  async function openMany(targets: Profile[]){
     if (targets.length < 2){ targets.forEach(p => void open(p)); return; }
     setBatch(targets.map(p => p.id));
-    targets.forEach(launch);
+    const run = await startJob(ws.id, 'profile.open', targets.map(p => ({ targetId: p.id, name: p.name })));
+    batchJob.current = { run, done: data.openMany(targets, run ?? undefined) };
+  }
+  // A failed one again: once its job is over, by retrying that target of it.
+  async function retry(p: Profile){
+    const b = batchJob.current, seq = b?.run?.seq(p.id);
+    if (!b?.run || !seq){ void data.launch(p); return; }
+    await b.done;
+    void data.rerun(b.run.id, [seq]);
   }
   const stop = (p: Profile) => folio.stopProfile(p.id);
   async function exportCookies(list: Profile[], format: 'json' | 'netscape'){
@@ -416,8 +422,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
         )}
       </main>
 
-      {batch && <Tray d={d} data={data} profiles={batch.map(id => all.find(p => p.id === id)).filter((p): p is Profile => !!p)} failed={batchFail}
-        onRetry={launch} onClose={() => setBatch(null)} />}
+      {batch && <Tray d={d} data={data} profiles={batch.map(id => all.find(p => p.id === id)).filter((p): p is Profile => !!p)}
+        onRetry={p => void retry(p)} onClose={() => setBatch(null)} />}
 
     </div>
   );
@@ -533,11 +539,11 @@ function Card(props: ItemProps){
 }
 
 // Profiles opened together: each one's progress, why it couldn't open, and a retry. Folds away; goes once they all opened.
-function Tray({ d, data, profiles, failed, onRetry, onClose }: { d: Dict; data: WorkspaceData; profiles: Profile[]; failed: Record<string, string>; onRetry(p: Profile): void; onClose(): void }){
+function Tray({ d, data, profiles, onRetry, onClose }: { d: Dict; data: WorkspaceData; profiles: Profile[]; onRetry(p: Profile): void; onClose(): void }){
   const T = d.batchOpen, P = d.profiles;
   const [folded, setFolded] = useState(false);
   const rows = profiles.map(p => {
-    const why = failed[p.id] ?? (data.failed[p.id] ? d.launch[data.failed[p.id]] ?? d.launch.launch_failed : null);
+    const why = data.failed[p.id] ? d.launch[data.failed[p.id]] ?? d.launch.launch_failed : null;
     const s = data.status[p.id], pr = data.progress[kernelKey(p.kernel, p.kernelVersion)];
     if (why) return { p, tone: 'bad', st: <span className="st bad"><Icon name="alert" />{why}</span>, pct: 100 };
     if (s?.state === 'running') return { p, tone: 'run', st: <span className="st run"><Icon name="check" />{T.opened}</span>, pct: 100 };
@@ -619,19 +625,18 @@ function BulkEdit({ d, data, profiles, onClose, onDone, onFail }: {
     on.start && `${B.start}: ${start.trim() || '—'}`
   ].filter(Boolean) as string[];
 
+  // A job (the task center lists it): running profiles left alone are reported, so a retry reaches them once stopped.
   async function submit(){
-    const ids = targets.map(p => p.id);
+    const [kind, version] = engine.split(':') as [Profile['kernel'], string];
+    const change: BulkChange = {
+      stoppedOnly, ...(on.group ? { groupId: groupId === 'none' ? null : groupId } : {}), ...(on.proxy ? { proxyId: proxyId === 'none' ? null : proxyId } : {}),
+      ...(on.engine && engine ? { kernel: { kind, version } } : {}), ...(on.start ? { startUrl: start.trim() || null } : {})
+    };
     setBusy(true);
     try {
-      if (on.group) await data.batch('move', ids, { groupId: groupId === 'none' ? null : groupId });
-      if (on.proxy) await data.batch('set-proxy', ids, { proxyId: proxyId === 'none' ? null : proxyId });
-      if (on.engine && engine){
-        const [kind, version] = engine.split(':') as [Profile['kernel'], string];
-        await data.batch('set-kernel', targets.filter(p => p.kernel === kind).map(p => p.id), { kernel: kind, kernelVersion: version });
-      }
-      if (on.start) await data.batch('set-browser', ids, { startUrl: start.trim() || null });
-      onDone(ids.length);
-    } catch (e){ onFail(e); } finally { setBusy(false); }
+      const error = await data.applyEdit(change, profiles);
+      if (error) onFail({ code: error, status: 400, message: error }); else onDone(targets.length);
+    } finally { setBusy(false); }
   }
 
   const row = (k: keyof typeof on, label: string, hint: string, field: ReactNode) => (
