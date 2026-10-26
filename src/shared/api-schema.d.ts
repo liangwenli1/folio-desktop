@@ -90,6 +90,8 @@ export interface paths {
                         deviceName?: string;
                         /** Format: uuid */
                         deviceId?: string;
+                        /** @default true */
+                        remember?: boolean;
                     };
                 };
             };
@@ -1511,12 +1513,62 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @enum {string} */
+                        kind: "product" | "support" | "partner";
                         name: string;
                         /** Format: email */
                         email: string;
-                        company?: string;
-                        teamSize?: string;
+                        teamSize: string;
                         message: string;
+                        /**
+                         * @default en
+                         * @enum {string}
+                         */
+                        locale?: "en" | "zh";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            number: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/doc-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        page: string;
+                        helpful: boolean;
                         /**
                          * @default en
                          * @enum {string}
