@@ -66,7 +66,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   const list = (await (await to.api.get(`/workspaces/${to.workspaceId}/profiles`)).json()).profiles;
   const imported = list.find((p: { name: string }) => p.name === 'Shop-DE');
   expect(imported.data).toMatchObject({ cookies: 1 });
-  const cookies = (await (await to.api.get(`/profiles/${imported.id}/cookies`)).json()).cookies;
+  const cookies = (await (await to.api.get(`/profiles/${imported.id}/cookies/values`)).json()).cookies;
   expect(cookies).toMatchObject([{ name: 'sid', value: 'signed-in' }]);
   const newProxy = (await (await to.api.get(`/workspaces/${to.workspaceId}/proxies`)).json()).proxies[0];
   expect(imported.proxyId).toBe(newProxy.id);

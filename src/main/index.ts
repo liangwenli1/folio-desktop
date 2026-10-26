@@ -133,7 +133,7 @@ ipcMain.handle('folio:exportCookies', async (e, profiles: { id: string; name: st
   const failed: { name: string; code: string }[] = [];
   for (const p of profiles){
     if (isRunning(p.id)) await saveNow(p.id);
-    const r = await api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies`);
+    const r = await api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values`);
     if (!r.ok){ failed.push({ name: p.name, code: r.error.code }); continue; }
     await writeFile(single ?? join(dir, fileOf(p)), format === 'json' ? toJson(r.data.cookies) : toNetscape(r.data.cookies));
     saved++;

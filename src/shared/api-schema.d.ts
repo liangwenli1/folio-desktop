@@ -475,6 +475,17 @@ export interface paths {
                                     logDays: number;
                                 };
                             };
+                            settings: {
+                                /** @enum {string|null} */
+                                defaultKernel: "chromium" | "firefox" | null;
+                                defaultKernelVersion: string | null;
+                                defaultGroupId: string | null;
+                                defaultProxyId: string | null;
+                                autoDownloadKernels: boolean;
+                                openDetailAfterLaunch: boolean;
+                                stopOnWindowClose: boolean;
+                                expiryReminder: boolean;
+                            };
                             usage: {
                                 profiles: number;
                                 members: number;
@@ -501,7 +512,18 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        name: string;
+                        name?: string;
+                        settings?: {
+                            /** @enum {string|null} */
+                            defaultKernel?: "chromium" | "firefox" | null;
+                            defaultKernelVersion?: string | null;
+                            defaultGroupId?: string | null;
+                            defaultProxyId?: string | null;
+                            autoDownloadKernels?: boolean;
+                            openDetailAfterLaunch?: boolean;
+                            stopOnWindowClose?: boolean;
+                            expiryReminder?: boolean;
+                        };
                     };
                 };
             };
@@ -515,6 +537,17 @@ export interface paths {
                         "application/json": {
                             id: string;
                             name: string;
+                            settings: {
+                                /** @enum {string|null} */
+                                defaultKernel: "chromium" | "firefox" | null;
+                                defaultKernelVersion: string | null;
+                                defaultGroupId: string | null;
+                                defaultProxyId: string | null;
+                                autoDownloadKernels: boolean;
+                                openDetailAfterLaunch: boolean;
+                                stopOnWindowClose: boolean;
+                                expiryReminder: boolean;
+                            };
                         };
                     };
                 };
@@ -3620,7 +3653,6 @@ export interface paths {
                         "application/json": {
                             cookies: {
                                 name: string;
-                                value: string;
                                 domain: string;
                                 /** @default / */
                                 path: string;
@@ -3696,6 +3728,107 @@ export interface paths {
                 };
             };
         };
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        cookies: {
+                            name: string;
+                            domain: string;
+                            /** @default / */
+                            path?: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            version: number;
+                            size: number;
+                            cookies: number;
+                            storageBytes: number;
+                            origins: number;
+                            savedAt: string;
+                            deviceName: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profiles/{id}/cookies/values": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    name?: string;
+                    domain?: string;
+                    path?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            cookies: {
+                                name: string;
+                                value: string;
+                                domain: string;
+                                /** @default / */
+                                path: string;
+                                /** @default -1 */
+                                expires: number;
+                                /** @default false */
+                                httpOnly: boolean;
+                                /** @default false */
+                                secure: boolean;
+                                /**
+                                 * @default Lax
+                                 * @enum {string}
+                                 */
+                                sameSite: "Strict" | "Lax" | "None";
+                            }[];
+                            savedAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4376,7 +4509,7 @@ export interface paths {
                                 actor: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "cookies.delete" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
                                 profile: {
                                     id: string | null;
                                     name: string;
