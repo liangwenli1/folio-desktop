@@ -898,6 +898,17 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .jb-foot .hint .i{width:14px;height:14px;flex:none}
 .jb-acts{display:grid;grid-template-columns:3fr 2fr;gap:10px}
 
+/* the Trash: what it keeps, the filters, the table with the picked ones summed up beside it */
+.tr-keep{max-width:280px;margin:0;text-align:right}
+.tr-f .search{width:min(280px,100%)}
+.tr-t{margin:0;flex:none;min-height:0}
+.tr-t td{white-space:nowrap}
+.tr-t td.ellip{max-width:180px;overflow:hidden;text-overflow:ellipsis}
+/* with the panel open on a narrower window, who deleted them goes (the panel says) */
+@container (max-width:900px){.tr-t .c-by{display:none}}
+.tr-t .actin{flex-wrap:nowrap}
+.tr-panel > .btn{width:100%}
+
 /* activity: the filters in a band, the log as a table with an entry's details beside it */
 .seg.wrap{flex-wrap:wrap}
 .lg-f{margin:0 var(--gx) 12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
@@ -1349,7 +1360,7 @@ tr.bad-row td{background:var(--bad-soft)}
 .gp-main td.ellip{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gp-set .field{margin:0}
 .gp-set > .btn{width:100%}
-.gp-del{color:var(--bad)}
+.btn-text.danger-t{color:var(--bad)}
 .swatches.big{padding:4px 0}
 .swatches.big .sw{width:24px;height:24px}
 .gm-list{display:grid;margin:0;padding:0;list-style:none}

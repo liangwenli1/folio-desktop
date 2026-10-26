@@ -12,8 +12,10 @@ type Kind = 'all' | keyof Dict['activity']['kinds'];
 
 // What an entry says, without who did it.
 export const said = (d: Dict, e: ActivityEntry) => d.activity.actions[e.action](e.profile ? `${e.profile.name} #${String(e.profile.number).padStart(4, '0')}` : '', e.detail);
+// Who did it: a person, or Folio itself (emptying the Trash of what it kept long enough).
+const who = (d: Dict, e: ActivityEntry) => e.actor ?? (e.detail.expired ? 'Folio' : d.activity.someone);
 // One entry as a sentence, starting with who did it.
-export const describe = (d: Dict, e: ActivityEntry) => `${e.actor ?? d.activity.someone} ${said(d, e)}`;
+export const describe = (d: Dict, e: ActivityEntry) => `${who(d, e)} ${said(d, e)}`;
 // What it was done to: the profile, or the thing the details name.
 const objectOf = (e: ActivityEntry) => (e.profile ? e.profile.name : String(e.detail.name ?? e.detail.email ?? ''));
 const numberOf = (e: ActivityEntry) => (e.profile ? `#${String(e.profile.number).padStart(4, '0')}` : null);
@@ -148,7 +150,7 @@ export function ActivityTable({ d, lang, entries, failed, onRetry, cur, onPick, 
           {entries?.map(e => (
             <tr key={e.seq} data-action={e.action} className={cur === e.seq ? 'cur' : ''} onClick={onPick ? ev => { if (!(ev.target as HTMLElement).closest('button')) onPick(e); } : undefined}>
               <td className="nowrap"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>
-              <td><span className="who-cell">{e.actor ? <span className="pav sm" aria-hidden="true">{e.actor.slice(0, 1).toUpperCase()}</span> : null}<b>{e.actor ?? A.someone}</b></span></td>
+              <td><span className="who-cell">{e.actor ? <span className="pav sm" aria-hidden="true">{e.actor.slice(0, 1).toUpperCase()}</span> : null}<b>{who(d, e)}</b></span></td>
               <td><span className="kind-cell"><span className="kic sm" aria-hidden="true"><Icon name={KIND_ICON[kindOf(e.action)]} /></span>{A.types[e.action]}</span></td>
               {!profile && <td>{objectOf(e) ? <><span className="l1">{objectOf(e)}</span>{numberOf(e) && <span className="l2 mono">{numberOf(e)}</span>}</> : <span className="muted">—</span>}</td>}
               <td className="lg-what">{onPick ? <button type="button" className="rowlink" onClick={() => onPick(e)}>{said(d, e)}</button> : said(d, e)}</td>
@@ -170,7 +172,7 @@ function EntryPanel({ d, lang, e, onClose }: { d: Dict; lang: Lang; e: ActivityE
       <div className="sec-row"><h3>{D.title}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
       <dl className="kvl">
         <dt>{D.number}</dt><dd className="mono">#{e.seq}</dd>
-        <dt>{D.person}</dt><dd>{e.actor ?? A.someone}</dd>
+        <dt>{D.person}</dt><dd>{who(d, e)}</dd>
         <dt>{D.time}</dt><dd className="mono">{stamp(e.at)}</dd>
         <dt>{D.type}</dt><dd>{A.types[e.action]}</dd>
         <dt>{D.object}</dt><dd>{objectOf(e) || '—'}{numberOf(e) && <span className="muted mono">{numberOf(e)}</span>}</dd>

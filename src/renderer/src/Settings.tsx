@@ -65,6 +65,8 @@ export function SettingsPage({ d, ws, data, manager }: { d: Dict; ws: Workspace;
                   <p className="kv-plain">{owner?.email ?? '—'}</p>
                   <span className="hint">{S.ownerHint}</span>
                 </div>
+                <SelectField label={S.trashDays} value={String(set.trashDays)} disabled={!manager} hint={S.trashDaysHint}
+                  onChange={v => change('trashDays', Number(v) as Settings['trashDays'])} options={['7', '15', '30', '60', '90'].map(n => ({ value: n, label: d.trash.days(Number(n)) }))} />
               </section>
             )}
 

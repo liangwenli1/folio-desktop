@@ -294,7 +294,7 @@ function GroupSettings({ d, ws, data, meId, group, kids, company, onClose, onDel
         <p className="hint">{G.inheritHint}</p>
       </div>
       <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void save()}>{G.save}</button>
-      <button type="button" className="btn btn-text gp-del" onClick={onDelete}>{G.delete}</button>
+      <button type="button" className="btn btn-text danger-t" onClick={onDelete}>{G.delete}</button>
     </aside>
   );
 }

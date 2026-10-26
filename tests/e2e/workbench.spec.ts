@@ -139,7 +139,11 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await trashed.getByRole('button', { name: 'Restore' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'no room for more profiles' })).toBeVisible();
   await trashed.getByRole('button', { name: 'Delete forever' }).click();
-  await win.getByRole('dialog').getByRole('button', { name: 'Delete forever' }).click();
+  // Deleting for good asks for the profile's name.
+  const purge = win.getByRole('dialog', { name: 'Delete 1 profile forever?' });
+  await expect(purge.getByRole('button', { name: 'Delete forever' })).toBeDisabled();
+  await purge.getByRole('textbox', { name: 'Type P-1 to confirm' }).fill('P-1');
+  await purge.getByRole('button', { name: 'Delete forever' }).click();
   await expect(win.getByText('The Trash is empty.')).toBeVisible();
   await app.close();
 });

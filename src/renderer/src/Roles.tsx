@@ -93,7 +93,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
         {role.key === 'owner' && <p className="hint">{P.ownerNote}</p>}
         {!locked && (
           <div className="rl-foot">
-            {!role.key && <button type="button" className="btn btn-text gp-del" onClick={() => setDeleting(true)}>{P.delete}</button>}
+            {!role.key && <button type="button" className="btn btn-text danger-t" onClick={() => setDeleting(true)}>{P.delete}</button>}
             <span className="sp" />
             {role.defaults && <button type="button" className="btn btn-secondary" disabled={same(perms, role.defaults)} onClick={() => setPerms(role.defaults!)}>{P.reset}</button>}
             <button type="button" className="btn btn-primary" disabled={!dirty || busy || !name.trim()} onClick={() => void save()}>{P.save}</button>

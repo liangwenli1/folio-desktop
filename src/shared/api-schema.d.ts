@@ -484,6 +484,7 @@ export interface paths {
                                 openDetailAfterLaunch: boolean;
                                 stopOnWindowClose: boolean;
                                 expiryReminder: boolean;
+                                trashDays: 7 | 15 | 30 | 60 | 90;
                             };
                             usage: {
                                 profiles: number;
@@ -521,6 +522,7 @@ export interface paths {
                             openDetailAfterLaunch?: boolean;
                             stopOnWindowClose?: boolean;
                             expiryReminder?: boolean;
+                            trashDays?: 7 | 15 | 30 | 60 | 90;
                         };
                     };
                 };
@@ -544,6 +546,7 @@ export interface paths {
                                 openDetailAfterLaunch: boolean;
                                 stopOnWindowClose: boolean;
                                 expiryReminder: boolean;
+                                trashDays: 7 | 15 | 30 | 60 | 90;
                             };
                         };
                     };

@@ -86,6 +86,7 @@ export const en = {
     owner: 'Owner', ownerHint: 'Whoever made the workspace.',
     defaults: 'Profile defaults', defaultsLead: 'What a new profile starts with.',
     defaultsNote: 'These only reach profiles made from now on; the ones you already have keep their settings.',
+    trashDays: 'Keep deleted profiles for', trashDaysHint: 'Profiles in the Trash longer than this are deleted for good, with their sign-ins.',
     engine: 'Default engine', engineNone: 'The recommended one', version: 'Version',
     group: 'Default group', groupNone: 'No group', proxy: 'Default proxy', proxyNone: 'No proxy',
     opening: 'Opening', openingLead: 'What happens when a profile is opened and closed.',
@@ -399,9 +400,14 @@ export const en = {
   trash: {
     title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it for good.', empty: 'The Trash is empty.',
     restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete forever', purgeAll: 'Empty Trash',
-    cols: { profile: 'Profile', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by' },
+    cols: { profile: 'Profile', number: 'ID', group: 'Group', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by', left: 'Days left' },
+    keeps: (n: number) => `Kept for ${n} days, then deleted for good. Change it in Settings.`,
+    search: 'Search name or ID', when: 'Deleted between', anyone: 'Anyone', days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
+    picked: (n: number) => `${n} selected`, restoreTo: 'Restore to', restoreToHint: 'Unless another is picked, each goes back to its own group.', sameGroup: 'Its own group',
+    restoreN: (n: number) => `Restore (${n})`, purgeN: (n: number) => `Delete forever (${n})`,
+    typeName: (name: string) => `Type ${name} to confirm`, typeCount: (n: number) => `Type ${n} to confirm`,
     sites: (n: number) => (n ? `${n} ${n === 1 ? 'site' : 'sites'}` : 'None'), byAt: (who: string, when: string) => `${who} deleted it ${when}`,
-    confirmPurge: (n: number) => `Delete ${profilesN(n)} forever?`, confirmNote: 'Their fingerprints and settings can’t be recovered.',
+    confirmPurge: (n: number) => `Delete ${profilesN(n)} forever?`, confirmNote: 'This can’t be undone: their fingerprints and settings can’t be recovered.',
     restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} deleted forever`
   },
   engines: {
@@ -912,6 +918,7 @@ export const zh: Dict = {
     owner: '所有者', ownerHint: '工作空间的创建者。',
     defaults: '环境默认值', defaultsLead: '设置后续创建环境时的默认配置。',
     defaultsNote: '环境默认值仅应用于后续创建的环境，不会影响已有的环境。',
+    trashDays: '回收站保留时间', trashDaysHint: '在回收站中超过该时间的环境将连同登录状态被彻底删除。',
     engine: '默认内核', engineNone: '使用推荐版本', version: '版本',
     group: '默认分组', groupNone: '未分组', proxy: '默认代理', proxyNone: '不使用代理',
     opening: '启动偏好', openingLead: '设置环境启动和关闭时的默认行为。',
@@ -1217,9 +1224,14 @@ export const zh: Dict = {
   trash: {
     title: '回收站', lead: '恢复误删环境或永久删除记录。', empty: '回收站为空。',
     restore: '恢复', restoreAll: '全部恢复', purge: '彻底删除', purgeAll: '清空回收站',
-    cols: { profile: '环境', fingerprint: '指纹', signins: '登录状态', deleted: '删除时间', by: '删除人' },
+    cols: { profile: '环境名称', number: '环境 ID', group: '原分组', fingerprint: '指纹', signins: '登录状态', deleted: '删除时间', by: '删除人', left: '剩余保留天数' },
+    keeps: (n: number) => `记录保留 ${n} 天，到期后彻底删除，可在设置中修改。`,
+    search: '搜索环境名称或 ID', when: '删除时间', anyone: '全部删除人', days: (n: number) => `${n} 天`,
+    picked: (n: number) => `已选择 ${n} 条记录`, restoreTo: '恢复目标分组', restoreToHint: '未选择时，各环境恢复到原分组。', sameGroup: '原分组',
+    restoreN: (n: number) => `恢复（${n} 项）`, purgeN: (n: number) => `彻底删除（${n} 项）`,
+    typeName: (name: string) => `输入环境名称「${name}」以确认`, typeCount: (n: number) => `输入 ${n} 以确认`,
     sites: (n: number) => (n ? `${n} 个站点` : '无'), byAt: (who: string, when: string) => `${who} 删除于 ${when}`,
-    confirmPurge: (n: number) => `彻底删除 ${n} 个环境？`, confirmNote: '其指纹与设置将无法恢复。',
+    confirmPurge: (n: number) => `彻底删除 ${n} 个环境？`, confirmNote: '此操作无法撤销，其指纹与设置将无法恢复。',
     restored: (n: number) => `已恢复 ${n} 个环境`, purged: (n: number) => `已彻底删除 ${n} 个环境`
   },
   engines: {
