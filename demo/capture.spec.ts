@@ -270,8 +270,17 @@ for (const lang of ['en', 'zh'] as const){
     const form = win.getByRole('dialog', { name: d.form.newTitle });
     await form.getByRole('textbox', { name: d.form.name, exact: true }).fill('US-Store-04');
     await still('new');
+    await form.getByRole('navigation', { name: d.form.sectionsLabel }).getByRole('button', { name: new RegExp(d.form.sections.launch) }).click();
+    await win.waitForTimeout(600);
+    await still('new-opening');
     await form.getByRole('button', { name: d.common.cancel }).click();
     await win.getByRole('button', { name: d.form.discard }).click().catch(() => {});
+    // UK-Shop-01's cookies, from the sites it was signed in to on the other computer.
+    await row('UK-Shop-01').getByRole('button', { name: 'UK-Shop-01', exact: true }).click();
+    await drawer.getByRole('tab', { name: d.detail.tabs.cookies }).click();
+    await expect(drawer.locator('tr[data-cookie]').first()).toBeVisible({ timeout: 30_000 });
+    await still('cookies');
+    await back();
     await nav(d.nav.engines).click();
     await expect(win.locator('tr[data-engine]').first()).toBeVisible();
     await still('engines');
