@@ -1,11 +1,12 @@
-// The Engines page: the catalog for this computer as a timeline, downloads deleted and profiles moved to the
-// recommended version; platform admins upload versions straight to Folio's storage, recommend and remove them.
+// The Engines page: the catalog for this computer, downloads deleted and profiles moved to the recommended version,
+// the workspace's default engine, updates and systems; platform admins upload versions straight to Folio's storage,
+// recommend and remove them.
 // The dev server lists admin@folio.test as a platform admin (config.yaml `admins`).
 import { mkdirSync, mkdtempSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, request, test } from '@playwright/test';
-import { API, PASSWORD, SITE, account, chromiumProfile, dataDir, lastMail, launch, logIn } from './helpers';
+import { API, PASSWORD, SITE, account, choose, chromiumProfile, dataDir, lastMail, launch, logIn } from './helpers';
 
 test.setTimeout(120_000);
 const ADMIN = 'admin@folio.test';
@@ -61,7 +62,8 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await making.getByLabel('What changed (optional)').fill('Chrome 151 security fixes');
     await making.getByRole('button', { name: 'Make recommended' }).click();
     await expect(row).toContainText('Recommended');
-    await expect(row).toContainText('Chrome 151 security fixes');
+    await row.getByRole('button', { name: 'Details', exact: true }).click();
+    await expect(win.getByRole('complementary', { name: 'Version notes' })).toContainText('Chrome 151 security fixes');
     await expect(win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]')).not.toContainText('Recommended');
 
     // Profiles on the older version move to it in one go.
@@ -103,10 +105,12 @@ test('the catalog for this computer: what is downloaded, deleting a download, an
   await expect(chromium).toContainText('Recommended');
   await expect(chromium).toContainText('Downloaded');
   const firefox = win.locator('tr[data-engine="firefox"][data-version="156.0.1-beta.36"]');
-  await expect(firefox.getByRole('button', { name: 'Download · 1.2 GB' })).toBeVisible();
+  await expect(firefox).toContainText('1.2 GB');
+  await expect(firefox.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
 
-  await chromium.getByRole('button', { name: 'Delete from this computer' }).click();
-  await expect(chromium.getByRole('button', { name: 'Download · 139 MB' })).toBeVisible();
+  await chromium.getByRole('button', { name: 'Actions for Chromium 150.0.7871.186' }).click();
+  await win.getByRole('menuitem', { name: 'Delete from this computer' }).click();
+  await expect(chromium.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
   expect(existsSync(join(dir, 'chromium-150.0.7871.186'))).toBe(false);
 
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Profiles' }).click();
@@ -114,5 +118,47 @@ test('the catalog for this computer: what is downloaded, deleting a download, an
   const form = win.getByRole('dialog', { name: 'New profile' });
   await expect(form.getByRole('combobox', { name: 'Browser engine' })).toContainText('Chromium 150.0.7871.186');
   await expect(form.getByRole('button', { name: 'Create profile' })).toBeEnabled();
+  await app.close();
+});
+
+test('the default engine for new profiles, updates to what is downloaded, and the systems a version is built for', async () => {
+  const acct = await account();
+  const dir = mkdtempSync(join(tmpdir(), 'folio-kernels-'));
+  // An older Chromium downloaded here and no longer in the catalog: the catalog's 150 is an update for it.
+  mkdirSync(join(dir, 'chromium-149.0.7820.12'));
+  writeFileSync(join(dir, 'chromium-149.0.7820.12', 'chrome'), '');
+  const app = await launch(dataDir(), { FOLIO_KERNELS_DIR: dir });
+  const win = await logIn(app, acct.email);
+  await engines(win).click();
+
+  // The notes beside the table start on the version new profiles get.
+  const notes = win.getByRole('complementary', { name: 'Version notes' });
+  await expect(notes).toContainText('150.0.7871.186');
+  await expect(notes).toContainText('Stop the profiles involved before switching engines');
+  const rows = win.locator('tr[data-engine]');
+  await win.getByRole('tab', { name: /^Updates/ }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]')).toBeVisible();
+  await win.getByRole('button', { name: 'Check for updates' }).click();
+  await expect(win.getByRole('status').filter({ hasText: '1 update available' })).toBeVisible();
+  await win.getByRole('tab', { name: 'Downloaded' }).click();
+  await expect(rows).toHaveCount(1);
+  await expect(win.locator('tr[data-engine="chromium"][data-version="149.0.7820.12"]')).toContainText('Retired');
+  // This Chromium isn't built for macOS; Firefox is.
+  await win.getByRole('tab', { name: 'All engines' }).click();
+  await choose(win.getByRole('combobox', { name: 'System' }), 'macOS');
+  await expect(rows).toHaveCount(1);
+  await expect(win.locator('tr[data-engine="firefox"]')).toContainText('macOS');
+  await choose(win.getByRole('combobox', { name: 'System' }), 'All systems');
+
+  // Firefox becomes the workspace's default engine, and new profiles start on it.
+  await choose(win.getByRole('combobox', { name: 'Default engine' }), 'Firefox 156.0.1-beta.36');
+  await expect(win.getByRole('status').filter({ hasText: 'New profiles now start with Firefox 156.0.1-beta.36' })).toBeVisible();
+  await expect.poll(async () => (await (await acct.api.get(`${API}/workspaces/${acct.workspaceId}`)).json()).settings)
+    .toMatchObject({ defaultKernel: 'firefox', defaultKernelVersion: '156.0.1-beta.36' });
+  await expect(win.locator('tr[data-engine="firefox"]')).toContainText('Default');
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Profiles' }).click();
+  await win.getByRole('button', { name: 'New profile' }).click();
+  await expect(win.getByRole('dialog', { name: 'New profile' }).getByRole('combobox', { name: 'Browser engine' })).toContainText('Firefox 156.0.1-beta.36');
   await app.close();
 });

@@ -56,7 +56,7 @@ test('the engines’ download settings stay on this computer', async () => {
   let win = await logIn(app, acct.email);
   await nav(win, /^Engines/);
   const settings = win.getByRole('region', { name: 'Download settings' });
-  await expect(settings.getByRole('switch', { name: 'Download the recommended version automatically' })).toBeChecked();
+  await expect(settings.getByRole('switch', { name: 'Download updates automatically' })).toBeChecked();
   await settings.getByRole('switch', { name: 'Download only while idle' }).check();
   await expect(win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]')).toContainText('Recommended');
   await app.close();

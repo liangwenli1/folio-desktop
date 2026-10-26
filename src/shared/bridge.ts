@@ -32,14 +32,15 @@ export interface ProfileStatus {
   // Running without a window: its last one was closed and the workspace keeps profiles running then.
   noWindow?: boolean;
 }
-// An engine version for this computer: in Folio's catalog (`available`), downloaded here (`installed`), or both. `size`
-// is the package's, when the catalog knows it; `recommended` is the version new profiles get.
 // What a site can read from inside a profile's browser, gathered by its self-check page.
 export interface CheckupFacts { ips: string[]; timezone: string; language: string; userAgent: string; canvas: string; webgl: string | null }
+// An engine version for this computer: in Folio's catalog (`available`), downloaded here (`installed`), or both. `size`
+// is the package's, when the catalog knows it; `recommended` is the version new profiles get.
 export interface KernelState {
   kind: KernelKind; version: string; installed: boolean; available: boolean; recommended: boolean; size: number | null;
-  // From the catalog, for the engines page's history: what the admin said about it, when it was added, when it became recommended.
-  note: string | null; addedAt: string | null; recommendedAt: string | null;
+  // From the catalog, for the engines page: what the admin said about it, when it was added, when it became recommended,
+  // and the systems it is built for.
+  note: string | null; addedAt: string | null; recommendedAt: string | null; platforms: string[];
 }
 // Background downloads of new recommended versions, and whether they wait until no profile is open.
 export interface KernelSettings { autoDownload: boolean; idleOnly: boolean }

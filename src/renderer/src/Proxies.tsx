@@ -164,8 +164,8 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
           </BulkBar>
         )}
 
-        <div className={`px-wrap${curProxy ? ' with-panel' : ''}`}>
-          <div className="px-list">
+        <div className={`side-wrap${curProxy ? ' with-panel' : ''}`}>
+          <div className="side-main">
             {data.loadFailed.has('proxies')
               ? <div className="cards-empty"><LoadFailed d={d} onRetry={() => data.refresh('proxies')} /></div>
               : !list.length && <div className="cards-empty"><p>{data.proxies.length ? d.profiles.emptyMatch : X.empty}</p></div>}
@@ -350,9 +350,9 @@ function ProxyPanel(props: ProxyItem & { lang: Lang; data: WorkspaceData; profil
   const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
   const groups = new Map(data.groups.map(g => [g.id, g]));
   return (
-    <aside className="sec px-panel" aria-label={D.label}>
+    <aside className="sec side-panel" aria-label={D.label}>
       <div className="sec-row"><h3>{D.label}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
-      <div className="pxp-h"><b>{p.name}</b><ProxyState d={d} p={p} busy={busy} /></div>
+      <div className="side-h"><b>{p.name}</b><ProxyState d={d} p={p} busy={busy} /></div>
       <dl className="kvl">
         <dt>{X.type}</dt><dd className="mono">{p.type.toUpperCase()}</dd>
         <dt>{X.host}</dt><dd className="mono">{p.host}:{p.port}<CopyBtn text={`${p.host}:${p.port}`} label={d.common.copy} done={d.common.copied} /></dd>

@@ -15,7 +15,7 @@ const profile = (over: Partial<Profile> = {}): Profile => ({
   lastOpenedAt: null, lastOpenedBy: null, createdAt: '', updatedAt: '', deletedAt: null, deletedBy: null, version: 1, syncMode: 'cloud', searchEngine: 'none', restoreTabs: true, startUrl: null, windowMode: 'default', windowWidth: null, windowHeight: null, extensionIds: [], data: null, lock: null,
   lastExit: null, prevExit: null, report: null, starred: false, ...over
 });
-const kernel = (version: string, over: Partial<KernelState> = {}): KernelState => ({ kind: 'chromium', version, installed: true, available: true, recommended: false, size: 150_000_000, note: null, addedAt: null, recommendedAt: null, ...over });
+const kernel = (version: string, over: Partial<KernelState> = {}): KernelState => ({ kind: 'chromium', version, installed: true, available: true, recommended: false, size: 150_000_000, note: null, addedAt: null, recommendedAt: null, platforms: ['linux-x64'], ...over });
 const kernels: KernelState[] = [kernel('150.0.7871.186', { recommended: true })];
 const map = (...list: Proxy[]) => new Map(list.map(p => [p.id, p]));
 const ids = (h: ReturnType<typeof health>) => h.checks.map(c => `${c.level}:${c.id}`);

@@ -1108,19 +1108,21 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 /* what a check from a form found */
 .px-test{display:flex;align-items:center;gap:10px}
 .px-auth{display:grid;gap:4px}
-/* the proxy list with the one picked beside it, and its own page */
-.px-wrap{display:grid;gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
-.px-wrap.with-panel{grid-template-columns:minmax(0,1fr) 320px}
-.px-list{display:grid;gap:12px;min-width:0;container-type:inline-size}
-/* with the panel open on a narrower window, the address goes (the panel shows it) so every other column stays in view */
+/* a list with the one picked beside it (proxies, engines) */
+.side-wrap{display:grid;gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
+.side-wrap.with-panel{grid-template-columns:minmax(0,1fr) 320px}
+.side-main{display:grid;gap:12px;min-width:0;container-type:inline-size}
+.side-main .tw,.side-main .pxg,.side-main .cards-empty{margin:0;flex:none;min-height:0}
+.side-main .page-attrib{margin:0}
+.side-panel{position:sticky;top:12px;gap:12px}
+.side-panel h4{font-size:13px;font-weight:600}
+.side-panel .sec-row h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
+.side-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.side-h b{font-size:16px;font-weight:600}
+.side-panel .bound li{grid-template-columns:minmax(0,1fr) auto}
+/* proxies: with the panel open on a narrower window, the address goes (the panel shows it) so every other column stays
+   in view; and a proxy's own page */
 @container (max-width:920px){.px-t .c-addr{display:none}}
-.px-list .tw,.px-list .pxg,.px-list .cards-empty{margin:0;flex:none;min-height:0}
-.px-list .page-attrib{margin:0}
-.px-panel{position:sticky;top:12px;gap:12px}
-.px-panel h4{font-size:13px;font-weight:600}
-.pxp-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.pxp-h b{font-size:16px;font-weight:600}
-.px-panel .bound li{grid-template-columns:minmax(0,1fr) auto}
 .px-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .pd-col{display:grid;gap:16px;align-content:start;min-width:0}
 .kvl.two{grid-template-columns:88px minmax(0,1fr) 88px minmax(0,1fr)}
@@ -1203,11 +1205,35 @@ tr.bad-row td{background:var(--bad-soft)}
 .tag.rec-tag{margin:0;background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
 .tag.warn{background:var(--warn-soft);color:var(--warn-ink)}
 .platforms{display:flex;flex-wrap:wrap;gap:4px 0}
-.en-strip{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;margin:2px var(--gx) 0;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);flex:none}
+.en-strip{display:flex;align-items:center;gap:12px 24px;margin:2px var(--gx) 0;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);flex:none}
 .en-disk{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 .en-disk .i{color:var(--ink-3)}
 .en-prog{display:grid;gap:5px;width:130px}
 .en-prog .meter{height:4px}
+.en-def{display:flex;align-items:center;gap:12px;font-weight:500;white-space:nowrap}
+.en-def .sel{width:300px}
+.en-auto{display:flex;flex:1;flex-wrap:wrap;align-items:center;gap:8px 16px;min-width:0;padding-left:24px;border-left:1px solid var(--line)}
+.en-auto .hint{display:inline-flex;align-items:center;gap:4px;cursor:help}
+.en-auto .hint .i{width:14px;height:14px;color:var(--ink-3)}
+.en-bar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;border-bottom:1px solid var(--line)}
+.en-bar .tabs{align-self:stretch;align-items:flex-end;border-bottom:0}
+.en-bar .search,.en-bar .grp-pick{margin:0 0 8px}
+.en-bar .search{width:min(240px,100%)}
+.en-name{display:flex;align-items:center;gap:10px}
+.en-name > span{display:grid;gap:4px;justify-items:start}
+.en-name b{white-space:nowrap}
+.en-tags{display:flex;flex-wrap:wrap;gap:4px}
+.en-tags .tag{margin:0;white-space:nowrap}
+.en-t th,.en-t td{padding-left:10px;padding-right:10px}
+.en-t td.mono{white-space:nowrap}
+.en-t .actin{flex-wrap:nowrap}
+/* with the notes open on a narrower window, size and release date go (the notes show them) */
+@container (max-width:1000px){.en-t .c-size,.en-t .c-rel{display:none}}
+.en-foot{display:flex;align-items:center;gap:12px;margin:0}
+.en-notes{margin:0;padding-left:18px;font-size:13px;line-height:1.8}
+.en-warn{display:flex;align-items:flex-start;gap:8px;font-size:13px}
+.en-warn > .i{flex:none;width:16px;height:16px;margin-top:2px}
+.en-warn > span{display:grid;gap:2px}
 
 /* the health report */
 .report{position:relative;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);overflow:hidden}

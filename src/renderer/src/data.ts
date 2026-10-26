@@ -46,7 +46,7 @@ export interface WorkspaceData {
   launch(p: Profile): Promise<'kernel_missing' | 'download_failed' | null>;
   // Deletes a downloaded engine version from this computer; reloads the list (also after an upload).
   removeKernel(kind: KernelKind, version: string): Promise<void>;
-  reloadKernels(): void;
+  reloadKernels(): Promise<KernelState[]>;
 }
 
 export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void }): WorkspaceData {
@@ -201,11 +201,11 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
     return null;
   }, [kernels, install]);
 
-  const reloadKernels = useCallback(() => { void folio.kernels().then(setKernels); }, []);
+  const reloadKernels = useCallback(() => folio.kernels().then(k => { setKernels(k); return k; }), []);
   const removeKernel = useCallback(async (kind: KernelKind, version: string) => {
     await folio.removeKernel(kind, version);
     setProgress(m => { const next = { ...m }; delete next[kernelKey(kind, version)]; return next; });
-    reloadKernels();
+    await reloadKernels();
   }, [reloadKernels]);
 
   return { role, roles: roleList, profiles, trash, groups, proxies, members, invitations, flows, tasks, extensions, runsSeq, active, sync, status, kernels, progress, failed, checking, loadFailed, refresh, patch, batch, ensureGroup, check, install, launch, removeKernel, reloadKernels };

@@ -38,16 +38,19 @@ export function newestFirst(a: string, b: string){
   return 0;
 }
 
-// This platform's part of the catalog: fresh from the server when it answers, otherwise the last copy on disk.
+// The catalog's finished packages for every system: fresh from the server when it answers, otherwise the last copy
+// on disk.
 async function catalog(): Promise<Row[]> {
   const r = await api<{ kernels: Row[] }>('GET', '/kernels');
   if (r.ok){
-    const rows = r.data.kernels.filter(k => k.ready && k.platform === platform);
+    const rows = r.data.kernels.filter(k => k.ready);
     await writeFile(catalogFile(), JSON.stringify(rows)).catch(() => {});
     return rows;
   }
   return JSON.parse(await readFile(catalogFile(), 'utf8').catch(() => '[]')) as Row[];
 }
+// This system's part of it.
+const mine = async () => (await catalog()).filter(k => k.platform === platform);
 
 async function findExe(dir: string, pattern: RegExp){
   const entries = await readdir(dir, { recursive: true }).catch(() => [] as string[]);
@@ -68,13 +71,14 @@ export async function resolve(kind: KernelKind, version: string): Promise<string
 // The versions in the catalog for this platform, and versions downloaded here that the catalog no longer has (their
 // profiles still open). Newest first within each engine.
 export async function list(): Promise<KernelState[]> {
-  const rows = await catalog();
+  const every = await catalog(), rows = every.filter(k => k.platform === platform);
+  const systems = (k: Row) => every.filter(x => x.kind === k.kind && x.version === k.version).map(x => x.platform);
   const here = (await readdir(root()).catch(() => [] as string[])).map(n => n.match(/^(chromium|firefox)-(.+)$/)).filter(m => m && !m[2].endsWith('.download'))
     .map(m => ({ kind: m![1] as KernelKind, version: m![2] }));
   const all = [
-    ...rows.map(k => ({ kind: k.kind, version: k.version, size: k.size, recommended: k.recommended, available: true, note: k.note, addedAt: k.createdAt, recommendedAt: k.recommendedAt })),
+    ...rows.map(k => ({ kind: k.kind, version: k.version, size: k.size, recommended: k.recommended, available: true, note: k.note, addedAt: k.createdAt, recommendedAt: k.recommendedAt, platforms: systems(k) })),
     ...here.filter(h => !rows.some(k => k.kind === h.kind && k.version === h.version))
-      .map(h => ({ ...h, size: null, recommended: false, available: false, note: null, addedAt: null, recommendedAt: null }))
+      .map(h => ({ ...h, size: null, recommended: false, available: false, note: null, addedAt: null, recommendedAt: null, platforms: [platform] }))
   ];
   const out = await Promise.all(all.map(async k => ({ ...k, installed: !!(await resolve(k.kind, k.version)) })));
   return out.filter(k => k.available || k.installed).sort((a, b) => a.kind.localeCompare(b.kind) || newestFirst(a.version, b.version));
@@ -82,7 +86,7 @@ export async function list(): Promise<KernelState[]> {
 
 // The version new profiles get: the recommended one for this platform, else the newest.
 export async function recommended(kind: KernelKind){
-  const rows = (await catalog()).filter(k => k.kind === kind).sort((a, b) => newestFirst(a.version, b.version));
+  const rows = (await mine()).filter(k => k.kind === kind).sort((a, b) => newestFirst(a.version, b.version));
   return (rows.find(k => k.recommended) ?? rows[0])?.version ?? null;
 }
 
@@ -98,7 +102,7 @@ export function install(kind: KernelKind, version: string, onProgress: (done: nu
 }
 
 async function doInstall(kind: KernelKind, version: string, onProgress: (done: number, total: number) => void){
-  const row = (await catalog()).find(k => k.kind === kind && k.version === version);
+  const row = (await mine()).find(k => k.kind === kind && k.version === version);
   if (!row) throw new Error(`${kind} ${version} is not available for ${platform}`);
   const where = await api<{ url: string }>('GET', `/kernels/${row.id}/download`);
   if (!where.ok) throw new Error(where.error.message);
