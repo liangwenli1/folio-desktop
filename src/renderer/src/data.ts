@@ -32,7 +32,7 @@ export interface WorkspaceData {
   loadFailed: Set<Kind>;
   // Saves an edit made to `p`; resolves false when someone else changed the profile first.
   patch(p: Profile, body: ProfilePatch): Promise<boolean>;
-  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean }): Promise<number>;
+  batch(action: BatchAction, ids: string[], extra?: { groupId?: string | null; tag?: string; proxyId?: string | null; ownerId?: string | null; extensionId?: string; kernel?: KernelKind; kernelVersion?: string; searchEngine?: string; restoreTabs?: boolean; startUrl?: string | null }): Promise<number>;
   // The id of the group with this name, created when there is none.
   ensureGroup(name: string): Promise<string>;
   // Checks proxies two at a time; `checking` holds the ones under way.

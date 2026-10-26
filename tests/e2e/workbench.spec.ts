@@ -110,19 +110,19 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await choose(groups, 'US stores');
   await expect(win.locator('tr[data-id]')).toHaveText([/P-1/, /P-2/]);
   await choose(groups, 'All groups');
-  await bulk.getByRole('button', { name: 'Tag' }).click();
+  await choose(bulk.getByRole('combobox', { name: 'More' }), 'Tag');
   await bulk.getByRole('textbox', { name: 'Tag name' }).fill('vip');
   await bulk.getByRole('button', { name: 'Add tag' }).click();
   await expect(row(win, 'P-2').locator('.tag')).toHaveText('vip');
 
-  await bulk.getByRole('button', { name: 'Delete' }).click();
+  await choose(bulk.getByRole('combobox', { name: 'More' }), 'Delete');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await expect(row(win, 'P-1')).toBeHidden();
   await win.getByRole('status').filter({ hasText: '2 profiles moved to Trash' }).getByRole('button', { name: 'Undo' }).click();
   await expect(row(win, 'P-1')).toBeVisible();
 
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Delete' }).click();
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Delete');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await win.getByRole('button', { name: /^Trash/ }).click();
   await expect(row(win, 'P-1').or(win.locator('tr[data-id]', { hasText: 'P-1' }))).toBeVisible();

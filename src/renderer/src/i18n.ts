@@ -105,11 +105,14 @@ export const en = {
       risks: 'Link risks', risksOk: 'Nothing links your profiles'
     },
     views: { label: 'View', list: 'List', cards: 'Cards' },
+    tabs: { all: 'All', running: 'Running', stopped: 'Not running', trash: 'Trash' },
     filter: { label: 'Status', all: 'All', states: 'All statuses', running: 'Running', stopped: 'Not running', issues: 'Needs attention', starred: 'Favourites', engine: 'Engine', engines: 'All engines' },
+    reset: 'Reset',
+    page: { total: (n: number) => `${n} in all`, size: (n: number) => `${n} a page`, prev: 'Previous page', next: 'Next page', go: (p: number) => `Page ${p}` },
     star: 'Add to favourites', unstar: 'Remove from favourites', move: 'Move to group', moveTitle: (n: string) => `Move “${n}” to a group`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
-    cols: { profile: 'Profile', group: 'Group', fingerprint: 'Fingerprint', proxy: 'Proxy', last: 'Last opened', member: 'Assigned to', status: 'Status', actions: 'Actions' },
-    open: 'Open', stop: 'Stop', actionsX: (n: string) => `Actions for ${n}`, starting: 'Starting…', inUse: 'In use now',
+    cols: { profile: 'Name', group: 'Group', engine: 'Engine / system', proxy: 'Proxy / region', last: 'Last used', status: 'Status', actions: 'Actions' },
+    open: 'Open', stop: 'Stop', enter: 'Go to window', actionsX: (n: string) => `Actions for ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
     stage: { proxy: 'Checking the proxy…', restore: 'Restoring sign-ins…', launch: 'Starting the browser…' }, stages: ['Engine', 'Proxy', 'Sign-ins', 'Browser'],
     map: {
@@ -124,7 +127,7 @@ export const en = {
     emptyNone: 'No profiles yet.', emptyMatch: 'No profiles match.', emptyFor: (q: string) => `Nothing found for “${q}”.`,
     emptyHint: (n: number) => `Try another search, or clear the filters to see all ${n}.`, clearFilters: 'Clear filters',
     bulk: {
-      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…',
+      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Edit together', more: 'More',
       tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
       extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall', sync: 'Sync windows', syncTwo: 'Select at least two profiles',
       confirm: (n: number) => `Move ${profilesN(n)} to Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
@@ -139,6 +142,19 @@ export const en = {
       extRemoved: (n: number, x: string) => `${x} uninstalled from ${profilesN(n)}`,
       syncing: (leader: string, n: number) => `Window sync started: ${leader} leads, ${n === 1 ? '1 window follows' : `${n} windows follow`}`, syncFailed: 'Window sync needs at least two open profiles.'
     }
+  },
+  // Several profiles changed at once: what changes, which ones it reaches, and which are skipped.
+  bulkEdit: {
+    title: 'Edit profiles together', lead: (n: number) => `${profilesN(n)} selected`,
+    group: 'Group', groupHint: 'The selected profiles move to this group.',
+    proxy: 'Proxy', proxyHint: 'The selected profiles go out through this proxy.',
+    engine: 'Engine version', engineHint: 'The selected profiles of this engine use this version.',
+    start: 'Start page', startHint: 'The page the selected profiles open on.', startPh: 'https://',
+    keep: 'Keep as it is', changes: 'What changes', none: 'Nothing chosen yet.',
+    picked: (n: number) => `Selected (${n})`, running: (n: number) => `${n === 1 ? '1 of them is' : `${n} of them are`} running and is left as it is.`,
+    stoppedOnly: 'Only change profiles that are not running', stoppedOnlyHint: 'A running profile keeps its settings until it is closed.',
+    counts: (ok: number, skip: number) => `${ok} to change · ${skip} skipped`,
+    submit: (n: number) => `Change ${profilesN(n)}`, done: (n: number) => `${profilesN(n)} changed`
   },
   launch: {
     kernel_missing: 'This engine isn’t downloaded on this computer.', proxy_down: 'The proxy didn’t answer, and there’s no working backup line.',
@@ -733,11 +749,14 @@ export const zh: Dict = {
       risks: '关联风险', risksOk: '未发现关联风险'
     },
     views: { label: '视图', list: '列表', cards: '卡片' },
-    filter: { label: '状态', all: '全部', states: '全部状态', running: '运行中', stopped: '未运行', issues: '需处理', starred: '已收藏', engine: '内核', engines: '全部内核' },
+    tabs: { all: '全部', running: '运行中', stopped: '已停止', trash: '回收站' },
+    filter: { label: '状态', all: '全部', states: '全部状态', running: '运行中', stopped: '已停止', issues: '需处理', starred: '已收藏', engine: '内核', engines: '全部内核' },
+    reset: '重置',
+    page: { total: (n: number) => `共 ${n} 条`, size: (n: number) => `每页 ${n} 条`, prev: '上一页', next: '下一页', go: (p: number) => `第 ${p} 页` },
     star: '收藏', unstar: '取消收藏', move: '移动分组', moveTitle: (n: string) => `将「${n}」移到分组`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
-    cols: { profile: '环境名称', group: '分组', fingerprint: '指纹配置', proxy: '代理', last: '最近打开', member: '成员', status: '状态', actions: '操作' },
-    open: '打开', stop: '停止', actionsX: (n: string) => `${n} 的操作`, starting: '启动中…', inUse: '正在使用',
+    cols: { profile: '名称 / 编号', group: '分组', engine: '内核 / 系统', proxy: '代理 / 地区', last: '最近使用', status: '状态', actions: '操作' },
+    open: '启动', stop: '停止', enter: '进入', actionsX: (n: string) => `${n} 的操作`, starting: '启动中…', inUse: '正在使用',
     st: { idle: '未运行', running: '运行中', proxyDown: '代理异常' }, checkProxy: '检测代理',
     stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['内核', '代理', '登录', '浏览器'],
     map: {
@@ -752,7 +771,7 @@ export const zh: Dict = {
     emptyNone: '暂无环境。', emptyMatch: '无符合条件的环境。', emptyFor: (q: string) => `未找到「${q}」。`,
     emptyHint: (n: number) => `请更换关键词，或清除筛选查看全部 ${n} 个环境。`, clearFilters: '清除筛选',
     bulk: {
-      open: '打开', stop: '停止', move: '移动到分组…', proxy: '设置代理…', assign: '分配给…',
+      open: '批量启动', stop: '批量停止', move: '移动分组…', proxy: '设置代理…', assign: '分配给…', edit: '批量编辑', more: '更多',
       tag: '标签', tagPh: '标签名', addTag: '添加标签', removeTag: '移除标签', trash: '删除', cookies: '导出 Cookie…',
       extensions: '扩展…', install: '安装', uninstall: '卸载', sync: '同步窗口', syncTwo: '请至少选择两个环境',
       confirm: (n: number) => `将 ${n} 个环境移至回收站？`, confirmNote: '运行中的环境将先停止，此操作可撤销。', doTrash: '移至回收站'
@@ -767,6 +786,18 @@ export const zh: Dict = {
       extRemoved: (n: number, x: string) => `已从 ${n} 个环境卸载 ${x}`,
       syncing: (leader: string, n: number) => `窗口同步已开始：${leader} 主控，${n} 个窗口跟随`, syncFailed: '窗口同步需要至少两个已打开的环境。'
     }
+  },
+  bulkEdit: {
+    title: '批量编辑环境', lead: (n: number) => `已选择 ${n} 个环境`,
+    group: '所属分组', groupHint: '将选中环境移动到指定分组。',
+    proxy: '代理配置', proxyHint: '将选中环境应用此代理配置。',
+    engine: '浏览器内核', engineHint: '将选中环境（同类内核）改为此版本。',
+    start: '启动页', startHint: '选中环境启动时打开的页面。', startPh: 'https://',
+    keep: '保持不变', changes: '本次将修改', none: '尚未选择要修改的项目。',
+    picked: (n: number) => `已选择的环境（${n}）`, running: (n: number) => `其中 ${n} 个环境正在运行，暂不可修改。`,
+    stoppedOnly: '仅更新已停止的环境', stoppedOnlyHint: '运行中的环境在关闭前保持原设置。',
+    counts: (ok: number, skip: number) => `可更新 ${ok} 个 · 跳过 ${skip} 个`,
+    submit: (n: number) => `更新 ${n} 个环境`, done: (n: number) => `已更新 ${n} 个环境`
   },
   launch: {
     kernel_missing: '本机尚未下载该内核。', proxy_down: '代理无响应，且没有可用的备用线路。',

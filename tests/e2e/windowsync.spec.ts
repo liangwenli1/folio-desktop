@@ -4,7 +4,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logIn, opened } from './helpers';
+import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, launch, logIn, opened } from './helpers';
 
 test.setTimeout(300_000);
 
@@ -149,7 +149,7 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   const win = await logIn(app, acct.email);
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
   await win.getByLabel('Select all shown').check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Sync windows' }).click();
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Sync windows');
   const bar = win.getByRole('status', { name: 'Window sync' });
   // The first in the list (newest first) leads.
   await expect(bar).toContainText('Shop-B leads and 1 window follows.', { timeout: 120_000 });
@@ -180,7 +180,10 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   const win2 = await logIn(app2, free.email);
   await expect(win2.locator('tr[data-id]')).toHaveCount(2);
   await win2.getByLabel('Select all shown').check();
-  await expect(win2.getByTestId('bulk').getByRole('button', { name: 'Sync windows' })).toBeDisabled();
+  // Window sync is not offered on the Free plan.
+  await win2.getByTestId('bulk').getByRole('combobox', { name: 'More' }).click();
+  await expect(win2.getByRole('listbox').getByRole('option', { name: 'Sync windows' })).toHaveCount(0);
+  await win2.keyboard.press('Escape');
   await win2.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Window sync/ }).click();
   await expect(win2.getByText('Window sync comes with the Studio and Company plans.')).toBeVisible();
   await app2.close();

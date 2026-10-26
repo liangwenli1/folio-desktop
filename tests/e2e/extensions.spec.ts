@@ -91,7 +91,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await expect(form).toHaveCount(0);
   await win.getByRole('button', { name: 'Close details' }).click();
   await win.getByLabel('Select all shown').check();
-  await choose(win.getByTestId('bulk').getByLabel('Extensions…'), 'Shop Helper FF · Firefox');
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Shop Helper FF · Firefox');
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper FF installed in 1 profile; 1 skipped' })).toBeVisible();
 
   expect(await opened(win, cr.id)).toMatchObject({ state: 'running' });

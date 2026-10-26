@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type WorkspaceData } from './data';
@@ -7,7 +7,6 @@ import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time, useActivity } from './Activity';
 import { Avatar, BulkBar, DetailDialog, Icon, LoadFailed, Modal, MoreMenu, ViewSwitch, percent, useNow, useToast, useView } from './ui';
 import { Select } from './Select';
-import { ExitMap, type Pin, type PinState } from './ExitMap';
 import { Flag, SEARCH_LOGOS } from './Flag';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { mod } from './CommandPalette';
@@ -26,12 +25,12 @@ interface Props {
   d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; group: GroupFilter; setGroup(g: GroupFilter): void;
   // Only these profiles (picked from a risk or a proxy), and the one whose details open first.
   only: Set<string> | null; setOnly(s: Set<string> | null): void; openId: string | null;
-  onNew(): void; onImport(): void; onEdit(id: string): void; onAddProxy(): void; onPalette(): void;
+  onNew(): void; onImport(): void; onEdit(id: string): void; onPalette(): void; onTrashPage(): void;
 }
 
 const number = (p: Profile) => String(p.number).padStart(4, '0');
 
-export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly, openId, onNew, onImport, onEdit, onAddProxy, onPalette }: Props){
+export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly, openId, onNew, onImport, onEdit, onPalette, onTrashPage }: Props){
   const toast = useToast();
   const P = d.profiles;
   const [q, setQ] = useState('');
@@ -53,6 +52,10 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   // Profiles opened together from the bulk actions, shown in the tray; why the ones that couldn't start didn't.
   const [batch, setBatch] = useState<string[] | null>(null);
   const [batchFail, setBatchFail] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState(false);
+  // Twenty a page unless chosen otherwise; a page past the end (after a filter or a delete) falls back to the last.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const all = useMemo(() => data.profiles ?? [], [data.profiles]);
   const proxies = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
@@ -67,7 +70,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const email = useMemo(() => new Map(data.members.map(m => [m.userId, m.email])), [data.members]);
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
   const issue = (p: Profile) => healthOf.get(p.id)!.level !== 'ok' || risky(p.id);
-  const running = all.filter(p => data.status[p.id]?.state === 'running').length;
   const counts: Record<Status, number> = {
     all: all.length, running: all.filter(p => data.status[p.id]).length, stopped: all.filter(p => !data.status[p.id]).length,
     issues: all.filter(issue).length, starred: all.filter(p => p.starred).length
@@ -101,7 +103,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   }, [all, group, engine, status, q, sort, healthOf, data.status, lang, groupName, d, only, riskOf]);
 
   const ids = [...sel].filter(id => all.some(p => p.id === id));
-  const shownSel = list.filter(p => sel.has(p.id)).length;
+  const pages = Math.max(1, Math.ceil(list.length / pageSize)), at = Math.min(page, pages);
+  const pageList = list.slice((at - 1) * pageSize, at * pageSize);
+  const pageSel = pageList.filter(p => sel.has(p.id)).length;
   // The details dialog shows only while a profile is picked.
   const curProfile = (detail && all.find(p => p.id === cur)) || null;
   const recent = useActivity(ws.id, `&profileId=${cur ?? ''}`, data, 10, !!curProfile);
@@ -184,34 +188,31 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     data.refresh('profiles');
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // The header box selects what this page shows, never more.
   const toggleAll = () => setSel(s => {
     const n = new Set(s);
-    if (shownSel === list.length) list.forEach(p => n.delete(p.id)); else list.forEach(p => n.add(p.id));
+    if (pageSel === pageList.length) pageList.forEach(p => n.delete(p.id)); else pageList.forEach(p => n.add(p.id));
     return n;
   });
+  const reset = () => { setQ(''); setStatus('all'); setEngine('all'); setGroup('all'); setOnly(null); setPage(1); };
+  // What the bulk bar's More menu does.
+  function more(v: string){
+    const [what, x] = v.split(':');
+    if (what === 'sync') void startSync();
+    else if (what === 'tag') setTagging(true);
+    else if (what === 'trash') setConfirm(true);
+    else if (what === 'proxy') void batchAction('set-proxy', { proxyId: x === 'none' ? null : x }, P.done.proxySet);
+    else if (what === 'assign'){ const who = x === 'none' ? null : x; void batchAction('assign', { ownerId: who }, n => P.done.assigned(n, who ? email.get(who) ?? '' : P.unassigned)); }
+    else if (what === 'ext-add' || what === 'ext-remove'){
+      const ext = extensions.get(x)!;
+      void batchAction(what === 'ext-add' ? 'add-extension' : 'remove-extension', { extensionId: x }, n => (what === 'ext-add' ? P.done.extAdded(n, ext.name, ids.length - n) : P.done.extRemoved(n, ext.name)));
+    }
+    else if (what === 'se') void batchAction('set-browser', { searchEngine: x }, n => d.browser.searchSet(n, d.browser.name(x as SearchEngine)));
+    else if (what === 'tabs') void batchAction('set-browser', { restoreTabs: x === 'on' }, n => d.browser.tabsSet(n, x === 'on'));
+    else if (what === 'cookies') void exportCookies(all.filter(p => sel.has(p.id)), x as 'json' | 'netscape');
+  }
   const pick = (id: string) => { setCur(id); setDetail(true); };
 
-  const h = [...healthOf.values()];
-  const down = h.filter(x => x.proxy === 'down').length, slow = h.filter(x => x.proxy === 'slow').length;
-  // A pin per exit, showing the busiest state of the profiles that go out there.
-  const pins = useMemo(() => {
-    const rank: PinState[] = ['run', 'boot', 'bad', 'warn', 'idle'];
-    const at = new Map<string, Pin>();
-    for (const p of all){
-      const x = healthOf.get(p.id)!, g = x.geo;
-      if (!g) continue;
-      const key = g.city ?? g.countryName;
-      const s = data.status[p.id];
-      const st: PinState = s?.state === 'running' ? 'run' : s ? 'boot' : x.level === 'bad' ? 'bad' : x.level === 'warn' ? 'warn' : 'idle';
-      const pin = at.get(key) ?? { key, lat: g.lat, lon: g.lon, state: 'idle' as PinState, title: [g.city, g.countryName].filter(Boolean).join(', '), lines: [] };
-      if (rank.indexOf(st) < rank.indexOf(pin.state)) pin.state = st;
-      pin.lines.push(st === 'run' ? `${p.name} · ${P.st.running}` : p.name);
-      at.set(key, pin);
-    }
-    return [...at.values()];
-  }, [all, healthOf, data.status, P]);
-  // Where profiles moved from, as lines on the map.
-  const links = riskList.filter(r => r.from && r.to).map(r => ({ from: r.from!, to: r.to!, level: r.level === 'bad' ? 'bad' as const : 'warn' as const }));
   const shown = riskList.filter(r => r.level !== 'info');
   const names = (r: Risk) => r.ids.map(id => all.find(p => p.id === id)?.name).filter(Boolean).join(lang === 'zh' ? '、' : ', ');
 
@@ -220,7 +221,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     owner: p.ownerId ? email.get(p.ownerId) ?? null : null,
     sync: data.sync?.leader === p.id ? 'leader' : data.sync?.members.some(m => m.id === p.id) ? 'follower' : null,
     status: data.status[p.id], progress: data.progress[kernelKey(p.kernel, p.kernelVersion)], checking: !!p.proxyId && data.checking.has(p.proxyId),
-    onToggle: () => toggle(p.id), onView: () => pick(p.id), onOpen: () => void open(p), onStop: () => void stop(p), onStar: () => void star(p),
+    onToggle: () => toggle(p.id), onView: () => pick(p.id), onOpen: () => void open(p), onStop: () => void stop(p), onEnter: () => void folio.focusProfile(p.id), onStar: () => void star(p),
     onCheck: () => { if (p.proxyId) void data.check([p.proxyId]); }, onEdit: () => onEdit(p.id), onTrash: () => void trash([p.id]), onMove: () => setMoving(p)
   });
   async function move(p: Profile, groupId: string | null){
@@ -232,7 +233,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     ? <LoadFailed d={d} onRetry={() => data.refresh('profiles')} />
     : data.profiles !== null && !list.length && (all.length
       ? <><p><b>{P.emptyMatch}</b> {q && P.emptyFor(q)} {P.emptyHint(all.length)}</p>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setStatus('all'); setEngine('all'); setGroup('all'); setOnly(null); }}>{P.clearFilters}</button></>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>{P.clearFilters}</button></>
       : <p><b>{P.emptyNone}</b></p>);
 
   return (
@@ -240,36 +241,19 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       <main className="main">
         <header className="bar">
           <div className="ttl"><h1>{P.title}</h1><p className="sub">{P.lead}</p></div>
-          <label className="search">
-            <Icon name="search" /><span className="sr">{P.search}</span>
-            <input type="search" placeholder={P.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
-            <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
-          </label>
-          {manager && <button className="btn btn-secondary" type="button" onClick={onImport}>{P.import}</button>}
+          <span className="sp" />
+          {manager && <button className="btn btn-secondary" type="button" onClick={onImport}><Icon name="upload" />{P.import}</button>}
           <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>
         </header>
 
-        <section className="cards" aria-label={P.title}>
-          <button type="button" className="kc" onClick={() => setStatus('running')}>
-            <span className="kc-h"><span className="kic good"><Icon name="play" /></span><small>{P.sum.running}</small></span><b>{running}</b>
-          </button>
-          <button type="button" className="kc" onClick={() => setStatus('issues')} title={P.sum.proxyNote(down, slow) || P.sum.proxyOk}>
-            <span className="kc-h"><span className="kic bad"><Icon name="proxies" /></span><small>{P.sum.proxy}</small></span><b>{down + slow}</b>
-          </button>
-          <button type="button" className="kc" onClick={() => setRiskOpen(o => !o)} title={shown.length ? d.risks.title(shown.length) : P.sum.risksOk}>
-            <span className="kc-h"><span className="kic warn"><Icon name="alert" /></span><small>{P.sum.risks}</small></span><b>{shown.length}</b>
-          </button>
-          <section className="map-card" aria-label={P.map.label}>
-            <ExitMap pins={pins} links={links} label={P.map.label} onPick={key => setQ(key)} />
-            {!pins.length && manager && (
-              <div className="map-empty">
-                {data.proxies.length
-                  ? <button type="button" className="btn btn-sm btn-secondary" disabled={data.checking.size > 0} onClick={() => void data.check(data.proxies.map(p => p.id))}>{P.map.check}</button>
-                  : <button type="button" className="btn btn-sm btn-secondary" onClick={onAddProxy}>{P.map.add}</button>}
-              </div>
-            )}
-          </section>
-        </section>
+        <div className="tabs page-tabs" role="tablist" aria-label={P.filter.label}>
+          {(['all', 'running', 'stopped'] as const).map(t => (
+            <button key={t} type="button" role="tab" aria-selected={status === t} onClick={() => { setStatus(t); setPage(1); }}>
+              {P.tabs[t]}<small>{counts[t]}</small>
+            </button>
+          ))}
+          {manager && <button type="button" role="tab" aria-selected={false} onClick={onTrashPage}>{P.tabs.trash}</button>}
+        </div>
 
         {shown.length > 0 && (
           <section className={`risk-bar${shown.some(r => r.level === 'bad') ? ' bad' : ''}`} aria-label={d.risks.title(shown.length)} data-testid="risks">
@@ -293,51 +277,29 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           </section>
         )}
 
+        {/* The delivery spec's order: keyword, group, engine, status, reset; how the list is laid out sits at the end. */}
         <div className="filters">
-          <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => setGroup(v as GroupFilter)}
+          <label className="search">
+            <Icon name="search" /><span className="sr">{P.search}</span>
+            <input type="search" placeholder={P.searchPh} value={q} onChange={e => { setQ(e.target.value); setPage(1); }} autoComplete="off" />
+            <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
+          </label>
+          <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => { setGroup(v as GroupFilter); setPage(1); }}
             options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} /></span>
-          <span className="grp-pick"><Select label={P.filter.engine} value={engine} onChange={v => setEngine(v as Engine)}
+          <span className="grp-pick"><Select label={P.filter.engine} value={engine} onChange={v => { setEngine(v as Engine); setPage(1); }}
             options={[{ value: 'all', label: P.filter.engines }, ...engines.map(e => { const [k, v] = e.split(':'); return { value: e, label: `${ENGINES[k as Profile['kernel']]} ${v}` }; })]} /></span>
-          <span className="grp-pick"><Select label={P.filter.label} value={status} onChange={v => setStatus(v as Status)}
-            options={(['all', 'running', 'stopped', 'issues', 'starred'] as const).map(s => ({ value: s, label: s === 'all' ? P.filter.states : P.filter[s], hint: String(counts[s]) }))} /></span>
+          <span className="grp-pick"><Select label={P.filter.label} value={status === 'issues' || status === 'starred' ? status : 'all'} onChange={v => { setStatus(v as Status); setPage(1); }}
+            options={(['all', 'issues', 'starred'] as const).map(x => ({ value: x, label: x === 'all' ? P.filter.states : P.filter[x], hint: String(counts[x]) }))} /></span>
+          {filtered && <button type="button" className="btn btn-text" onClick={reset}>{P.reset}</button>}
           {only && <button type="button" className="chip" onClick={() => setOnly(null)}>{d.risks.clear} <span aria-hidden="true">×</span></button>}
+          <span className="sp" />
           <span className="sort"><span id="pf-sort">{P.sort}</span>
-            <Select variant="sm" labelledBy="pf-sort" value={sort} onChange={v => setSort(v as Sort)} options={(['recent', 'name', 'latency'] as const).map(s => ({ value: s, label: P.sorts[s] }))} />
+            <Select variant="sm" labelledBy="pf-sort" value={sort} onChange={v => setSort(v as Sort)} options={(['recent', 'name', 'latency'] as const).map(x => ({ value: x, label: P.sorts[x] }))} />
           </span>
           <ViewSwitch label={P.views.label} value={view} onChange={setView} options={[['list', 'list', P.views.list], ['cards', 'grid', P.views.cards]]} />
         </div>
 
         {data.sync && <SyncBar d={d} data={data} names={new Map(all.map(p => [p.id, p.name]))} />}
-
-        {view === 'list' ? (
-          <div className="tw">
-            <table>
-              <thead>
-                <tr>
-                  <th className="cb" scope="col">
-                    <input type="checkbox" aria-label={d.common.selectAll} checked={list.length > 0 && shownSel === list.length}
-                      ref={el => { if (el) el.indeterminate = shownSel > 0 && shownSel < list.length; }} onChange={toggleAll} />
-                  </th>
-                  <th scope="col">{P.cols.profile}</th><th scope="col">{P.cols.group}</th><th scope="col">{P.cols.fingerprint}</th><th scope="col">{P.cols.proxy}</th>
-                  <th scope="col" className="lastc">{P.cols.last}</th><th scope="col">{P.cols.member}</th><th scope="col">{P.cols.status}</th><th className="act" scope="col">{P.cols.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.profiles === null && !failed && Array.from({ length: 5 }, (_, i) => (
-                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /></td><td><i className="w3" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w2" /></td><td /></tr>
-                ))}
-                {empty && <tr className="empty"><td colSpan={9}>{empty}</td></tr>}
-                {list.map(p => <Row key={p.id} {...item(p)} />)}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <>
-            {empty && <div className="cards-empty">{empty}</div>}
-            <ul className="pgrid">{list.map(p => <Card key={p.id} {...item(p)} />)}</ul>
-          </>
-        )}
-        {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
 
         {ids.length > 0 && (
           <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
@@ -350,55 +312,71 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
               </>
             ) : (
               <>
+                <button type="button" className="bb lead" onClick={() => openMany(all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)))}><Icon name="play" />{P.bulk.open}</button>
+                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
                 <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" searchPh={d.form.searchPh}
                   options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]}
                   onChange={v => { const g = v === 'none' ? null : v; void batchAction('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none)); }} />
-                <button type="button" className="bb" onClick={() => openMany(all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)))}><Icon name="play" />{P.bulk.open}</button>
-                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
-                <button type="button" className="bb" disabled={ids.length < 2 || !syncAllowed} title={!syncAllowed ? d.windowSync.upgrade : ids.length < 2 ? P.bulk.syncTwo : undefined} onClick={() => void startSync()}><Icon name="sync" />{P.bulk.sync}</button>
-                <Select variant="bar" action label={P.bulk.proxy} placeholder={P.bulk.proxy} value="" searchPh={d.form.searchPh}
-                  options={[...data.proxies.map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined })), { value: 'none', label: P.noProxy }]}
-                  onChange={v => void batchAction('set-proxy', { proxyId: v === 'none' ? null : v }, P.done.proxySet)} />
-                {manager && (
-                  <Select variant="bar" action label={P.bulk.assign} placeholder={P.bulk.assign} value="" searchPh={d.form.searchPh}
-                    options={[...data.members.map(m => ({ value: m.userId, label: m.email })), { value: 'none', label: P.unassigned }]}
-                    onChange={v => { const who = v === 'none' ? null : v; void batchAction('assign', { ownerId: who }, n => P.done.assigned(n, who ? email.get(who) ?? '' : P.unassigned)); }} />
-                )}
-                {data.extensions.length > 0 && (
-                  <Select variant="bar" action label={P.bulk.extensions} placeholder={P.bulk.extensions} value="" searchPh={d.form.searchPh}
-                    options={(['add', 'remove'] as const).flatMap(how => data.extensions.map(x => ({ value: `${how}:${x.id}`, label: `${x.name} · ${ENGINES[x.kernel]}`, group: how === 'add' ? P.bulk.install : P.bulk.uninstall })))}
-                    onChange={v => {
-                      const [how, id] = v.split(':');
-                      const x = extensions.get(id)!;
-                      void batchAction(how === 'add' ? 'add-extension' : 'remove-extension', { extensionId: id }, n => (how === 'add' ? P.done.extAdded(n, x.name, ids.length - n) : P.done.extRemoved(n, x.name)));
-                    }} />
-                )}
-                <Select variant="bar" action label={d.browser.bulk} placeholder={d.browser.bulk} value=""
+                <button type="button" className="bb" onClick={() => setEditing(true)}><Icon name="settings" />{P.bulk.edit}</button>
+                <Select variant="bar" action label={P.bulk.more} placeholder={P.bulk.more} value=""
                   options={[
+                    ...(ids.length > 1 && syncAllowed ? [{ value: 'sync', label: P.bulk.sync }] : []),
+                    { value: 'tag', label: P.bulk.tag },
+                    ...data.proxies.map(px => ({ value: `proxy:${px.id}`, label: px.name, group: P.bulk.proxy, hint: px.lastCheck?.geo?.city ?? undefined })),
+                    { value: 'proxy:none', label: P.noProxy, group: P.bulk.proxy },
+                    ...(manager ? [...data.members.map(m => ({ value: `assign:${m.userId}`, label: m.email, group: P.bulk.assign })), { value: 'assign:none', label: P.unassigned, group: P.bulk.assign }] : []),
+                    ...(['add', 'remove'] as const).flatMap(how => data.extensions.map(x => ({ value: `ext-${how}:${x.id}`, label: `${x.name} · ${ENGINES[x.kernel]}`, group: how === 'add' ? P.bulk.install : P.bulk.uninstall }))),
                     ...SEARCH_IDS.map(id => ({ value: `se:${id}`, label: d.browser.name(id), group: d.browser.search, ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) })),
-                    ...(['on', 'off'] as const).map(v => ({ value: `tabs:${v}`, label: d.browser[v], group: d.browser.restore }))
+                    ...(['on', 'off'] as const).map(v => ({ value: `tabs:${v}`, label: d.browser[v], group: d.browser.restore })),
+                    ...(manager ? [{ value: 'cookies:json', label: d.detail.json, group: P.bulk.cookies }, { value: 'cookies:netscape', label: d.detail.netscape, group: P.bulk.cookies }] : []),
+                    ...(manager ? [{ value: 'trash', label: P.bulk.trash }] : [])
                   ]}
-                  onChange={v => {
-                    const [what, x] = v.split(':');
-                    if (what === 'se') void batchAction('set-browser', { searchEngine: x }, n => d.browser.searchSet(n, d.browser.name(x as SearchEngine)));
-                    else void batchAction('set-browser', { restoreTabs: x === 'on' }, n => d.browser.tabsSet(n, x === 'on'));
-                  }} />
-                <button type="button" className="bb" onClick={() => setTagging(true)}>{P.bulk.tag}</button>
-                {manager && (
-                  <Select variant="bar" action label={P.bulk.cookies} placeholder={P.bulk.cookies} value=""
-                    options={[{ value: 'json', label: d.detail.json }, { value: 'netscape', label: d.detail.netscape }]}
-                    onChange={v => void exportCookies(all.filter(p => sel.has(p.id)), v as 'json' | 'netscape')} />
-                )}
-                {manager && <button type="button" className="bb danger" onClick={() => setConfirm(true)}><Icon name="trash" />{P.bulk.trash}</button>}
+                  onChange={v => more(v)} />
               </>
             )}
           </BulkBar>
         )}
+
+        {view === 'list' ? (
+          <div className="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th className="cb" scope="col">
+                    <input type="checkbox" aria-label={d.common.selectAll} checked={pageList.length > 0 && pageSel === pageList.length}
+                      ref={el => { if (el) el.indeterminate = pageSel > 0 && pageSel < pageList.length; }} onChange={toggleAll} />
+                  </th>
+                  <th scope="col">{P.cols.profile}</th><th scope="col">{P.cols.group}</th><th scope="col">{P.cols.engine}</th><th scope="col">{P.cols.proxy}</th>
+                  <th scope="col">{P.cols.status}</th><th scope="col" className="lastc">{P.cols.last}</th><th className="act" scope="col">{P.cols.actions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.profiles === null && !failed && Array.from({ length: 5 }, (_, i) => (
+                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /><i className="w3" /></td><td><i className="w3" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td /></tr>
+                ))}
+                {empty && <tr className="empty"><td colSpan={8}>{empty}</td></tr>}
+                {pageList.map(p => <Row key={p.id} {...item(p)} />)}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <>
+            {empty && <div className="cards-empty">{empty}</div>}
+            <ul className="pgrid">{pageList.map(p => <Card key={p.id} {...item(p)} />)}</ul>
+          </>
+        )}
+        {list.length > 0 && <Pager d={d} total={list.length} page={page} size={pageSize} onPage={setPage} onSize={n => { setPageSize(n); setPage(1); }} />}
+        {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
+
         {confirm && ids.length > 0 && (
           <Modal icon="trash" tone="bad" title={P.bulk.confirm(ids.length)} closeLabel={d.common.close} onClose={() => setConfirm(false)} foot={<>
             <button type="button" className="btn btn-secondary" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
             <button type="button" className="btn btn-danger solid" onClick={() => void trash(ids)}>{P.bulk.doTrash}</button>
           </>}><p>{P.bulk.confirmNote}</p></Modal>
+        )}
+        {editing && ids.length > 0 && (
+          <BulkEdit d={d} data={data} profiles={all.filter(p => sel.has(p.id))} onClose={() => setEditing(false)}
+            onDone={n => { setEditing(false); toast(d.bulkEdit.done(n)); }} onFail={fail} />
         )}
         {moving && (
           <Modal title={P.moveTitle(moving.name)} closeLabel={d.common.close} onClose={() => setMoving(null)}>
@@ -443,7 +421,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
 interface ItemProps {
   d: Dict; lang: Lang; p: Profile; h: Health; cur: boolean; checked: boolean; sync: 'leader' | 'follower' | null; owner: string | null; manager: boolean;
   group: Group | null; status?: ProfileStatus; progress?: Progress; checking: boolean; risky: boolean;
-  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void;
+  onToggle(): void; onView(): void; onOpen(): void; onStop(): void; onEnter(): void; onCheck(): void; onStar(): void; onEdit(): void; onTrash(): void; onMove(): void;
 }
 
 // What the profile is doing: a coloured dot and a word.
@@ -460,10 +438,9 @@ function Status({ d, p, h, status, progress }: ItemProps){
 }
 
 // Everything to do with the profile, in its ⋯ menu.
-function Actions({ d, p, h, status, progress, checking, manager, onOpen, onStop, onCheck, onEdit, onMove, onTrash }: ItemProps){
-  const P = d.profiles, busy = !!status && status.state !== 'running';
+function Actions({ d, p, h, checking, manager, onCheck, onEdit, onMove, onTrash }: ItemProps){
+  const P = d.profiles;
   return <MoreMenu label={P.actionsX(p.name)} items={[
-    status?.state === 'running' ? { label: P.stop, onClick: onStop } : { label: P.open, onClick: onOpen, disabled: busy || !!(progress && !progress.finished && !progress.error) || !!elsewhere(p) },
     ...(h.checks[0]?.id === 'proxy-down' ? [{ label: P.checkProxy, onClick: onCheck, disabled: checking }] : []),
     { label: d.detail.edit, onClick: onEdit }, { label: P.move, onClick: onMove },
     ...(manager ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
@@ -504,20 +481,31 @@ function Star({ d, p, onStar }: { d: Dict; p: Profile; onStar(): void }){
 }
 
 function Row(props: ItemProps){
-  const { d, lang, p, h, cur, checked, sync, owner, onToggle, onView } = props;
+  const { d, lang, p, h, cur, checked, sync, onToggle, onView } = props;
   return (
     <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) onView(); }}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
-      <td className="prof"><Name {...props} /></td>
+      <td className="prof"><Name {...props} /><span className="l2 mono">#{number(p)}</span></td>
       <td><GroupTag {...props} /></td>
-      <td><span className="l1">{d.os[p.os]}</span><span className="l2">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span></td>
+      <td><span className="l1">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span><span className="l2">{d.os[p.os]}</span></td>
       <td><ProxyCell {...props} /></td>
-      <td className="lastc mono">{lastOpened(p.lastOpenedAt, d, lang)}</td>
-      <td>{owner ? <Avatar text={owner} small title={owner} /> : <span className="muted">—</span>}</td>
       <td><Status {...props} />{sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}</td>
-      <td className="act"><Actions {...props} /></td>
+      <td className="lastc mono">{lastOpened(p.lastOpenedAt, d, lang)}</td>
+      <td className="act"><span className="actin"><RowStart {...props} /><Actions {...props} /></span></td>
     </tr>
   );
+}
+
+// The one thing a row asks to be done: start it, or, while it runs, go to its window or stop it. Starting is the
+// accent's outline, so a full list is not a wall of filled buttons.
+function RowStart({ d, p, status, progress, onOpen, onStop, onEnter }: ItemProps){
+  const P = d.profiles;
+  if (status?.state === 'running') return <>
+    <button type="button" className="btn btn-sm btn-secondary" onClick={onEnter}><Icon name="pointer" />{P.enter}</button>
+    <button type="button" className="btn btn-sm btn-secondary" onClick={onStop}><Icon name="stop" />{P.stop}</button>
+  </>;
+  const busy = !!status || !!(progress && !progress.finished && !progress.error) || !!elsewhere(p);
+  return <button type="button" className="btn btn-sm btn-start" disabled={busy} onClick={onOpen}><Icon name="play" />{P.open}</button>;
 }
 
 function Card(props: ItemProps){
@@ -531,7 +519,7 @@ function Card(props: ItemProps){
       {props.group && <div><GroupTag {...props} /></div>}
       <div className="pc-px"><ProxyCell {...props} /></div>
       <p className="pc-fp">{d.os[p.os]} · {h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</p>
-      <div className="pc-foot"><Status {...props} /><Actions {...props} /></div>
+      <div className="pc-foot"><Status {...props} /><span className="actin"><RowStart {...props} /><Actions {...props} /></span></div>
     </li>
   );
 }
@@ -595,5 +583,110 @@ function SyncBar({ d, data, names }: { d: Dict; data: WorkspaceData; names: Map<
       </form>
       <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopWindowSync()}>{W.stop}</button>
     </div>
+  );
+}
+
+// Which page of the list shows, and how many a page holds.
+function Pager({ d, total, page, size, onPage, onSize }: { d: Dict; total: number; page: number; size: number; onPage(p: number): void; onSize(n: number): void }){
+  const G = d.profiles.page, pages = Math.max(1, Math.ceil(total / size)), at = Math.min(page, pages);
+  // The first, the last, and the two either side of the current one; gaps show as an ellipsis.
+  const shown = [...new Set([1, at - 1, at, at + 1, pages])].filter(n => n >= 1 && n <= pages).sort((a, b) => a - b);
+  return (
+    <nav className="pager" aria-label={G.total(total)}>
+      <span className="muted">{G.total(total)}</span>
+      <Select variant="sm" label={G.size(size)} value={String(size)} onChange={v => onSize(Number(v))}
+        options={[20, 50, 100].map(n => ({ value: String(n), label: G.size(n) }))} />
+      <span className="sp" />
+      <button type="button" className="icon-btn" aria-label={G.prev} title={G.prev} disabled={at <= 1} onClick={() => onPage(at - 1)}><Icon name="back" /></button>
+      {shown.map((n, i) => <span key={n} className="pg">
+        {i > 0 && n - shown[i - 1] > 1 && <span className="muted" aria-hidden="true">…</span>}
+        <button type="button" className="pg-n" aria-label={G.go(n)} aria-current={n === at ? 'page' : undefined} onClick={() => onPage(n)}>{n}</button>
+      </span>)}
+      <button type="button" className="icon-btn" aria-label={G.next} title={G.next} disabled={at >= pages} onClick={() => onPage(at + 1)}><Icon name="chevR" /></button>
+    </nav>
+  );
+}
+
+// Several profiles changed at once. Each ticked field changes; running profiles are left alone unless asked, since
+// they keep their settings until they close. The counts say how many it reaches and how many it skips.
+function BulkEdit({ d, data, profiles, onClose, onDone, onFail }: {
+  d: Dict; data: WorkspaceData; profiles: Profile[]; onClose(): void; onDone(n: number): void; onFail(e: unknown): void;
+}){
+  const B = d.bulkEdit;
+  const [on, setOn] = useState({ group: false, proxy: false, engine: false, start: false });
+  const [groupId, setGroupId] = useState('none');
+  const [proxyId, setProxyId] = useState('none');
+  const [engine, setEngine] = useState('');
+  const [start, setStart] = useState('');
+  const [stoppedOnly, setStoppedOnly] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const runningIds = profiles.filter(p => data.status[p.id]).map(p => p.id);
+  const targets = profiles.filter(p => !stoppedOnly || !data.status[p.id]);
+  const versions = data.kernels.filter(k => k.installed || k.recommended).map(k => ({ value: `${k.kind}:${k.version}`, label: `${ENGINES[k.kind]} ${k.version}` }));
+  const okStart = !on.start || !start.trim() || /^https?:\/\/\S+$/.test(start.trim());
+  const nothing = !Object.values(on).some(Boolean);
+  const lines = [
+    on.group && `${B.group}: ${groupId === 'none' ? d.groups.none : data.groups.find(g => g.id === groupId)?.name ?? ''}`,
+    on.proxy && `${B.proxy}: ${proxyId === 'none' ? d.profiles.noProxy : data.proxies.find(x => x.id === proxyId)?.name ?? ''}`,
+    on.engine && engine && `${B.engine}: ${versions.find(v => v.value === engine)?.label ?? ''}`,
+    on.start && `${B.start}: ${start.trim() || '—'}`
+  ].filter(Boolean) as string[];
+
+  async function submit(){
+    const ids = targets.map(p => p.id);
+    setBusy(true);
+    try {
+      if (on.group) await data.batch('move', ids, { groupId: groupId === 'none' ? null : groupId });
+      if (on.proxy) await data.batch('set-proxy', ids, { proxyId: proxyId === 'none' ? null : proxyId });
+      if (on.engine && engine){
+        const [kind, version] = engine.split(':') as [Profile['kernel'], string];
+        await data.batch('set-kernel', targets.filter(p => p.kernel === kind).map(p => p.id), { kernel: kind, kernelVersion: version });
+      }
+      if (on.start) await data.batch('set-browser', ids, { startUrl: start.trim() || null });
+      onDone(ids.length);
+    } catch (e){ onFail(e); } finally { setBusy(false); }
+  }
+
+  const row = (k: keyof typeof on, label: string, hint: string, field: ReactNode) => (
+    <div className="be-row">
+      <label className="check-row"><input type="checkbox" checked={on[k]} onChange={e => setOn(o => ({ ...o, [k]: e.target.checked }))} /><b>{label}</b></label>
+      <div className="field">{on[k] ? field : <span className="sel" aria-disabled="true"><span className="sel-v ph">{B.keep}</span></span>}<span className="hint">{hint}</span></div>
+    </div>
+  );
+  return (
+    <Modal wide title={B.title} closeLabel={d.common.close} onClose={onClose} foot={<>
+      <span className="hint">{B.counts(targets.length, profiles.length - targets.length)}</span>
+      <label className="check-row"><input type="checkbox" checked={stoppedOnly} onChange={e => setStoppedOnly(e.target.checked)} />{B.stoppedOnly}</label>
+      <span className="sp" />
+      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+      <button type="button" className="btn btn-primary" disabled={busy || nothing || !targets.length || !okStart} onClick={() => void submit()}>{B.submit(targets.length)}</button>
+    </>}>
+      <div className="m-body be">
+        <p className="hint">{B.lead(profiles.length)}</p>
+        <div className="be-grid">
+          <div className="be-fields">
+            {row('group', B.group, B.groupHint, <Select label={B.group} value={groupId} onChange={setGroupId} searchPh={d.form.searchPh}
+              options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} />)}
+            {row('proxy', B.proxy, B.proxyHint, <Select label={B.proxy} value={proxyId} onChange={setProxyId} searchPh={d.form.searchPh}
+              options={[...data.proxies.map(x => ({ value: x.id, label: x.name })), { value: 'none', label: d.profiles.noProxy }]} />)}
+            {row('engine', B.engine, B.engineHint, <Select label={B.engine} value={engine} placeholder={B.keep} onChange={setEngine} options={versions} />)}
+            {row('start', B.start, B.startHint, <input aria-label={B.startHint} placeholder={B.startPh} value={start} aria-invalid={!okStart} onChange={e => setStart(e.target.value)} />)}
+          </div>
+          <aside className="be-side">
+            <section className="sec">
+              <h3>{B.changes}</h3>
+              {lines.length ? <ul className="be-lines">{lines.map(l => <li key={l}>{l}</li>)}</ul> : <p className="hint">{B.none}</p>}
+            </section>
+            <section className="sec">
+              <h3>{B.picked(profiles.length)}</h3>
+              {runningIds.length > 0 && stoppedOnly && <p className="hint">{B.running(runningIds.length)}</p>}
+              <ul className="be-list">
+                {profiles.map(p => <li key={p.id}><span>{p.name}</span><span className={`dot-st${data.status[p.id] ? ' run' : ''}`}>{data.status[p.id] ? d.profiles.st.running : d.profiles.st.idle}</span></li>)}
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </Modal>
   );
 }

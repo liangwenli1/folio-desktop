@@ -98,7 +98,7 @@ export function ProxiesPage({ d, lang, data, onAdd, onEdit, onImport, onShowProf
           <button className="btn btn-primary" type="button" onClick={onAdd}><Icon name="plus" />{X.add}</button>
         </header>
 
-        <section className="cards stats" aria-label={X.title}>
+        <section className="cards" aria-label={X.title}>
           {SUM.map(([s, tone, icon, label]) => (
             <button key={s} type="button" className="kc" aria-pressed={s === 'all' ? undefined : status === s} onClick={() => setStatus(s === status ? 'all' : s)}>
               <span className="kc-h"><span className={`kic ${tone}`}><Icon name={icon} /></span><small>{label}</small></span><b>{data.proxies.filter(p => matches(p, s)).length}</b>

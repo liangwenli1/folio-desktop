@@ -267,7 +267,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'profiles' && (
         <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
-          onEdit={id => setDialog({ kind: 'edit', id })} onAddProxy={() => setDialog({ kind: 'proxy' })} />
+          onEdit={id => setDialog({ kind: 'edit', id })} onTrashPage={() => go('trash')} />
       )}
       {shown === 'proxies' && <ProxiesPage d={d} lang={lang} data={data} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })}
         onShowProfiles={(ids, open) => { go('profiles'); setOnly(new Set(ids)); setOpenId(open ?? null); }} />}

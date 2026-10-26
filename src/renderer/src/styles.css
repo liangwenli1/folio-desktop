@@ -165,6 +165,9 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .sel.bar:hover:not(:disabled){background:var(--seg)}
 .sel.bar:focus-visible,.sel.bar.open{box-shadow:none;background:var(--seg);border-color:transparent}
 .sel.bar .sel-v.ph{color:var(--ink)}
+/* In the bulk bar a dropdown looks like the buttons beside it. */
+.bulk .sel.bar{border-color:var(--line-2);background:var(--card)}
+.bulk .sel.bar:hover:not(:disabled){background:var(--hover)}
 .sel.bar > .i{margin-left:2px;color:var(--ink-3)}
 .sel-pop{position:fixed;z-index:60;display:flex;flex-direction:column;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);overflow:hidden;animation:pop .12s ease-out}
 @keyframes pop{from{opacity:0;transform:translateY(-3px)}}
@@ -352,8 +355,8 @@ html[data-platform="win32"] .top{padding-right:150px}
 .page-note{margin:12px var(--gx) 0;flex:none}
 .page-attrib{margin:-8px var(--gx) 12px;text-align:right;flex:none}
 
-/* the profiles page's top: three counts and the exit map */
-.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(280px,1.5fr);grid-template-rows:118px;gap:12px;margin:2px var(--gx) 0;flex:none}
+/* figures above a list: four of them, side by side */
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:2px var(--gx) 0;flex:none}
 .kc{display:grid;align-content:start;gap:2px;min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);text-align:left;color:var(--ink)}
 button.kc{cursor:pointer}
 button.kc:hover{border-color:var(--line-2)}
@@ -365,12 +368,6 @@ button.kc:hover{border-color:var(--line-2)}
 .kc-h .kic{margin:0}
 .kic .i{width:14px;height:14px}
 .kic.good{background:var(--good-soft);color:var(--good)} .kic.bad{background:var(--bad-soft);color:var(--bad)} .kic.warn{background:var(--warn-soft);color:var(--warn)}
-.map-card{position:relative;display:grid;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);overflow:hidden}
-.map-card .exit-map{display:grid;align-items:center}
-.map-card .exit-map svg{max-height:104px}
-/* before any check: the map without pins, and the button that fills it */
-.map-empty{position:absolute;inset:0;display:grid;place-items:center}
-@media (max-width:1180px){ .cards{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto} .map-card{display:none} }
 
 /* the profile list: rows or cards */
 .filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px var(--gx) 12px;flex:none}
@@ -383,7 +380,6 @@ button.kc:hover{border-color:var(--line-2)}
 .ext-ic .i{width:12px;height:12px}
 @media (max-width:1280px){ .tw .lastc{display:none} }
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:0 var(--gx) 18px;padding:0;list-style:none}
-.main:has(.bulk) .pgrid{margin-bottom:76px}
 .pcard{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow);cursor:pointer}
 .pcard:hover{border-color:var(--line-2)}
 .pcard.cur{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
@@ -396,44 +392,29 @@ button.kc:hover{border-color:var(--line-2)}
 .pc-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
 
 .d.boot{background:var(--accent)}
-.exit-map{position:relative}
-.exit-map svg{display:block;width:100%;height:auto;max-height:220px}
-.exit-map .land circle{fill:var(--line-2);opacity:.75}
-.pin{cursor:pointer;outline:none}
-.pin .dot{stroke:var(--card);stroke-width:1.5}
-.pin .halo{opacity:.22}
-.pin.run .dot,.pin.run .halo{fill:var(--good)} .pin.boot .dot,.pin.boot .halo{fill:var(--accent)}
-.pin.bad .dot{fill:var(--bad)} .pin.warn .dot{fill:var(--warn)} .pin.idle .dot{fill:var(--ink-2)}
-.pin.run .halo,.pin.boot .halo{animation:breathe 2.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-.pin:hover .dot,.pin:focus-visible .dot{stroke:var(--ink);stroke-width:1.2}
-@keyframes breathe{0%,100%{transform:scale(.6);opacity:.35}50%{transform:scale(1.15);opacity:.1}}
-.exit-map .link{fill:none;stroke-width:1.4;stroke-dasharray:4 3;opacity:.85}
-.exit-map .link.warn{stroke:var(--warn)} .exit-map .link.bad{stroke:var(--bad)}
-.map-tip{position:absolute;z-index:2;display:grid;gap:1px;max-width:240px;padding:7px 10px;border-radius:8px;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.45;pointer-events:none;transform:translate(-50%,calc(-100% - 12px));box-shadow:var(--shadow-pop);white-space:nowrap}
-.map-tip b{font-weight:600;font-size:12.5px}
-.map-tip span{overflow:hidden;text-overflow:ellipsis;opacity:.85}
 .chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--line-2);border-radius:99px;background:var(--card);font-size:13px;cursor:pointer}
 .chip:hover{border-color:var(--ink-2)}
 .sort{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 .bar .sort{margin-left:0}
 
-/* Bulk actions: a white pill that floats over the bottom of the page while something is selected. */
-.bulk{position:fixed;z-index:20;left:calc(50% + 104px);bottom:18px;transform:translateX(-50%);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;width:max-content;max-width:calc(100% - 208px - 48px);padding:6px 6px 6px 8px;border:1px solid var(--line);border-radius:24px;background:var(--card);box-shadow:var(--shadow-pop);white-space:nowrap}
-.bulk > b{display:inline-flex;align-items:center;gap:8px;margin-right:6px;padding-right:10px;border-right:1px solid var(--line);font-weight:600}
+/* Bulk actions: a tinted row above the list while something is selected, as the delivery spec draws it. */
+.bulk{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 var(--gx) 10px;padding:8px 8px 8px 12px;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));border-radius:var(--r-card);background:var(--sel);flex:none}
+.bulk > b{display:inline-flex;align-items:center;gap:8px;margin-right:6px;padding-right:12px;border-right:1px solid color-mix(in srgb,var(--accent) 22%,var(--line));font-weight:600}
 .bulk .count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--accent);color:var(--on-accent);font:600 12px var(--f-data)}
-.bb{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 9px;border:0;border-radius:99px;background:transparent;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bb{display:inline-flex;align-items:center;gap:6px;height:var(--h-sm);padding:0 12px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bb.lead{border-color:var(--accent);color:var(--accent-ink)}
+.bb.lead > .i{color:var(--accent)}
 .bb > .i{width:13px;height:13px;color:var(--ink-2)}
-.bb:hover:not(:disabled){background:var(--seg)}
+.bb:hover:not(:disabled){background:var(--hover)}
 .bb:disabled{opacity:.45;cursor:default}
 .bb.danger,.bb.danger > .i{color:var(--bad)}
-.bb.close{width:30px;padding:0;justify-content:center;color:var(--ink-2)}
-.bb-in{height:30px;width:180px;padding:0 12px;border-radius:99px;border:1px solid var(--line-2);background:var(--card)}
+.bb.close{width:var(--h-sm);margin-left:auto;padding:0;justify-content:center;border-color:transparent;background:transparent;color:var(--ink-2)}
+.bb-in{height:var(--h-sm);width:180px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--card)}
 
 /* tables */
 .tw{flex:1 0 240px;min-height:240px;overflow:auto;margin:0 var(--gx) 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
 .tw.top-gap{margin-top:16px}
 /* Room under the last row for the floating bulk bar. */
-.main:has(.bulk) .tw{margin-bottom:76px}
 .tw table{width:100%;min-width:720px;border-collapse:separate;border-spacing:0;font-size:14px}
 .tw thead th{position:sticky;top:0;z-index:1;height:44px;padding:0 12px;text-align:left;font-size:12px;font-weight:500;color:var(--ink-2);background:var(--head);border-bottom:1px solid var(--line);white-space:nowrap}
 .tw tbody td{height:56px;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -621,7 +602,6 @@ tr.empty b{color:var(--ink)}
 /* opening several at once: a tray at the bottom right */
 .tray{position:fixed;z-index:21;right:16px;bottom:16px;width:360px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop);overflow:hidden}
 body:has(.tray) .toasts{right:392px}
-body:has(.tray) .bulk{left:calc(50% + 104px - 188px);max-width:calc(100% - 208px - 48px - 376px)}
 .tray-h{display:flex;align-items:center;gap:8px;padding:11px 10px 11px 14px;border-bottom:1px solid var(--line)}
 .tray-h b{font-size:13.5px;font-weight:600}
 .tray-h small{margin-left:auto;font-size:12px;color:var(--ink-2)}
@@ -1018,10 +998,8 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 @media (max-width:1180px){ .api-page{grid-template-columns:minmax(0,1fr)} }
 
 /* proxies: the four figures, then a row (or a card) per line; a card keeps its last 20 checks */
-.cards.stats{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:auto}
 .kc[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent),var(--shadow)}
 .pxg{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin:0 var(--gx) 18px;padding:0;list-style:none}
-.main:has(.bulk) .pxg{margin-bottom:76px}
 .pxc{display:grid;align-content:start;gap:5px;min-width:0;padding:14px 16px 12px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
 .pxc.bad{border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
 .pxc-h{display:flex;align-items:center;gap:10px;min-width:0;margin-bottom:6px}
@@ -1070,7 +1048,6 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 
 /* extensions: cards (or rows) with the extension's own icon, its engine, the signature check and where it is installed */
 .ext-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin:0 var(--gx) 18px;padding:0;list-style:none}
-.main:has(.bulk) .ext-grid{margin-bottom:76px}
 .ext-card{display:grid;gap:10px;align-content:start;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);box-shadow:var(--shadow)}
 .ext-top{display:flex;align-items:center;gap:12px;min-width:0}
 .ext-card .ext-ic{width:42px;height:42px;border-radius:11px}
@@ -1209,8 +1186,6 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
   /* The workspace switcher, the plan and the invitation dot are all in the account menu as well. */
   .brand-word,.nav-l,.cnt,.grp-t-row,.groups,.plan,.update,.ws{display:none}
   .nav-i{justify-content:center;gap:0;padding:0}
-  .bulk{left:calc(50% + 32px);max-width:calc(100% - 64px - 48px)}
-  body:has(.tray) .bulk{left:calc(50% + 32px - 188px);max-width:calc(100% - 64px - 48px - 376px)}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1253,3 +1228,28 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .use-list dt{font-size:14px}
 .use-list dd{margin:0;justify-self:end;font:600 14px var(--f-data);font-variant-numeric:tabular-nums}
 .use-list .meter{grid-column:1/-1}
+
+/* the profiles page: status tabs with their counts, starting a row, the pager, editing several at once */
+.page-tabs{margin:0 var(--gx) 2px;flex:none}
+.page-tabs button small{margin-left:6px;font:600 12px var(--f-data);color:var(--ink-3)}
+.page-tabs button[aria-selected="true"] small{color:var(--accent-ink)}
+.filters .search{margin-left:0;width:min(360px,100%)}
+.btn-start{background:var(--card);border-color:var(--accent);color:var(--accent-ink)}
+.btn-start > .i{color:var(--accent)}
+.btn-start:hover:not(:disabled){background:var(--accent-soft)}
+.prof .l2{margin-top:2px}
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px var(--gx) 18px;flex:none;font-size:13px}
+.pg{display:inline-flex;align-items:center;gap:6px}
+.pg-n{min-width:var(--h-sm);height:var(--h-sm);padding:0 8px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font:500 13px var(--f-data);cursor:pointer}
+.pg-n:hover{border-color:var(--line-2)}
+.pg-n[aria-current="page"]{border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.be{gap:12px}
+.be-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
+.be-fields{display:grid;gap:14px}
+.be-row{display:grid;grid-template-columns:140px minmax(0,1fr);gap:4px 12px;align-items:start}
+.be-row .check-row{padding-top:10px;color:var(--ink)}
+.be-row .sel[aria-disabled="true"]{background:var(--panel);cursor:default}
+.be-side{display:grid;gap:12px}
+.be-lines{display:grid;gap:6px;margin:0;padding:10px 12px;list-style:none;border-radius:var(--r);background:var(--sel);font-size:13px}
+.be-list{display:grid;gap:4px;max-height:220px;overflow-y:auto;margin:0;padding:0;list-style:none;font-size:13px}
+.be-list li{display:flex;justify-content:space-between;gap:10px}
