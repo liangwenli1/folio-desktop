@@ -64,12 +64,12 @@ export const closeWindows = (app: ElectronApplication, id: string) => app.evalua
   await Promise.all(r.ctx.pages().map(p => p.close()));
 }, id);
 
-// Creates an account the way the website does: register, verify, and optionally buy a plan.
+// Creates an account the way the website does: a code to the address, then the account, and optionally a plan.
 export async function account({ locale = 'en', buy }: { locale?: 'en' | 'zh'; buy?: { plan: string; period: string } } = {}){
   const email = `desk${Date.now().toString(36)}${n++}@example.com`;
   const api = await request.newContext({ baseURL: API, extraHTTPHeaders: { origin: SITE } });
-  await api.post('/auth/register', { data: { email, password: PASSWORD, locale } });
-  await api.post('/auth/verify-email', { data: { code: (await lastMail(email)).Text.match(/\b\d{6}\b/)![0] } });
+  await api.post('/auth/signup-code', { data: { email, locale } });
+  await api.post('/auth/register', { data: { email, code: (await lastMail(email)).Text.match(/\b\d{6}\b/)![0], password: PASSWORD, locale } });
   const me = await (await api.get('/me')).json();
   const workspaceId = me.workspaces[0].id as string;
   if (buy){

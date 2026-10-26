@@ -15,8 +15,8 @@ const engines = (win: import('@playwright/test').Page) => win.getByRole('navigat
 // The admin's account, made on the first run.
 async function adminAccount(){
   const api = await request.newContext({ baseURL: API, extraHTTPHeaders: { origin: SITE } });
-  if ((await api.post('/auth/register', { data: { email: ADMIN, password: PASSWORD, locale: 'en' } })).ok()){
-    await api.post('/auth/verify-email', { data: { code: (await lastMail(ADMIN)).Text.match(/\b\d{6}\b/)![0] } });
+  if ((await api.post('/auth/signup-code', { data: { email: ADMIN, locale: 'en' } })).ok()){
+    await api.post('/auth/register', { data: { email: ADMIN, code: (await lastMail(ADMIN)).Text.match(/\b\d{6}\b/)![0], password: PASSWORD, locale: 'en' } });
   } else await api.post('/auth/login', { data: { email: ADMIN, password: PASSWORD } });
   const me = await (await api.get('/me')).json();
   expect(me.admin).toBe(true);

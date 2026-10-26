@@ -37,8 +37,8 @@ type Running = { __folioRunning: Map<string, { ctx: import('playwright-core').Br
 // A demo person's web session: registered the first time, signed in after that.
 async function person(email: string, locale: Lang){
   const api = await request.newContext({ baseURL: API, extraHTTPHeaders: { origin: SITE } });
-  if ((await api.post('/auth/register', { data: { email, password: PASSWORD, locale } })).ok()){
-    await api.post('/auth/verify-email', { data: { code: (await lastMail(email)).Text.match(/\b\d{6}\b/)![0] } });
+  if ((await api.post('/auth/signup-code', { data: { email, locale } })).ok()){
+    await api.post('/auth/register', { data: { email, code: (await lastMail(email)).Text.match(/\b\d{6}\b/)![0], password: PASSWORD, locale } });
   } else expect((await api.post('/auth/login', { data: { email, password: PASSWORD } })).ok()).toBe(true);
   return api;
 }
