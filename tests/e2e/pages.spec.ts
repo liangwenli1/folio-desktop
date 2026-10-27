@@ -23,8 +23,10 @@ test('the Trash shows who deleted each profile, picks several on cards, and rest
   await win.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Cards' }).click();
   await expect(win.locator('li.pcard')).toHaveCount(3);
   for (const n of ['Old-1', 'Old-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
-  await expect(win.getByTestId('bulk')).toContainText('2 selected');
-  await win.getByTestId('bulk').getByRole('button', { name: 'Clear selection' }).click();
+  await expect(win.getByTestId('bulk')).toContainText('2 profiles selected');
+  // The box beside the count clears the selection.
+  await win.getByTestId('bulk').getByRole('checkbox', { name: 'Clear selection' }).click();
+  await expect(win.getByTestId('bulk')).toHaveCount(0);
   await win.getByRole('button', { name: 'Restore all' }).click();
   await expect(win.getByText('The Trash is empty')).toBeVisible();
   await app.close();

@@ -167,8 +167,8 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
             </div>
 
             {ids.length > 0 && (
-              <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-                <button type="button" className="bb" onClick={() => void check(ids)}><Icon name="refresh" />{X.bulkCheck}</button>
+              <BulkBar n={ids.length} label={d.common.picked.proxies(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+                <button type="button" className="bb lead" onClick={() => void check(ids)}><Icon name="refresh" />{X.bulkCheck}</button>
                 <button type="button" className="bb" disabled={!bound} title={bound ? undefined : X.bulk.unbindNone} onClick={() => setUnbinding(ids)}><Icon name="link" />{X.bulk.unbind}</button>
                 <button type="button" className="bb danger" onClick={() => setConfirm(ids)}><Icon name="trash" />{X.bulkDelete}</button>
               </BulkBar>
@@ -498,7 +498,8 @@ export function CheckCard({ d, r }: { d: Dict; r: CheckResult }){
   );
 }
 
-export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: string; data: WorkspaceData; proxy?: Proxy; onClose(): void }){
+// A new proxy's toast offers its page (`onShow`).
+export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; wsId: string; data: WorkspaceData; proxy?: Proxy; onClose(): void; onShow(id: string): void }){
   const X = d.proxies;
   const toast = useToast();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -517,9 +518,12 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
   const [result, setResult] = useState<CheckResult | 'checking' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const portN = Number(port), valid = HOST.test(host.trim()) && Number.isInteger(portN) && portN >= 1 && portN <= 65535;
-  const hostErr = tried && !HOST.test(host.trim()) ? X.hostErr : null;
-  const portErr = tried && !(Number.isInteger(portN) && portN >= 1 && portN <= 65535) ? X.portErr : null;
+  const portN = Number(port), portOk = Number.isInteger(portN) && portN >= 1 && portN <= 65535, hostOk = HOST.test(host.trim());
+  const nameErr = tried && !name.trim() ? X.nameErr : null;
+  const hostErr = tried && !hostOk ? X.hostErr : null;
+  const portErr = tried && !portOk ? X.portErr : null;
+  // The first field in error takes the focus (v2 41); checking the connection needs only the address and port.
+  const firstBad = (withName: boolean) => (withName && !name.trim() ? 'px-name' : !hostOk ? 'px-host' : !portOk ? 'px-port' : null);
   // The saved password stays unless another is typed or authentication is turned off.
   const keep = auth && !password && !!proxy?.hasPassword;
   const user = auth ? username.trim() || null : null;
@@ -536,7 +540,8 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
 
   async function test(){
     setTried(true);
-    if (!valid) return;
+    const bad = firstBad(false);
+    if (bad) return document.getElementById(bad)?.focus();
     setResult('checking');
     setResult(await folio.tryProxy({ type, host: host.trim(), port: portN, username: user, password: auth ? password || null : null, ...(keep ? { passwordOf: proxy!.id } : {}) }));
   }
@@ -544,11 +549,12 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
   async function submit(e: FormEvent){
     e.preventDefault();
     setTried(true);
-    if (!valid) return;
+    const bad = firstBad(true);
+    if (bad) return document.getElementById(bad)?.focus();
     setBusy(true); setError(null);
     if (stopFirst) await Promise.all(here.map(x => folio.stopProfile(x.id)));
     const body = {
-      name: name.trim() || `${host.trim()}:${portN}`, type, host: host.trim(), port: portN, username: user, backupId: backupId || null, notes: notes.trim() || null,
+      name: name.trim(), type, host: host.trim(), port: portN, username: user, backupId: backupId || null, notes: notes.trim() || null,
       ...(keep ? {} : { password: auth ? password || null : null })
     };
     try {
@@ -556,7 +562,8 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
         ? await folio.api<Proxy>('PATCH', `/proxies/${proxy.id}`, body)
         : await folio.api<Proxy>('POST', `/workspaces/${wsId}/proxies`, body);
       data.refresh('proxies');
-      toast(d.profiles.done.saved);
+      if (proxy) toast(d.profiles.done.saved);
+      else toast(X.added(saved.name), { label: d.states.view, fn: () => onShow(saved.id) });
       // New and moved proxies have no check yet.
       if (!saved.lastCheck) void data.check([saved.id]);
       if (!another || proxy) return onClose();
@@ -568,7 +575,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
   }
 
   return (
-    <Modal title={proxy ? X.formEdit : X.formAdd} sub={X.formSub} onClose={onClose} busy={busy} dirty={dirty} foot={<>
+    <Modal title={proxy ? X.formEdit : X.formAdd} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       {!proxy && <label className="check-row"><input type="checkbox" checked={another} onChange={e => setAnother(e.target.checked)} />{X.addMore}</label>}
       <span className="sp" />
       <Cancel />
@@ -580,8 +587,10 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
           <p className="notice warn" data-testid="proxy-bound">{X.bound(bound.length, here.length + there.length)}{stopFirst && ` ${X.boundHere}`}{moved && there.length > 0 && ` ${X.boundThere(there.length)}`}</p>
         )}
         <div className="field">
-          <label htmlFor="px-name">{X.name}{opt}</label>
-          <input id="px-name" ref={nameRef} placeholder={X.namePh} value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus />
+          <label htmlFor="px-name">{X.name}{req}</label>
+          <input id="px-name" ref={nameRef} placeholder={X.namePh} value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus required
+            aria-invalid={!!nameErr} aria-describedby={nameErr ? 'px-name-err' : undefined} />
+          {nameErr && <p className="err" id="px-name-err">{nameErr}</p>}
         </div>
         <div className="field">
           <span className="label" id="px-type">{X.type}{req}</span>
@@ -709,7 +718,7 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
   }
   const example = (pattern.trim() || I.namePh).replaceAll('{n}', '1') + I.sep + (pattern.trim() || I.namePh).replaceAll('{n}', '2');
   return (
-    <Modal wide title={I.title} sub={I.sub} onClose={onClose} busy={busy} dirty={!!(text.trim() || file || pattern)} foot={<>
+    <Modal wide title={I.title} onClose={onClose} busy={busy} dirty={!!(text.trim() || file || pattern)} foot={<>
       <label className="check-row" title={I.skipHelp}><input type="checkbox" checked={skip} onChange={e => setSkip(e.target.checked)} />{I.skip}</label>
       <span className="sp" />
       <Cancel />

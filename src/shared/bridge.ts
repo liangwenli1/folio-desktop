@@ -1,7 +1,7 @@
 // The only surface the renderer gets from the main process (exposed by the preload as `window.folio`).
 // The session token and proxy passwords never leave the main process.
 import type { components } from './api-schema';
-import type { Cookie, CookieKey } from './cookies';
+import type { Cookie, CookieEdit, CookieKey, CookieScope } from './cookies';
 
 export interface ApiErrorBody { code: string; message: string; status: number }
 export type ApiResult<T = unknown> = { ok: true; data: T } | { ok: false; error: ApiErrorBody };
@@ -107,8 +107,9 @@ export interface FolioBridge {
   saveFile(defaultName: string, content: string): Promise<string | null>;
   // Cookie files: export asks for a file (one profile) or a folder (several). Cookies brought in, and cookies
   // taken out, change the saved state and, while the profile runs here, its browser.
-  exportCookies(profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape'): Promise<{ saved: number; failed: { name: string; code: string }[]; path: string } | null>;
+  exportCookies(profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape', only?: CookieScope): Promise<{ saved: number; failed: { name: string; code: string }[]; path: string } | null>;
   importCookies(id: string, cookies: Cookie[]): Promise<{ count: number }>;
+  editCookie(id: string, from: CookieKey, cookie: CookieEdit): Promise<{ count: number }>;
   deleteCookies(id: string, cookies: CookieKey[]): Promise<{ count: number }>;
   // A whole workspace in a passphrase-protected .folio file. Import is three steps: pick the file, unlock it
   // (to show what is inside), then bring it into a workspace.

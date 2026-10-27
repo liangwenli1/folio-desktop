@@ -19,6 +19,12 @@ const andList = (items: string[]) => (items.length < 2 ? items.join('') : `${ite
 
 const enFields: Record<string, string> = { searchEngine: 'search engine', restoreTabs: 'tab restoring', startUrl: 'start page', windowMode: 'window size', windowWidth: 'window size', windowHeight: 'window size', name: 'name', groupId: 'group', tags: 'tags', proxyId: 'proxy', ownerId: 'assignee', departmentId: 'department', kernelVersion: 'engine version', fingerprint: 'fingerprint', os: 'system', timezoneOverride: 'time zone', localeOverride: 'language', notes: 'notes', syncMode: 'where sign-ins are kept', extensionIds: 'extensions', type: 'type', host: 'host', port: 'port', username: 'username', password: 'password', backupId: 'backup line' };
 const zhFields: Record<string, string> = { searchEngine: '搜索引擎', restoreTabs: '恢复标签页', startUrl: '启动页', windowMode: '启动窗口尺寸', windowWidth: '启动窗口尺寸', windowHeight: '启动窗口尺寸', name: '名称', groupId: '分组', tags: '标签', proxyId: '代理', ownerId: '负责人', departmentId: '部门', kernelVersion: '内核版本', fingerprint: '指纹', os: '系统', timezoneOverride: '时区', localeOverride: '语言', notes: '备注', syncMode: '登录状态保存位置', extensionIds: '扩展', type: '类型', host: '主机', port: '端口', username: '用户名', password: '密码', backupId: '备用线路' };
+// A country by its two-letter code, in the language of the page ("美国", "United States").
+const regions = new Map<Lang, Intl.DisplayNames>();
+export const regionName = (lang: Lang, code: string) => {
+  if (!regions.has(lang)) regions.set(lang, new Intl.DisplayNames([lang === 'zh' ? 'zh-CN' : 'en'], { type: 'region' }));
+  return regions.get(lang)!.of(code) ?? code;
+};
 // A profile field as the log names it.
 export const fieldName = (lang: Lang, f: string) => (lang === 'zh' ? zhFields : enFields)[f] ?? f;
 const enSearch = (id: SearchEngine): string => (id === 'none' ? 'None' : SEARCH_ENGINES[id].name);
@@ -58,9 +64,12 @@ export const en = {
     companyOnly: 'Giving members access to a group is part of the Company plan.',
     access: 'Access', inherit: 'Inherit parent group access', inheritHint: 'When on, members of the parent group also have access to this group’s profiles.',
     save: 'Save settings', saved: 'Group settings saved', delete: 'Delete group',
-    deleteTitle: (g: string) => `Delete “${g}”?`, moveTo: (n: number) => `Move its ${profilesN(n)} to`, deleteNote: 'The groups under it move up a level.',
+    deleteTitle: (g: string) => `Delete “${g}”?`, moveTo: 'Move them to', moveDelete: 'Move and delete',
+    deleteHas: (g: string, n: number) => `“${g}” has ${profilesN(n)}. Choose where they go before it is deleted.`,
+    deleteNote: 'Only the group goes, not its profiles; who can reach them follows the group they move to.', deleteEmpty: 'There are no profiles in it; only the group goes.',
+    deleteKids: (n: number) => (n === 1 ? 'The group under it moves up a level.' : `The ${n} groups under it move up a level.`),
     deleted: (g: string) => `“${g}” deleted`,
-    newTitle: 'New group', newSub: 'Sort profiles by business and choose who can access them.', create: 'Create group', created: (g: string) => `“${g}” created`,
+    newTitle: 'New group', create: 'Create group', created: (g: string) => `“${g}” created`,
     createHint: 'Profiles can be added once it exists.', rolesTitle: 'About roles'
   },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
@@ -119,9 +128,9 @@ export const en = {
     info: 'Account', displayName: 'Display name', displayNameHint: 'How colleagues see you: in the team, the log and as an owner.', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
     emailNote: 'Your email is how you log in; change it on the website’s account page.', nameErr: 'Enter a name.', saved: 'Profile saved',
     password: { current: 'Current password', next: 'New password', confirm: 'Confirm new password', rule: '8 to 64 characters.', currentErr: 'Enter your current password.', short: 'Use 8 to 64 characters.', mismatch: 'The two new passwords don’t match.', done: 'Password changed. Sign-ins on other computers have ended.' },
-    switchDlg: { title: 'Switch workspace', sub: 'Choose the workspace to work in.', field: 'Workspace', note: 'Switching changes what you see; nothing moves between workspaces. Save changes before you switch.', invites: 'Invitations', go: 'Switch' },
+    switchDlg: { title: 'Switch workspace', field: 'Workspace', note: 'Switching changes what you see; nothing moves between workspaces. Save changes before you switch.', invites: 'Invitations', go: 'Switch' },
     logoutDlg: {
-      title: 'Log out', sub: 'You return to the login screen.', ask: 'Log out of this account?',
+      title: 'Log out', ask: 'Log out of this account?',
       running: (profiles: number, runs: number) => [profiles ? `${profiles} running ${profiles === 1 ? 'profile saves its' : 'profiles save their'} sign-ins and ${profiles === 1 ? 'closes' : 'close'}` : '', runs ? `${runs} ${runs === 1 ? 'flow or task stops' : 'flows and tasks stop'}` : ''].filter(Boolean).join('; ') + '.',
       sync: 'Window sync stops.', go: 'Log out'
     },
@@ -148,7 +157,8 @@ export const en = {
   },
   common: {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit', copy: 'Copy', copied: 'Copied',
-    selected: (n: number) => `${n} selected`, selectedHidden: (n: number, hidden: number) => `${n} selected · ${hidden} hidden by filters`, clearSelection: 'Clear selection', selectAll: 'Select this page', select: (x: string) => `Select ${x}`,
+    picked: { profiles: (n: number) => `${profilesN(n)} selected`, proxies: (n: number) => `${proxiesN(n)} selected`, extensions: (n: number) => `${n} ${n === 1 ? 'extension' : 'extensions'} selected`,
+      cookies: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} selected` }, clearSelection: 'Clear selection', selectAll: 'Select this page', select: (x: string) => `Select ${x}`,
     never: 'Never', justNow: 'Just now', minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
     loadFailed: 'This list couldn’t be loaded', loadRetry: 'Load again', resize: 'Resize the panel',
     discardTitle: 'Discard unsaved changes?', discardNote: 'What you changed here won’t be saved.', keepEditing: 'Keep editing', discard: 'Discard changes',
@@ -190,7 +200,7 @@ export const en = {
     emptyMatch: 'No profiles match', emptyFor: (q: string) => `Nothing found for “${q}”.`,
     emptyHint: (n: number) => (n === 1 ? 'Try another search, or clear the filters to see it.' : `Try another search, or clear the filters to see all ${n}.`),
     bulk: {
-      title: 'Bulk actions', open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, reach: (open: number, stop: number) => `${open} can open · ${stop} can stop`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Bulk edit', more: 'More',
+      title: 'Bulk actions', open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, hidden: (n: number) => `${n} hidden by filters`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Bulk edit', more: 'More',
       tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
       extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall', sync: 'Sync windows', syncTwo: 'Select at least two profiles',
       confirm: (n: number) => `Move ${profilesN(n)} to the Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
@@ -265,8 +275,12 @@ export const en = {
     local: 'Sign-ins stay on the computer that uses this profile; Folio holds no copy to list here.',
     localRunning: 'Sign-ins stay on this computer; cookies imported now go straight into the open browser.',
     away: 'This profile is open on another computer; its cookies can be edited once it is closed there.',
-    editTitle: 'Edit cookie', newValue: 'Enter the value again: your role can’t read the current one.', save: 'Save cookie',
-    sessionOnly: 'Session cookie', domainErr: 'A cookie needs a domain.', expiresErr: 'Choose when it expires, or make it a session cookie.', valueErr: 'Enter a value.',
+    editTitle: 'Edit cookie', save: 'Save cookie', keepValue: 'Hidden; leave it to keep the current value',
+    editNote: 'The value stays hidden unless shown (showing it is recorded). The activity log records the change, never the value.',
+    sessionOnly: 'Session cookie', domainErr: 'A cookie needs a domain.', pathErr: 'A cookie needs a path, such as /.', nameErr: 'A cookie needs a name.', expiresErr: 'Choose when it expires, or make it a session cookie.',
+    exportTitle: 'Export cookies', exportNote: (target: string) => `${target}: the file holds the sites’ sign-ins. Keep it safe; the export is recorded in the activity log.`,
+    exportMany: (n: number) => `${n} profiles`, exportScope: 'What to export', scopePicked: (n: number) => `The ${n} selected`, scopeDomain: (site: string) => `All on ${site}`, scopeAll: 'All cookies',
+    scopeAllOf: (n: number) => `All cookies of the ${n} selected profiles`, format: 'File format', exportSure: 'I have checked what is exported and what it is for', exportDo: 'Export file',
     importTitle: (name: string) => `Import cookies into ${name}`, modes: { text: 'Paste text', file: 'From a file' }, chooseFile: 'Choose a file…', noFile: 'No file chosen',
     formats: 'JSON (Cookie-Editor, EditThisCookie, Playwright) or Netscape cookies.txt; every entry is checked before anything comes in.',
     detected: (f: string) => `Read as ${f}.`, notJson: 'This isn’t JSON that can be read. Check the brackets and quotes.',
@@ -409,8 +423,8 @@ export const en = {
       createdOn: (when: string) => `Added ${when}`, checkedOn: (when: string) => `last checked ${when}`, authOn: 'On', authOff: 'Off',
       runningWarn: 'Stop the running profiles that use this proxy before changing how it connects.', viewProfile: 'View profile'
     },
-    formAdd: 'Add proxy', formEdit: 'Edit proxy', formSub: 'Fill in how it connects, and check that it responds.', save: 'Save proxy',
-    name: 'Name', namePh: 'Defaults to host:port', type: 'Protocol', host: 'Host', port: 'Port', notes: 'Notes',
+    formAdd: 'Add proxy', formEdit: 'Edit proxy', save: 'Save proxy', added: (n: string) => `${n} added`,
+    name: 'Name', namePh: 'e.g., US-West-01', nameErr: 'Enter a name for the proxy.', type: 'Protocol', host: 'Host', port: 'Port', notes: 'Notes',
     auth: 'Authentication', authHint: 'When on, the proxy is reached with a username and password.',
     user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
     lastTest: (when: string) => `Last checked: ${when}`, justNow: 'just now',
@@ -438,7 +452,7 @@ export const en = {
     backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t respond.',
     hostErr: 'Enter a host name or IP address.', portErr: 'Ports go from 1 to 65535.',
     imp: {
-      title: 'Import proxies', sub: 'Bring in a list as text or from a file.', modes: { text: 'Paste text', file: 'From a file' },
+      title: 'Import proxies', modes: { text: 'Paste text', file: 'From a file' },
       protocol: 'Protocol', protocolHint: 'For lines that don’t say which.', naming: 'Naming', namePh: 'Proxy-{n}', sep: ', ',
       nameHint: (ex: string) => `New proxies are numbered: ${ex}…`, list: 'Proxy list', listHint: ' One per line; username and password optional.',
       formats: 'Formats: host:port:user:pass · user:pass@host:port · socks5://user:pass@host:port · host:port',
@@ -538,7 +552,7 @@ export const en = {
     } as Record<string, string>,
     roleActions: (n: number) => `${n} ${n === 1 ? 'permission' : 'permissions'}`,
     copyLink: 'Copy link', copied: 'Invitation link copied', resend: 'Send again', withdraw: 'Withdraw', withdrawn: 'Invitation withdrawn',
-    inviteTitle: 'Invite people', inviteSub: 'Their email, their role and the groups they will have access to.', email: 'Email', emailErr: 'Enter an email address.', role: 'Role',
+    inviteTitle: 'Invite people', email: 'Email', emailErr: 'Enter an email address.', role: 'Role',
     emails: 'Emails', emailsPh: 'name@company.com', emailsHint: 'Up to 10 at a time; press Enter or type a comma after each.',
     emailBad: (e: string) => `${e} isn’t an email address.`, tooMany: 'Invite up to 10 people at a time.', removeEmail: (e: string) => `Remove ${e}`,
     summaryTitle: 'What they will have access to', summaryAll: 'This role can access every profile in the workspace.',
@@ -595,7 +609,6 @@ export const en = {
     descs: { owner: 'Built in, with every permission', admin: 'Manages the team and every resource', member: 'Uses the profiles in their groups', viewer: 'View only' } as Record<string, string>,
     customOf: (n: number) => `Custom role · ${n} ${n === 1 ? 'permission' : 'permissions'}`, customHint: 'A custom role for this workspace.',
     people: (n: number) => `${n} ${n === 1 ? 'person' : 'people'}`, ownerNote: 'The owner’s role always has every permission.',
-    col: 'Permission', what: 'Allows', allow: 'Allowed',
     sections: { profiles: 'Profiles', data: 'Data', proxies: 'Proxies', team: 'Team' },
     perms: {
       'profiles.view': ['View profiles', 'See the profile list and each profile’s details'], 'profiles.create': ['Create profiles', 'Make new profiles'],
@@ -981,9 +994,12 @@ export const zh: Dict = {
     companyOnly: '为分组授权成员是公司版功能。',
     access: '权限设置', inherit: '继承上级分组权限', inheritHint: '开启后，上级分组的成员也可访问本分组的环境。',
     save: '保存设置', saved: '分组设置已保存', delete: '删除分组',
-    deleteTitle: (g: string) => `删除「${g}」？`, moveTo: (n: number) => `组内 ${n} 个环境移至`, deleteNote: '下级分组将上移一级。',
+    deleteTitle: (g: string) => `删除「${g}」？`, moveTo: '迁移目标', moveDelete: '迁移并删除',
+    deleteHas: (g: string, n: number) => `「${g}」包含 ${n} 个环境，删除前请选择这些环境的迁移去向。`,
+    deleteNote: '本操作仅删除分组结构，不删除环境；成员对迁移后环境的访问权限按新分组重新计算。', deleteEmpty: '该分组内没有环境，删除后仅移除分组结构。',
+    deleteKids: (n: number) => `其下 ${n} 个子分组将上移一级。`,
     deleted: (g: string) => `已删除「${g}」`,
-    newTitle: '新建分组', newSub: '按业务组织环境并配置成员访问权限', create: '创建分组', created: (g: string) => `已创建「${g}」`,
+    newTitle: '新建分组', create: '创建分组', created: (g: string) => `已创建「${g}」`,
     createHint: '创建后可添加浏览器环境', rolesTitle: '权限说明'
   },
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
@@ -1039,9 +1055,9 @@ export const zh: Dict = {
     info: '账号信息', displayName: '显示名称', displayNameHint: '团队成员、操作日志与负责人处显示该名称。', email: '账号邮箱', note: '备注', notePh: '例如：店铺运营',
     emailNote: '邮箱用于登录，如需修改请前往官网账户页。', nameErr: '请输入显示名称。', saved: '个人资料已保存',
     password: { current: '当前密码', next: '新密码', confirm: '确认新密码', rule: '8–64 个字符。', currentErr: '请输入当前密码。', short: '密码需为 8–64 个字符。', mismatch: '两次输入的新密码不一致。', done: '密码已修改，其他设备上的登录已退出。' },
-    switchDlg: { title: '切换工作空间', sub: '选择要进入的工作空间。', field: '工作空间', note: '切换仅改变当前查看的资源，不会迁移环境。未保存的修改请在切换前处理。', invites: '待接受的邀请', go: '切换' },
+    switchDlg: { title: '切换工作空间', field: '工作空间', note: '切换仅改变当前查看的资源，不会迁移环境。未保存的修改请在切换前处理。', invites: '待接受的邀请', go: '切换' },
     logoutDlg: {
-      title: '退出登录', sub: '退出后将返回登录页面。', ask: '是否退出当前账号？',
+      title: '退出登录', ask: '是否退出当前账号？',
       running: (profiles: number, runs: number) => [profiles ? `${profiles} 个运行中的环境将保存登录状态后关闭` : '', runs ? `${runs} 个流程或定时任务将中止` : ''].filter(Boolean).join('，') + '。',
       sync: '窗口同步将停止。', go: '退出登录'
     },
@@ -1067,7 +1083,7 @@ export const zh: Dict = {
   },
   common: {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑', copy: '复制', copied: '已复制',
-    selected: (n: number) => `已选 ${n} 个`, selectedHidden: (n: number, hidden: number) => `已选 ${n} 个（${hidden} 个被筛选隐藏）`, clearSelection: '取消选择', selectAll: '选择当前页', select: (x: string) => `选择 ${x}`,
+    picked: { profiles: (n: number) => `已选择 ${n} 个环境`, proxies: (n: number) => `已选择 ${n} 个代理`, extensions: (n: number) => `已选择 ${n} 个扩展`, cookies: (n: number) => `已选择 ${n} 个 Cookie` }, clearSelection: '取消选择', selectAll: '选择当前页', select: (x: string) => `选择 ${x}`,
     never: '从未', justNow: '刚刚', minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
     loadFailed: '列表加载失败', loadRetry: '重新加载', resize: '调整面板宽度',
     discardTitle: '放弃未保存的修改？', discardNote: '关闭后，本次的修改将不会保存。', keepEditing: '继续编辑', discard: '放弃修改',
@@ -1109,7 +1125,7 @@ export const zh: Dict = {
     emptyMatch: '无符合条件的环境', emptyFor: (q: string) => `未找到「${q}」。`,
     emptyHint: (n: number) => `请更换关键词，或清除筛选查看全部 ${n} 个环境。`,
     bulk: {
-      title: '批量操作', open: '批量启动', stop: '批量停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, reach: (open: number, stop: number) => `可启动 ${open} 个 · 可停止 ${stop} 个`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组…', proxy: '设置代理…', assign: '分配给…', edit: '批量编辑', more: '更多',
+      title: '批量操作', open: '批量启动', stop: '停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, hidden: (n: number) => `${n} 个被筛选隐藏`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组', proxy: '设置代理…', assign: '分配给…', edit: '批量编辑', more: '更多',
       tag: '标签', tagPh: '标签名', addTag: '添加标签', removeTag: '移除标签', trash: '删除', cookies: '导出 Cookie…',
       extensions: '扩展…', install: '安装', uninstall: '卸载', sync: '同步窗口', syncTwo: '请至少选择两个环境',
       confirm: (n: number) => `将 ${n} 个环境移至回收站？`, confirmNote: '运行中的环境将先停止，此操作可撤销。', doTrash: '移至回收站'
@@ -1182,8 +1198,12 @@ export const zh: Dict = {
     local: '登录状态仅保存在使用该环境的电脑上，Folio 不保留副本，此处无可列出的 Cookie。',
     localRunning: '登录状态仅保存在本机，此时导入的 Cookie 将直接写入正在运行的浏览器。',
     away: '该环境正在其他电脑上使用，关闭后才能修改 Cookie。',
-    editTitle: '编辑 Cookie', newValue: '当前角色无权查看原值，请重新输入。', save: '保存 Cookie',
-    sessionOnly: '会话 Cookie', domainErr: 'Cookie 需要域名。', expiresErr: '请选择到期时间，或设为会话 Cookie。', valueErr: '请输入值。',
+    editTitle: '编辑 Cookie', save: '保存 Cookie', keepValue: '已遮挡，留空则保持原值',
+    editNote: '值默认遮挡，查看时记入操作日志；修改结果写入操作日志，但不记录值。',
+    sessionOnly: '会话 Cookie', domainErr: '请填写域名。', pathErr: '请填写路径，例如 /。', nameErr: '请填写名称。', expiresErr: '请选择到期时间，或设为会话 Cookie。',
+    exportTitle: '导出 Cookie', exportNote: (target: string) => `目标环境：${target}。导出文件包含站点的登录凭据，请妥善保管；本次导出将记入操作日志。`,
+    exportMany: (n: number) => `${n} 个环境`, exportScope: '导出范围', scopePicked: (n: number) => `选中的 ${n} 个`, scopeDomain: (site: string) => `${site} 的全部`, scopeAll: '全部 Cookie',
+    scopeAllOf: (n: number) => `所选 ${n} 个环境的全部 Cookie`, format: '文件格式', exportSure: '我已确认导出范围及用途', exportDo: '导出文件',
     importTitle: (name: string) => `导入 Cookie（目标环境：${name}）`, modes: { text: '文本导入', file: '文件导入' }, chooseFile: '选择文件…', noFile: '未选择文件',
     formats: '支持 JSON（Cookie-Editor、EditThisCookie、Playwright）与 Netscape cookies.txt 格式，导入前逐条解析并预览。',
     detected: (f: string) => `已识别为 ${f} 格式。`, notJson: '无法解析该 JSON，请检查括号与引号。',
@@ -1320,8 +1340,8 @@ export const zh: Dict = {
       createdOn: (when: string) => `创建于 ${when}`, checkedOn: (when: string) => `最近检测 ${when}`, authOn: '已启用', authOff: '未启用',
       runningWarn: '更新连接配置前，请先停止使用该代理的运行中环境。', viewProfile: '查看环境'
     },
-    formAdd: '添加代理', formEdit: '编辑代理', formSub: '填写连接信息并验证可用性。', save: '保存代理',
-    name: '代理名称', namePh: '默认为 地址:端口', type: '代理协议', host: '代理地址', port: '端口', notes: '备注',
+    formAdd: '添加代理', formEdit: '编辑代理', save: '保存代理', added: (n: string) => `已添加代理「${n}」`,
+    name: '代理名称', namePh: '例如：美国-运营-01', nameErr: '请输入代理名称。', type: '代理协议', host: '代理地址', port: '端口', notes: '备注',
     auth: '身份验证', authHint: '启用后需要填写用户名和密码进行代理认证。',
     user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
     lastTest: (when: string) => `最近检测：${when}`, justNow: '刚刚',
@@ -1346,7 +1366,7 @@ export const zh: Dict = {
     backup: '备用线路', backupNone: '无', backupHint: '该线路无响应时自动切换至备用线路。',
     hostErr: '请填写主机名或 IP 地址。', portErr: '端口范围是 1 到 65535。',
     imp: {
-      title: '批量导入代理', sub: '通过文本或文件批量配置代理资源。', modes: { text: '文本导入', file: '文件导入' },
+      title: '批量导入代理', modes: { text: '文本导入', file: '文件导入' },
       protocol: '代理协议', protocolHint: '未注明协议的行按此处理。', naming: '默认命名', namePh: '代理-{n}', sep: '、',
       nameHint: (ex: string) => `将按序号自动命名，如：${ex}…`, list: '代理列表', listHint: '每行一条代理，支持填写身份验证信息',
       formats: '格式：地址:端口:用户名:密码 · 用户名:密码@地址:端口 · socks5://用户名:密码@地址:端口 · 地址:端口',
@@ -1446,7 +1466,7 @@ export const zh: Dict = {
     } as Record<string, string>,
     roleActions: (n: number) => `${n} 项权限`,
     copyLink: '复制链接', copied: '邀请链接已复制', resend: '重新发送', withdraw: '撤回', withdrawn: '邀请已撤回',
-    inviteTitle: '邀请成员', inviteSub: '配置邀请邮箱、角色与授权范围，邀请成员加入当前工作空间。', email: '邮箱', emailErr: '请填写邮箱地址。', role: '成员角色',
+    inviteTitle: '邀请成员', email: '邮箱', emailErr: '请填写邮箱地址。', role: '成员角色',
     emails: '邀请邮箱', emailsPh: 'name@company.com', emailsHint: '每次最多邀请 10 位成员，每个邮箱后按回车或输入逗号。',
     emailBad: (e: string) => `${e} 不是有效的邮箱地址。`, tooMany: '每次最多邀请 10 位成员。', removeEmail: (e: string) => `移除 ${e}`,
     summaryTitle: '权限摘要', summaryAll: '该角色可访问工作空间内的全部环境。',
@@ -1503,7 +1523,6 @@ export const zh: Dict = {
     descs: { owner: '系统内置角色，拥有所有权限', admin: '管理团队与所有资源', member: '使用已授权分组内的环境', viewer: '仅可查看，无编辑权限' } as Record<string, string>,
     customOf: (n: number) => `自定义角色 · ${n} 项权限`, customHint: '本工作空间自定义的角色。',
     people: (n: number) => `${n} 人`, ownerNote: '所有者角色始终拥有全部权限。',
-    col: '权限', what: '说明', allow: '允许',
     sections: { profiles: '环境管理', data: '数据操作', proxies: '代理', team: '团队' },
     perms: {
       'profiles.view': ['查看环境', '可查看环境列表与详情'], 'profiles.create': ['创建环境', '可新建环境'],

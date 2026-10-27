@@ -22,7 +22,7 @@ import { collectExtensionData, prepareExtensions, writeExtensionData, type Exten
 import { chromiumSearchDue, setChromiumSearch, withFirefoxSearch } from './search';
 import { addOrigins, download, readLocal, upload, writeLocal, type Local, type StorageState } from './sync';
 import type { CheckResult, CheckupFacts, Debugging, Fingerprint, Geo, KernelKind, Os, ProfileStatus } from '../shared/bridge';
-import type { Cookie, CookieKey } from '../shared/cookies';
+import type { Cookie, CookieEdit, CookieKey } from '../shared/cookies';
 import { SEARCH_ENGINES, type SearchEngine } from '../shared/search';
 
 interface LaunchProfile {
@@ -489,6 +489,14 @@ export async function newPage(id: string){
 // Adds imported cookies to the browser, or takes deleted ones out of it, when the profile runs on this computer.
 export async function addCookies(id: string, cookies: Cookie[]){
   await running.get(id)?.ctx.addCookies(cookies);
+}
+// Changes one cookie in the browser, keeping the value it has there unless a new one is given.
+export async function editCookie(id: string, from: CookieKey, cookie: CookieEdit){
+  const ctx = running.get(id)?.ctx;
+  if (!ctx) return;
+  const old = (await ctx.cookies()).find(c => c.name === from.name && c.domain === from.domain && c.path === from.path);
+  await ctx.clearCookies({ name: from.name, domain: from.domain, path: from.path });
+  await ctx.addCookies([{ ...cookie, value: cookie.value ?? old?.value ?? '' }]);
 }
 export async function removeCookies(id: string, keys: CookieKey[]){
   const ctx = running.get(id)?.ctx;

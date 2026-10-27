@@ -56,7 +56,7 @@ test('a built-in role is changed and put back, and a role of the workspace’s o
   await teamPage(win);
   await win.getByRole('tab', { name: 'Roles' }).click();
   const memberRole = win.getByRole('region', { name: 'Member', exact: true });
-  const del = memberRole.locator('tr[data-permission="profiles.delete"]').getByRole('switch');
+  const del = memberRole.locator('[data-permission="profiles.delete"]').getByRole('checkbox');
   await expect(del).not.toBeChecked();
   await del.check();
   await memberRole.getByRole('button', { name: 'Save permissions' }).click();
@@ -74,8 +74,8 @@ test('a built-in role is changed and put back, and a role of the workspace’s o
   await choose(dialog.getByRole('combobox', { name: 'Start from' }), 'Viewer');
   await dialog.getByRole('button', { name: 'Create role' }).click();
   const ops = win.getByRole('region', { name: 'Ops' });
-  await expect(ops.locator('tr[data-permission="proxies.view"]').getByRole('switch')).toBeChecked();
-  await expect(ops.locator('tr[data-permission="profiles.create"]').getByRole('switch')).not.toBeChecked();
+  await expect(ops.locator('[data-permission="proxies.view"]').getByRole('checkbox')).toBeChecked();
+  await expect(ops.locator('[data-permission="profiles.create"]').getByRole('checkbox')).not.toBeChecked();
   await ops.getByRole('button', { name: 'Delete role' }).click();
   await win.getByRole('dialog', { name: 'Delete the role Ops?' }).getByRole('button', { name: 'Delete role' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Ops deleted' })).toBeVisible();

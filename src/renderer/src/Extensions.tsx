@@ -70,8 +70,8 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
         {picked.length > 0 && (
-          <BulkBar n={picked.length} label={d.common.selected(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-            <button type="button" className="bb" onClick={() => setInstalling(picked)}><Icon name="download" />{X.install}</button>
+          <BulkBar n={picked.length} all={list.length > 0 && list.every(e => sel.has(e.id))} label={d.common.picked.extensions(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+            <button type="button" className="bb lead" onClick={() => setInstalling(picked)}><Icon name="download" />{X.install}</button>
           </BulkBar>
         )}
 

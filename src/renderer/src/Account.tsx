@@ -159,7 +159,7 @@ export function SwitchDialog({ d, me, ws, invites, onSwitch, onAnswer, onClose }
   const S = d.account.switchDlg;
   const [pick, setPick] = useState(ws.id);
   return (
-    <Modal title={S.title} sub={S.sub} onClose={onClose} foot={<>
+    <Modal title={S.title} onClose={onClose} foot={<>
       <span className="sp" />
       <Cancel />
       <button className="btn btn-primary" type="button" disabled={pick === ws.id} onClick={() => { onClose(); onSwitch(pick); }}>{S.go}</button>
@@ -192,7 +192,7 @@ export function SwitchDialog({ d, me, ws, invites, onSwitch, onAnswer, onClose }
 export function LogoutDialog({ d, profiles, runs, sync, onLogout, onClose }: { d: Dict; profiles: number; runs: number; sync: boolean; onLogout(): Promise<void>; onClose(): void }){
   const L = d.account.logoutDlg;
   return (
-    <Modal title={L.title} sub={L.sub} onClose={onClose} foot={<>
+    <Modal title={L.title} onClose={onClose} foot={<>
       <span className="sp" />
       <Cancel />
       <Act className="btn btn-primary" run={onLogout}>{L.go}</Act>

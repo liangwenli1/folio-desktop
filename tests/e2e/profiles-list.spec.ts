@@ -1,7 +1,7 @@
 // The profiles list as the delivery spec lays it out: status tabs with counts, twenty a page, a reset for the
 // filters, and editing several profiles at once while the running ones are left alone.
 import { expect, test } from '@playwright/test';
-import { API, ENGINE_ENV, account, chromiumProfile, choose, dataDir, hasKernels, launch, logIn, opened } from './helpers';
+import { API, ENGINE_ENV, account, chromiumProfile, choose, dataDir, detail, hasKernels, launch, logIn, opened } from './helpers';
 
 test.setTimeout(180_000);
 
@@ -29,7 +29,14 @@ test('pages of twenty, tabs that count, and a reset that brings everything back'
 
   // The header box picks this page, not the whole list.
   await win.getByRole('checkbox', { name: 'Select this page' }).check();
-  await expect(win.getByTestId('bulk')).toContainText('20 selected');
+  await expect(win.getByTestId('bulk')).toContainText('20 profiles selected');
+
+  // From a profile's page, Profiles in the sidebar goes back to the list.
+  await win.locator('tr[data-id] .rowlink').first().click();
+  await expect(detail(win)).toBeVisible();
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^Profiles/ }).click();
+  await expect(detail(win)).toHaveCount(0);
+  await expect(win.locator('tr[data-id]')).toHaveCount(20);
   await app.close();
 });
 
@@ -45,7 +52,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
 
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Bulk edit' }).click();
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bulk edit');
   const dialog = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await dialog.getByRole('checkbox', { name: 'Group' }).check();
   await choose(dialog.getByRole('combobox', { name: 'Group' }), 'EU stores');
@@ -78,7 +85,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   // With the box cleared, the running one is changed too.
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await win.getByTestId('bulk').getByRole('button', { name: 'Bulk edit' }).click();
+  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bulk edit');
   await dialog.getByRole('checkbox', { name: 'Start page' }).check();
   await dialog.getByRole('textbox').fill('https://other.example/');
   await dialog.getByRole('checkbox', { name: 'Only change profiles that are not running' }).uncheck();

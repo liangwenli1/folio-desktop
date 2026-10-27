@@ -210,7 +210,7 @@ function TokenDialog({ d, onClose, onCreate }: { d: Dict; onClose(): void; onCre
   const A = d.apiPage;
   const [name, setName] = useState('');
   return (
-    <Modal title={A.createToken} sub={A.tokensLead} onClose={onClose} foot={<>
+    <Modal title={A.createToken} onClose={onClose} foot={<>
       <Cancel />
       <Act className="btn btn-primary" run={() => onCreate(name.trim())}>{A.createToken}</Act>
     </>}>

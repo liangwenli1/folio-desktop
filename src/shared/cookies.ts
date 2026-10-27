@@ -8,6 +8,10 @@ export interface Cookie {
 // What identifies a cookie: two with the same name, domain and path are the same cookie.
 export type CookieKey = Pick<Cookie, 'name' | 'domain' | 'path'>;
 export const cookieKey = (c: CookieKey) => `${c.name}\u0000${c.domain}\u0000${c.path}`;
+// A cookie as changed: without a value it keeps the one it has.
+export type CookieEdit = Omit<Cookie, 'value'> & { value?: string };
+// Which of a profile's cookies an export takes: one site's, or those picked; all when neither.
+export interface CookieScope { domain?: string; cookies?: CookieKey[] }
 
 const SAME_SITE: Record<string, Cookie['sameSite']> = { strict: 'Strict', lax: 'Lax', none: 'None', no_restriction: 'None', unspecified: 'Lax' };
 

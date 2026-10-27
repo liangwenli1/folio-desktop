@@ -146,8 +146,8 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
               <button type="button" className="icon-btn" aria-label={G.sort} title={G.sort} aria-pressed={desc} onClick={() => setDesc(x => !x)}><Icon name={desc ? 'up' : 'down'} /></button>
             </div>
             {ids.length > 0 && editor && (
-              <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-                <Select variant="bar" action label={G.move} placeholder={G.move} value="" searchPh={d.form.searchPh} onChange={v => void move(ids, v)}
+              <BulkBar n={ids.length} label={d.common.picked.profiles(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+                <Select variant="bar" action icon="folder" label={G.move} placeholder={G.move} value="" searchPh={d.form.searchPh} onChange={v => void move(ids, v)}
                   options={data.groups.filter(g => g.id !== group?.id).map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))} />
                 {pick !== 'none' && <button type="button" className="bb" onClick={() => void move(ids, null)}>{G.moveOut}</button>}
               </BulkBar>
@@ -335,7 +335,8 @@ function NewGroupDialog({ d, ws, data, meId, company, parentId: under, onClose, 
   const [parentId, setParentId] = useState(under ?? '');
   const [color, setColor] = useState<GroupColor>(GROUP_COLORS[data.groups.length % (GROUP_COLORS.length - 1)]);
   const [description, setDescription] = useState('');
-  const [inherit, setInherit] = useState(true);
+  // Off unless asked for (v2 12): a new subgroup's members are only those given to it.
+  const [inherit, setInherit] = useState(false);
   const [memberIds, setMemberIds] = useState<string[]>([]);
   const [roles, setRoles] = useState<Record<string, string>>({});
   const [tried, setTried] = useState(false);
@@ -359,7 +360,7 @@ function NewGroupDialog({ d, ws, data, meId, company, parentId: under, onClose, 
   }
 
   return (
-    <Modal wide title={G.newTitle} sub={G.newSub} onClose={onClose} busy={busy} dirty={dirty} foot={<>
+    <Modal wide title={G.newTitle} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       <span className="hint">{G.createHint}</span>
       <span className="sp" />
       <Cancel />
@@ -400,7 +401,7 @@ function DeleteGroupDialog({ d, data, group, onClose, onDone }: { d: Dict; data:
   const toast = useToast();
   const [moveTo, setMoveTo] = useState(group.parentId ?? '');
   const [error, setError] = useState<string | null>(null);
-  const n = data.profiles.filter(p => p.groupId === group.id).length;
+  const n = data.profiles.filter(p => p.groupId === group.id).length, kids = data.groups.filter(g => g.parentId === group.id).length;
   async function remove(){
     try {
       await folio.api('DELETE', `/groups/${group.id}${moveTo ? `?moveTo=${moveTo}` : ''}`);
@@ -410,15 +411,17 @@ function DeleteGroupDialog({ d, data, group, onClose, onDone }: { d: Dict; data:
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal kind="bad" title={G.deleteTitle(group.name)} onClose={onClose} foot={<>
+    <Modal kind={n ? undefined : 'bad'} title={G.deleteTitle(group.name)} onClose={onClose} foot={<>
       <Cancel />
-      <Act className="btn btn-danger solid" run={() => remove()}>{G.delete}</Act>
+      <Act className="btn btn-danger solid" run={() => remove()}>{n ? G.moveDelete : G.delete}</Act>
     </>}>
+      {/* With profiles in it, a form: where they go first (v2 31); an empty group is a plain confirmation, Cancel first. */}
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
-        <SelectField label={G.moveTo(n)} value={moveTo} onChange={setMoveTo} searchPh={d.form.searchPh}
-          options={[{ value: '', label: G.none }, ...data.groups.filter(g => g.id !== group.id).map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />
-        <p className="hint">{G.deleteNote}</p>
+        {n > 0 && <p className="notice warn"><Icon name="alert" /><span>{G.deleteHas(group.name, n)}</span></p>}
+        {n > 0 && <SelectField label={G.moveTo} required value={moveTo} onChange={setMoveTo} searchPh={d.form.searchPh}
+          options={[{ value: '', label: G.none }, ...data.groups.filter(g => g.id !== group.id).map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />}
+        <p>{n ? G.deleteNote : G.deleteEmpty}{kids > 0 && ` ${G.deleteKids(kids)}`}</p>
       </div>
     </Modal>
   );

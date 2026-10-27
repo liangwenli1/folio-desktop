@@ -514,15 +514,21 @@ export const ListFailed = ({ d, data, kind }: { d: Dict; data: WorkspaceData; ki
   <LoadFailed d={d} code={data.loadFailed.get(kind)} admin={data.admin} onRetry={() => data.refresh(kind)} />
 );
 
-// What to do with the rows ticked on a page: how many, the actions, and a cross that clears the selection.
-// Bulk actions in a row above a list (v2): the buttons, then what is picked (and how much of it the filters hide) with
-// a way to clear it; `end` holds how the list is laid out. The profile list keeps the row while nothing is picked, its
-// buttons waiting (v2 01).
-export function BulkBar({ n, label, clearLabel, onClear, children, end }: { n: number; label: string; clearLabel: string; onClear(): void; children: ReactNode; end?: ReactNode }){
+// What to do with the rows ticked on a page, in a row above the list: a box saying how many are picked (half ticked
+// for some, ticked for the whole page) that clears them, then the actions; `end` holds how the list is laid out. The
+// profile list keeps the row while nothing is picked, its buttons waiting.
+export function BulkBar({ n, all, label, clearLabel, onClear, children, end }: {
+  n: number; all?: boolean; label: string; clearLabel: string; onClear(): void; children: ReactNode; end?: ReactNode;
+}){
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (box.current) box.current.indeterminate = n > 0 && !all; });
   return (
     <div className="bulk" role="toolbar" aria-label={label} data-testid="bulk">
+      {n > 0 && <label className="bulk-n">
+        <input ref={box} type="checkbox" checked={!!all} aria-label={clearLabel} onChange={onClear} />
+        <b>{label}</b>
+      </label>}
       {children}
-      {n > 0 && <><span className="bulk-n">{label}</span><button type="button" className="btn btn-text btn-sm" onClick={onClear}>{clearLabel}</button></>}
       {end && <><span className="sp" />{end}</>}
     </div>
   );

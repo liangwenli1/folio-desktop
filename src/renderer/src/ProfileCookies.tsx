@@ -3,24 +3,24 @@
 // roles that may take cookies away, and every read is recorded. While the profile runs here, changes reach its
 // browser too; while it is open on another computer, nothing changes.
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
-import { cookieKey, readCookies, type Cookie } from '@shared/cookies';
+import { cookieKey, readCookies, type Cookie, type CookieEdit, type CookieKey } from '@shared/cookies';
 import { can, folio, isApiError, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Icon, LoadFailed, Modal, MoreMenu, PanelEdge, SkelRows, Tabs, useChanged, useToast } from './ui';
+import { Act, BulkBar, Cancel, Empty, Icon, LoadFailed, Modal, MoreMenu, PanelEdge, SkelRows, Tabs, useChanged, useToast } from './ui';
 import { Pager } from './Pager';
-import { Select } from './Select';
+import { Select, SelectField } from './Select';
 import { dayLabel, time } from './Activity';
 
 type Info = Omit<Cookie, 'value'>;
 type Sort = 'name' | 'domain' | 'path' | 'expires';
-interface Props { d: Dict; lang: Lang; data: WorkspaceData; p: Profile; running: boolean; onExport(format: 'json' | 'netscape'): void }
+interface Props { d: Dict; lang: Lang; data: WorkspaceData; p: Profile; running: boolean }
 
 const keyOf = ({ name, domain, path }: Info) => ({ name, domain, path });
 // Session cookies sort after every dated one.
 const until = (c: Info) => (c.expires > 0 ? c.expires : Number.MAX_SAFE_INTEGER);
 
-export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
+export function CookiesTab({ d, lang, data, p, running }: Props){
   const C = d.cookies;
   const toast = useToast();
   // The saved cookies; 'none' before anything was saved, 'local' when they stay on the computer that uses it.
@@ -37,6 +37,7 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
   const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Info | null>(null);
   const [confirm, setConfirm] = useState<Info[] | null>(null);
+  const [exporting, setExporting] = useState(false);
   const canImport = can(data.role, 'cookies.import'), canRead = can(data.role, 'cookies.export'), canDelete = can(data.role, 'profiles.edit');
   const away = !!p.lock && !p.lock.self;
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
@@ -102,8 +103,7 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
               options={[{ value: 'all', label: C.allDomains }, ...domains.map(x => ({ value: x, label: x, hint: String(all.filter(c => c.domain === x).length) }))]} /></span>
           </>}
           <span className="sp" />
-          {canRead && all.length > 0 && <span className="grp-pick"><Select action label={C.export} placeholder={C.export} value="" onChange={v => onExport(v as 'json' | 'netscape')}
-            options={[{ value: 'json', label: d.detail.json }, { value: 'netscape', label: d.detail.netscape }]} /></span>}
+          {canRead && all.length > 0 && <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}><Icon name="download" />{C.export}</button>}
           {canImport && <button type="button" className="btn btn-primary" disabled={!writable} onClick={() => setImporting(true)}><Icon name="upload" />{C.import}</button>}
         </div>
         {state === 'local'
@@ -114,11 +114,9 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
             </p>}
         {state !== 'local' && <>
           {picked.length > 0 && canDelete && (
-            <div className="bulk" role="toolbar" aria-label={d.common.selected(picked.length)}>
-              <b><span className="count">{picked.length}</span>{d.common.selected(picked.length)}</b>
-              <button type="button" className="bb danger" disabled={!writable} onClick={() => setConfirm(picked)}>{C.delete}</button>
-              <button type="button" className="bb" onClick={() => setSel(new Set())}>{d.common.clearSelection}</button>
-            </div>
+            <BulkBar n={picked.length} all={rows.length > 0 && pageSel === rows.length} label={d.common.picked.cookies(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+              <button type="button" className="bb danger" disabled={!writable} onClick={() => setConfirm(picked)}><Icon name="trash" />{C.delete}</button>
+            </BulkBar>
           )}
           <div className="tw ck-t">
             <table>
@@ -165,7 +163,8 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
       {curCookie && <CookiePanel d={d} lang={lang} p={p} c={curCookie} canRead={canRead} canEdit={canImport && writable} onEdit={() => setEditing(curCookie)} onClose={() => setCur(null)} />}
 
       {importing && <CookieImport d={d} p={p} existing={new Set(all.map(cookieKey))} onClose={() => setImporting(false)} onDone={() => { setImporting(false); changed(); }} />}
-      {editing && <CookieEdit d={d} p={p} c={editing} canRead={canRead} canRename={canDelete} onClose={() => setEditing(null)} onDone={c => { setEditing(null); setCur(cookieKey(c)); changed(); }} />}
+      {editing && <CookieEdit d={d} p={p} c={editing} canRead={canRead} canRename={canDelete} onClose={() => setEditing(null)} onDone={k => { setEditing(null); setCur(cookieKey(k)); changed(); }} />}
+      {exporting && <CookieExport d={d} profiles={[p]} picked={picked.map(keyOf)} site={domain !== 'all' ? domain : null} onClose={() => setExporting(false)} />}
       {confirm && (
         <Modal kind="bad" title={C.deleteN(confirm.length)} onClose={() => setConfirm(null)} foot={<>
           <Cancel />
@@ -217,13 +216,15 @@ function CookiePanel({ d, lang, p, c, canRead, canEdit, onEdit, onClose }: { d: 
   );
 }
 
-// Changing one cookie. Its value shows only to roles that may read values; others give a new one. A new name,
-// domain or path makes it another cookie: the new one is saved, then the old one deleted.
-function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict; p: Profile; c: Info; canRead: boolean; canRename: boolean; onClose(): void; onDone(c: Cookie): void }){
+// Changing one cookie (v2 28). The value stays hidden: left alone it keeps the current one; the eye shows it (the read
+// is recorded) to roles that may read values; anything typed in is the new value. A new name, domain or path replaces
+// the old cookie. A field in error says so under it, and the first one takes the focus.
+function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict; p: Profile; c: Info; canRead: boolean; canRename: boolean; onClose(): void; onDone(k: CookieKey): void }){
   const C = d.cookies;
   const [name, setName] = useState(c.name);
-  const [value, setValue] = useState('');
-  const [loaded, setLoaded] = useState(!canRead);
+  // null: unchanged, the cookie keeps its value.
+  const [value, setValue] = useState<string | null>(null);
+  const [shown, setShown] = useState(false);
   const [domain, setDomain] = useState(c.domain);
   const [path, setPath] = useState(c.path);
   const [session, setSession] = useState(c.expires <= 0);
@@ -234,60 +235,105 @@ function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict;
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    if (!canRead) return;
-    void folio.api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values?${new URLSearchParams({ name: c.name, domain: c.domain, path: c.path })}`)
-      .then(r => { setValue(r.cookies[0]?.value ?? ''); setLoaded(true); }, () => setLoaded(true));
-  }, []);
-  const bad = !domain.trim() ? C.domainErr : !session && !expires ? C.expiresErr : !canRead && !value ? C.valueErr : null;
-  // The value arrives after the dialog opens, so it counts as changed only once typed in.
-  const [typed, setTyped] = useState(false);
-  const dirty = useChanged({ name, domain, path, session, expires, sameSite, secure, httpOnly }) || typed;
+  const dirty = useChanged({ name, domain, path, session, expires, sameSite, secure, httpOnly }) || value !== null;
+  const errs = { 'ck-name': canRename && !name.trim() ? C.nameErr : null, 'ck-domain': !domain.trim() ? C.domainErr : null, 'ck-path': !path.trim() ? C.pathErr : null, 'ck-expires': !session && !expires ? C.expiresErr : null };
+  const err = (id: keyof typeof errs) => (tried ? errs[id] : null);
+  const field = (id: keyof typeof errs) => ({ id, 'aria-invalid': !!err(id), 'aria-describedby': err(id) ? `${id}-err` : undefined });
+  const under = (id: keyof typeof errs) => err(id) && <p className="err" id={`${id}-err`}>{err(id)}</p>;
 
+  async function reveal(){
+    if (value !== null) return setShown(x => !x);
+    try {
+      const r = await folio.api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values?${new URLSearchParams({ name: c.name, domain: c.domain, path: c.path })}`);
+      setValue(r.cookies[0]?.value ?? ''); setShown(true);
+    } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
+  }
   async function save(){
     setTried(true);
-    if (bad) return;
-    const cookie: Cookie = { name, value, domain: domain.trim(), path: path.trim() || '/', expires: session ? -1 : Math.round(Date.parse(expires) / 1000), sameSite, secure, httpOnly };
+    const first = (Object.keys(errs) as (keyof typeof errs)[]).find(k => errs[k]);
+    if (first) return document.getElementById(first)?.focus();
+    const cookie: CookieEdit = { name, domain: domain.trim(), path: path.trim(), expires: session ? -1 : Math.round(Date.parse(expires) / 1000), sameSite, secure, httpOnly, ...(value !== null ? { value } : {}) };
     setBusy(true); setError(null);
     try {
-      await folio.importCookies(p.id, [cookie]);
-      if (cookieKey(cookie) !== cookieKey(c)) await folio.deleteCookies(p.id, [keyOf(c)]);
+      await folio.editCookie(p.id, keyOf(c), cookie);
       onDone(cookie);
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
+  const req = <span className="req" aria-hidden="true">*</span>;
   return (
     <Modal title={C.editTitle} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       <span className="sp" />
       <Cancel />
-      <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || !loaded} onClick={() => void save()}>{C.save}</button>
+      <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy} onClick={() => void save()}>{C.save}</button>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
         <div className="row2">
-          <div className="field"><label htmlFor="ck-name">{C.cols.name}</label><input id="ck-name" className="mono-in" value={name} disabled={!canRename} onChange={e => setName(e.target.value)} spellCheck={false} /></div>
-          <div className="field"><label htmlFor="ck-domain">{C.cols.domain}</label><input id="ck-domain" className="mono-in" value={domain} disabled={!canRename} onChange={e => setDomain(e.target.value)} aria-invalid={tried && !domain.trim()} spellCheck={false} /></div>
+          <div className="field"><label htmlFor="ck-name">{C.cols.name}{canRename && req}</label><input {...field('ck-name')} className="mono-in" value={name} disabled={!canRename} onChange={e => setName(e.target.value)} spellCheck={false} />{under('ck-name')}</div>
+          <div className="field"><label htmlFor="ck-domain">{C.cols.domain}{req}</label><input {...field('ck-domain')} className="mono-in" value={domain} disabled={!canRename} onChange={e => setDomain(e.target.value)} spellCheck={false} />{under('ck-domain')}</div>
+        </div>
+        <div className="row2">
+          <div className="field"><label htmlFor="ck-path">{C.cols.path}{req}</label><input {...field('ck-path')} className="mono-in" value={path} disabled={!canRename} onChange={e => setPath(e.target.value)} spellCheck={false} />{under('ck-path')}</div>
+          <div className="field"><span className="label" id="ck-ss">SameSite</span>
+            <Select labelledBy="ck-ss" value={sameSite} onChange={v => setSameSite(v as Cookie['sameSite'])} options={(['Lax', 'Strict', 'None'] as const).map(v => ({ value: v, label: v }))} /></div>
         </div>
         <div className="field">
           <label htmlFor="ck-value">{C.value}</label>
-          <textarea id="ck-value" className="mono-in" rows={3} value={value} placeholder={canRead ? undefined : C.newValue} onChange={e => { setValue(e.target.value); setTyped(true); }} spellCheck={false} aria-invalid={tried && !canRead && !value} />
+          <span className="pass-in">
+            <input id="ck-value" className="mono-in" type={shown ? 'text' : 'password'} value={value ?? ''} placeholder={C.keepValue} autoComplete="off" spellCheck={false}
+              onChange={e => setValue(e.target.value)} />
+            {(canRead || value !== null) && <button type="button" className="icon-btn bare" aria-label={shown ? C.hide : C.show} title={shown ? C.hide : C.show} onClick={() => void reveal()}><Icon name={shown ? 'eyeOff' : 'eye'} /></button>}
+          </span>
         </div>
+        <div className="field">
+          <label htmlFor="ck-expires">{C.cols.expires}</label>
+          <input {...field('ck-expires')} type="datetime-local" value={expires} disabled={session} onChange={e => setExpires(e.target.value)} />
+          <label className="check-row"><input type="checkbox" checked={session} onChange={e => setSession(e.target.checked)} />{C.sessionOnly}</label>
+          {under('ck-expires')}
+        </div>
+        <div className="ck-checks">
+          <label className="check-row"><input type="checkbox" checked={secure} onChange={e => setSecure(e.target.checked)} />Secure</label>
+          <label className="check-row"><input type="checkbox" checked={httpOnly} onChange={e => setHttpOnly(e.target.checked)} />HttpOnly</label>
+        </div>
+        <p className="notice info"><Icon name="info" /><span>{C.editNote}</span></p>
+      </div>
+    </Modal>
+  );
+}
+
+// Taking sign-ins out (v2 37): which cookies (those picked, one site's or all of a profile's; several profiles give all
+// of theirs), the file's format, and a word that the file holds sign-ins; it goes once that is ticked, and is recorded.
+export function CookieExport({ d, profiles, picked, site, onClose }: { d: Dict; profiles: Profile[]; picked?: CookieKey[]; site?: string | null; onClose(): void }){
+  const C = d.cookies;
+  const toast = useToast();
+  const scopes = [...(picked?.length ? ['picked'] as const : []), ...(site ? ['site'] as const : []), 'all' as const];
+  const [scope, setScope] = useState<'picked' | 'site' | 'all'>(scopes[0]);
+  const [format, setFormat] = useState<'json' | 'netscape'>('json');
+  const [sure, setSure] = useState(false);
+  async function run(){
+    const only = scope === 'picked' ? { cookies: picked } : scope === 'site' && site ? { domain: site } : undefined;
+    const r = await folio.exportCookies(profiles.map(x => ({ id: x.id, name: x.name, number: x.number })), format, only);
+    if (!r) return;
+    onClose();
+    if (r.saved) toast(d.detail.exported(r.saved, r.path));
+    r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code)), undefined, 'bad'));
+  }
+  const one = profiles.length === 1;
+  return (
+    <Modal title={C.exportTitle} onClose={onClose} foot={<>
+      <Cancel />
+      <Act className="btn btn-primary" disabled={!sure} run={run}>{C.exportDo}</Act>
+    </>}>
+      <div className="m-body">
+        <p className="notice warn"><Icon name="alert" /><span>{C.exportNote(one ? profiles[0].name : C.exportMany(profiles.length))}</span></p>
         <div className="row2">
-          <div className="field"><label htmlFor="ck-path">{C.cols.path}</label><input id="ck-path" className="mono-in" value={path} disabled={!canRename} onChange={e => setPath(e.target.value)} spellCheck={false} /></div>
-          <div className="field">
-            <label htmlFor="ck-expires">{C.cols.expires}</label>
-            <input id="ck-expires" type="datetime-local" value={expires} disabled={session} onChange={e => setExpires(e.target.value)} aria-invalid={tried && !session && !expires} />
-            <label className="check-row"><input type="checkbox" checked={session} onChange={e => setSession(e.target.checked)} />{C.sessionOnly}</label>
-          </div>
+          {one
+            ? <SelectField label={C.exportScope} value={scope} onChange={v => setScope(v as typeof scope)}
+                options={scopes.map(s => ({ value: s, label: s === 'picked' ? C.scopePicked(picked!.length) : s === 'site' ? C.scopeDomain(site!) : C.scopeAll }))} />
+            : <div className="field"><span className="label">{C.exportScope}</span><p className="ck-scope">{C.scopeAllOf(profiles.length)}</p></div>}
+          <SelectField label={C.format} value={format} onChange={v => setFormat(v as typeof format)} options={[{ value: 'json', label: d.detail.json }, { value: 'netscape', label: d.detail.netscape }]} />
         </div>
-        <div className="row2">
-          <div className="field"><span className="label" id="ck-ss">SameSite</span>
-            <Select labelledBy="ck-ss" value={sameSite} onChange={v => setSameSite(v as Cookie['sameSite'])} options={(['Lax', 'Strict', 'None'] as const).map(v => ({ value: v, label: v }))} /></div>
-          <div className="field ck-checks">
-            <label className="check-row"><input type="checkbox" checked={secure} onChange={e => setSecure(e.target.checked)} />Secure</label>
-            <label className="check-row"><input type="checkbox" checked={httpOnly} onChange={e => setHttpOnly(e.target.checked)} />HttpOnly</label>
-          </div>
-        </div>
-        {tried && bad && <p className="err">{bad}</p>}
+        <label className="check-row"><input type="checkbox" checked={sure} onChange={e => setSure(e.target.checked)} />{C.exportSure}</label>
       </div>
     </Modal>
   );

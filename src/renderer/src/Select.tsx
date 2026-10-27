@@ -1,19 +1,20 @@
 // The app's dropdown, in place of the system one: same look everywhere, keyboard and type-to-filter, options with a
 // status dot or a logo and a hint (a proxy's exit city), a search box for long lists. The list opens above everything (dialogs
 // included) and closes on a click elsewhere, Escape, scrolling or resizing. With `action` it is a menu button: the
-// trigger always shows the placeholder, and picking runs onChange (the bulk bar's "Move to group…").
+// trigger always shows the placeholder, and picking runs onChange (the bulk bar's "Move to group"); with an `icon` it
+// reads as a button, the icon before the words and no arrow.
 // A list that comes from the server says so while it loads (`loading`) and when it failed (`failed`, with `onRetry`);
 // no options and no matches for the search are told apart (delivery spec 4). `empty` names what there is none of.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon, useDict, useDismiss, type GroupColor } from './ui';
+import { Icon, useDict, useDismiss, type GroupColor, type IconName } from './ui';
 
 // `dot` is a status, or a group's colour. `count` shows in the open list only, never on the closed dropdown.
 export interface Opt { value: string; label: string; hint?: string; count?: number; dot?: 'good' | 'warn' | 'bad' | 'idle' | `gc-${GroupColor}`; img?: string; group?: string }
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
   id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean; required?: boolean;
-  variant?: 'field' | 'sm' | 'bar'; action?: boolean; search?: boolean; searchPh?: string; empty?: string;
+  variant?: 'field' | 'sm' | 'bar'; action?: boolean; icon?: IconName; search?: boolean; searchPh?: string; empty?: string;
   loading?: boolean; failed?: boolean; onRetry?(): void;
 }
 type Place = { left: number; width: number; maxHeight: number; top?: number; bottom?: number };
@@ -24,7 +25,7 @@ const runs = (opts: Opt[]) => opts.reduce<{ group?: string; from: number; opts: 
   return out;
 }, []);
 
-export function Select({ value, options, onChange, id, label, labelledBy, placeholder, disabled, required, variant = 'field', action, search, searchPh, empty, loading, failed, onRetry }: Props){
+export function Select({ value, options, onChange, id, label, labelledBy, placeholder, disabled, required, variant = 'field', action, icon, search, searchPh, empty, loading, failed, onRetry }: Props){
   const d = useDict().common;
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -84,11 +85,12 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
         aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${uid}-list` : undefined} aria-label={label} aria-labelledby={labelledBy} aria-required={required || undefined}
         onClick={() => (open ? close() : show())}
         onKeyDown={e => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){ e.preventDefault(); show(); } }}>
+        {icon && <Icon name={icon} />}
         {cur?.dot && <span className={`d ${cur.dot}`} aria-hidden="true" />}
         {cur?.img && <img className="logo" src={cur.img} alt="" aria-hidden="true" />}
         <span className={`sel-v${cur ? '' : ' ph'}`}>{cur?.label ?? placeholder ?? ''}</span>
         {cur?.hint && variant === 'field' && <span className="sel-h">{cur.hint}</span>}
-        <Icon name="chev" />
+        {!icon && <Icon name="chev" />}
       </button>
       {open && place && createPortal(
         <div ref={pop} className={`sel-pop${variant === 'bar' ? ' bar' : ''}`} style={place} onKeyDown={key}>

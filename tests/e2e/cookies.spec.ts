@@ -64,11 +64,18 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await dialog.getByRole('button', { name: 'Import 1 cookie' }).click();
   await expect(rows).toHaveCount(3);
 
-  // Edited to a new value; deleted after asking.
+  // Edited: the value stays hidden until shown, then takes a new one; deleted after asking.
   await rows.filter({ hasText: 'lang' }).getByRole('button', { name: 'Edit' }).click();
   const edit = win.getByRole('dialog', { name: 'Edit cookie' });
+  await expect(edit.getByLabel('Value')).toHaveValue('');
+  await edit.getByRole('button', { name: 'Show' }).click();
   await expect(edit.getByLabel('Value')).toHaveValue('de');
   await edit.getByLabel('Value').fill('fr');
+  await edit.getByRole('button', { name: 'Save cookie' }).click();
+  await expect(edit).toBeHidden();
+  // Changed without showing the value: the saved one stays.
+  await rows.filter({ hasText: 'lang' }).getByRole('button', { name: 'Edit' }).click();
+  await choose(edit.getByRole('combobox', { name: 'SameSite' }), 'Strict');
   await edit.getByRole('button', { name: 'Save cookie' }).click();
   await expect(edit).toBeHidden();
   await rows.filter({ hasText: 'pref' }).getByRole('button', { name: 'Actions for pref' }).click();
@@ -76,13 +83,19 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await win.getByRole('dialog', { name: 'Delete this cookie?' }).getByRole('button', { name: 'Delete' }).click();
   await expect(win.getByRole('status').filter({ hasText: '1 cookie deleted' })).toBeVisible();
   await expect(rows).toHaveCount(2);
-  const values = (await (await acct.api.get(`/profiles/${p.id}/cookies/values`)).json()).cookies as { name: string; value: string }[];
+  const values = (await (await acct.api.get(`/profiles/${p.id}/cookies/values`)).json()).cookies as { name: string; value: string; sameSite: string }[];
   expect(values.map(c => `${c.name}=${c.value}`).sort()).toEqual(['lang=fr', 'sid=abc']);
+  expect(values.find(c => c.name === 'lang')?.sameSite).toBe('Strict');
 
   // Exported as Cookie-Editor JSON.
   const out = join(mkdtempSync(join(tmpdir(), 'folio-export-')), 'shop.json');
   await saveTo(app, out);
-  await choose(page.getByRole('combobox', { name: 'Export' }), 'JSON');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const exporting = win.getByRole('dialog', { name: 'Export cookies' });
+  await expect(exporting.getByRole('combobox', { name: 'What to export' })).toContainText('All cookies');
+  await expect(exporting.getByRole('button', { name: 'Export file' })).toBeDisabled();
+  await exporting.getByRole('checkbox', { name: 'I have checked what is exported and what it is for' }).check();
+  await exporting.getByRole('button', { name: 'Export file' }).click();
   await expect(win.getByRole('status').filter({ hasText: `1 profile exported to ${out}` })).toBeVisible();
   const exported = JSON.parse(readFileSync(out, 'utf8'));
   expect(exported.map((c: { name: string; value: string }) => `${c.name}=${c.value}`).sort()).toEqual(['lang=fr', 'sid=abc']);
@@ -93,7 +106,7 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await choose(form.getByLabel('Sign-ins'), 'Keep on the computer that uses it');
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(page).toContainText('Folio holds no copy to list here');
-  await expect(page.getByRole('combobox', { name: 'Export' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Export', exact: true })).toHaveCount(0);
   const saved = (await (await acct.api.get(`/workspaces/${acct.workspaceId}/profiles`)).json()).profiles[0];
   expect(saved).toMatchObject({ syncMode: 'local', data: null });
   await app.close();

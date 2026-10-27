@@ -1,11 +1,12 @@
-// What each role may do: the roles on the left (the four every workspace has, then its own, and a new one), the
-// picked role's permissions on the right in sections, with putting a built-in role back as it came, and saving. The
-// owner's role has every permission and never changes; only people who manage members change roles.
-import { Fragment, useEffect, useState } from 'react';
+// What each role may do (v2 17): the roles on the left (the four every workspace has, then its own, and a new one
+// under them), the picked role's permissions on the right as rows to tick, in sections, with putting a built-in role
+// back as it came, and saving. The owner's role has every permission and never changes; only people who manage
+// members change roles.
+import { useEffect, useState } from 'react';
 import { folio, isApiError, type Permission, type Role, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, roleName, type Dict } from './i18n';
-import { Act, Cancel, Icon, Modal, Switch, useToast } from './ui';
+import { Act, Cancel, Icon, Modal, useToast } from './ui';
 import { SelectField } from './Select';
 
 type Section = 'profiles' | 'data' | 'proxies' | 'team';
@@ -46,7 +47,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
   return (
     <div className="rl">
       <aside className="sec rl-list" aria-label={P.list}>
-        <div className="sec-row"><h3>{P.list}</h3>{manager && <button type="button" className="btn btn-sm btn-secondary" onClick={() => setAdding(true)}><Icon name="plus" />{P.add}</button>}</div>
+        <h3>{P.list}</h3>
         <ul>
           {data.roles.map(r => (
             <li key={r.id}>
@@ -58,6 +59,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
             </li>
           ))}
         </ul>
+        {manager && <button type="button" className="btn btn-secondary rl-add" onClick={() => setAdding(true)}><Icon name="plus" />{P.add}</button>}
       </aside>
 
       <section className="sec rl-main" aria-label={label}>
@@ -67,28 +69,20 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
               : <input className="rl-name" aria-label={P.name} value={name} maxLength={80} onChange={e => setName(e.target.value)} />}
             <p className="hint">{role.key ? P.descs[role.key] : P.customHint}</p>
           </div>
-          <span className="sp" />
-          <p className="notice info rl-note"><Icon name="info" />{P.note}</p>
         </div>
-        <div className="tw dense rl-t">
-          <table>
-            <thead><tr><th scope="col">{P.col}</th><th scope="col">{P.what}</th><th className="c-sw" scope="col">{P.allow}</th></tr></thead>
-            <tbody>
-              {SECTIONS.map(([s, list]) => (
-                <Fragment key={s}>
-                  <tr className="sect"><td colSpan={3}>{P.sections[s]}</td></tr>
-                  {list.map(p => (
-                    <tr key={p} data-permission={p}>
-                      <td><b>{P.perms[p][0]}</b></td>
-                      <td className="muted">{P.perms[p][1]}</td>
-                      <td className="c-sw"><Switch label={P.perms[p][0]} hideLabel checked={perms.includes(p)} disabled={locked}
-                        onChange={on => setPerms(x => (on ? [...x, p] : x.filter(y => y !== p)))} /></td>
-                    </tr>
-                  ))}
-                </Fragment>
+        <p className="notice info"><Icon name="info" /><span>{P.note}</span></p>
+        <div className="rl-perms">
+          {SECTIONS.map(([s, list]) => (
+            <div key={s} className="rl-sect" role="group" aria-label={P.sections[s]}>
+              <h4>{P.sections[s]}</h4>
+              {list.map(p => (
+                <label key={p} className="rl-perm" data-permission={p}>
+                  <span><b>{P.perms[p][0]}</b><small>{P.perms[p][1]}</small></span>
+                  <input type="checkbox" checked={perms.includes(p)} disabled={locked} onChange={e => setPerms(x => (e.target.checked ? [...x, p] : x.filter(y => y !== p)))} />
+                </label>
               ))}
-            </tbody>
-          </table>
+            </div>
+          ))}
         </div>
         {role.key === 'owner' && <p className="hint">{P.ownerNote}</p>}
         {!locked && (

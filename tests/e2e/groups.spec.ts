@@ -44,8 +44,9 @@ test('groups nest and count what is under them, and are set up and deleted from 
   // Deleted: its profile goes to Shops.
   await settings.getByRole('button', { name: 'Delete group' }).click();
   const del = win.getByRole('dialog', { name: 'Delete “US”?' });
-  await choose(del.getByRole('combobox', { name: /^Move its 1 profile to/ }), 'Shops');
-  await del.getByRole('button', { name: 'Delete group' }).click();
+  await expect(del).toContainText('“US” has 1 profile.');
+  await choose(del.getByRole('combobox', { name: 'Move them to' }), 'Shops');
+  await del.getByRole('button', { name: 'Move and delete' }).click();
   await expect(win.getByRole('status').filter({ hasText: '“US” deleted' })).toBeVisible();
   await expect(shopsItem).toContainText('2');
 

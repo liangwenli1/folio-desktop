@@ -3,14 +3,15 @@ import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profil
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type BulkChange, type WorkspaceData } from './data';
 import { startJob, type JobRun } from './jobRun';
-import { errorText, launchWhy, type Dict, type Lang } from './i18n';
+import { errorText, launchWhy, regionName, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
+import { CookieExport } from './ProfileCookies';
 import { dayLabel, time } from './Activity';
 import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, ViewSwitch, percent, useChanged, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select } from './Select';
-import { Flag, SEARCH_LOGOS } from './Flag';
+import { Flag, OsLogo, SEARCH_LOGOS } from './Flag';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { mod } from './CommandPalette';
 import { byProfile, risks, type Risk } from './risks';
@@ -60,6 +61,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const batchJob = useRef<{ run: JobRun | null; done: Promise<unknown> } | null>(null);
   const [batchJobId, setBatchJobId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  // Profiles whose cookies are being exported (from the bulk menu).
+  const [exporting, setExporting] = useState<Profile[] | null>(null);
   // The profile whose proxy is being changed.
   const [replacing, setReplacing] = useState<Profile | null>(null);
   // Twenty a page unless chosen otherwise; a page past the end (after a filter or a delete) falls back to the last.
@@ -150,12 +153,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     void data.rerun(b.run.id, [seq]);
   }
   const stop = (p: Profile) => folio.stopProfile(p.id);
-  async function exportCookies(list: Profile[], format: 'json' | 'netscape'){
-    const r = await folio.exportCookies(list.map(p => ({ id: p.id, name: p.name, number: p.number })), format);
-    if (!r) return;
-    if (r.saved) toast(d.detail.exported(r.saved, r.path));
-    r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code)), undefined, 'bad'));
-  }
 
   // Frees the profile from the other computer (its browser closes there) and opens it here.
   async function takeover(p: Profile){
@@ -216,7 +213,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   // What the bulk bar's More menu does.
   function more(v: string){
     const [what, x] = v.split(':');
-    if (what === 'sync') void startSync();
+    if (what === 'edit') setEditing(true);
+    else if (what === 'sync') void startSync();
     else if (what === 'tag') setTagging(true);
     else if (what === 'trash') setConfirm(true);
     else if (what === 'proxy') void batchAction('set-proxy', { proxyId: x === 'none' ? null : x }, P.done.proxySet);
@@ -227,7 +225,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
     }
     else if (what === 'se') void batchAction('set-browser', { searchEngine: x }, n => d.browser.searchSet(n, d.browser.name(x as SearchEngine)));
     else if (what === 'tabs') void batchAction('set-browser', { restoreTabs: x === 'on' }, n => d.browser.tabsSet(n, x === 'on'));
-    else if (what === 'cookies') void exportCookies(all.filter(p => sel.has(p.id)), x as 'json' | 'netscape');
+    else if (what === 'cookies') setExporting(all.filter(p => sel.has(p.id)));
   }
   const pick = (id: string) => { setCur(id); setDetail(true); };
 
@@ -270,7 +268,6 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       onBack={() => setDetail(false)} onOpen={() => void open(curProfile)} onStop={() => void stop(curProfile)}
       onEdit={() => onEdit(curProfile.id)} onTrash={() => void trash([curProfile.id])}
       canTakeOver={manager} canTrash={canDelete} onTakeover={() => void takeover(curProfile)}
-      onExport={format => void exportCookies([curProfile], format)}
       onFix={f => void fix(curProfile, f)} onShowProxy={manager ? onShowProxy : undefined} onReplaceProxy={canBind ? () => setReplacing(curProfile) : undefined}
     />
     {replacing && <ReplaceProxyDialog d={d} data={data} profile={replacing} onClose={() => setReplacing(null)} onDone={() => setReplacing(null)} />}
@@ -337,8 +334,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
 
         {/* The bulk actions stay above the list, waiting for a pick (v2 01); how many each reaches, and what it skips, is
             said beside them. How the list is laid out sits at the end. */}
-        <BulkBar n={ids.length} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}
-            label={ids.length ? `${hidden ? d.common.selectedHidden(ids.length, hidden) : d.common.selected(ids.length)} · ${P.bulk.reach(openable.length, stoppable.length)}` : P.bulk.title}
+        <BulkBar n={ids.length} all={pageList.length > 0 && pageSel === pageList.length} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}
+            label={ids.length ? `${d.common.picked.profiles(ids.length)}${hidden ? ` · ${P.bulk.hidden(hidden)}` : ''}` : P.bulk.title}
             end={<>
               <span className="sort"><span id="pf-sort">{P.sort}</span>
                 <Select variant="sm" labelledBy="pf-sort" value={sort} onChange={v => setSort(v as Sort)} options={(['recent', 'name', 'latency'] as const).map(x => ({ value: x, label: P.sorts[x] }))} />
@@ -356,12 +353,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
               <>
                 <button type="button" className="bb lead" disabled={!openable.length} title={openable.length < ids.length ? P.bulk.openSkip(ids.length - openable.length) : undefined} onClick={() => openMany(openable)}><Icon name="play" />{P.bulk.open}</button>
                 <button type="button" className="bb" disabled={!stoppable.length} title={stoppable.length < ids.length ? P.bulk.stopSkip(ids.length - stoppable.length) : undefined} onClick={() => stoppable.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
-                <Select variant="bar" action disabled={!ids.length} label={P.bulk.move} placeholder={P.bulk.move} value="" search searchPh={d.form.searchPh}
+                <Select variant="bar" action icon="folder" disabled={!ids.length} label={P.bulk.move} placeholder={P.bulk.move} value="" search searchPh={d.form.searchPh}
                   options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]}
                   onChange={v => { const g = v === 'none' ? null : v; void batchAction('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none)); }} />
-                <button type="button" className="bb" disabled={!ids.length} onClick={() => setEditing(true)}><Icon name="settings" />{P.bulk.edit}</button>
-                <Select variant="bar" action disabled={!ids.length} label={P.bulk.more} placeholder={P.bulk.more} value=""
+                <Select variant="bar" action icon="more" disabled={!ids.length} label={P.bulk.more} placeholder={P.bulk.more} value=""
                   options={[
+                    { value: 'edit', label: P.bulk.edit },
                     ...(ids.length > 1 && syncAllowed ? [{ value: 'sync', label: P.bulk.sync }] : []),
                     { value: 'tag', label: P.bulk.tag },
                     ...data.proxies.map(px => ({ value: `proxy:${px.id}`, label: px.name, group: P.bulk.proxy, hint: px.lastCheck?.geo?.city ?? undefined })),
@@ -370,7 +367,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                     ...(['add', 'remove'] as const).flatMap(how => data.extensions.map(x => ({ value: `ext-${how}:${x.id}`, label: `${x.name} · ${ENGINES[x.kernel]}`, group: how === 'add' ? P.bulk.install : P.bulk.uninstall }))),
                     ...SEARCH_IDS.map(id => ({ value: `se:${id}`, label: d.browser.name(id), group: d.browser.search, ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) })),
                     ...(['on', 'off'] as const).map(v => ({ value: `tabs:${v}`, label: d.browser[v], group: d.browser.restore })),
-                    ...(canExport ? [{ value: 'cookies:json', label: d.detail.json, group: P.bulk.cookies }, { value: 'cookies:netscape', label: d.detail.netscape, group: P.bulk.cookies }] : []),
+                    ...(canExport ? [{ value: 'cookies', label: P.bulk.cookies }] : []),
                     ...(canDelete ? [{ value: 'trash', label: P.bulk.trash }] : [])
                   ]}
                   onChange={v => more(v)} />
@@ -387,7 +384,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                     <input type="checkbox" aria-label={d.common.selectAll} checked={pageList.length > 0 && pageSel === pageList.length}
                       ref={el => { if (el) el.indeterminate = pageSel > 0 && pageSel < pageList.length; }} onChange={toggleAll} />
                   </th>
-                  <th scope="col">{P.cols.profile}</th><th className="mid" scope="col">{P.cols.group}</th><th scope="col">{P.cols.engine}</th><th className="ic" scope="col">{P.cols.proxy}</th><th className="mid c-ext" scope="col">{P.cols.extensions}</th>
+                  <th scope="col">{P.cols.profile}</th><th className="mid" scope="col">{P.cols.group}</th><th scope="col">{P.cols.engine}</th><th scope="col">{P.cols.proxy}</th><th className="mid c-ext" scope="col">{P.cols.extensions}</th>
                   <th className="mid" scope="col">{P.cols.status}</th><th className="lastc mid" scope="col">{P.cols.last}</th><th className="act" scope="col">{P.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                 </tr>
               </thead>
@@ -421,6 +418,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
             onDone={n => { setEditing(false); toast(d.bulkEdit.done(n)); }} onFail={fail} />
         )}
         {replacing && <ReplaceProxyDialog d={d} data={data} profile={replacing} onClose={() => setReplacing(null)} onDone={() => setReplacing(null)} />}
+        {exporting && <CookieExport d={d} profiles={exporting} onClose={() => setExporting(null)} />}
         {moving && (
           <Modal title={P.moveTitle(moving.name)} onClose={() => setMoving(null)}>
             <ul className="m-body move-list">
@@ -466,23 +464,26 @@ function Status({ d, p, h, status, progress }: ItemProps){
 }
 
 // Everything to do with the profile, in its ⋯ menu.
-function Actions({ d, p, h, checking, canDelete, canBind, onCheck, onEdit, onMove, onReplace, onTrash }: ItemProps){
+function Actions({ d, p, h, status, checking, canDelete, canBind, onCheck, onEnter, onEdit, onMove, onReplace, onTrash }: ItemProps){
   const P = d.profiles;
   return <MoreMenu label={P.actionsX(p.name)} items={[
+    ...(status?.state === 'running' ? [{ label: P.enter, onClick: onEnter }] : []),
     ...(h.checks[0]?.id === 'proxy-down' ? [{ label: P.checkProxy, onClick: onCheck, disabled: checking }] : []),
     { label: d.detail.edit, onClick: onEdit }, { label: P.move, onClick: onMove }, ...(canBind ? [{ label: d.proxies.replace.title, onClick: onReplace }] : []),
     ...(canDelete ? [{ label: d.detail.trash, onClick: onTrash, danger: true }] : [])
   ]} />;
 }
 
-// Its proxy: the exit's flag and IP (the proxy's name until checked), then the place and the line's type (v2 01); or none.
-// The flag hangs left of the column's text, which lines up with the heading.
-function ProxyCell({ d, h }: ItemProps){
-  if (!h.px) return <span className="l1 muted hang">{d.profiles.noProxy}</span>;
-  return <>
-    <span className="l1 px-exit"><Flag country={h.geo?.country ?? null} size="xs" />{h.px.lastCheck?.ip ?? h.px.name}</span>
-    <span className="l2 hang">{[h.geo?.city ?? h.geo?.countryName, h.px.type.toUpperCase()].filter(Boolean).join(' · ')}</span>
-  </>;
+// Its proxy: the exit's round flag beside its country and IP; until it is checked, the proxy's name and its type; or none.
+function ProxyCell({ d, lang, h }: ItemProps){
+  if (!h.px) return <span className="muted">{d.profiles.noProxy}</span>;
+  const g = h.geo, ip = h.px.lastCheck?.ip;
+  return (
+    <span className="px-cell">
+      <Flag country={g?.country ?? null} />
+      <span><span className="l1">{g ? regionName(lang, g.country) : h.px.name}</span><span className="l2 mono">{g && ip ? ip : h.px.type.toUpperCase()}</span></span>
+    </span>
+  );
 }
 
 // The extensions installed in it: their icons (three, then how many more), named on hover; — for none.
@@ -525,7 +526,7 @@ function Row(props: ItemProps){
       <td className="cb" onClick={e => { if (e.target === e.currentTarget) onToggle(); }}><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
       <td className="prof"><Name {...props} /><span className="l2 mono">#{number(p)}</span></td>
       <td className="mid"><GroupTag {...props} /></td>
-      <td><span className="l1">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span><span className="l2">{d.os[p.os]}</span></td>
+      <td><span className="l1">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span><span className="l2 os-l"><OsLogo os={p.os} size={13} />{d.os[p.os]}</span></td>
       <td><ProxyCell {...props} /></td>
       <td className="mid c-ext"><ExtStack {...props} /></td>
       <td className="mid"><Status {...props} />{sync && <span className="badge good">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}</td>
@@ -538,14 +539,12 @@ function Row(props: ItemProps){
 
 // The one thing a row asks to be done: start it, or, while it runs, go to its window or stop it. Starting is the
 // accent's outline, so a full list is not a wall of filled buttons.
-function RowStart({ d, p, status, progress, onOpen, onStop, onEnter }: ItemProps){
+// The one thing to do from the row: open it (filled), or stop it while it runs; going to its window is in the menu.
+function RowStart({ d, p, status, progress, onOpen, onStop }: ItemProps){
   const P = d.profiles;
-  if (status?.state === 'running') return <>
-    <button type="button" className="btn btn-sm btn-secondary" onClick={onEnter}><Icon name="pointer" />{P.enter}</button>
-    <button type="button" className="btn btn-sm btn-secondary" onClick={onStop}><Icon name="stop" />{P.stop}</button>
-  </>;
+  if (status?.state === 'running') return <button type="button" className="btn btn-sm btn-secondary" onClick={onStop}><Icon name="stop" />{P.stop}</button>;
   const busy = !!status || !!(progress && !progress.finished && !progress.error) || !!elsewhere(p);
-  return <button type="button" className="btn btn-sm btn-start" disabled={busy} onClick={onOpen}><Icon name="play" />{P.open}</button>;
+  return <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={onOpen}><Icon name="play" />{P.open}</button>;
 }
 
 function Card(props: ItemProps){

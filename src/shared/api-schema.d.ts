@@ -4420,7 +4420,59 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        cookies: {
+                            name: string;
+                            domain: string;
+                            /** @default / */
+                            path?: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            cookies: {
+                                name: string;
+                                value: string;
+                                domain: string;
+                                /** @default / */
+                                path: string;
+                                /** @default -1 */
+                                expires: number;
+                                /** @default false */
+                                httpOnly: boolean;
+                                /** @default false */
+                                secure: boolean;
+                                /**
+                                 * @default Lax
+                                 * @enum {string}
+                                 */
+                                sameSite: "Strict" | "Lax" | "None";
+                            }[];
+                            savedAt: string;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

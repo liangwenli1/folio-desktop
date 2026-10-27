@@ -9,7 +9,7 @@ import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
 import { Act, BulkBar, Cancel, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useToast, useView } from './ui';
-import { Flag } from './Flag';
+import { Flag, OsLogo } from './Flag';
 import { Select, SelectField } from './Select';
 
 const DAY = 86_400_000;
@@ -104,8 +104,8 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
             </div>
 
             {picked.length > 0 && (
-              <BulkBar n={picked.length} label={d.common.selected(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-                <button type="button" className="bb" onClick={() => void restore(picked)}><Icon name="refresh" />{T.restore}</button>
+              <BulkBar n={picked.length} all={list.length > 0 && list.every(p => sel.has(p.id))} label={d.common.picked.profiles(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+                <button type="button" className="bb lead" onClick={() => void restore(picked)}><Icon name="refresh" />{T.restore}</button>
                 <button type="button" className="bb danger" onClick={() => setConfirm(picked)}><Icon name="trash" />{T.purge}</button>
               </BulkBar>
             )}
@@ -210,7 +210,7 @@ function TrashCard({ d, p, checked, country, group, by, when, left, onToggle, on
         <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} />
       </div>
       <ul className="tr-facts">
-        <li><Icon name={p.os} />{d.os[p.os]} · {engineName(p.kernel, p.kernelVersion)}</li>
+        <li><OsLogo os={p.os} />{d.os[p.os]} · {engineName(p.kernel, p.kernelVersion)}</li>
         <li><Icon name="download" />{d.trash.cols.signins} · {signins(d, p)}</li>
         <li><Icon name="trash" />{d.trash.byAt(by, when)}</li>
         <li><Icon name="clock" />{d.trash.days(left)}</li>

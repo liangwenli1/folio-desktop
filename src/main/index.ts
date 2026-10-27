@@ -8,8 +8,8 @@ import { watch } from './changes';
 import { firefoxGpuList, generate } from './fingerprint';
 import { install, list as listKernels, pause as pauseKernel, recommended, remove as removeKernel, resolve as resolveKernel, settings as kernelSettings, setSettings as setKernelSettings, upload as uploadKernel, usage as kernelUsage } from './kernels';
 import { forget } from './account';
-import { addCookies, checkup, discard, focus, isRunning, onStatus, open, prune, removeCookies, saveNow, statuses, stop, stopAll, verify } from './launcher';
-import { toJson, toNetscape, type Cookie, type CookieKey } from '../shared/cookies';
+import { addCookies, checkup, discard, editCookie, focus, isRunning, onStatus, open, prune, removeCookies, saveNow, statuses, stop, stopAll, verify } from './launcher';
+import { toJson, toNetscape, type Cookie, type CookieEdit, type CookieKey, type CookieScope } from '../shared/cookies';
 import { api } from './api';
 import { exportWorkspace, importWorkspace, seal, unseal, type Bundle } from './transfer';
 import { randomUUID } from 'node:crypto';
@@ -118,8 +118,9 @@ ipcMain.handle('folio:saveFile', async (e, name: string, content: string) => {
   await writeFile(r.filePath, String(content));
   return r.filePath;
 });
-// Exports go through the server (owners and admins only, and logged); a profile running here saves first.
-ipcMain.handle('folio:exportCookies', async (e, profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape') => {
+// Exports go through the server (owners and admins only, and logged); a profile running here saves first. One
+// profile's export can be narrowed to one site's cookies or to those picked (v2 37).
+ipcMain.handle('folio:exportCookies', async (e, profiles: { id: string; name: string; number: number }[], format: 'json' | 'netscape', only?: CookieScope) => {
   const win = BrowserWindow.fromWebContents(e.sender) ?? undefined;
   const ext = format === 'json' ? 'json' : 'txt';
   const fileOf = (p: { name: string; number: number }) => `${p.name.replace(/[\\/:*?"<>|]+/g, '_')}-${String(p.number).padStart(4, '0')}.${ext}`;
@@ -137,7 +138,8 @@ ipcMain.handle('folio:exportCookies', async (e, profiles: { id: string; name: st
   const failed: { name: string; code: string }[] = [];
   for (const p of profiles){
     if (isRunning(p.id)) await saveNow(p.id);
-    const r = await api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values`);
+    const r = only?.cookies ? await api<{ cookies: Cookie[] }>('POST', `/profiles/${p.id}/cookies/values`, { cookies: only.cookies })
+      : await api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values${only?.domain ? `?${new URLSearchParams({ domain: only.domain })}` : ''}`);
     if (!r.ok){ failed.push({ name: p.name, code: r.error.code }); continue; }
     await writeFile(single ?? join(dir, fileOf(p)), format === 'json' ? toJson(r.data.cookies) : toNetscape(r.data.cookies));
     saved++;
@@ -154,6 +156,15 @@ ipcMain.handle('folio:importCookies', async (_e, id: string, cookies: Cookie[]) 
   const r = await api('POST', `/profiles/${id}/cookies`, { cookies });
   if (!r.ok && !(running && r.error.code === 'local_only')) return r;
   return { ok: true, data: { count: cookies.length } };
+});
+// Changing one cookie (v2 28): without a new value it keeps its own, the saved one on the server and, while the profile
+// runs here, the one in its browser.
+ipcMain.handle('folio:editCookie', async (_e, id: string, from: CookieKey, cookie: CookieEdit) => {
+  const running = isRunning(id);
+  if (running) await editCookie(id, from, cookie);
+  const r = await api('PATCH', `/profiles/${id}/cookies`, { from, cookie });
+  if (!r.ok && !(running && r.error.code === 'local_only')) return r;
+  return { ok: true, data: { count: 1 } };
 });
 ipcMain.handle('folio:deleteCookies', async (_e, id: string, keys: CookieKey[]) => {
   const running = isRunning(id);

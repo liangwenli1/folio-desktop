@@ -259,7 +259,7 @@ function InviteDialog({ d, ws, data, company, seats, limit, onClose }: {
   const changed = useChanged({ emails: emails.join(), typed, roleId, groups: groupIds.join(), days });
 
   return (
-    <Modal wide title={T.inviteTitle} sub={T.inviteSub} onClose={onClose} busy={busy} dirty={!results && changed} foot={results
+    <Modal wide title={T.inviteTitle} onClose={onClose} busy={busy} dirty={!results && changed} foot={results
       ? <button className="btn btn-primary" type="button" onClick={onClose}>{T.done}</button>
       : <>
         {limit !== null && <span className={`hint${after > limit ? ' bad-t' : ''}`}>{T.seatsAfter(after, limit)}</span>}

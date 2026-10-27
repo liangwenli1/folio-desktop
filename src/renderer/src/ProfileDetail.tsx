@@ -9,7 +9,7 @@ import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from '.
 import type { WorkspaceData } from './data';
 import { launchWhy, runTime, type Dict, type Lang } from './i18n';
 import { Empty, ExtIcon, Icon, MoreMenu, Progress, Tabs, bytes, percent, type IconName } from './ui';
-import { Flag, SearchLogo } from './Flag';
+import { Flag, OsLogo, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
 import { CookiesTab } from './ProfileCookies';
 import { Pager } from './Pager';
@@ -25,7 +25,7 @@ interface Props {
   // Its group; the assigned person's email, when there is one; the extensions installed in it.
   group: Group | null; owner: string | null; extensions: Extension[];
   busy: string | null; canTakeOver: boolean; canTrash: boolean;
-  onBack(): void; onStar(): void; onTakeover(): void; onExport(format: 'json' | 'netscape'): void;
+  onBack(): void; onStar(): void; onTakeover(): void;
   onOpen(): void; onStop(): void; onEdit(): void; onTrash(): void; onFix(f: Fix): void; onShowProxy?(id: string): void; onReplaceProxy?(): void;
 }
 type Tab = 'overview' | 'fingerprint' | 'cookies' | 'activity';
@@ -131,7 +131,7 @@ export function ProfileDetail(props: Props){
                 onDirty={setFpDirty} onSaved={() => { setFpDirty(false); setFpRound(r => r + 1); }} />
             </div>
           )}
-          {seen.has('cookies') && <div hidden={tab !== 'cookies'}><CookiesTab d={d} lang={lang} data={data} p={p} running={status?.state === 'running'} onExport={props.onExport} /></div>}
+          {seen.has('cookies') && <div hidden={tab !== 'cookies'}><CookiesTab d={d} lang={lang} data={data} p={p} running={status?.state === 'running'} /></div>}
           {tab === 'activity' && <>
             <ActivityTable d={d} lang={lang} entries={log.entries} failed={log.failed} admin={data.admin} onRetry={() => void log.reload()} profile />
             {log.total > 0 && <Pager d={d} total={log.total} page={logPage} size={logSize} onPage={setLogPage} onSize={n => { setLogSize(n); setLogPage(1); }} />}
@@ -155,7 +155,7 @@ function LaunchFailed({ d, p, why, onOpen }: { d: Dict; p: Profile; why: string;
   );
 }
 
-function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, failed, status, onOpen, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
+function Overview({ d, lang, data, p, h, group, owner, extensions, busy, entries, failed, status, onOpen, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
   const D = d.detail, F = d.fp;
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
   const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
@@ -174,11 +174,11 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, fail
         <dl className="kvl">
           <dt>{D.fields.name}</dt><dd>{p.name}</dd>
           <dt>{D.fields.number}</dt><dd className="mono">#{String(p.number).padStart(4, '0')}</dd>
-          <dt>{d.form.group}</dt><dd>{group?.name ?? d.groups.none}</dd>
+          <dt>{d.form.group}</dt><dd>{group ? groupPath(data.groups, group) : d.groups.none}</dd>
           {p.tags.length > 0 && <><dt>{d.form.tags}</dt><dd className="tags">{p.tags.map(t => <span key={t} className="badge">{t}</span>)}</dd></>}
           <dt>{d.form.owner}</dt><dd data-testid="assigned">{owner ?? d.profiles.unassigned}</dd>
           <dt>{D.fields.engine}</dt><dd>{ENGINES[p.kernel]} {p.kernelVersion}</dd>
-          <dt>{D.fields.os}</dt><dd><Icon name={p.os} />{d.os[p.os]}</dd>
+          <dt>{D.fields.os}</dt><dd><OsLogo os={p.os} />{d.os[p.os]}</dd>
           <dt>{d.browser.search}</dt><dd><SearchLogo engine={p.searchEngine} size={14} />{d.browser.name(p.searchEngine)}</dd>
           <dt>{d.browser.start}</dt><dd className={p.startUrl ? 'mono' : undefined}>{start}</dd>
           <dt>{D.extensions}</dt><dd className="ext-chips">{extensions.length
@@ -271,3 +271,10 @@ function Opening({ d, p, h, status, progress }: { d: Dict; p: Profile; h: Health
     </section>
   );
 }
+
+// A group with the ones above it, outermost first (v2 04): "Cross-border / US sites".
+const groupPath = (groups: Group[], g: Group) => {
+  const names = [g.name];
+  for (let up = groups.find(x => x.id === g.parentId); up && names.length < 10; up = groups.find(x => x.id === up!.parentId)) names.unshift(up.name);
+  return names.join(' / ');
+};

@@ -206,7 +206,10 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .sel.bar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .sel.bar .sel-v.ph{color:var(--ink)}
 /* In the bulk bar a dropdown looks like the buttons beside it. */
-.bulk .sel.bar{border-color:var(--line);background:var(--card);color:var(--ink-body)}
+.bulk .sel.bar{height:36px;padding:0 14px;gap:6px;border-color:var(--line-2);background:var(--card);color:var(--ink-body)}
+.bulk .sel.bar > .i:first-child{margin-left:0;color:var(--ink-2)}
+.bulk .sel.bar:disabled > .i:first-child{color:var(--ink-4)}
+.bulk .sel.bar:disabled{background:var(--card)}
 .bulk .sel.bar:hover:not(:disabled){background:var(--hover)}
 .sel.bar > .i{margin-left:2px;color:var(--ink-3)}
 .sel-pop{position:fixed;z-index:var(--z-float);display:flex;flex-direction:column;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);overflow:hidden;animation:pop var(--t-fast) ease-out}
@@ -387,11 +390,16 @@ html[data-platform="win32"] .top{padding-right:150px}
 .ext-ic img{width:16px;height:16px;object-fit:contain}
 @media (max-width:1280px){ .tw .lastc{display:none} }
 @media (max-width:1100px){ .tw .c-ext{display:none} }
-/* a profile's extensions: their icons overlapping a little, then how many more */
+/* a profile's extensions: their own logos, small and overlapping a little on a white ring, then how many more in a
+   grey pill; one without a logo gets a grey tile with the extension mark */
 .ext-stack{display:inline-flex;align-items:center;vertical-align:middle}
-.ext-stack .ext-ic + .ext-ic{margin-left:-6px}
+.ext-stack .ext-ic,.ext-chip .ext-ic{width:20px;height:20px;border:0;border-radius:6px;background:transparent}
+.ext-stack .ext-ic img,.ext-chip .ext-ic img{width:20px;height:20px;border-radius:6px}
+.ext-stack .ext-ic:not(:has(img)),.ext-chip .ext-ic:not(:has(img)){background:var(--seg)}
+.ext-stack .ext-ic .i,.ext-chip .ext-ic .i{width:14px;height:14px}
 .ext-stack .ext-ic{box-shadow:0 0 0 2px var(--card)}
-.ext-stack small{margin-left:6px;font:500 12px var(--f-data);color:var(--ink-3)}
+.ext-stack .ext-ic + .ext-ic{margin-left:-4px}
+.ext-stack small{height:18px;margin-left:6px;padding:0 6px;border-radius:9px;background:var(--seg);font:500 11px/18px var(--f-data);color:var(--ink-3)}
 .pc-ext{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--ink-2)}
 .kvl dd.ext-chips{flex-wrap:wrap;gap:6px 14px}
 /* the profiles an extension is in: their flags, then how many */
@@ -413,17 +421,19 @@ html[data-platform="win32"] .top{padding-right:150px}
 
 /* Bulk actions: a tinted row above the list while something is selected, as the delivery spec draws it. */
 /* The bulk actions (v2): a row of small buttons above the list, then what is picked. */
-.bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:0 var(--gx) 12px;flex:none}
-.bulk-n{font-size:12px;color:var(--ink-3)}
-.bb{display:inline-flex;align-items:center;gap:6px;height:var(--h-sm);padding:0 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);font-weight:500;cursor:pointer;white-space:nowrap}
-.bb.lead:not(:disabled){border-color:var(--accent);color:var(--accent-ink)}
-.bb.lead:not(:disabled) > .i{color:var(--accent-ink)}
+.bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 var(--gx) 12px;flex:none}
+/* how many are picked, with the box that clears them */
+.bulk-n{display:inline-flex;align-items:center;gap:10px;margin-right:8px;color:var(--ink);white-space:nowrap;cursor:pointer}
+.bulk-n b{font-weight:600}
+.bb{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);color:var(--ink-body);font-weight:500;cursor:pointer;white-space:nowrap}
+.bb.lead:not(:disabled){border-color:var(--action);background:var(--action);color:#fff}
+.bb.lead:not(:disabled) > .i{color:#fff}
+.bb.lead:hover:not(:disabled){border-color:var(--action-hover);background:var(--action-hover)}
 .bb > .i{color:var(--ink-2)}
 .bb:hover:not(:disabled){background:var(--hover)}
 .bb:disabled{color:var(--ink-4);cursor:not-allowed}
-.bb:disabled > .i,.bb:disabled small{color:var(--ink-4)}
+.bb:disabled > .i{color:var(--ink-4)}
 .bb.danger,.bb.danger > .i{color:var(--bad-ink)}
-.bb.lead:not(:disabled) small{color:var(--accent-ink)}
 .bb-in{height:var(--h-sm);width:180px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--card)}
 
 /* tables */
@@ -851,9 +861,11 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 /* roles: the list, and the picked role's permissions by section */
 .rl{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
 .rl-list ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.rl-add{width:100%}
 .rl-item{display:grid;gap:4px;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);text-align:left;cursor:pointer}
 .rl-item:hover{border-color:var(--line-2)}
-.rl-item.cur{border-color:var(--accent);background:var(--sel)}
+.rl-item.cur{border-color:var(--action);background:var(--action);color:#fff}
+.rl-item.cur small,.rl-item.cur .rl-n,.rl-item.cur b .i{color:rgba(255,255,255,.85)}
 .rl-item b{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600}
 .rl-item b .i{color:var(--ink-3)}
 .rl-item small{font-size:12px;color:var(--ink-2)}
@@ -862,10 +874,15 @@ fieldset.ext-pick legend{padding:0;margin-bottom:6px}
 .rl-head{display:flex;align-items:flex-start;gap:12px}
 .rl-head h2{font-size:16px;line-height:24px;font-weight:600}
 .rl-name{height:var(--h-ctl);padding:0 10px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card);font-size:16px;font-weight:600}
-.rl-note{display:flex;align-items:center;gap:8px;max-width:380px;margin:0}
-.rl-note .i{flex:none;color:var(--info-ink)}
-.rl-t{margin:0;flex:none;min-height:0}
-.rl-t tr.sect td{height:32px;padding:0 12px;background:var(--panel);font-size:12px;font-weight:600;color:var(--ink-2)}
+/* a role's permissions: sections of rows, each a name and what it allows, ticked on the right (v2 17) */
+.rl-perms{display:grid;gap:20px}
+.rl-sect{display:grid}
+.rl-sect h4{margin:0 0 2px;font-size:12px;line-height:20px;font-weight:600;color:var(--ink-3)}
+.rl-perm{display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.rl-perm > span{display:grid;gap:2px;flex:1;min-width:0}
+.rl-perm b{font-weight:500;color:var(--ink)}
+.rl-perm small{font-size:12px;color:var(--ink-3)}
+.rl-perm:has(input:disabled){cursor:default}
 .rl-foot{display:flex;align-items:center;gap:10px}
 .pav{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;border-radius:50%;color:#fff;font-size:12px;font-weight:600}
 .pav.c0{background:#D2445E} .pav.c1{background:#2F6FD6} .pav.c2{background:#1E8A63} .pav.c3{background:#C98A12} .pav.c4{background:#7A4FC4} .pav.c5{background:#1F8A97}
@@ -1459,6 +1476,13 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .dot-st.warn{background:var(--warn-soft);color:var(--warn-ink)}
 .dot-st.bad{background:var(--bad-soft);color:var(--bad-ink)}
 .px-exit{display:flex;align-items:center;gap:7px;white-space:nowrap}
+/* a profile's proxy in the list: the exit's round flag beside its country over its IP */
+.px-cell{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.px-cell > span{display:grid}
+/* the system under the engine, with its logo */
+.os-l{display:flex;align-items:center;gap:5px}
+.os-l .os-logo{flex:none;color:var(--ink-3)}
+.os-logo{flex:none;vertical-align:-2px}
 .grp-pick{flex:none;min-width:150px}
 .pc-px{display:grid;gap:2px}
 
@@ -1521,9 +1545,6 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .page-tabs button[aria-selected="true"] small{color:var(--accent-ink)}
 /* the search gives way first, so a row of filters stays on one line */
 .filters .search{margin-left:0;flex:1 1 220px;width:auto;max-width:360px}
-.btn-start{background:var(--card);border-color:var(--accent);color:var(--accent-ink)}
-.btn-start > .i{color:var(--accent)}
-.btn-start:hover:not(:disabled){background:var(--accent-soft)}
 .prof .l2{margin-top:2px}
 .pager{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px var(--gx) 24px;flex:none}
 .pg{display:inline-flex;align-items:center;gap:6px}

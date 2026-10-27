@@ -11,7 +11,7 @@ import { ENGINES, latencyTone, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { Cancel, Icon, Modal, Switch, bytes, percent } from './ui';
-import { SEARCH_LOGOS } from './Flag';
+import { OsLogo, SEARCH_LOGOS } from './Flag';
 import { Select, SelectField, type Opt } from './Select';
 import { elsewhere } from './ProfileDetail';
 import { CanvasField, CoresField, GpuField, LangField, ScreenField, WebrtcField, ZoneField, useFingerprint } from './Fingerprint';
@@ -258,7 +258,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 <span className="label" id="pf-os">{f.os}{req}</span>
                 <div className="seg fill" role="group" aria-labelledby="pf-os">
                   {(['windows', 'macos', 'linux'] as const).map(o => (
-                    <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => { fpd.refit(kernel, o); setOs(o); }}><Icon name={o} />{d.os[o]}</button>
+                    <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => { fpd.refit(kernel, o); setOs(o); }}><OsLogo os={o} />{d.os[o]}</button>
                   ))}
                 </div>
               </div>

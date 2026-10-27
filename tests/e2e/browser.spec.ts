@@ -114,7 +114,9 @@ for (const kernel of ['chromium', 'firefox'] as const){
     expect(await tabsOf(t.app, p.id)).toEqual([]);
     const row = t.win.locator(`tr[data-id="${p.id}"]`);
     await expect(row).toContainText('Running · window closed');
-    await row.getByRole('button', { name: 'Go to window' }).click();
+    // Its window comes back from the row's menu.
+    await row.getByRole('button', { name: `Actions for Keep-${kernel}` }).click();
+    await t.win.getByRole('menuitem', { name: 'Go to window' }).click();
     await expect.poll(() => tabsOf(t.app, p.id), { timeout: 30_000 }).toEqual([t.probe.url]);
     await expect(row).not.toContainText('window closed');
     await row.getByRole('button', { name: 'Stop', exact: true }).click();

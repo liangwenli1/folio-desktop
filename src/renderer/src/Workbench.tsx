@@ -52,6 +52,11 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [openId, setOpenId] = useState<string | null>(null);
   // A proxy to show the details of when the Proxies page opens (from a profile's page).
   const [proxyId, setProxyId] = useState<string | null>(null);
+  // Bumped whenever a profile or a proxy is asked for by name (a toast's View), so its page opens on it even when shown,
+  // and when the page shown is picked again in the sidebar, which brings it back to its list.
+  const [asked, setAsked] = useState(0);
+  const showProfile = (id: string) => { go('profiles'); setOpenId(id); setAsked(n => n + 1); };
+  const showProxy = (id: string) => { go('proxies'); setProxyId(id); setAsked(n => n + 1); };
   // A job to show when the task center opens (from a toast about it).
   const [jobId, setJobId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -82,7 +87,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const close = () => setDialog(null);
   // Going to another page (or workspace) asks first when the page has changes not saved yet.
   const guard = useGuard();
-  const go = (p: Page) => guard(() => { setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); });
+  const go = (p: Page) => guard(() => { if (p === page) setAsked(n => n + 1); setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); });
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
@@ -136,7 +141,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     });
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
     // A proxy opens its details (on the proxies page, for whoever may see it); a member, the team page.
-    const lines: Command[] = manager ? data.proxies.map(px => ({ id: `px:${px.id}`, group: 'proxies', label: px.name, hint: `${px.host}:${px.port}`, icon: <Icon name="proxies" />, run: () => { go('proxies'); setProxyId(px.id); } })) : [];
+    const lines: Command[] = manager ? data.proxies.map(px => ({ id: `px:${px.id}`, group: 'proxies', label: px.name, hint: `${px.host}:${px.port}`, icon: <Icon name="proxies" />, run: () => showProxy(px.id) })) : [];
     const people: Command[] = data.members.map(m => ({ id: `m:${m.userId}`, group: 'members', label: m.displayName, hint: `${m.email} · ${roleName(d, m.role)}`, icon: <Icon name="team" />, run: () => go('team') }));
     return [
       ...profiles, ...lines, ...people,
@@ -230,11 +235,11 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       </TopBar>
 
       {shown === 'profiles' && (
-        <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
+        <ProfilesPage key={asked} d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
-          onEdit={id => setDialog({ kind: 'edit', id })} onTrashPage={() => go('trash')} onShowProxy={id => { go('proxies'); setProxyId(id); }} />
+          onEdit={id => setDialog({ kind: 'edit', id })} onTrashPage={() => go('trash')} onShowProxy={showProxy} />
       )}
-      {shown === 'proxies' && <ProxiesPage d={d} lang={lang} data={data} openId={proxyId} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })}
+      {shown === 'proxies' && <ProxiesPage key={asked} d={d} lang={lang} data={data} openId={proxyId} onAdd={() => setDialog({ kind: 'proxy' })} onEdit={id => setDialog({ kind: 'proxy', id })} onImport={() => setDialog({ kind: 'proxy-import' })}
         onShowProfiles={(ids, open) => { go('profiles'); setOnly(new Set(ids)); setOpenId(open ?? null); }} />}
       {shown === 'team' && <TeamPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onLeft={onWorkspace} />}
       {shown === 'extensions' && <ExtensionsPage d={d} ws={ws} data={data} />}
@@ -245,7 +250,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'engines' && <EnginesPage d={d} ws={ws} data={data} admin={me.admin} manager={manager}
         onShowProfiles={ids => { go('profiles'); setOnly(new Set(ids)); }} />}
       {shown === 'groups' && <GroupsPage d={d} lang={lang} ws={ws} meId={me.user.id} data={data}
-        onOpenProfile={id => { go('profiles'); setOpenId(id); }} onNewProfile={g => setDialog({ kind: 'new', group: g })} />}
+        onOpenProfile={showProfile} onNewProfile={g => setDialog({ kind: 'new', group: g })} />}
       {shown === 'jobs' && <JobsPage key={jobId ?? ''} d={d} lang={lang} meId={me.user.id} data={data} openId={jobId} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
@@ -258,10 +263,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
         <ProfileForm d={d} lang={lang} ws={ws} data={data} onClose={close} profile={editing}
           defaultGroup={dialog.kind === 'new' && dialog.group !== undefined ? dialog.group : group !== 'all' && group !== 'none' ? group : null}
-          onDone={p => { close(); toast(dialog.kind === 'new' ? d.profiles.done.created(p.name) : d.profiles.done.saved); }} />
+          onDone={p => { close(); if (dialog.kind === 'new') toast(d.profiles.done.created(p.name), { label: d.states.view, fn: () => showProfile(p.id) }); else toast(d.profiles.done.saved); }} />
       )}
       {dialog?.kind === 'import' && <ProfileImportDialog d={d} ws={ws} data={data} onClose={close} />}
-      {dialog?.kind === 'proxy' && (!dialog.id || editingProxy) && <ProxyForm d={d} wsId={ws.id} data={data} proxy={editingProxy} onClose={close} />}
+      {dialog?.kind === 'proxy' && (!dialog.id || editingProxy) && <ProxyForm d={d} wsId={ws.id} data={data} proxy={editingProxy} onClose={close} onShow={showProxy} />}
       {dialog?.kind === 'proxy-import' && <ProxyImportDialog d={d} wsId={ws.id} data={data} onClose={close} />}
       {dialog?.kind === 'export-all' && <ExportDialog d={d} ws={ws} onClose={close} />}
       {palette && <CommandPalette d={d} commands={commands()} onClose={() => setPalette(false)} />}

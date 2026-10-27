@@ -31,8 +31,14 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await proxyForm.getByRole('button', { name: 'Check connection' }).click();
   await expect(proxyForm.getByTestId('proxy-test')).toContainText('Connected', { timeout: 20_000 });
   await expect(proxyForm.getByTestId('proxy-test')).toContainText('127.0.0.1');
+  // A proxy needs a name: saving without one says so under the field and goes back to it.
+  await proxyForm.getByRole('button', { name: 'Save proxy' }).click();
+  await expect(proxyForm.getByText('Enter a name for the proxy.')).toBeVisible();
+  await expect(proxyForm.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused();
+  await proxyForm.getByRole('textbox', { name: 'Name', exact: true }).fill('Local SOCKS');
   await proxyForm.getByRole('button', { name: 'Save proxy' }).click();
   await expect(proxyForm).toBeHidden();
+  await expect(win.getByRole('status').filter({ hasText: 'Local SOCKS added' }).getByRole('button', { name: 'View' })).toBeVisible();
 
   await nav('Profiles');
   await win.getByRole('button', { name: 'New profile' }).click();
@@ -42,12 +48,12 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await expect(form.getByRole('combobox', { name: 'Browser engine' })).toContainText('Chromium 150');
   await form.getByRole('button', { name: 'Create profile' }).click();
 
-  // The proxy check (started when the proxy was saved) puts the exit in the row and on the card: its flag and IP, then
-  // the place and the line's type.
+  // The proxy check (started when the proxy was saved) puts the exit in the row and on the card: its round flag beside
+  // the country and the IP.
   const r = row(win, 'US-Store-01');
-  await expect(r.locator('.px-exit')).toContainText('127.0.0.1', { timeout: 20_000 });
-  await expect(r.locator('.px-exit .flag-badge img')).toBeVisible();
-  await expect(r).toContainText('Seattle · SOCKS5');
+  await expect(r.locator('.px-cell')).toContainText('127.0.0.1', { timeout: 20_000 });
+  await expect(r.locator('.px-cell .flag-badge img')).toBeVisible();
+  await expect(r.locator('.px-cell')).toContainText('United States');
   const id = (await r.getAttribute('data-id'))!;
   await r.getByRole('button', { name: 'US-Store-01', exact: true }).click();
   await detail(win).getByRole('tab', { name: 'Fingerprint' }).click();
@@ -114,7 +120,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
   await win.getByRole('checkbox', { name: 'Select P-2' }).check();
   const bulk = win.getByTestId('bulk');
-  await choose(bulk.getByRole('combobox', { name: 'Move to group…' }), 'US stores');
+  await choose(bulk.getByRole('combobox', { name: 'Move to group' }), 'US stores');
   const groups = win.getByRole('combobox', { name: 'Groups' });
   await choose(groups, 'US stores');
   await expect(win.locator('tr[data-id]')).toHaveText([/P-1/, /P-2/]);
