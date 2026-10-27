@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Icon, ListFailed, Modal, SkelRows, Switch, ViewSwitch, useChanged, useToast, useView, type IconName } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -32,6 +32,9 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
   // The task whose latest run shows under the list (by default, the one that ran last).
   const [latest, setLatest] = useState<string | null>(null);
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const tasks = data.tasks.filter(t => !needle || t.name.toLowerCase().includes(needle));
   const flowName = new Map(data.flows.map(f => [f.id, f.name]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const task = open ? data.tasks.find(t => t.id === open) : undefined;
@@ -77,9 +80,8 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.lead}</p></div>
+          <div className="ttl"><h1>{T.title}</h1></div>
           <span className="sp" />
-          {!data.flows.length && <span className="hint">{T.needFlow}</span>}
           <ViewSwitch label={T.views.label} value={view} onChange={setView} options={[['list', 'list', T.views.list], ['calendar', 'calendar', T.views.calendar]]} />
           <button className="btn btn-primary" type="button" disabled={!data.flows.length} title={data.flows.length ? undefined : T.needFlow} onClick={() => setForm({})}><Icon name="plus" />{T.new}</button>
         </header>
@@ -90,23 +92,32 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
           </div>
         )}
         {view === 'calendar' ? <TaskCalendar d={d} lang={lang} tasks={data.tasks} onOpen={setOpen} /> : <>
-          <div className="tw top-gap flow">
+          <section className="list-card" aria-label={T.title}>
+          <div className="filters">
+            <Flt label={d.profiles.filterLabels.keyword} grow>
+              <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+                <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+            </Flt>
+            <button type="button" className="btn btn-secondary flt-reset" disabled={!needle} onClick={() => setQ('')}>{d.profiles.reset}</button>
+          </div>
+          <div className="tw flow">
             <table>
               <thead>
-                <tr><th scope="col">{T.cols.task}</th><th scope="col">{T.cols.profiles}</th><th scope="col">{T.cols.when}</th><th scope="col">{T.cols.last}</th><th scope="col">{T.cols.on}</th><th className="act" scope="col" /></tr>
+                <tr><th scope="col">{T.cols.task}</th><th scope="col">{T.cols.profiles}</th><th scope="col">{T.cols.when}</th><th scope="col">{T.cols.last}</th><th scope="col">{T.cols.on}</th><th className="act" scope="col">{d.profiles.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th></tr>
               </thead>
               <tbody>
                 {data.loadFailed.has('tasks')
-                  ? <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="tasks" /></td></tr>
-                  : !data.loaded.has('tasks') ? <SkelRows cols={6} />
-                  : !data.tasks.length && <tr className="empty"><td colSpan={6}><Empty icon="tasks" title={T.emptyTitle} text={T.empty} /></td></tr>}
-                {data.tasks.map(t => {
+                  ? <tr className="empty"><td colSpan={7}><ListFailed d={d} data={data} kind="tasks" /></td></tr>
+                  : !data.loaded.has('tasks') ? <SkelRows cols={7} />
+                  : !data.tasks.length ? <tr className="empty"><td colSpan={7}><Empty icon="tasks" title={T.emptyTitle} text={T.empty} /></td></tr>
+                  : !tasks.length && <tr className="empty"><td colSpan={7}><Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setQ('')}>{d.states.clear}</button>
+                    </Empty></td></tr>}
+                {tasks.map(t => {
                   const here = data.active.find(a => a.taskId === t.id);
                   return (
                     <tr key={t.id} data-task={t.name} className={t.id === shown?.id ? 'cur' : ''}>
-                      <td><span className="task-cell"><span className="task-ic" aria-hidden="true"><Icon name="tasks" /></span><span>
-                        <button type="button" className="rowlink" onClick={() => setOpen(t.id)}>{t.name}</button>
-                      </span></span></td>
+                      <td><button type="button" className="rowlink" onClick={() => setOpen(t.id)}>{t.name}</button></td>
                       <td><span className="pflags"><span className="flags">{t.profileIds.slice(0, 3).map(flag)}</span>{t.profileIds.length === t.profiles ? t.profiles : `${t.profileIds.length} / ${t.profiles}`}</span></td>
                       <td><ScheduleCell d={d} lang={lang} task={t} /></td>
                       <td>{t.lastRun
@@ -115,19 +126,22 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
                         </button>
                         : <span className="muted">{T.never}</span>}</td>
                       <td>{t.schedule ? (t.runner?.self ? T.here : t.runner?.deviceName ?? '—') : <span className="muted">{T.starter}</span>}</td>
-                      <td className="act"><span className="actin">
-                        {here
-                          ? <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopRun(here.runId)}><Icon name="stop" />{T.stop}</button>
-                          : <button type="button" className="btn btn-sm btn-secondary" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} title={!t.profileIds.length ? T.noProfilesHere : t.lastRun?.status === 'running' ? T.runningElsewhere : undefined} aria-label={T.runX(t.name)} onClick={() => void start(t)}><Icon name="play" />{T.run}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-sm btn-text" onClick={() => setForm({ task: t })}>{d.common.edit}</button>}
-                        {t.canEdit && <button type="button" className="btn btn-sm btn-danger" aria-label={T.deleteX(t.name)} onClick={() => setConfirm(t)}>{T.delete}</button>}
-                      </span></td>
+                      <td className="act">{here
+                        ? <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopRun(here.runId)}><Icon name="stop" />{T.stop}</button>
+                        : <button type="button" className="btn btn-sm btn-secondary" disabled={!t.profileIds.length || t.lastRun?.status === 'running'} title={!t.profileIds.length ? T.noProfilesHere : t.lastRun?.status === 'running' ? T.runningElsewhere : undefined} aria-label={T.runX(t.name)} onClick={() => void start(t)}><Icon name="play" />{T.run}</button>}</td>
+                      <td className="more">{t.canEdit && <MoreMenu label={d.profiles.actionsX(t.name)} items={[
+                        { label: d.common.edit, onClick: () => setForm({ task: t }) },
+                        { label: T.delete, onClick: () => setConfirm(t), danger: true }
+                      ]} />}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          {tasks.length > 0 && <p className="list-foot">{d.profiles.page.total(tasks.length)}</p>}
+          </section>
+          {!data.flows.length && <p className="notice page-tip"><Icon name="info" /><span>{T.needFlow}</span></p>}
           {shown && <LatestRun d={d} lang={lang} task={shown} flag={flag} idle={!data.active.some(a => a.taskId === shown.id) && shown.lastRun?.status !== 'running'} runsSeq={data.runsSeq}
             onRerun={ids => void start(shown, 'rerun', ids)} />}
         </>}
@@ -390,7 +404,7 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
               </div>
               <div className="tw flow">
                 <table>
-                  <thead><tr><th scope="col">{T.cols.profile}</th><th scope="col">{T.cols.status}</th><th scope="col" className="num">{T.cols.attempts}</th><th scope="col" className="num">{T.cols.time}</th><th scope="col">{T.cols.result}</th></tr></thead>
+                  <thead><tr><th scope="col">{T.cols.profile}</th><th className="mid" scope="col">{T.cols.status}</th><th className="mid" scope="col">{T.cols.attempts}</th><th className="mid" scope="col">{T.cols.time}</th><th scope="col">{T.cols.result}</th></tr></thead>
                   <tbody>
                     {detail.items.map(i => {
                       const key = `${i.profileNumber}`, isOpen = expanded === key;
@@ -398,9 +412,9 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
                         <Fragment key={key}>
                           <tr data-item={i.profileName} className={isOpen ? 'cur' : ''}>
                             <td><button type="button" className="rowlink" aria-expanded={isOpen} onClick={() => setExpanded(isOpen ? null : key)}>{i.profileName}</button><span className="l2 mono">#{pad(i.profileNumber)}</span></td>
-                            <td><ItemStatus d={d} status={i.status} /></td>
-                            <td className="num">{i.attempts || ''}</td>
-                            <td className="num">{i.startedAt && i.finishedAt ? d.flows.trial.ms(Date.parse(i.finishedAt) - Date.parse(i.startedAt)) : ''}</td>
+                            <td className="mid"><ItemStatus d={d} status={i.status} /></td>
+                            <td className="mid mono">{i.attempts || ''}</td>
+                            <td className="mid mono">{i.startedAt && i.finishedAt ? d.flows.trial.ms(Date.parse(i.finishedAt) - Date.parse(i.startedAt)) : ''}</td>
                             <td className="result">{i.error ? <span className="err">{itemError(d, i)}</span>
                               : Object.entries(i.data).map(([k, v]) => <span key={k} className="kv"><span className="mono">{k}</span> {v}</span>)}</td>
                           </tr>

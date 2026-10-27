@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, fieldName, type Dict, type Lang } from './i18n';
-import { Empty, Icon, LoadFailed, PanelEdge, SkelRows, useToast } from './ui';
+import { Empty, Flt, Icon, LoadFailed, PanelEdge, SkelRows, useToast } from './ui';
 import { Select } from './Select';
 import { Pager } from './Pager';
 
@@ -12,8 +12,8 @@ type Kind = 'all' | keyof Dict['activity']['kinds'];
 
 // What an entry says, without who did it.
 export const said = (d: Dict, e: ActivityEntry) => d.activity.actions[e.action](e.profile ? `${e.profile.name} #${String(e.profile.number).padStart(4, '0')}` : '', e.detail);
-// Who did it: a person, or Folio itself (emptying the Trash of what it kept long enough).
-const who = (d: Dict, e: ActivityEntry) => e.actor ?? (e.detail.expired ? 'Folio' : d.activity.someone);
+// Who did it: a person by the name colleagues see, or Folio itself (emptying the Trash of what it kept long enough).
+export const who = (d: Dict, e: ActivityEntry) => e.actorName ?? e.actor ?? (e.detail.expired ? 'Folio' : d.activity.someone);
 // One entry as a sentence, starting with who did it.
 export const describe = (d: Dict, e: ActivityEntry) => `${who(d, e)} ${said(d, e)}`;
 // What it was done to: the profile, or the thing the details name.
@@ -45,17 +45,6 @@ export function useActivity(wsId: string, query: string, data: WorkspaceData, pa
   return { entries, total, failed, reload: load };
 }
 
-// Which filter of the log an entry belongs to (the server's grouping), for its icon.
-const KINDS: Record<Exclude<Kind, 'all'>, string[]> = {
-  open: ['profile.open', 'profile.close', 'profile.takeover'],
-  profiles: ['profile.create', 'profile.update', 'profile.move', 'profile.tag', 'profile.untag', 'profile.set-proxy', 'profile.assign', 'profile.add-extension', 'profile.remove-extension', 'profile.set-kernel', 'profile.set-browser'],
-  trash: ['profile.trash', 'profile.restore', 'profile.purge'],
-  proxies: ['proxy.create', 'proxy.import', 'proxy.update', 'proxy.delete', 'group.create', 'group.rename', 'group.delete', 'group.members'],
-  cookies: ['cookies.export', 'cookies.import', 'cookies.edit', 'cookies.delete', 'workspace.export', 'workspace.import'],
-  team: ['member.invite', 'member.join', 'member.role', 'member.groups', 'member.remove', 'member.leave', 'invitation.withdraw', 'role.create', 'role.update', 'role.delete'],
-  extensions: ['extension.add', 'extension.update', 'extension.delete'],
-  automation: ['flow.create', 'flow.update', 'flow.delete', 'task.create', 'task.update', 'task.delete', 'run.start', 'run.finish']
-};
 // A date picked in the filter, as the start of that day here.
 const dayStart = (date: string, plus = 0) => { const t = new Date(`${date}T00:00:00`); t.setDate(t.getDate() + plus); return t.toISOString(); };
 
@@ -95,33 +84,38 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{A.title}</h1><p className="sub">{A.lead}</p></div>
+          <div className="ttl"><h1>{A.title}</h1></div>
           <span className="sp" />
           {canExport && <button className="btn btn-secondary" type="button" onClick={() => void exportCsv()}><Icon name="upload" />{A.export}</button>}
         </header>
         {!whole && <p className="hint page-note">{A.partial}</p>}
         <div className={`side-wrap${cur ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={A.title}>
+            {/* Keyword, person, kind of action, dates, then Reset (v2 spec 5). */}
             <div className="filters">
-              <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
-                <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
-              <span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} search searchPh={d.form.searchPh}
-                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span>
-              <span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
-                options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span>
-              <span className="lg-dates" role="group" aria-label={A.dates}>
-                <Icon name="calendar" />
-                <input type="date" aria-label={A.from} value={from} max={to || undefined} onChange={e => pick(() => setFrom(e.target.value))} />
-                <span aria-hidden="true">{A.to}</span>
-                <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
-              </span>
-              {filtered && <button type="button" className="btn btn-text" onClick={reset}>{d.states.clear}</button>}
+              <Flt label={A.filterLabels.keyword} grow>
+                <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
+                  <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
+              </Flt>
+              <Flt label={A.filterLabels.person}><span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} search searchPh={d.form.searchPh}
+                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))]} /></span></Flt>
+              <Flt label={A.filterLabels.kind}><span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
+                options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span></Flt>
+              <Flt label={A.filterLabels.dates}>
+                <span className="lg-dates" role="group" aria-label={A.dates}>
+                  <Icon name="calendar" />
+                  <input type="date" aria-label={A.from} value={from} max={to || undefined} onChange={e => pick(() => setFrom(e.target.value))} />
+                  <span aria-hidden="true">{A.to}</span>
+                  <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
+                </span>
+              </Flt>
+              <button type="button" className="btn btn-secondary flt-reset" disabled={!filtered} onClick={reset}>{d.profiles.reset}</button>
             </div>
             <ActivityTable d={d} lang={lang} entries={entries} failed={failed} admin={data.admin} onRetry={() => void reload()} onClear={filtered ? reset : undefined}
               cur={cur?.seq ?? null} onPick={setCur} asc={asc} onSort={() => pick(() => setAsc(x => !x))} />
             {total > 0 && <Pager d={d} total={total} page={page} size={size} onPage={setPage} onSize={n => { setSize(n); setPage(1); }} />}
           </section>
-          {cur && <EntryPanel d={d} lang={lang} e={cur} onClose={() => setCur(null)} />}
+          {cur && <EntryPanel d={d} lang={lang} e={cur} data={data} onClose={() => setCur(null)} />}
         </div>
       </main>
     </div>
@@ -135,16 +129,16 @@ export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClea
   cur?: number | null; onPick?(e: ActivityEntry): void; asc?: boolean; onSort?(): void; profile?: boolean;
 }){
   const A = d.activity;
-  const cols = profile ? 4 : 5;
+  const cols = (profile ? 4 : 5) + (onPick ? 1 : 0);
   return (
     <div className="tw lg-t">
       <table>
         <thead>
           <tr>
-            <th scope="col" aria-sort={onSort ? (asc ? 'ascending' : 'descending') : undefined}>
+            <th className="mid" scope="col" aria-sort={onSort ? (asc ? 'ascending' : 'descending') : undefined}>
               {onSort ? <button type="button" className="th-sort" onClick={onSort}>{A.cols.time}<Icon name={asc ? 'up' : 'down'} /></button> : A.cols.time}
             </th>
-            <th scope="col">{A.cols.person}</th><th scope="col">{A.cols.type}</th>{!profile && <th scope="col">{A.cols.object}</th>}<th scope="col">{A.cols.what}</th>
+            <th scope="col">{A.cols.person}</th><th scope="col">{A.cols.type}</th>{!profile && <th scope="col">{A.cols.object}</th>}<th scope="col">{A.cols.what}</th>{onPick && <th className="act" scope="col">{A.cols.view}</th>}
           </tr>
         </thead>
         <tbody>
@@ -157,11 +151,12 @@ export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClea
             : <Empty icon="activity" title={A.empty} text={A.emptyText} />}</td></tr>}
           {entries?.map(e => (
             <tr key={e.seq} data-action={e.action} className={cur === e.seq ? 'cur' : ''} onClick={onPick ? ev => { if (!(ev.target as HTMLElement).closest('button')) onPick(e); } : undefined}>
-              <td className="nowrap"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>
-              <td><span className="who-cell">{e.actor ? <span className="pav sm" aria-hidden="true">{e.actor.slice(0, 1).toUpperCase()}</span> : null}<b>{who(d, e)}</b></span></td>
+              <td className="nowrap mid"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>
+              <td className="who-cell"><b>{who(d, e)}</b></td>
               <td>{A.types[e.action]}</td>
               {!profile && <td>{objectOf(e) ? <><span className="l1">{objectOf(e)}</span>{numberOf(e) && <span className="l2 mono">{numberOf(e)}</span>}</> : <span className="muted">—</span>}</td>}
-              <td className="lg-what">{onPick ? <button type="button" className="rowlink" onClick={() => onPick(e)}>{said(d, e)}</button> : said(d, e)}</td>
+              <td className="lg-what">{said(d, e)}</td>
+              {onPick && <td className="act"><button type="button" className="btn btn-sm btn-secondary" onClick={() => onPick(e)}>{A.view}</button></td>}
             </tr>
           ))}
         </tbody>
@@ -170,9 +165,12 @@ export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClea
   );
 }
 
-// One entry beside the log: its number, who, when, what, to what and from which computer, and what it changed.
-function EntryPanel({ d, lang, e, onClose }: { d: Dict; lang: Lang; e: ActivityEntry; onClose(): void }){
+// One entry beside the log: its number, who, when, what, to what and from which computer, and what it changed, from
+// what to what (v2 40); a password only says it changed.
+function EntryPanel({ d, lang, e, data, onClose }: { d: Dict; lang: Lang; e: ActivityEntry; data: WorkspaceData; onClose(): void }){
   const A = d.activity, D = A.detail;
+  const changes = Array.isArray(e.detail.changes) ? e.detail.changes as { field: string; from?: unknown; to?: unknown; secret?: boolean }[] : [];
+  const shown = (field: string, v: unknown) => valueOf(d, data, field, v);
   const fields = Array.isArray(e.detail.fields) ? (e.detail.fields as string[]).map(f => fieldName(lang, f)) : [];
   const change = typeof e.detail.from === 'string' ? [String(e.detail.from), String(e.detail.name ?? '')] : null;
   return (
@@ -188,9 +186,36 @@ function EntryPanel({ d, lang, e, onClose }: { d: Dict; lang: Lang; e: ActivityE
       </dl>
       <h4>{D.what}</h4>
       <p className="lg-said">{describe(d, e)}</p>
-      {fields.length > 0 && <><h4>{D.fields}</h4><ul className="lg-fields">{[...new Set(fields)].map(f => <li key={f}>{f}</li>)}</ul></>}
+      {changes.length > 0 ? <>
+        <h4>{D.fields}</h4>
+        <div className="tw dense lg-changes"><table>
+          <thead><tr><th scope="col">{D.changes.field}</th><th scope="col">{D.changes.from}</th><th scope="col">{D.changes.to}</th></tr></thead>
+          <tbody>{changes.map(c => (
+            <tr key={c.field}><td>{fieldName(lang, c.field)}</td>{c.secret || isRecord(c.from) || isRecord(c.to)
+              ? <td colSpan={2} className="muted">{c.secret ? D.secret : D.changed}</td>
+              : <><td>{shown(c.field, c.from)}</td><td><b>{shown(c.field, c.to)}</b></td></>}</tr>
+          ))}</tbody>
+        </table></div>
+      </> : fields.length > 0 && <><h4>{D.fields}</h4><ul className="lg-fields">{[...new Set(fields)].map(f => <li key={f}>{f}</li>)}</ul></>}
       {change && <><h4>{D.change}</h4><p className="lg-change"><span>{change[0]}</span><Icon name="chevR" /><b>{change[1]}</b></p></>}
       <p className="notice info lg-note"><Icon name="info" />{D.note}</p>
     </aside>
   );
+}
+
+// A setting made of several values (a fingerprint): the entry only says it changed.
+const isRecord = (v: unknown) => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+// A value as it was or became: names for the groups, proxies, people and extensions it points at (the ones still
+// here), the window's mode in words, yes or no, a list, or — for nothing.
+function valueOf(d: Dict, data: WorkspaceData, field: string, v: unknown): string {
+  if (v === null || v === undefined || v === '') return '—';
+  if (field === 'groupId' || field === 'parentId') return data.groups.find(g => g.id === v)?.name ?? '—';
+  if (field === 'proxyId' || field === 'backupId') return data.proxies.find(p => p.id === v)?.name ?? '—';
+  if (field === 'ownerId') return data.members.find(m => m.userId === v)?.displayName ?? '—';
+  if (field === 'windowMode') return d.form.windowModes[v as keyof typeof d.form.windowModes] ?? String(v);
+  if (field === 'extensionIds' && Array.isArray(v)) return v.map(id => data.extensions.find(x => x.id === id)?.name ?? '—').join(', ') || d.activity.detail.empty;
+  if (typeof v === 'boolean') return v ? d.activity.detail.on : d.activity.detail.off;
+  if (Array.isArray(v)) return v.length ? v.join(', ') : d.activity.detail.empty;
+  return String(v);
 }

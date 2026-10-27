@@ -15,7 +15,7 @@ test('pages of twenty, tabs that count, and a reset that brings everything back'
   await expect(win.locator('tr[data-id]')).toHaveCount(20);
   await expect(win.getByRole('tab', { name: /^All/ })).toContainText('22');
   await expect(win.getByRole('tab', { name: /^Not running/ })).toContainText('22');
-  await expect(win.getByRole('navigation', { name: '22 in all' })).toBeVisible();
+  await expect(win.getByRole('navigation', { name: '22 records' })).toBeVisible();
   await win.getByRole('button', { name: 'Page 2' }).click();
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
 
@@ -24,7 +24,8 @@ test('pages of twenty, tabs that count, and a reset that brings everything back'
   await expect(win.locator('tr[data-id]')).toHaveCount(9);
   await win.getByRole('button', { name: 'Reset' }).click();
   await expect(win.locator('tr[data-id]')).toHaveCount(20);
-  await expect(win.getByRole('button', { name: 'Reset' })).toHaveCount(0);
+  // Reset stays in its place, greyed out while nothing is filtered (v2 01).
+  await expect(win.getByRole('button', { name: 'Reset' })).toBeDisabled();
 
   // The header box picks this page, not the whole list.
   await win.getByRole('checkbox', { name: 'Select this page' }).check();

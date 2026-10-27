@@ -18,7 +18,7 @@ test('groups nest and count what is under them, and are set up and deleted from 
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await groupsPage(win);
-  const tree = win.getByRole('tree', { name: 'Group list' });
+  const tree = win.getByRole('tree', { name: 'Group directory' });
   const shopsItem = tree.getByRole('button', { name: /^Shops/ });
   await expect(shopsItem).toContainText('3');
   await tree.getByRole('button', { name: /^US/ }).click();
@@ -76,10 +76,12 @@ test('on the Company plan a group says who reaches it, and a role set there is t
   const app = await launch(dataDir());
   const win = await logIn(app, owner.email);
   await groupsPage(win);
-  await win.getByRole('tree', { name: 'Group list' }).getByRole('button', { name: /^Ads/ }).click();
+  await win.getByRole('tree', { name: 'Group directory' }).getByRole('button', { name: /^Ads/ }).click();
   const settings = win.getByRole('complementary', { name: 'Group settings' });
-  await choose(settings.getByRole('combobox', { name: 'Add member' }), member.email);
-  await choose(settings.getByRole('combobox', { name: `Role of ${member.email}` }), 'Viewer');
+  // People go by the name colleagues see (the email shows beside it).
+  const name = member.email.split('@')[0];
+  await choose(settings.getByRole('combobox', { name: 'Add member' }), new RegExp(`^${name}`));
+  await choose(settings.getByRole('combobox', { name: `Role of ${name}` }), 'Viewer');
   await expect(settings).toContainText('A role applies across the workspace');
   await settings.getByRole('button', { name: 'Save settings' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Group settings saved' })).toBeVisible();

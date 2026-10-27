@@ -137,7 +137,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
     // A proxy opens its details (on the proxies page, for whoever may see it); a member, the team page.
     const lines: Command[] = manager ? data.proxies.map(px => ({ id: `px:${px.id}`, group: 'proxies', label: px.name, hint: `${px.host}:${px.port}`, icon: <Icon name="proxies" />, run: () => { go('proxies'); setProxyId(px.id); } })) : [];
-    const people: Command[] = data.members.map(m => ({ id: `m:${m.userId}`, group: 'members', label: m.email, hint: roleName(d, m.role), icon: <Icon name="team" />, run: () => go('team') }));
+    const people: Command[] = data.members.map(m => ({ id: `m:${m.userId}`, group: 'members', label: m.displayName, hint: `${m.email} · ${roleName(d, m.role)}`, icon: <Icon name="team" />, run: () => go('team') }));
     return [
       ...profiles, ...lines, ...people,
       ...(creates ? [act('new', C.newProfile, 'plus', () => { go('profiles'); setDialog({ kind: 'new' }); }, `${mod} N`)] : []),

@@ -70,7 +70,7 @@ export function SettingsPage({ d, ws, me, data, manager, onSaved, onExport, onIm
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{S.title}</h1><p className="sub">{S.lead}</p></div>
+          <div className="ttl"><h1>{S.title}</h1></div>
         </header>
         <div className="duo">
           <nav className="sec duo-nav" aria-label={S.title}>

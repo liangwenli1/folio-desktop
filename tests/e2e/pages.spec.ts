@@ -16,14 +16,15 @@ test('the Trash shows who deleted each profile, picks several on cards, and rest
   const win = await logIn(app, acct.email);
   await nav(win, /^Trash/);
   const row = win.locator('tr[data-id]', { hasText: 'Old-1' });
-  await expect(row).toContainText(acct.email);
+  // By the name colleagues see.
+  await expect(row).toContainText(acct.email.split('@')[0]);
   await expect(row.getByRole('button', { name: 'Restore' })).toBeVisible();
 
   await win.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Cards' }).click();
   await expect(win.locator('li.pcard')).toHaveCount(3);
   for (const n of ['Old-1', 'Old-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
   await expect(win.getByTestId('bulk')).toContainText('2 selected');
-  await win.getByTestId('bulk').locator('.bb.close').click();
+  await win.getByTestId('bulk').getByRole('button', { name: 'Clear selection' }).click();
   await win.getByRole('button', { name: 'Restore all' }).click();
   await expect(win.getByText('The Trash is empty')).toBeVisible();
   await app.close();

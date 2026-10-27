@@ -42,9 +42,12 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await expect(form.getByRole('combobox', { name: 'Browser engine' })).toContainText('Chromium 150');
   await form.getByRole('button', { name: 'Create profile' }).click();
 
-  // The proxy check (started when the proxy was saved) puts the exit in the row and on the card.
+  // The proxy check (started when the proxy was saved) puts the exit in the row and on the card: its flag and IP, then
+  // the place and the line's type.
   const r = row(win, 'US-Store-01');
-  await expect(r).toContainText('US 127.0.0.1', { timeout: 20_000 });
+  await expect(r.locator('.px-exit')).toContainText('127.0.0.1', { timeout: 20_000 });
+  await expect(r.locator('.px-exit .flag-badge img')).toBeVisible();
+  await expect(r).toContainText('Seattle · SOCKS5');
   const id = (await r.getAttribute('data-id'))!;
   await r.getByRole('button', { name: 'US-Store-01', exact: true }).click();
   await detail(win).getByRole('tab', { name: 'Fingerprint' }).click();
@@ -96,7 +99,7 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   await newGroup.getByRole('textbox', { name: /^Group name/ }).fill('EU stores');
   await newGroup.getByRole('button', { name: 'Create group' }).click();
   await winA.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Groups' }).click();
-  await expect(winA.getByRole('tree', { name: 'Group list' })).toContainText('EU stores', { timeout: 5000 });
+  await expect(winA.getByRole('tree', { name: 'Group directory' })).toContainText('EU stores', { timeout: 5000 });
   await Promise.all([a.close(), b.close()]);
 });
 
@@ -138,8 +141,9 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   const trashed = win.locator('tr[data-id]', { hasText: 'P-1' });
   await trashed.getByRole('button', { name: 'Restore' }).click();
   await expect(win.getByRole('alert').filter({ hasText: 'no room for more profiles' })).toBeVisible();
-  await trashed.getByRole('button', { name: 'Delete permanently' }).click();
-  // Deleting permanently asks for the profile's name.
+  // Deleting permanently is in the row's menu, and asks for the profile's name.
+  await trashed.getByRole('button', { name: 'Actions for P-1' }).click();
+  await win.getByRole('menuitem', { name: 'Delete permanently' }).click();
   const purge = win.getByRole('dialog', { name: 'Permanently delete 1 profile?' });
   await expect(purge.getByRole('button', { name: 'Delete permanently' })).toBeDisabled();
   await purge.getByRole('textbox', { name: 'Type P-1 to confirm' }).fill('P-1');
@@ -184,7 +188,7 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await expect(win.locator('tr[data-id]')).toHaveText([/CSV-0/, /CSV-0/]);
   // A group's colour, picked in its settings on the Groups page.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Groups' }).click();
-  await win.getByRole('tree', { name: 'Group list' }).getByRole('button', { name: /^Imported/ }).click();
+  await win.getByRole('tree', { name: 'Group directory' }).getByRole('button', { name: /^Imported/ }).click();
   const settings = win.getByRole('complementary', { name: 'Group settings' });
   await settings.getByRole('button', { name: 'Teal' }).click();
   await settings.getByRole('button', { name: 'Save settings' }).click();
@@ -212,7 +216,8 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
   const rows = win.locator('tr[data-id]');
   await expect(rows).toHaveCount(2);
   await expect(rows.filter({ hasText: 'US-Line' }).locator('.lat')).toHaveClass(/good/);
-  await win.getByRole('button', { name: /^Unused/ }).click();
+  // Proxies no profile uses, from the status filter (it counts each status).
+  await choose(win.getByRole('combobox', { name: 'Status' }), /^Unused/);
   await expect(rows).toHaveText([/Dead-Line/]);
   await choose(win.getByRole('combobox', { name: 'Status' }), 'All statuses');
   await choose(win.getByRole('combobox', { name: 'Region' }), 'United States');

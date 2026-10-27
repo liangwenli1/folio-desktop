@@ -8,8 +8,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent
 import { createPortal } from 'react-dom';
 import { Icon, useDict, useDismiss, type GroupColor } from './ui';
 
-// `dot` is a status, or a group's colour.
-export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle' | `gc-${GroupColor}`; img?: string; group?: string }
+// `dot` is a status, or a group's colour. `count` shows in the open list only, never on the closed dropdown.
+export interface Opt { value: string; label: string; hint?: string; count?: number; dot?: 'good' | 'warn' | 'bad' | 'idle' | `gc-${GroupColor}`; img?: string; group?: string }
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
   id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean; required?: boolean;
@@ -107,7 +107,7 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
                     onMouseMove={() => setActive(i)} onMouseDown={e => e.preventDefault()} onClick={() => pick(o)}>
                     {o.dot && <span className={`d ${o.dot}`} aria-hidden="true" />}
                     {o.img && <img className="logo" src={o.img} alt="" aria-hidden="true" />}
-                    <span className="sel-v">{o.label}</span>{o.hint && <span className="sel-h">{o.hint}</span>}
+                    <span className="sel-v">{o.label}</span>{o.hint && <span className="sel-h">{o.hint}</span>}{o.count !== undefined && <span className="sel-h">{o.count}</span>}
                     {!action && o.value === value && <Icon name="check" />}
                   </div>
                 );

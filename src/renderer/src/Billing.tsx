@@ -46,8 +46,8 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
     <div className="tw bill-t">
       <table>
         <thead>
-          <tr><th scope="col">{B.invoice}</th><th scope="col">{B.date}</th><th scope="col">{B.item}</th>
-            <th scope="col" className="num">{B.amount}</th><th scope="col">{B.status}</th><th className="act" scope="col">{d.profiles.cols.actions}</th></tr>
+          <tr><th scope="col">{B.invoice}</th><th className="mid" scope="col">{B.date}</th><th scope="col">{B.item}</th>
+            <th scope="col" className="num">{B.amount}</th><th className="mid" scope="col">{B.status}</th><th className="act" scope="col">{d.profiles.cols.actions}</th></tr>
         </thead>
         <tbody>
           {failed && <tr className="empty"><td colSpan={6}><LoadFailed d={d} onRetry={() => void load()} /></td></tr>}
@@ -56,10 +56,10 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
           {(list ?? []).map(x => (
             <tr key={x.id}>
               <td className="mono">{x.invoiceNumber}</td>
-              <td>{day(x.createdAt, lang)}</td>
+              <td className="mid">{day(x.createdAt, lang)}</td>
               <td>{x.lines.map(l => (l.kind === 'plan' ? d.plans[l.plan] : d.plan.addProfiles)).join(' · ')}</td>
               <td className="num">{(x.amountCents / 100).toFixed(2)} {x.currency.toUpperCase()}</td>
-              <td><span className={`dot-st${x.refundedAt ? '' : ' run'}`}>{x.refundedAt ? B.refunded : B.paid}</span></td>
+              <td className="mid"><span className={`dot-st${x.refundedAt ? '' : ' run'}`}>{x.refundedAt ? B.refunded : B.paid}</span></td>
               <td className="act"><button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/invoice/?id=${x.id}`)}>{B.open}</button></td>
             </tr>
           ))}
@@ -73,7 +73,7 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{B.title}</h1><p className="sub">{B.lead}</p></div>
+          <div className="ttl"><h1>{B.title}</h1></div>
         </header>
         <Tabs className="page-tabs" label={B.title} value={tab} tabs={['plan', 'usage', 'payments']} name={t => B.tabs[t]} onChange={setTab} />
 

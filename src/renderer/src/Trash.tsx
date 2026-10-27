@@ -8,7 +8,7 @@ import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { Act, BulkBar, Cancel, Empty, Icon, ListFailed, Loading, Modal, PanelEdge, ViewSwitch, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useToast, useView } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -38,7 +38,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
   const picked = all.filter(p => sel.has(p.id));
   const filtered = !!(needle || from || to || by !== 'all');
   const groupName = new Map(data.groups.map(g => [g.id, g.name]));
-  const email = new Map(data.members.map(m => [m.userId, m.email]));
+  const person = new Map(data.members.map(m => [m.userId, m.displayName]));
   const country = (p: Profile) => data.proxies.find(x => x.id === p.proxyId)?.lastCheck?.geo?.country ?? null;
   const manager = can(ws.role, MANAGE);
   const left = (p: Profile) => Math.max(0, keep - Math.floor((Date.now() - Date.parse(p.deletedAt ?? new Date().toISOString())) / DAY));
@@ -65,7 +65,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const item = (p: Profile): TrashItem => ({
     d, p, checked: sel.has(p.id), country: country(p), group: p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none,
-    by: p.deletedBy ? email.get(p.deletedBy) ?? d.activity.someone : d.activity.someone,
+    by: p.deletedBy ? person.get(p.deletedBy) ?? d.activity.someone : d.activity.someone,
     when: p.deletedAt ? `${dayLabel(p.deletedAt, d, lang)} ${time(p.deletedAt, lang)}` : '—', left: left(p),
     onToggle: () => toggle(p.id), onRestore: () => void restore([p]), onPurge: () => setConfirm([p])
   });
@@ -76,28 +76,30 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.lead}</p></div>
+          <div className="ttl"><h1>{T.title}</h1></div>
           <span className="sp" />
-          <p className="hint tr-keep">{T.keeps(keep)}</p>
           <button className="btn btn-secondary" type="button" disabled={!all.length} onClick={() => void restore(all)}><Icon name="refresh" />{T.restoreAll}</button>
           <button className="btn btn-danger outline" type="button" disabled={!all.length} onClick={() => setConfirm(all)}><Icon name="trash" />{T.purgeAll}</button>
         </header>
 
         <div className={`side-wrap${picked.length ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={T.title}>
-            <div className="filters tr-f">
-              <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
-                <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-              <span className="lg-dates" role="group" aria-label={T.when}>
-                <Icon name="calendar" />
-                <input type="date" aria-label={d.activity.from} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} />
-                <span aria-hidden="true">{d.activity.to}</span>
-                <input type="date" aria-label={d.activity.until} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} />
-              </span>
-              <span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy} search
-                options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: email.get(id) ?? d.activity.someone }))]} /></span>
-              {filtered && <button type="button" className="btn btn-text" onClick={clear}>{d.states.clear}</button>}
-              <span className="sp" />
+            <div className="filters">
+              <Flt label={T.filterLabels.keyword} grow>
+                <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+                  <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+              </Flt>
+              <Flt label={T.filterLabels.by}><span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy} search
+                options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: person.get(id) ?? d.activity.someone }))]} /></span></Flt>
+              <Flt label={T.filterLabels.when}>
+                <span className="lg-dates" role="group" aria-label={T.when}>
+                  <Icon name="calendar" />
+                  <input type="date" aria-label={d.activity.from} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} />
+                  <span aria-hidden="true">{d.activity.to}</span>
+                  <input type="date" aria-label={d.activity.until} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} />
+                </span>
+              </Flt>
+              <button type="button" className="btn btn-secondary flt-reset" disabled={!filtered} onClick={clear}>{d.profiles.reset}</button>
               <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
             </div>
 
@@ -127,15 +129,16 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
                             ref={el => { if (el) el.indeterminate = shownSel > 0 && shownSel < list.length; }}
                             onChange={() => setSel(shownSel === list.length ? new Set() : new Set(list.map(p => p.id)))} />
                         </th>
-                        <th scope="col">{T.cols.profile}</th><th scope="col">{T.cols.number}</th><th scope="col">{T.cols.group}</th><th className="c-by" scope="col">{T.cols.by}</th>
-                        <th scope="col" aria-sort={asc ? 'ascending' : 'descending'}><button type="button" className="th-sort" onClick={() => setAsc(x => !x)}>{T.cols.deleted}<Icon name={asc ? 'up' : 'down'} /></button></th>
-                        <th scope="col">{T.cols.left}</th><th className="act" scope="col">{d.profiles.cols.actions}</th>
+                        <th scope="col">{d.profiles.cols.profile}</th><th scope="col">{T.cols.group}</th><th className="c-by" scope="col">{T.cols.by}</th>
+                        <th className="mid" scope="col" aria-sort={asc ? 'ascending' : 'descending'}><button type="button" className="th-sort" onClick={() => setAsc(x => !x)}>{T.cols.deleted}<Icon name={asc ? 'up' : 'down'} /></button></th>
+                        <th className="mid" scope="col">{T.cols.left}</th><th className="act" scope="col">{d.profiles.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                       </tr>
                     </thead>
                     <tbody>{list.map(p => <TrashRow key={p.id} {...item(p)} />)}</tbody>
                   </table>
                 </div>
               ))}
+            {list.length > 0 && <p className="list-foot">{d.profiles.page.total(list.length)}</p>}
           </section>
           {picked.length > 0 && (
             <aside className="sec side-panel tr-panel" aria-label={T.picked(picked.length)}><PanelEdge />
@@ -155,6 +158,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
             </aside>
           )}
         </div>
+        <p className="notice page-tip"><Icon name="info" /><span>{T.keeps(keep)}</span></p>
         {confirm && <PurgeDialog d={d} targets={confirm} onClose={() => setConfirm(null)} onPurge={() => purge(confirm)} />}
       </main>
     </div>
@@ -182,20 +186,17 @@ function PurgeDialog({ d, targets, onClose, onPurge }: { d: Dict; targets: Profi
 
 interface TrashItem { d: Dict; p: Profile; checked: boolean; country: string | null; group: string; by: string; when: string; left: number; onToggle(): void; onRestore(): void; onPurge(): void }
 
-function TrashRow({ d, p, checked, country, group, by, when, left, onToggle, onRestore, onPurge }: TrashItem){
+function TrashRow({ d, p, checked, group, by, when, left, onToggle, onRestore, onPurge }: TrashItem){
   return (
     <tr data-id={p.id} className={checked ? 'on' : undefined}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
-      <td><span className="prof-cell"><Flag country={country} kernel={p.kernel} /><b>{p.name}</b></span></td>
-      <td className="mono">{number(p)}</td>
+      <td><span className="l1"><b>{p.name}</b></span><span className="l2 mono">{number(p)}</span></td>
       <td>{group}</td>
       <td className="ellip c-by">{by}</td>
-      <td className="nowrap">{when}</td>
-      <td><span className={left <= 3 ? 'bad-t' : ''}>{d.trash.days(left)}</span></td>
-      <td className="act"><span className="actin">
-        <button type="button" className="btn btn-sm btn-text" onClick={onRestore}>{d.trash.restore}</button>
-        <button type="button" className="btn btn-sm btn-text danger-t" onClick={onPurge}>{d.trash.purge}</button>
-      </span></td>
+      <td className="nowrap mid">{when}</td>
+      <td className="mid"><span className={left <= 3 ? 'bad-t' : ''}>{d.trash.days(left)}</span></td>
+      <td className="act"><button type="button" className="btn btn-sm btn-secondary" onClick={onRestore}>{d.trash.restore}</button></td>
+      <td className="more"><MoreMenu label={d.profiles.actionsX(p.name)} items={[{ label: d.trash.purge, onClick: onPurge, danger: true }]} /></td>
     </tr>
   );
 }

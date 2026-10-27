@@ -4,11 +4,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
 import { folio, type ActivityEntry, type Extension, type Group, type Profile, type Workspace } from './api';
-import { ActivityTable, dayLabel, said, time, useActivity } from './Activity';
+import { ActivityTable, dayLabel, said, time, useActivity, who } from './Activity';
 import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
 import { launchWhy, runTime, type Dict, type Lang } from './i18n';
-import { Empty, Icon, MoreMenu, Progress, Tabs, bytes, percent, type IconName } from './ui';
+import { Empty, ExtIcon, Icon, MoreMenu, Progress, Tabs, bytes, percent, type IconName } from './ui';
 import { Flag, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
 import { CookiesTab } from './ProfileCookies';
@@ -181,7 +181,9 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, fail
           <dt>{D.fields.os}</dt><dd><Icon name={p.os} />{d.os[p.os]}</dd>
           <dt>{d.browser.search}</dt><dd><SearchLogo engine={p.searchEngine} size={14} />{d.browser.name(p.searchEngine)}</dd>
           <dt>{d.browser.start}</dt><dd className={p.startUrl ? 'mono' : undefined}>{start}</dd>
-          {extensions.length > 0 && <><dt>{D.extensions}</dt><dd>{extensions.map(x => x.name).join(lang === 'zh' ? '、' : ', ')}</dd></>}
+          <dt>{D.extensions}</dt><dd className="ext-chips">{extensions.length
+            ? extensions.map(x => <span key={x.id} className="ext-chip"><ExtIcon src={x.icon} />{x.name}</span>)
+            : <span className="muted">{D.noExtensions}</span>}</dd>
           <dt>{D.lastOpened}</dt><dd>{p.lastOpenedAt ? when(p.lastOpenedAt) : d.common.never}</dd>
           {p.notes && <><dt>{D.notes}</dt><dd className="notes">{p.notes}</dd></>}
         </dl>
@@ -238,7 +240,7 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, fail
       {head(d.activity.recent, entries?.length ? [D.viewAll, () => onTab('activity')] : undefined)}
       {entries?.length
         ? <ol className="timeline" data-testid="recent">{entries.slice(0, 4).map(e => (
-            <li key={e.seq}><time>{when(e.at)}</time><div><b>{said(d, e)}</b><small>{d.activity.by(e.actor ?? d.activity.someone)}</small></div></li>
+            <li key={e.seq}><time>{when(e.at)}</time><div><b>{said(d, e)}</b><small>{d.activity.by(who(d, e))}</small></div></li>
           ))}</ol>
         : <p className="hint">{d.activity.empty}</p>}
     </section>

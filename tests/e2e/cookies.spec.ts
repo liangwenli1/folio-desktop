@@ -71,7 +71,8 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await edit.getByLabel('Value').fill('fr');
   await edit.getByRole('button', { name: 'Save cookie' }).click();
   await expect(edit).toBeHidden();
-  await rows.filter({ hasText: 'pref' }).getByRole('button', { name: 'Delete' }).click();
+  await rows.filter({ hasText: 'pref' }).getByRole('button', { name: 'Actions for pref' }).click();
+  await win.getByRole('menuitem', { name: 'Delete' }).click();
   await win.getByRole('dialog', { name: 'Delete this cookie?' }).getByRole('button', { name: 'Delete' }).click();
   await expect(win.getByRole('status').filter({ hasText: '1 cookie deleted' })).toBeVisible();
   await expect(rows).toHaveCount(2);
@@ -133,7 +134,8 @@ test('cookies imported into a running profile reach its browser at once, and del
 
   // Deleted while it runs: out of the browser as well, so closing it doesn't bring the cookie back.
   const rows = detail(win).locator('tr[data-cookie]');
-  await rows.filter({ hasText: 'sid' }).getByRole('button', { name: 'Delete' }).click();
+  await rows.filter({ hasText: 'sid' }).getByRole('button', { name: 'Actions for sid' }).click();
+  await win.getByRole('menuitem', { name: 'Delete' }).click();
   await win.getByRole('dialog', { name: 'Delete this cookie?' }).getByRole('button', { name: 'Delete' }).click();
   await expect(rows).toHaveCount(1);
   expect(await inBrowser()).toEqual(['pref']);

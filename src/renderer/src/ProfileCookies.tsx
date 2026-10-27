@@ -7,7 +7,7 @@ import { cookieKey, readCookies, type Cookie } from '@shared/cookies';
 import { can, folio, isApiError, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Icon, LoadFailed, Modal, PanelEdge, SkelRows, Tabs, useChanged, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, LoadFailed, Modal, MoreMenu, PanelEdge, SkelRows, Tabs, useChanged, useToast } from './ui';
 import { Pager } from './Pager';
 import { Select } from './Select';
 import { dayLabel, time } from './Activity';
@@ -81,8 +81,8 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
     } catch (e){ fail(e); }
   }
 
-  const head = (k: Sort, label: string) => (
-    <th scope="col" aria-sort={sort[0] === k ? (sort[1] === 1 ? 'ascending' : 'descending') : undefined}>
+  const head = (k: Sort, label: string, cls?: string) => (
+    <th className={cls} scope="col" aria-sort={sort[0] === k ? (sort[1] === 1 ? 'ascending' : 'descending') : undefined}>
       <button type="button" className="th-sort" onClick={() => setSort(([s, dir]) => [k, s === k ? (-dir as 1 | -1) : 1])}>{label}<Icon name={sort[0] === k && sort[1] === -1 ? 'down' : 'up'} /></button>
     </th>
   );
@@ -128,14 +128,14 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
                     <input type="checkbox" aria-label={d.common.selectAll} checked={rows.length > 0 && pageSel === rows.length}
                       ref={el => { if (el) el.indeterminate = pageSel > 0 && pageSel < rows.length; }} onChange={toggleAll} />
                   </th>
-                  {head('name', C.cols.name)}{head('domain', C.cols.domain)}{head('path', C.cols.path)}{head('expires', C.cols.expires)}
-                  <th scope="col">{C.cols.flags}</th><th className="act" scope="col">{C.cols.actions}</th>
+                  {head('name', C.cols.name)}{head('domain', C.cols.domain)}{head('path', C.cols.path)}{head('expires', C.cols.expires, 'mid')}
+                  <th className="mid" scope="col">{C.cols.flags}</th><th className="act" scope="col">{C.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                 </tr>
               </thead>
               <tbody>
-                {list === null && state !== 'failed' && <SkelRows cols={7} check rows={4} />}
-                {state === 'failed' && <tr className="empty"><td colSpan={7}><LoadFailed d={d} onRetry={() => void load()} /></td></tr>}
-                {list !== null && !shown.length && state !== 'failed' && <tr className="empty"><td colSpan={7}>{state === 'none'
+                {list === null && state !== 'failed' && <SkelRows cols={8} check rows={4} />}
+                {state === 'failed' && <tr className="empty"><td colSpan={8}><LoadFailed d={d} onRetry={() => void load()} /></td></tr>}
+                {list !== null && !shown.length && state !== 'failed' && <tr className="empty"><td colSpan={8}>{state === 'none'
                   ? <Empty icon="clock" title={C.notSaved} text={C.notSavedText} />
                   : all.length
                     ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
@@ -149,12 +149,10 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
                   return (
                     <tr key={k} data-cookie={c.name} className={[k === cur && 'cur', sel.has(k) && 'on'].filter(Boolean).join(' ')} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,td.cb')) setCur(k); }}>
                       <td className="cb" onClick={e => { if (e.target === e.currentTarget) toggle(c); }}><input type="checkbox" checked={sel.has(k)} onChange={() => toggle(c)} aria-label={d.common.select(c.name)} /></td>
-                      <td className="mono">{c.name}</td><td className="mono">{c.domain}</td><td className="mono">{c.path}</td><td className="nowrap">{expiry(c)}</td>
-                      <td><span className="ck-flags">{c.secure && <span className="badge">Secure</span>}{c.httpOnly && <span className="badge">HttpOnly</span>}</span></td>
-                      <td className="act"><span className="actin">
-                        {canImport && <button type="button" className="btn btn-sm btn-text" disabled={!writable} onClick={() => setEditing(c)}>{C.edit}</button>}
-                        {canDelete && <button type="button" className="btn btn-sm btn-text danger" disabled={!writable} onClick={() => setConfirm([c])}>{C.delete}</button>}
-                      </span></td>
+                      <td className="mono">{c.name}</td><td className="mono">{c.domain}</td><td className="mono">{c.path}</td><td className="nowrap mid">{expiry(c)}</td>
+                      <td className="mid"><span className="ck-flags">{c.secure && <span className="badge">Secure</span>}{c.httpOnly && <span className="badge">HttpOnly</span>}</span></td>
+                      <td className="act">{canImport && <button type="button" className="btn btn-sm btn-text" disabled={!writable} onClick={() => setEditing(c)}>{C.edit}</button>}</td>
+                      <td className="more">{canDelete && <MoreMenu label={d.profiles.actionsX(c.name)} items={[{ label: C.delete, onClick: () => setConfirm([c]), danger: true, disabled: !writable }]} />}</td>
                     </tr>
                   );
                 })}

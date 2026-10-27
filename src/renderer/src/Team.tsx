@@ -1,11 +1,11 @@
 // The team: the people in the workspace with their role, the groups they reach and when they last used Folio; the
-// invitations still waiting; and what each role may do. The seats the plan allows show beside the invite button.
+// invitations still waiting; and what each role may do. The seats taken are said under the list.
 import { useState } from 'react';
 import { MANAGE, can, folio, isApiError, type Group, type Invitation, type Member, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Avatar, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, PartialFailed, Progress, SkelRows, Tabs, useChanged, useToast, type IconName } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, useChanged, useToast } from './ui';
 import { Select, SelectField } from './Select';
 import { RolesTab } from './Roles';
 
@@ -13,10 +13,6 @@ type Tab = 'members' | 'invites' | 'roles';
 type Dialog = { kind: 'invite' } | { kind: 'access'; member: Member } | { kind: 'remove'; member: Member } | { kind: 'leave' } | null;
 interface Props { d: Dict; lang: Lang; ws: Workspace; meId: string; data: WorkspaceData; onLeft(): void }
 const DAY = 86_400_000;
-const ROLE_ICON: Record<string, IconName> = { owner: 'crown', admin: 'key', member: 'team', viewer: 'eye' };
-const roleIcon = (r: Member['role']): IconName => ROLE_ICON[r.key ?? ''] ?? 'team';
-// The owner's label in the brand colour, an admin's in blue, the rest grey.
-const ROLE_TONE: Record<string, string> = { owner: ' accent', admin: ' info' };
 
 export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const T = d.team;
@@ -31,7 +27,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const close = () => setDialog(null);
   const needle = q.trim().toLowerCase();
-  const people = data.members.filter(m => (!needle || m.email.toLowerCase().includes(needle)) && (roleId === 'all' || m.role.id === roleId));
+  const people = data.members.filter(m => (!needle || `${m.displayName} ${m.email}`.toLowerCase().includes(needle)) && (roleId === 'all' || m.role.id === roleId));
   const invites = manager ? data.invitations.filter(i => !needle || i.email.toLowerCase().includes(needle)) : [];
   // Seats go to the people in the workspace and the invitations still open.
   const seats = data.members.length + data.invitations.length;
@@ -61,12 +57,8 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1><p className="sub">{T.lead}</p></div>
+          <div className="ttl"><h1>{T.title}</h1></div>
           <span className="sp" />
-          <div className="seats" aria-label={T.seats}>
-            <small>{T.seats}</small>
-            {limit === null ? <b>{T.seatsFree(seats)}</b> : <><Progress done={seats} total={limit} /><b className="mono">{seats} / {limit}</b></>}
-          </div>
           {self && self.role.key !== 'owner' && <button className="btn btn-secondary" type="button" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
         </header>
@@ -74,28 +66,29 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
         <Tabs className="page-tabs" label={T.title} value={tab} tabs={tabs} name={t => T.tabs[t]} count={t => (t === 'members' ? data.members.length : t === 'invites' ? data.invitations.length : null)} onChange={setTab} />
 
         {tab === 'members' && (
-          <div className="tm-wrap">
-            <section className="sec tm-main" aria-label={T.tabs.members}>
-              {data.loaded.has('members') && <PartialFailed d={d} data={data} kinds={['groups']} />}
-              <div className="filters inline">
-                <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
-                  <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-                <span className="sp" />
-                <span className="grp-pick"><Select label={T.role} value={roleId} onChange={setRoleId}
-                  options={[{ value: 'all', label: T.allRoles }, ...data.roles.map(r => ({ value: r.id, label: roleName(d, r) }))]} /></span>
+            <section className="list-card" aria-label={T.tabs.members}>
+              <div className="filters">
+                <Flt label={T.filterLabels.keyword} grow>
+                  <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+                    <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+                </Flt>
+                <Flt label={T.filterLabels.role}><span className="grp-pick"><Select label={T.role} value={roleId} onChange={setRoleId}
+                  options={[{ value: 'all', label: T.allRoles }, ...data.roles.map(r => ({ value: r.id, label: roleName(d, r) }))]} /></span></Flt>
+                <button type="button" className="btn btn-secondary flt-reset" disabled={!q && roleId === 'all'} onClick={() => { setQ(''); setRoleId('all'); }}>{d.profiles.reset}</button>
               </div>
-              <div className="tw flow">
+              {data.loaded.has('members') && <PartialFailed d={d} data={data} kinds={['groups']} />}
+              <div className="tw">
                 <table>
                   <thead>
                     <tr>
-                      <th scope="col">{T.cols.person}</th><th scope="col">{T.cols.scope}</th><th scope="col">{T.cols.role}</th><th scope="col">{T.cols.status}</th>
-                      <th scope="col">{T.cols.active}</th><th className="act" scope="col">{T.cols.actions}</th>
+                      <th scope="col">{T.cols.person}</th><th scope="col">{T.cols.role}</th><th scope="col">{T.cols.scope}</th><th className="mid" scope="col">{T.cols.status}</th>
+                      <th className="mid" scope="col">{T.cols.active}</th><th className="act" scope="col">{T.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="members" /></td></tr>}
-                    {!data.loaded.has('members') && !data.loadFailed.has('members') && <SkelRows cols={6} />}
-                    {data.loaded.has('members') && !people.length && !data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}>
+                    {data.loadFailed.has('members') && <tr className="empty"><td colSpan={7}><ListFailed d={d} data={data} kind="members" /></td></tr>}
+                    {!data.loaded.has('members') && !data.loadFailed.has('members') && <SkelRows cols={7} />}
+                    {data.loaded.has('members') && !people.length && !data.loadFailed.has('members') && <tr className="empty"><td colSpan={7}>
                       <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                         <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setRoleId('all'); }}>{d.states.clear}</button>
                       </Empty>
@@ -104,29 +97,22 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                       const me = m.userId === meId, editable = manager && m.role.key !== 'owner' && !me;
                       return (
                         <tr key={m.userId} data-member={m.email}>
-                          <td><span className="prof-cell"><Avatar text={m.email} /><span className="l1"><b>{m.email}</b>{me && <span className="muted">{T.meTag}</span>}</span></span></td>
+                          <td><span className="l1"><b>{m.displayName}{me && <span className="muted"> {T.meTag}</span>}</b></span><span className="l2">{m.email}</span></td>
+                          <td>{roleName(d, m.role)}</td>
                           <td className="tm-scope">{scope(m.role, m.groupIds)}</td>
-                          <td><span className={`badge${ROLE_TONE[m.role.key ?? ''] ?? ''}`}><Icon name={roleIcon(m.role)} />{roleName(d, m.role)}</span></td>
-                          <td><span className="dot-st run">{T.joined}</span></td>
-                          <td className="nowrap">{m.lastActiveAt ? `${dayLabel(m.lastActiveAt, d, lang)} ${time(m.lastActiveAt, lang)}` : '—'}</td>
-                          <td className="act"><span className="actin">
-                            {editable && <button type="button" className="btn btn-sm btn-text" onClick={() => setDialog({ kind: 'access', member: m })}>{T.editAccess}</button>}
-                            {editable && <MoreMenu label={T.moreX(m.email)} items={[{ label: T.remove, onClick: () => setDialog({ kind: 'remove', member: m }), danger: true }]} />}
-                          </span></td>
+                          <td className="mid"><span className="dot-st run">{T.joined}</span></td>
+                          <td className="nowrap mid">{m.lastActiveAt ? `${dayLabel(m.lastActiveAt, d, lang)} ${time(m.lastActiveAt, lang)}` : '—'}</td>
+                          <td className="act">{m.role.key === 'owner' ? <span className="muted">{T.protectedTag}</span>
+                            : editable && <button type="button" className="btn btn-sm btn-text accent" aria-label={T.editAccess} onClick={() => setDialog({ kind: 'access', member: m })}>{T.access}</button>}</td>
+                          <td className="more">{editable && <MoreMenu label={T.moreX(m.displayName)} items={[{ label: T.remove, onClick: () => setDialog({ kind: 'remove', member: m }), danger: true }]} />}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+              <p className="list-foot">{d.profiles.page.total(people.length)} · <span data-testid="seats">{T.seatsOf(seats, limit)}</span></p>
             </section>
-            <aside className="sec tm-defs" aria-label={T.defsTitle}>
-              <h3>{T.defsTitle}</h3>
-              {(['owner', 'admin', 'member', 'viewer'] as const).map(k => (
-                <div key={k} className="tm-def"><Icon name={ROLE_ICON[k]} /><span><b>{d.roles[k]}</b><small>{T.roleHelp[k]}</small></span></div>
-              ))}
-            </aside>
-          </div>
         )}
 
         {tab === 'invites' && (
@@ -140,7 +126,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                 <thead>
                   <tr>
                     <th scope="col">{T.email}</th><th scope="col">{T.cols.role}</th><th scope="col">{T.cols.scope}</th><th scope="col">{T.cols.invitedBy}</th>
-                    <th scope="col">{T.cols.expires}</th><th className="act" scope="col">{T.cols.actions}</th>
+                    <th className="mid" scope="col">{T.cols.expires}</th><th className="act" scope="col">{T.cols.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -150,11 +136,11 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                   </Empty></td></tr>}
                   {invites.map(i => (
                     <tr key={i.id} data-invitation={i.email}>
-                      <td><span className="prof-cell"><Avatar text={i.email} /><span className="l1"><b>{i.email}</b></span></span></td>
-                      <td><span className={`badge${ROLE_TONE[i.role.key ?? ''] ?? ''}`}><Icon name={roleIcon(i.role)} />{roleName(d, i.role)}</span></td>
+                      <td><b>{i.email}</b></td>
+                      <td>{roleName(d, i.role)}</td>
                       <td className="tm-scope">{scope(i.role, i.groupIds)}</td>
                       <td className="ellip">{i.invitedBy ?? '—'}</td>
-                      <td><span className="dot-st warn">{day(i.expiresAt, lang)}</span></td>
+                      <td className="mid"><span className="dot-st warn">{day(i.expiresAt, lang)}</span></td>
                       <td className="act"><MoreMenu label={T.moreX(i.email)} items={[
                         { label: T.copyLink, onClick: () => void copyLink(i) },
                         { label: T.resend, onClick: () => void resend(i) },
@@ -349,7 +335,7 @@ function AccessDialog({ d, ws, data, company, member, onClose }: { d: Dict; ws: 
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
   return (
-    <Modal title={T.accessTitle(member.email)} sub={T.accessSub} onClose={onClose} busy={busy} foot={<>
+    <Modal title={T.accessTitle(member.displayName)} sub={T.accessSub} onClose={onClose} busy={busy} foot={<>
       <Cancel />
       <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || (roleId === member.role.id && !changedGroups)} onClick={() => void save()}>{d.common.save}</button>
     </>}>
@@ -382,14 +368,14 @@ function RemoveDialog({ d, ws, data, member, meId, onClose }: { d: Dict; ws: Wor
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal title={T.removeTitle(member.email)} onClose={onClose} foot={<>
+    <Modal title={T.removeTitle(member.displayName)} onClose={onClose} foot={<>
       <Cancel />
       <Act className="btn btn-danger solid" disabled={!heir} title={heir ? undefined : T.heirNeeded} run={() => remove()}>{T.removeDo}</Act>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
         <p>{T.removeLead}</p>
-        <SelectField label={T.heir} value={heir} onChange={setHeir} options={others.map(m => ({ value: m.userId, label: m.email }))} searchPh={d.form.searchPh} />
+        <SelectField label={T.heir} value={heir} onChange={setHeir} options={others.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))} searchPh={d.form.searchPh} />
       </div>
     </Modal>
   );

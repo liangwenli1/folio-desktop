@@ -271,7 +271,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
               </div>
               {manager && (
                 <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} search searchPh={f.searchPh} loading={!data.loaded.has('members')} failed={data.loadFailed.has('members')} onRetry={() => data.refresh('members')}
-                  options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
+                  options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))]} />
               )}
             </div>
           </>)}

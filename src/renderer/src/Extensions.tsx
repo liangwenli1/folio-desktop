@@ -7,8 +7,9 @@ import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from '
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { Act, BulkBar, Cancel, Empty, ExtIcon, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
+import { Select } from './Select';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
 const SHIELD = 'M12 2.7 19.5 5.4v6.15c0 4.5 -3.15 8.25 -7.5 9.75 -4.35 -1.5 -7.5 -5.25 -7.5 -9.75V5.4zM8.4 12l2.55 2.55 4.8 -5.1';
@@ -45,7 +46,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
     return {
       d, e, manager, checked: sel.has(e.id), onToggle: () => toggle(e.id), onInstall: () => setInstalling([e]),
       onUpdate: () => setDialog({ ext: e }), onDelete: () => setConfirm(e),
-      users: <span className="users">{on.slice(0, 3).map(p => <Flag key={p.id} country={country(p.proxyId)} />)}<em>{X.inProfiles(e.profiles)}</em></span>
+      users: <span className="users"><span className="flags">{on.slice(0, 3).map(p => <Flag key={p.id} country={country(p.proxyId)} />)}</span>{X.inProfiles(e.profiles)}</span>
     };
   };
 
@@ -53,21 +54,19 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{X.title}</h1><p className="sub">{X.lead}</p></div>
-          <label className="search">
-            <Icon name="search" /><span className="sr">{X.search}</span>
-            <input type="search" placeholder={X.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" />
-          </label>
+          <div className="ttl"><h1>{X.title}</h1></div>
+          <span className="sp" />
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({})}><Icon name="plus" />{X.add}</button>}
         </header>
-        {!manager && <p className="hint page-note">{X.memberNote}</p>}
-
         <section className="list-card" aria-label={X.title}>
         <div className="filters">
-          <div className="seg" role="group" aria-label={X.cols.engine}>
-            {(['all', 'chromium', 'firefox'] as const).map(f => <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === 'all' ? d.profiles.filter.all : ENGINES[f]} <small>{counts[f]}</small></button>)}
-          </div>
-          <span className="sp" />
+          <Flt label={d.profiles.filterLabels.keyword} grow>
+            <label className="search"><Icon name="search" /><span className="sr">{X.search}</span>
+              <input type="search" placeholder={X.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+          </Flt>
+          <Flt label={X.cols.engine}><span className="grp-pick"><Select label={X.cols.engine} value={filter} onChange={v => setFilter(v as Filter)}
+            options={(['all', 'chromium', 'firefox'] as const).map(f => ({ value: f, label: f === 'all' ? d.profiles.filter.engines : ENGINES[f], count: counts[f] }))} /></span></Flt>
+          <button type="button" className="btn btn-secondary flt-reset" disabled={!needle && filter === 'all'} onClick={() => { setQ(''); setFilter('all'); }}>{d.profiles.reset}</button>
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
         {picked.length > 0 && (
@@ -94,15 +93,17 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
                 <thead>
                   <tr>
                     <th className="cb" scope="col"><input type="checkbox" aria-label={d.common.selectAll} checked={list.every(e => sel.has(e.id))} onChange={() => setSel(list.every(e => sel.has(e.id)) ? new Set() : new Set(list.map(e => e.id)))} /></th>
-                    <th scope="col">{X.cols.name}</th><th scope="col">{X.cols.version}</th><th scope="col">{X.cols.engine}</th><th scope="col">{X.cols.signature}</th>
-                    <th scope="col">{X.cols.profiles}</th><th scope="col">{X.cols.updated}</th><th aria-hidden="true" />
+                    <th scope="col">{X.cols.name}</th><th className="mid" scope="col">{X.cols.version}</th><th scope="col">{X.cols.engine}</th><th className="mid" scope="col">{X.cols.signature}</th>
+                    <th scope="col">{X.cols.profiles}</th><th className="mid" scope="col">{X.cols.updated}</th><th className="act" scope="col">{d.profiles.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                   </tr>
                 </thead>
                 <tbody>{list.map(e => <ExtRow key={e.id} {...item(e)} />)}</tbody>
               </table>
             </div>
           ))}
+        {list.length > 0 && <p className="list-foot">{d.profiles.page.total(list.length)}</p>}
         </section>
+        {!manager && <p className="notice page-tip"><Icon name="info" /><span>{X.memberNote}</span></p>}
 
       </main>
       {dialog && <ExtensionDialog d={d} ws={ws} data={data} ext={dialog.ext} onClose={() => setDialog(null)} />}
@@ -147,16 +148,14 @@ function ExtRow({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, 
   return (
     <tr data-extension={e.name} className={checked ? 'on' : undefined}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(e.name)} /></td>
-      <td><span className="prof-cell"><ExtIcon src={e.icon} /><span><span className="l1"><b>{e.name}</b></span><span className="l2 mono">{source(d, e)}</span></span></span></td>
-      <td className="mono">{e.version}</td>
+      <td><span className="l1"><b>{e.name}</b></span><span className="l2 mono">{source(d, e)}</span></td>
+      <td className="mono mid">{e.version}</td>
       <td><span className="l1"><EngineLogo kernel={e.kernel} />{ENGINES[e.kernel]}</span></td>
-      <td><Shield d={d} /></td>
+      <td className="mid"><Shield d={d} /></td>
       <td>{users}</td>
-      <td>{ago(e.updatedAt, d)}</td>
-      <td className="act"><span className="actin">
-        <button type="button" className="btn btn-sm btn-secondary" onClick={onInstall}>{d.extensions.install}</button>
-        {manager && <MoreMenu label={d.detail.more} items={[{ label: d.extensions.update, onClick: onUpdate }, { label: d.extensions.delete, onClick: onDelete, danger: true }]} />}
-      </span></td>
+      <td className="mid">{ago(e.updatedAt, d)}</td>
+      <td className="act"><button type="button" className="btn btn-sm btn-secondary" onClick={onInstall}>{d.extensions.install}</button></td>
+      <td className="more">{manager && <MoreMenu label={d.detail.more} items={[{ label: d.extensions.update, onClick: onUpdate }, { label: d.extensions.delete, onClick: onDelete, danger: true }]} />}</td>
     </tr>
   );
 }

@@ -60,7 +60,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
 
   const within = (id: string) => { const ids = new Set(subtree(kids, id)); return profiles.filter(p => p.groupId && ids.has(p.groupId)); };
   const shown = pick === 'all' ? profiles : pick === 'none' ? profiles.filter(p => !p.groupId) : within(pick);
-  const emails = new Map(data.members.map(m => [m.userId, m.email]));
+  const names = new Map(data.members.map(m => [m.userId, m.displayName]));
   const needle = q.trim().toLowerCase(), num = /^#?\d+$/.test(needle) ? Number(needle.replace('#', '')) : null;
   const list = shown
     .filter(p => (run === 'all' || (run === 'running') === !!data.status[p.id]) && (owner === 'all' || p.ownerId === owner)
@@ -114,11 +114,13 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{G.title}</h1><p className="sub">{G.lead}</p></div>
+          <div className="ttl"><h1>{G.title}</h1></div>
+          <span className="sp" />
+          {manager && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}><Icon name="plus" />{G.add}</button>}
         </header>
         <div className={`gp${group && manager && panel ? ' with-panel' : ''}`}>
           <section className="sec gp-tree" aria-label={G.tree}>
-            <div className="sec-row"><h3>{G.tree}</h3>{manager && <button type="button" className="icon-btn" aria-label={G.add} title={G.add} onClick={() => setAdding(true)}><Icon name="plus" /></button>}</div>
+            <div className="sec-row"><h3>{G.tree}</h3></div>
             <ul role="tree" aria-label={G.tree}>
               {fixed('all', G.everything, profiles.length)}
               {fixed('none', G.none, profiles.filter(p => !p.groupId).length)}
@@ -140,7 +142,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
               <span className="grp-pick"><Select label={G.state} value={run} onChange={v => { setRun(v as typeof run); reset(); }}
                 options={(['all', 'running', 'stopped'] as const).map(s => ({ value: s, label: G.states[s] }))} /></span>
               <span className="grp-pick"><Select label={G.owner} value={owner} onChange={v => { setOwner(v); reset(); }} searchPh={d.form.searchPh}
-                options={[{ value: 'all', label: G.owners }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span>
+                options={[{ value: 'all', label: G.owners }, ...data.members.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))]} /></span>
               <button type="button" className="icon-btn" aria-label={G.sort} title={G.sort} aria-pressed={desc} onClick={() => setDesc(x => !x)}><Icon name={desc ? 'up' : 'down'} /></button>
             </div>
             {ids.length > 0 && editor && (
@@ -159,8 +161,8 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
                         ref={el => { if (el) el.indeterminate = shownSel > 0 && shownSel < rows.length; }}
                         onChange={() => setSel(s => { const n = new Set(s); rows.forEach(p => (shownSel === rows.length ? n.delete(p.id) : n.add(p.id))); return n; })} />
                     </th>
-                    <th scope="col">{G.cols.name}</th><th scope="col">{G.cols.number}</th><th className="c-region" scope="col">{G.cols.region}</th>
-                    <th scope="col">{G.cols.status}</th><th scope="col">{G.cols.owner}</th><th className="act" scope="col">{G.cols.actions}</th>
+                    <th scope="col">{G.cols.name}</th><th className="mid" scope="col">{G.cols.number}</th><th className="c-region ic" scope="col">{G.cols.region}</th>
+                    <th className="mid" scope="col">{G.cols.status}</th><th scope="col">{G.cols.owner}</th><th className="act" scope="col">{G.cols.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -179,10 +181,10 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
                       <tr key={p.id} data-id={p.id} className={sel.has(p.id) ? 'on' : undefined}>
                         <td className="cb"><input type="checkbox" checked={sel.has(p.id)} aria-label={d.common.select(p.name)} onChange={() => setSel(s => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; })} /></td>
                         <td><button type="button" className="rowlink" onClick={() => onOpenProfile(p.id)}>{p.name}</button></td>
-                        <td className="mono">#{String(p.number).padStart(4, '0')}</td>
-                        <td className="c-region">{h.geo ? <span className="px-exit"><Flag country={h.geo.country} size="xs" />{h.geo.countryName}</span> : <span className="muted">—</span>}</td>
-                        <td><span className={`dot-st ${tone}`}>{text}</span></td>
-                        <td className="ellip">{emails.get(p.ownerId ?? '') ?? '—'}</td>
+                        <td className="mono mid">#{String(p.number).padStart(4, '0')}</td>
+                        <td className="c-region">{h.geo ? <span className="px-exit"><Flag country={h.geo.country} size="xs" />{h.geo.countryName}</span> : <span className="muted hang">—</span>}</td>
+                        <td className="mid"><span className={`dot-st ${tone}`}>{text}</span></td>
+                        <td className="ellip">{names.get(p.ownerId ?? '') ?? '—'}</td>
                         <td className="act"><MoreMenu label={d.profiles.actionsX(p.name)} items={[
                           { label: d.proxies.detail.viewProfile, onClick: () => onOpenProfile(p.id) },
                           ...(editor && p.groupId ? [{ label: G.moveOut, onClick: () => void move([p.id], null) }] : [])
@@ -194,6 +196,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
               </table>
             </div>
             {list.length > 0 && <Pager d={d} total={list.length} page={at} size={size} onPage={setPage} onSize={n => { setSize(n); setPage(1); }} />}
+            <p className="notice info"><Icon name="info" /><span>{G.tip}</span></p>
           </section>
 
           {group && manager && panel && <GroupSettings key={group.id} d={d} ws={ws} data={data} meId={meId} group={group} kids={kids} company={company}
@@ -221,7 +224,7 @@ function MemberRoles({ d, data, meId, company, title, memberIds, roles, onIds, o
     <div className="sec-row">
       <h4>{title}</h4>
       {company && <Select variant="sm" action label={G.addMember} placeholder={G.addMember} value="" searchPh={G.findMember} empty={G.noneToAdd}
-        onChange={id => onIds([...memberIds, id])} options={addable.map(m => ({ value: m.userId, label: m.email }))} />}
+        onChange={id => onIds([...memberIds, id])} options={addable.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))} />}
     </div>
     {!company && <p className="notice info">{G.companyOnly}</p>}
     {people.length > 0 && (
@@ -230,12 +233,12 @@ function MemberRoles({ d, data, meId, company, title, memberIds, roles, onIds, o
           const fixed = m.role.key === 'owner' || m.userId === meId;
           return (
             <li key={m.userId} data-member={m.email}>
-              <Avatar text={m.email} /><span className="gm-e">{m.email}</span>
+              <Avatar text={m.displayName} /><span className="gm-e" title={m.email}>{m.displayName}</span>
               {fixed
                 ? <span className="gm-r muted">{roleName(d, m.role)}</span>
-                : <span className="gm-r"><Select variant="sm" label={G.roleOf(m.email)} value={roles[m.userId] ?? m.role.id} onChange={r => onRole(m.userId, r)}
+                : <span className="gm-r"><Select variant="sm" label={G.roleOf(m.displayName)} value={roles[m.userId] ?? m.role.id} onChange={r => onRole(m.userId, r)}
                     options={givable.map(r => ({ value: r.id, label: roleName(d, r) }))} /></span>}
-              {company && <button type="button" className="icon-btn bare" aria-label={G.removeMember(m.email)} title={G.removeMember(m.email)} onClick={() => onIds(memberIds.filter(id => id !== m.userId))}><Icon name="x" /></button>}
+              {company && <button type="button" className="icon-btn bare" aria-label={G.removeMember(m.displayName)} title={G.removeMember(m.displayName)} onClick={() => onIds(memberIds.filter(id => id !== m.userId))}><Icon name="x" /></button>}
             </li>
           );
         })}

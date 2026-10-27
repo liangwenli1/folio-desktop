@@ -10,7 +10,7 @@ import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { Select, SelectField, type Opt } from './Select';
 import { EngineLogo } from './Flag';
-import { Act, Cancel, Empty, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useToast } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
@@ -47,7 +47,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   const [q, setQ] = useState('');
   const [system, setSystem] = useState<'all' | Family>('all');
   // The version whose notes show beside the table: the default one until another is picked, none once closed.
-  const [cur, setCur] = useState<string | null | undefined>(undefined);
+  const [cur, setCur] = useState<string | null>(null);
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   // Admins manage every system's packages; everyone else needs only this computer's list.
   const loadCatalog = () => { if (admin) void folio.api<{ kernels: Kernel[] }>('GET', '/kernels').then(r => setCatalog(r.kernels), fail); };
@@ -103,7 +103,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   const shown = rows.filter(r => (tab === 'all' || (tab === 'installed' ? !!r.k?.installed : updates.has(r.key)))
     && (system === 'all' || r.platforms.some(p => familyOf(p) === system))
     && (!needle || `${r.label} ${r.note ?? ''}`.toLowerCase().includes(needle)));
-  const side = cur === null ? null : rows.find(r => r.key === (cur ?? kernelKey(defKind, defVersion ?? ''))) ?? null;
+  const side = cur ? rows.find(r => r.key === cur) ?? null : null;
 
   async function checkUpdates(){
     setChecking(true);
@@ -141,34 +141,37 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   // The switch moves at once; the file on this computer catches up.
   const change = (c: Partial<KernelSettings>) => { setSettings(s => s && { ...s, ...c }); void folio.setKernelSettings(c).then(setSettings); };
 
-  // What can be done with a version: the step its download is at (or, once downloaded, making it the default), its
-  // notes, and the rest in the menu.
-  function actions(r: Row){
+  // What can be done with a version (v2 13): one step under Actions — pausing, resuming or starting its download, or
+  // making it the default once it is here — or its notes when there is nothing to do; the rest is in the menu beside it.
+  function stepOf(r: Row){
     const { kind, version, k, pr } = r;
-    const canDefault = manager && !r.isDefault && !!k?.available;
+    return r.downloading ? { label: E.pause, cls: 'btn-secondary', run: () => void folio.pauseKernel(kind, version) }
+      : pr?.paused && !k?.installed ? { label: E.resume, cls: 'btn-secondary', run: () => void data.install(kind, version) }
+      : k?.installed ? (manager && !r.isDefault && k.available ? { label: E.setDefault, cls: 'btn-primary', run: () => void makeDefault(`${kind}:${version}`) } : null)
+      : k?.available ? { label: E.download, cls: 'btn-secondary', run: () => void data.install(kind, version) } : null;
+  }
+  function step(r: Row){
+    const s = stepOf(r);
+    return s ? <button type="button" className={`btn btn-sm ${s.cls}`} onClick={s.run}>{s.label}</button>
+      : <button type="button" className="btn btn-sm btn-text" onClick={() => setCur(r.key)}>{E.details}</button>;
+  }
+  function menu(r: Row){
+    const { kind, version, k } = r;
     const items = [
-      ...(canDefault && !k?.installed ? [{ label: E.setDefault, onClick: () => void makeDefault(`${kind}:${version}`) }] : []),
+      ...(stepOf(r) ? [{ label: E.details, onClick: () => setCur(r.key) }] : []),
+      ...(manager && !r.isDefault && k?.available && !k.installed ? [{ label: E.setDefault, onClick: () => void makeDefault(`${kind}:${version}`) }] : []),
       ...(k?.installed ? [{ label: E.remove, disabled: r.busy, onClick: () => void data.removeKernel(kind, version).then(() => toast(E.removed(r.label))) }] : []),
       ...(admin && r.pkgs.some(x => x.ready) && !r.recommended ? [{ label: E.admin.recommend, onClick: () => setRecommending(r.pkgs.find(x => x.ready)!) }] : []),
       ...(admin && r.pkgs.length ? [{ label: E.admin.retire, onClick: () => setRetiring(r.pkgs), danger: true }] : [])
     ];
-    return (
-      <span className="actin">
-        {r.downloading ? <button type="button" className="btn btn-sm btn-text" onClick={() => void folio.pauseKernel(kind, version)}>{E.pause}</button>
-          : pr?.paused && !k?.installed ? <button type="button" className="btn btn-sm btn-secondary" onClick={() => void data.install(kind, version)}>{E.resume}</button>
-          : k?.installed ? canDefault && <button type="button" className="btn btn-sm btn-primary" onClick={() => void makeDefault(`${kind}:${version}`)}>{E.setDefault}</button>
-          : k?.available && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void data.install(kind, version)}>{E.download}</button>}
-        <button type="button" className="btn btn-sm btn-text" onClick={() => setCur(r.key)}>{E.details}</button>
-        {items.length > 0 && <MoreMenu vertical label={E.actionsX(r.label)} items={items} />}
-      </span>
-    );
+    return items.length > 0 && <MoreMenu vertical label={E.actionsX(r.label)} items={items} />;
   }
 
   return (
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{E.title}</h1><p className="sub">{E.lead}</p></div>
+          <div className="ttl"><h1>{E.title}</h1></div>
           <span className="sp" />
           {admin && <button type="button" className="btn btn-secondary" onClick={() => setUploading(true)}><Icon name="upload" />{E.admin.upload}</button>}
           <button type="button" className="btn btn-primary" disabled={checking} onClick={() => void checkUpdates()}>
@@ -194,30 +197,32 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
           </div>
         ))}
 
+        <Tabs className="page-tabs" label={E.title} value={tab} tabs={['all', 'installed', 'updates']} name={t => E.tabs[t]} count={t => t === 'updates' && updates.size > 0 && updates.size} onChange={setTab} />
         <div className={`side-wrap${side ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={E.title}>
-            <div className="en-bar">
-              <Tabs label={E.title} value={tab} tabs={['all', 'installed', 'updates']} name={t => E.tabs[t]} count={t => t === 'updates' && updates.size > 0 && updates.size} onChange={setTab} />
-              <span className="sp" />
-              <label className="search"><Icon name="search" /><span className="sr">{E.search}</span>
-                <input type="search" placeholder={E.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-              <span className="grp-pick"><Select label={E.system} value={system} onChange={v => setSystem(v as 'all' | Family)}
-                options={[{ value: 'all', label: E.systems }, ...FAMILIES.map(f => ({ value: f, label: E.families[f] }))]} /></span>
+            <div className="filters">
+              <Flt label={E.filterLabels.keyword} grow>
+                <label className="search"><Icon name="search" /><span className="sr">{E.search}</span>
+                  <input type="search" placeholder={E.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+              </Flt>
+              <Flt label={E.filterLabels.system}><span className="grp-pick"><Select label={E.system} value={system} onChange={v => setSystem(v as 'all' | Family)}
+                options={[{ value: 'all', label: E.systems }, ...FAMILIES.map(f => ({ value: f, label: E.families[f] }))]} /></span></Flt>
+              <button type="button" className="btn btn-secondary flt-reset" disabled={!needle && system === 'all'} onClick={() => { setQ(''); setSystem('all'); }}>{d.profiles.reset}</button>
             </div>
             <div className="tw en-t">
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">{E.cols.version}</th><th scope="col">{E.cols.number}</th><th scope="col">{E.cols.platforms}</th><th className="c-size" scope="col">{E.cols.size}</th>
-                    <th className="c-rel" scope="col">{E.cols.released}</th><th scope="col">{E.cols.profiles}</th><th scope="col">{E.cols.status}</th><th className="act" scope="col">{E.cols.actions}</th>
+                    <th scope="col">{E.cols.version}</th><th scope="col">{E.cols.number}</th><th scope="col">{E.cols.platforms}</th><th className="c-size mid" scope="col">{E.cols.size}</th>
+                    <th className="c-rel mid" scope="col">{E.cols.released}</th><th className="mid" scope="col">{E.cols.profiles}</th><th className="mid" scope="col">{E.cols.status}</th><th className="act" scope="col">{E.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {!data.loaded.has('kernels') && <SkelRows cols={8} rows={4} />}
+                  {!data.loaded.has('kernels') && <SkelRows cols={9} rows={4} />}
                   {data.loaded.has('kernels') && !filtered && KINDS.filter(kind => !rows.some(r => r.kind === kind)).map(kind => (
-                    <tr key={kind}><td colSpan={8}><span className="l1"><EngineLogo kernel={kind} size={18} /><b>{ENGINES[kind]}</b></span><span className="l2">{E.none}</span></td></tr>
+                    <tr key={kind}><td colSpan={9}><span className="l1"><b>{ENGINES[kind]}</b></span><span className="l2">{E.none}</span></td></tr>
                   ))}
-                  {filtered && !shown.length && <tr className="empty"><td colSpan={8}>{needle || system !== 'all'
+                  {filtered && !shown.length && <tr className="empty"><td colSpan={9}>{needle || system !== 'all'
                     ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                         <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setSystem('all'); }}>{d.states.clear}</button>
                       </Empty>
@@ -226,15 +231,16 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
                   {shown.map(r => (
                     <tr key={r.key} className={side?.key === r.key ? 'cur' : ''} data-engine={r.kind} data-version={r.version}
                       onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) setCur(r.key); }}>
-                      <td><span className="en-name"><EngineLogo kernel={r.kind} size={22} /><span><b>{ENGINES[r.kind]} {major(r.version)}</b><Tags d={d} r={r} /></span></span></td>
+                      <td><span className="en-name"><b>{ENGINES[r.kind]} {major(r.version)}</b><Tags d={d} r={r} /></span></td>
                       <td className="mono">{r.version}</td>
                       <td><Systems d={d} r={r} admin={admin} /></td>
-                      <td className="mono c-size">{r.size ? bytes(r.size) : '—'}</td>
-                      <td className="mono c-rel">{r.added ? day(r.added) : '—'}</td>
-                      <td>{r.here.length ? <button type="button" className="count-link" onClick={() => onShowProfiles(r.here.map(p => p.id))}>{r.here.length}</button> : <span className="muted">0</span>}
+                      <td className="mono c-size mid">{r.size ? bytes(r.size) : '—'}</td>
+                      <td className="mono c-rel mid">{r.added ? day(r.added) : '—'}</td>
+                      <td className="mid">{r.here.length ? <button type="button" className="count-link" onClick={() => onShowProfiles(r.here.map(p => p.id))}>{r.here.length}</button> : <span className="muted">0</span>}
                         {admin && <span className="l2">{E.everywhere(r.everywhere)}</span>}</td>
-                      <td><State d={d} r={r} /></td>
-                      <td className="act">{actions(r)}</td>
+                      <td className="mid"><State d={d} r={r} /></td>
+                      <td className="act">{step(r)}</td>
+                      <td className="more">{menu(r)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -247,6 +253,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
           </section>
           {side && <Notes d={d} r={side} admin={admin} onClose={() => setCur(null)} />}
         </div>
+        <p className="notice page-tip"><Icon name="info" /><span>{E.tip}</span></p>
       </main>
       {uploading && <UploadDialog d={d} onClose={() => setUploading(false)} onDone={reload} />}
       {recommending && <RecommendDialog d={d} k={recommending} onClose={() => setRecommending(null)} onDone={note => void recommend(recommending, note)} />}
@@ -273,15 +280,14 @@ function Tags({ d, r }: { d: Dict; r: Row }){
   return <span className="en-tags">{r.recommended && <span className="badge accent">{E.recommended}</span>}{r.isDefault && <span className="badge">{E.default}</span>}{gone && <span className="badge">{E.retired}</span>}</span>;
 }
 
-// The systems it is built for; platform admins also see packages whose upload didn't finish.
+// The systems it is built for, as words (v2 13); platform admins also see packages whose upload didn't finish.
 function Systems({ d, r, admin }: { d: Dict; r: Row; admin: boolean }){
   const E = d.engines;
-  return (
-    <span className="platforms">
-      {FAMILIES.filter(f => r.platforms.some(p => familyOf(p) === f)).map(f => <span key={f} className="badge">{E.families[f]}</span>)}
-      {admin && r.pkgs.filter(x => !x.ready).map(x => <span key={x.id} className="badge warn">{E.platforms[x.platform] ?? x.platform} · {E.admin.unfinished}</span>)}
-    </span>
-  );
+  const unfinished = admin ? r.pkgs.filter(x => !x.ready) : [];
+  return <>
+    <span className="nowrap">{FAMILIES.filter(f => r.platforms.some(p => familyOf(p) === f)).map(f => E.families[f]).join(' / ') || '—'}</span>
+    {unfinished.length > 0 && <span className="platforms">{unfinished.map(x => <span key={x.id} className="badge warn">{E.platforms[x.platform] ?? x.platform} · {E.admin.unfinished}</span>)}</span>}
+  </>;
 }
 
 // Downloaded, downloading (how far), paused, failed or not downloaded; a version a running profile uses can't be removed.

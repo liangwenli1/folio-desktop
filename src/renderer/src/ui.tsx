@@ -215,7 +215,7 @@ export function useNow(on: boolean){
 }
 
 // `bad` for something that went wrong; anything else is news of something done. One action, or two (a partly failed
-// batch: why, and running the failed ones again).
+// batch: view it, retry the failed ones), in short words under the message.
 interface ToastAction { label: string; fn(): void }
 interface ToastItem { id: number; msg: string; actions: ToastAction[]; tone?: 'bad' }
 type Push = (msg: string, action?: ToastAction | ToastAction[], tone?: 'bad') => void;
@@ -225,8 +225,8 @@ export const useToast = () => useContext(ToastContext);
 const NoticeContext = createContext<(notice: ReactNode) => void>(() => {});
 export const useNotice = () => useContext(NoticeContext);
 
-// News of something done goes after 3 seconds (8 when it offers an action); a failure stays, with a close button,
-// until it is closed (delivery spec 6). The stack sits in <body>, above dialogs and usable while one is open.
+// News of something done goes after 3 seconds (8 when it offers an action); a failure has a close button and goes after
+// 12 (the bell keeps a batch's). The stack sits in <body> at the top right, above dialogs and usable while one is open.
 export function Toasts({ children }: { children: ReactNode }){
   const d = useDict();
   const [list, setList] = useState<ToastItem[]>([]);
@@ -236,7 +236,7 @@ export function Toasts({ children }: { children: ReactNode }){
   const push = useCallback<Push>((msg, action, tone) => {
     const id = ++seq.current, actions = action ? [action].flat() : [];
     setList(l => [...l.slice(-2), { id, msg, actions, tone }]);
-    if (!tone) setTimeout(() => drop(id), actions.length ? 8000 : 3000);
+    setTimeout(() => drop(id), tone ? 12_000 : actions.length ? 8000 : 3000);
   }, []);
   return (
     <ToastContext.Provider value={push}>
@@ -246,12 +246,14 @@ export function Toasts({ children }: { children: ReactNode }){
           <div className="toasts" aria-live="polite">
             {notice}
             {list.map(t => (
-              <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}${t.actions.length > 1 ? ' two' : ''}`} role={t.tone ? 'alert' : 'status'}>
+              <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}`} role={t.tone ? 'alert' : 'status'}>
                 <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'bang' : 'check'} /></span>
-                <span>{t.msg}</span>
-                {t.actions.length > 0 && <span className="t-acts">{t.actions.map(a => (
-                  <button key={a.label} type="button" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>
-                ))}</span>}
+                <div className="t-body">
+                  <span>{t.msg}</span>
+                  {t.actions.length > 0 && <span className="t-acts">{t.actions.map(a => (
+                    <button key={a.label} type="button" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>
+                  ))}</span>}
+                </div>
                 {t.tone && <button type="button" className="t-x" aria-label={d.common.close} title={d.common.close} onClick={() => drop(t.id)}><Icon name="x" /></button>}
               </div>
             ))}
@@ -513,15 +515,23 @@ export const ListFailed = ({ d, data, kind }: { d: Dict; data: WorkspaceData; ki
 );
 
 // What to do with the rows ticked on a page: how many, the actions, and a cross that clears the selection.
-export function BulkBar({ n, label, clearLabel, onClear, children }: { n: number; label: string; clearLabel: string; onClear(): void; children: ReactNode }){
+// Bulk actions in a row above a list (v2): the buttons, then what is picked (and how much of it the filters hide) with
+// a way to clear it; `end` holds how the list is laid out. The profile list keeps the row while nothing is picked, its
+// buttons waiting (v2 01).
+export function BulkBar({ n, label, clearLabel, onClear, children, end }: { n: number; label: string; clearLabel: string; onClear(): void; children: ReactNode; end?: ReactNode }){
   return (
     <div className="bulk" role="toolbar" aria-label={label} data-testid="bulk">
-      <b><span className="count">{n}</span>{label}</b>
       {children}
-      <button type="button" className="bb close" aria-label={clearLabel} title={clearLabel} onClick={onClear}><Icon name="x" /></button>
+      {n > 0 && <><span className="bulk-n">{label}</span><button type="button" className="btn btn-text btn-sm" onClick={onClear}>{clearLabel}</button></>}
+      {end && <><span className="sp" />{end}</>}
     </div>
   );
 }
+
+// A filter with its name above it (v2's filter area: keyword, the kinds of thing, state, date; Reset at the end).
+export const Flt = ({ label, grow, children }: { label: string; grow?: boolean; children: ReactNode }) => (
+  <div className={`flt${grow ? ' grow' : ''}`}><span className="flt-l" aria-hidden="true">{label}</span>{children}</div>
+);
 
 export const bytes = (n: number) => (n < 1024 ** 2 ? `${Math.max(1, Math.round(n / 1024))} KB` : n < 1024 ** 3 ? `${Math.round(n / 1024 ** 2)} MB` : `${(n / 1024 ** 3).toFixed(1)} GB`);
 

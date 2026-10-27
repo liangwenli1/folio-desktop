@@ -6,7 +6,7 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Act, Cancel, Empty, Icon, ListFailed, Modal, SkelRows, useLeave, useToast } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -78,7 +78,10 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   const toast = useToast();
   const [open, setOpen] = useState<{ id: string | null; template?: boolean } | null>(null);
   const [confirm, setConfirm] = useState<Flow | null>(null);
-  const email = new Map(data.members.map(m => [m.userId, m.email]));
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const flows = data.flows.filter(f => !needle || f.name.toLowerCase().includes(needle));
+  const person = new Map(data.members.map(m => [m.userId, m.displayName]));
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   // The tasks a flow is used by, by name; such a flow can't be deleted.
   const users = (id: string) => data.tasks.filter(t => t.flowId === id).map(t => t.name).join(', ');
@@ -106,39 +109,51 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{F.title}</h1><p className="sub">{F.lead}</p></div>
+          <div className="ttl"><h1>{F.title}</h1></div>
           <span className="sp" />
           <button className="btn btn-secondary" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
           <button className="btn btn-primary" type="button" onClick={() => setOpen({ id: null })}><Icon name="plus" />{F.new}</button>
         </header>
-        <div className="tw top-gap">
+        <section className="list-card" aria-label={F.title}>
+        <div className="filters">
+          <Flt label={d.profiles.filterLabels.keyword} grow>
+            <label className="search"><Icon name="search" /><span className="sr">{F.search}</span>
+              <input type="search" placeholder={F.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+          </Flt>
+          <button type="button" className="btn btn-secondary flt-reset" disabled={!needle} onClick={() => setQ('')}>{d.profiles.reset}</button>
+        </div>
+        <div className="tw">
           <table>
             <thead>
-              <tr><th scope="col">{F.cols.name}</th><th scope="col" className="num">{F.cols.steps}</th><th scope="col">{F.cols.by}</th><th scope="col">{F.cols.updated}</th><th className="act" scope="col" /></tr>
+              <tr><th scope="col">{F.cols.name}</th><th className="mid" scope="col">{F.cols.steps}</th><th scope="col">{F.cols.by}</th><th className="mid" scope="col">{F.cols.updated}</th><th className="act" scope="col">{d.profiles.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th></tr>
             </thead>
             <tbody>
               {data.loadFailed.has('flows')
-                ? <tr className="empty"><td colSpan={5}><ListFailed d={d} data={data} kind="flows" /></td></tr>
-                : !data.loaded.has('flows') ? <SkelRows cols={5} />
-                : !data.flows.length && <tr className="empty"><td colSpan={5}><Empty icon="flows" title={F.emptyTitle} text={F.empty} /></td></tr>}
-              {data.flows.map(f => (
+                ? <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="flows" /></td></tr>
+                : !data.loaded.has('flows') ? <SkelRows cols={6} />
+                : !data.flows.length ? <tr className="empty"><td colSpan={6}><Empty icon="flows" title={F.emptyTitle} text={F.empty} /></td></tr>
+                : !flows.length && <tr className="empty"><td colSpan={6}><Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => setQ('')}>{d.states.clear}</button>
+                  </Empty></td></tr>}
+              {flows.map(f => (
                 <tr key={f.id} data-flow={f.name}>
-                  <td><span className="flow-cell"><span className="flow-ic" aria-hidden="true"><Icon name="flows" /></span>
-                    <span><button type="button" className="rowlink" onClick={() => setOpen({ id: f.id })}>{f.name}</button>
-                      <span className="l2 flow-types">{[...new Set(f.steps.map(x => x.type))].slice(0, 5).map(t => <StepIcon key={t} t={t} />)}</span></span></span></td>
-                  <td className="num">{countSteps(f.steps)}</td>
-                  <td>{f.createdBy === meId ? F.you : (f.createdBy && email.get(f.createdBy)) || '—'}</td>
-                  <td>{ago(f.updatedAt, d)}</td>
-                  <td className="act"><span className="actin">
-                    <button type="button" className="btn btn-sm btn-secondary" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button>
-                    <button type="button" className="btn btn-sm btn-text" onClick={() => void duplicate(f)}>{F.duplicate}</button>
-                    {f.canEdit && <button type="button" className="btn btn-sm btn-danger" aria-label={F.deleteX(f.name)} onClick={() => setConfirm(f)}>{F.delete}</button>}
-                  </span></td>
+                  <td><span className="l1"><button type="button" className="rowlink" onClick={() => setOpen({ id: f.id })}>{f.name}</button></span>
+                    <span className="l2 flow-types">{[...new Set(f.steps.map(x => x.type))].slice(0, 5).map(t => <StepIcon key={t} t={t} />)}</span></td>
+                  <td className="mid mono">{countSteps(f.steps)}</td>
+                  <td>{f.createdBy === meId ? F.you : (f.createdBy && person.get(f.createdBy)) || '—'}</td>
+                  <td className="mid">{ago(f.updatedAt, d)}</td>
+                  <td className="act"><button type="button" className="btn btn-sm btn-secondary" onClick={() => setOpen({ id: f.id })}>{f.canEdit ? d.common.edit : F.view}</button></td>
+                  <td className="more"><MoreMenu label={d.profiles.actionsX(f.name)} items={[
+                    { label: F.duplicate, onClick: () => void duplicate(f) },
+                    ...(f.canEdit ? [{ label: F.delete, onClick: () => setConfirm(f), danger: true }] : [])
+                  ]} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        {flows.length > 0 && <p className="list-foot">{d.profiles.page.total(flows.length)}</p>}
+        </section>
         {confirm && (
           <Modal kind="bad" title={F.confirmDelete(confirm.name)} onClose={() => setConfirm(null)} foot={<>
             <Cancel />

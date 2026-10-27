@@ -62,7 +62,9 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await making.getByLabel('What changed (optional)').fill('Chrome 151 security fixes');
     await making.getByRole('button', { name: 'Make recommended' }).click();
     await expect(row).toContainText('Recommended');
-    await row.getByRole('button', { name: 'Details', exact: true }).click();
+    // Not downloaded here: Download is its step, its notes are in the menu.
+    await row.getByRole('button', { name: `Actions for Chromium ${version}` }).click();
+    await win.getByRole('menuitem', { name: 'Details' }).click();
     await expect(win.getByRole('complementary', { name: 'Version notes' })).toContainText('Chrome 151 security fixes');
     await expect(win.locator('tr[data-engine="chromium"][data-version="150.0.7871.186"]')).not.toContainText('Recommended');
 
@@ -131,8 +133,12 @@ test('the default engine for new profiles, updates to what is downloaded, and th
   const win = await logIn(app, acct.email);
   await engines(win).click();
 
-  // The notes beside the table start on the version new profiles get.
+  // A version's notes open beside the table from its row.
   const notes = win.getByRole('complementary', { name: 'Version notes' });
+  await expect(notes).toHaveCount(0);
+  // Not downloaded here, so Download is its step and its notes are in the menu.
+  await win.getByRole('button', { name: 'Actions for Chromium 150.0.7871.186' }).click();
+  await win.getByRole('menuitem', { name: 'Details' }).click();
   await expect(notes).toContainText('150.0.7871.186');
   await expect(notes).toContainText('Stop the profiles involved before switching engines');
   const rows = win.locator('tr[data-engine]');

@@ -8,6 +8,8 @@ test('the activity log says who did what, and each profile shows its recent entr
   await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Shop-07') });
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
+  // People go by the name colleagues see.
+  const name = acct.email.split('@')[0];
 
   await win.getByRole('button', { name: 'Shop-07', exact: true }).click();
   const detail = page(win);
@@ -15,12 +17,12 @@ test('the activity log says who did what, and each profile shows its recent entr
   const form = win.getByRole('dialog', { name: 'Edit profile' });
   await form.getByRole('textbox', { name: 'Name', exact: true }).fill('Shop Berlin');
   await form.getByRole('button', { name: 'Save changes' }).click();
-  await expect(detail.getByTestId('recent')).toContainText(`changed the name of Shop Berlin #0001by ${acct.email}`);
+  await expect(detail.getByTestId('recent')).toContainText(`changed the name of Shop Berlin #0001by ${name}`);
   await detail.getByRole('tab', { name: 'Activity' }).click();
   const rows = detail.locator('tr[data-action]');
   await expect(rows).toHaveCount(2);
   await expect(rows.first()).toContainText('changed the name of Shop Berlin #0001');
-  await expect(rows.first()).toContainText(acct.email);
+  await expect(rows.first()).toContainText(name);
   await expect(rows.last()).toContainText('created Shop-07 #0001');
   await win.keyboard.press('Escape');
 
@@ -28,17 +30,18 @@ test('the activity log says who did what, and each profile shows its recent entr
   const items = win.locator('tr[data-action]');
   await expect(items).toHaveCount(3);
   await expect(items.first()).toContainText('changed the name of Shop Berlin');
-  await expect(items.last()).toContainText(acct.email);
+  await expect(items.last()).toContainText(name);
   await expect(items.last()).toContainText('created the group EU stores');
-  // An entry's details beside the log: what it changed.
-  await items.first().getByRole('button', { name: /changed the name/ }).click();
+  // An entry's details beside the log: what it changed, from what to what.
+  await items.first().getByRole('button', { name: 'View' }).click();
   const entry = win.getByRole('complementary', { name: 'Entry details' });
   await expect(entry).toContainText('Edit profile');
-  await expect(entry).toContainText('name');
+  await expect(entry.locator('.lg-changes tbody tr')).toHaveText([/^nameShop-07Shop Berlin$/]);
   // Found by a word, and by kind.
   await win.getByRole('searchbox', { name: /^Search by name/ }).fill('EU stores');
   await expect(items).toHaveCount(1);
   await win.getByRole('searchbox', { name: /^Search by name/ }).fill('');
+  await expect(items).toHaveCount(3);
   const kinds = win.getByRole('combobox', { name: 'Action' });
   await choose(kinds, 'Profile changes');
   await expect(items).toHaveCount(2);

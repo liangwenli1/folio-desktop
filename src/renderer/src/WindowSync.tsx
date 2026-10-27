@@ -53,7 +53,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
     <div className="page">
       <main className="main">
         <header className="bar">
-          <div className="ttl"><h1>{W.title}</h1><p className="sub">{W.lead}</p></div>
+          <div className="ttl"><h1>{W.title}</h1></div>
           {s && ws.subscription.plan !== 'free' && <>
             <span className="sp" />
             <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void tile()}><Icon name="grid" />{busy ? W.tiling : W.tile}</button>
