@@ -7,7 +7,7 @@ import { folio, isApiError, type Job, type JobDetail, type JobKind } from './api
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Empty, Icon, ListFailed, Switch, useToast, type IconName } from './ui';
+import { Empty, Icon, ListFailed, PanelEdge, SkelRows, Switch, Tabs, useToast, type IconName } from './ui';
 import { Select } from './Select';
 
 type Tab = 'all' | 'running' | 'done' | 'partial' | 'canceled';
@@ -58,11 +58,7 @@ export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang;
           <span className="sp" />
           <div className="jb-live"><Icon name="refresh" /><Switch label={J.live} checked={live} onChange={on => { setLive(on); if (!on) setHeld(data.jobs); }} /></div>
         </header>
-        <div className="tabs page-tabs" role="tablist" aria-label={J.title}>
-          {(['all', 'running', 'done', 'partial', 'canceled'] as const).map(t => (
-            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{J.tabs[t]}{t === 'running' && count(t) > 0 && <small>{count(t)}</small>}</button>
-          ))}
-        </div>
+        <Tabs className="page-tabs" label={J.title} value={tab} tabs={['all', 'running', 'done', 'partial', 'canceled']} name={t => J.tabs[t]} count={t => t === 'running' && count(t) > 0 && count(t)} onChange={setTab} />
         <div className={`side-wrap jb-wrap${picked ? ' with-panel' : ''}`}>
           <section className="sec side-main jb-main" aria-label={J.title}>
             <div className="filters inline">
@@ -78,7 +74,8 @@ export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang;
                 </thead>
                 <tbody>
                   {data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="jobs" /></td></tr>}
-                  {!shown.length && !data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><Empty icon="jobs" title={J.empty} /></td></tr>}
+                  {!data.loaded.has('jobs') && !data.loadFailed.has('jobs') && <SkelRows cols={6} />}
+                  {data.loaded.has('jobs') && !shown.length && !data.loadFailed.has('jobs') && <tr className="empty"><td colSpan={6}><Empty icon="jobs" title={J.empty} text={J.emptyText} /></td></tr>}
                   {shown.map(j => (
                     <tr key={j.id} data-job={j.kind} className={cur === j.id ? 'cur' : ''} onClick={e => { if (!(e.target as HTMLElement).closest('button')) setCur(j.id); }}>
                       <td><b>{J.kinds[j.kind]}</b></td>
@@ -147,7 +144,7 @@ function JobPanel({ d, lang, data, job, mine, here, onClose, onFail }: {
   }
 
   return (
-    <aside className="sec side-panel jb-panel" aria-label={J.kinds[job.kind]}>
+    <aside className="sec side-panel jb-panel" aria-label={J.kinds[job.kind]}><PanelEdge />
       <div className="sec-row"><h3>{J.kinds[job.kind]}</h3><State d={d} j={job} /><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
       <p className="hint">{J.by(mine ? J.me : job.startedBy ?? '—')} · {dayLabel(job.createdAt, d, lang)} {time(job.createdAt, lang)}{job.deviceName ? ` · ${job.deviceName}` : ''}</p>
       <dl className="dstats jb-stats">
@@ -156,10 +153,7 @@ function JobPanel({ d, lang, data, job, mine, here, onClose, onFail }: {
         <div><dt>{J.failed}</dt><dd className={job.failed ? 'bad-t' : ''}>{job.failed}</dd></div>
         {job.canceled > 0 && <div><dt>{J.canceled}</dt><dd>{job.canceled}</dd></div>}
       </dl>
-      <div className="tabs" role="tablist" aria-label={J.kinds[job.kind]}>
-        <button type="button" role="tab" aria-selected={tab === 'results'} onClick={() => setTab('results')}>{J.resultsTab}</button>
-        <button type="button" role="tab" aria-selected={tab === 'log'} onClick={() => setTab('log')}>{J.logTab}</button>
-      </div>
+      <Tabs label={J.kinds[job.kind]} value={tab} tabs={['results', 'log']} name={t => (t === 'results' ? J.resultsTab : J.logTab)} onChange={setTab} />
       {tab === 'results' ? (
         <div className="tw dense jb-items">
           <table>

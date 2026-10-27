@@ -1,7 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as KeyEvent, type PointerEvent as PointerDown, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { folio } from './api';
 import type { Kind, WorkspaceData } from './data';
 import type { Dict } from './i18n';
+
+// The dictionary for the building blocks in this file and Select.tsx (a dialog's buttons, a dropdown's states), which
+// every page uses and none passes it to. Pages get theirs as a prop.
+export const DictContext = createContext<Dict>(null!);
+export const useDict = () => useContext(DictContext);
 
 const PATHS = {
   profiles: 'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2zM3 8h18M7 6h.01M10 6h.01',
@@ -70,6 +76,7 @@ const PATHS = {
   wifiOff: 'M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.5 15.8a5 5 0 0 1 7 0M12 19.5h.01',
   cookie: 'M21 12.5A9 9 0 1 1 11.5 3a3 3 0 0 0 3.5 3.5 3 3 0 0 0 3.5 3.5 3 3 0 0 0 2.5 2.5zM8.5 9.5h.01M8.5 15h.01M13.5 14h.01M15 18h.01',
   minus: 'M6 12h12',
+  bell: 'M12 3v2M6 11a6 6 0 0 1 12 0v5l2 2.5H4L6 16zM9.75 20.5a2.25 2.25 0 0 0 4.5 0',
   // The mark inside a solid circle (a figure that failed, a toast that went wrong): taller than the outline icon's.
   bang: 'M12 5v9M12 18.5h.01'
 };
@@ -120,21 +127,56 @@ export const Avatar = ({ text, small, title }: { text: string; small?: boolean; 
   <span className={`pav c${hue(text)}${small ? ' xs' : ''}`} title={title} aria-hidden={title ? undefined : true}>{[...text.trim()][0]?.toUpperCase() ?? '?'}</span>
 );
 
-// The ⋯ button and its menu.
-// A row's further actions behind a dots button; `vertical` stands the dots up, as the design does on some pages.
+// A list that opens over everything (into <body>, so no scrolling box clips it): a click outside it or its button,
+// scrolling, resizing or leaving the window closes it.
+export function useDismiss(open: boolean, parts: RefObject<HTMLElement | null>[], close: () => void){
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: Event) => { if (!parts.some(p => p.current?.contains(e.target as Node))) close(); };
+    document.addEventListener('mousedown', outside);
+    // A scroll that brought the field into view as it was clicked is reported a frame later; only later ones close it.
+    const frame = requestAnimationFrame(() => document.addEventListener('scroll', outside, true));
+    window.addEventListener('resize', close);
+    window.addEventListener('blur', close);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('mousedown', outside); document.removeEventListener('scroll', outside, true);
+      window.removeEventListener('resize', close); window.removeEventListener('blur', close);
+    };
+  }, [open]);
+}
+
+// A row's further actions behind a dots button; `vertical` stands the dots up, as the design does on some pages. The
+// menu opens below the button, or above it near the window's bottom; arrow keys move through it, Escape gives the
+// focus back to the button.
+const MENU_W = 200;
 export function MoreMenu({ label, items, vertical }: { label: string; items: { label: string; onClick(): void; danger?: boolean; disabled?: boolean }[]; vertical?: boolean }){
-  const [open, setOpen] = useState(false);
-  const ref = useOutsideClose(open, () => setOpen(false));
+  const [at, setAt] = useState<{ left: number; top?: number; bottom?: number } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const close = (focus = false) => { setAt(null); if (focus) btn.current?.focus(); };
+  useDismiss(!!at, [btn, menu], () => close());
+  useEffect(() => { if (at) menu.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus(); }, [at]);
+  function open(){
+    const r = btn.current!.getBoundingClientRect(), h = items.length * 38 + 14;
+    const up = innerHeight - r.bottom < h + 8 && r.top > h + 8;
+    setAt({ left: Math.max(8, Math.min(r.right - MENU_W, innerWidth - MENU_W - 8)), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
+  }
+  function key(e: KeyEvent){
+    const all = [...menu.current!.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')], i = all.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'Escape' || e.key === 'Tab'){ e.stopPropagation(); if (e.key === 'Escape') e.preventDefault(); close(e.key === 'Escape'); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); all[(i + (e.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length]?.focus(); }
+    else if (e.key === 'Home' || e.key === 'End'){ e.preventDefault(); (e.key === 'Home' ? all[0] : all.at(-1))?.focus(); }
+  }
   return (
-    <div className="d-more" ref={ref}>
-      <button type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}><Icon name={vertical ? 'moreV' : 'more'} /></button>
-      {open && (
-        <div className="menu" role="menu">
+    <div className="d-more">
+      <button ref={btn} type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={!!at} onClick={() => (at ? close() : open())}><Icon name={vertical ? 'moreV' : 'more'} /></button>
+      {at && createPortal(
+        <div ref={menu} className="menu pop-menu" role="menu" aria-label={label} style={{ ...at, width: MENU_W }} onKeyDown={key}>
           {items.map(i => (
-            <button key={i.label} className={`menu-item${i.danger ? ' danger' : ''}`} type="button" role="menuitem" disabled={i.disabled} onClick={() => { setOpen(false); i.onClick(); }}>{i.label}</button>
+            <button key={i.label} className={`menu-item${i.danger ? ' danger' : ''}`} type="button" role="menuitem" tabIndex={-1} disabled={i.disabled} onClick={() => { close(); i.onClick(); }}>{i.label}</button>
           ))}
-        </div>
-      )}
+        </div>, document.body)}
     </div>
   );
 }
@@ -143,19 +185,6 @@ export function MoreMenu({ label, items, vertical }: { label: string; items: { l
 export function CopyBtn({ text, label, done }: { text: string; label: string; done: string }){
   const toast = useToast();
   return <button type="button" className="icon-btn bare copy-btn" aria-label={label} title={label} onClick={() => void navigator.clipboard.writeText(text).then(() => toast(done))}><Icon name="copy" /></button>;
-}
-
-// A record's details in a centred dialog over the page. Escape closes it, unless a dialog opened from it is on top.
-export function DetailDialog({ label, onClose, children }: { label: string; onClose(): void; children: ReactNode }){
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !document.querySelector('.modal')) onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-  return <>
-    <div className="scrim" onClick={onClose} />
-    <div className="detail" role="dialog" aria-modal="true" aria-label={label}>{children}</div>
-  </>;
 }
 
 // How a page shows its items (rows, cards, a calendar), remembered on this computer.
@@ -196,7 +225,10 @@ export const useToast = () => useContext(ToastContext);
 const NoticeContext = createContext<(notice: ReactNode) => void>(() => {});
 export const useNotice = () => useContext(NoticeContext);
 
+// News of something done goes after 3 seconds (8 when it offers an action); a failure stays, with a close button,
+// until it is closed (delivery spec 6). The stack sits in <body>, above dialogs and usable while one is open.
 export function Toasts({ children }: { children: ReactNode }){
+  const d = useDict();
   const [list, setList] = useState<ToastItem[]>([]);
   const [notice, setNotice] = useState<ReactNode>(null);
   const seq = useRef(0);
@@ -204,24 +236,26 @@ export function Toasts({ children }: { children: ReactNode }){
   const push = useCallback<Push>((msg, action, tone) => {
     const id = ++seq.current, actions = action ? [action].flat() : [];
     setList(l => [...l.slice(-2), { id, msg, actions, tone }]);
-    setTimeout(() => drop(id), actions.length ? 8000 : 4500);
+    if (!tone) setTimeout(() => drop(id), actions.length ? 8000 : 3000);
   }, []);
   return (
     <ToastContext.Provider value={push}>
       <NoticeContext.Provider value={setNotice}>
         {children}
-        <div className="toasts" aria-live="polite">
-          {notice}
-          {list.map(t => (
-            <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}${t.actions.length > 1 ? ' two' : ''}`} role="status">
-              <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'bang' : 'check'} /></span>
-              <span>{t.msg}</span>
-              {t.actions.length > 0 && <span className="t-acts">{t.actions.map(a => (
-                <button key={a.label} type="button" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>
-              ))}</span>}
-            </div>
-          ))}
-        </div>
+        {createPortal(
+          <div className="toasts" aria-live="polite">
+            {notice}
+            {list.map(t => (
+              <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}${t.actions.length > 1 ? ' two' : ''}`} role={t.tone ? 'alert' : 'status'}>
+                <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'bang' : 'check'} /></span>
+                <span>{t.msg}</span>
+                {t.actions.length > 0 && <span className="t-acts">{t.actions.map(a => (
+                  <button key={a.label} type="button" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>
+                ))}</span>}
+                {t.tone && <button type="button" className="t-x" aria-label={d.common.close} title={d.common.close} onClick={() => drop(t.id)}><Icon name="x" /></button>}
+              </div>
+            ))}
+          </div>, document.body)}
       </NoticeContext.Provider>
     </ToastContext.Provider>
   );
@@ -232,41 +266,158 @@ export function Toasts({ children }: { children: ReactNode }){
 // warn: a change that can be undone or is harmless; bad: one that can't be undone; good: a welcome one; info: a step.
 // A long one (a form) brings its own .m-body; `wide` gives a big form room for a preview beside it.
 const KIND_ICONS = { warn: 'alert', bad: 'alert', good: 'check', info: 'info' } as const;
-export function Modal({ title, sub, closeLabel, onClose, foot, kind, wide, children }: { title: string; sub?: ReactNode; closeLabel: string; onClose(): void; foot?: ReactNode; kind?: keyof typeof KIND_ICONS; wide?: boolean; children: ReactNode }){
+// The dialogs open, the newest last: only the newest one answers Escape and keeps Tab inside it, and the page behind
+// them is inert while any is open (delivery spec 7).
+const stack: string[] = [];
+const FOCUSABLE = 'a[href],button:not(:disabled),input:not(:disabled):not([type="hidden"]),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])';
+// What a dialog's contents can reach: closing it the way its × does, and holding it open while a request runs.
+const ModalContext = createContext<{ close(): void; hold(on: boolean): void; locked: boolean }>({ close: () => {}, hold: () => {}, locked: false });
+// While `busy` (or an Act inside runs) the scrim, Escape, × and Cancel don't close it; with `dirty` changes they ask
+// first whether to discard them.
+export function Modal({ title, sub, onClose, foot, kind, wide, busy, dirty, children }: { title: string; sub?: ReactNode; onClose(): void; foot?: ReactNode; kind?: keyof typeof KIND_ICONS; wide?: boolean; busy?: boolean; dirty?: boolean; children: ReactNode }){
+  const d = useDict();
   const id = useId();
+  const box = useRef<HTMLDivElement>(null);
+  // What opened it: whatever had the focus when it first rendered, before a field in it took the focus (autoFocus).
+  const opener = useRef(document.activeElement as HTMLElement | null);
+  const [held, setHeld] = useState(0);
+  const [asking, setAsking] = useState(false);
+  const locked = !!busy || held > 0;
+  const close = () => { if (locked) return; if (dirty) setAsking(true); else onClose(); };
+  const closeNow = useRef(close);
+  closeNow.current = close;
+  const ctx = useMemo(() => ({ close: () => closeNow.current(), hold: (on: boolean) => setHeld(n => n + (on ? 1 : -1)), locked }), [locked]);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const el = box.current!, before = opener.current, root = document.getElementById('root');
+    stack.push(id);
+    if (root) root.inert = true;
+    // Focus goes in, unless a field has taken it (autoFocus): the first field, else Cancel for a change that can't be
+    // undone, else the dialog's main button.
+    if (!el.contains(document.activeElement)){
+      const buttons = [...el.querySelectorAll<HTMLElement>('.m-foot button:not(:disabled)')];
+      (el.querySelector<HTMLElement>('.m-body :is(input:not([type="hidden"]),textarea,.sel):not(:disabled)') ?? (kind === 'bad' ? buttons[0] : buttons.at(-1)) ?? el).focus();
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (stack.at(-1) !== id) return;
+      if (e.key === 'Escape'){ e.preventDefault(); closeNow.current(); return; }
+      if (e.key !== 'Tab') return;
+      const all = [...el.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(x => x.getClientRects().length > 0);
+      const at = document.activeElement;
+      if (!all.length){ e.preventDefault(); el.focus(); }
+      else if (!el.contains(at) || (e.shiftKey ? at === all[0] : at === all.at(-1))){ e.preventDefault(); (e.shiftKey ? all.at(-1)! : all[0]).focus(); }
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-  return (
-    <>
-      <div className="scrim modal-scrim" onClick={onClose} />
-      <div className={`modal${kind ? ' short' : wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id}>
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      stack.splice(stack.indexOf(id), 1);
+      if (root && !stack.length) root.inert = false;
+      if (before?.isConnected) before.focus();
+    };
+  }, []);
+
+  const x = <button className={`icon-btn bare${kind ? ' m-close' : ''}`} type="button" aria-label={d.common.close} title={d.common.close} disabled={locked} onClick={close}><Icon name="x" /></button>;
+  return createPortal(
+    <ModalContext.Provider value={ctx}>
+      <div className="scrim" onClick={close} />
+      <div ref={box} className={`modal${kind ? ' short' : wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1}>
         {kind ? <>
-          <button className="icon-btn bare m-close" type="button" aria-label={closeLabel} title={closeLabel} onClick={onClose}><Icon name="x" /></button>
+          {x}
           <div className="m-body"><span className={`m-icon ${kind}`} aria-hidden="true"><Icon name={KIND_ICONS[kind]} /></span><h2 id={id}>{title}</h2>{children}</div>
         </> : <>
-          <div className="m-head">
-            {sub ? <div><h2 id={id}>{title}</h2><p className="m-sub">{sub}</p></div> : <h2 id={id}>{title}</h2>}
-            <button className="icon-btn bare" type="button" aria-label={closeLabel} title={closeLabel} onClick={onClose}><Icon name="x" /></button>
-          </div>
+          <div className="m-head">{sub ? <div><h2 id={id}>{title}</h2><p className="m-sub">{sub}</p></div> : <h2 id={id}>{title}</h2>}{x}</div>
           {children}
         </>}
         {foot && <div className="m-foot">{foot}</div>}
       </div>
-    </>
+      {asking && <Discard onKeep={() => setAsking(false)} onDiscard={onClose} />}
+    </ModalContext.Provider>, document.body);
+}
+
+// A dialog's Cancel (or Close): it closes the dialog the way its × does, so it asks before dropping changes and waits
+// while a request runs.
+export function Cancel({ label }: { label?: string }){
+  const d = useDict(), m = useContext(ModalContext);
+  return <button type="button" className="btn btn-secondary" disabled={m.locked} onClick={m.close}>{label ?? d.common.cancel}</button>;
+}
+
+// Unsaved changes: keep editing, or drop them and go on.
+function Discard({ onKeep, onDiscard }: { onKeep(): void; onDiscard(): void }){
+  const d = useDict();
+  return (
+    <Modal kind="warn" title={d.common.discardTitle} onClose={onKeep} foot={<>
+      <button type="button" className="btn btn-secondary" onClick={onKeep} autoFocus>{d.common.keepEditing}</button>
+      <button type="button" className="btn btn-danger solid" onClick={onDiscard}>{d.common.discard}</button>
+    </>}><p>{d.common.discardNote}</p></Modal>
+  );
+}
+
+// A page with changes not saved yet (settings, a flow, a role) says so with useLeave(dirty); leaving it, by the rail
+// (which goes through useGuard) or by its own back button (the function useLeave returns), asks first.
+const LeaveContext = createContext<{ dirty(on: boolean): void; leave(go: () => void): void }>({ dirty: () => {}, leave: go => go() });
+export function useLeave(dirty: boolean){
+  const l = useContext(LeaveContext);
+  useEffect(() => { l.dirty(dirty); return () => l.dirty(false); }, [dirty]);
+  return l.leave;
+}
+export const useGuard = () => useContext(LeaveContext).leave;
+
+// Whether a form's fields differ from what they were when it opened (a dialog's `dirty`).
+export function useChanged(fields: Record<string, unknown>){
+  const [first] = useState(fields);
+  return Object.keys(fields).some(k => fields[k] !== first[k]);
+}
+export function LeaveGuard({ children }: { children: ReactNode }){
+  const dirty = useRef(false);
+  const [pending, setPending] = useState<{ go(): void } | null>(null);
+  const value = useMemo(() => ({ dirty: (on: boolean) => { dirty.current = on; }, leave: (go: () => void) => { if (dirty.current) setPending({ go }); else go(); } }), []);
+  return (
+    <LeaveContext.Provider value={value}>
+      {children}
+      {pending && <Discard onKeep={() => setPending(null)} onDiscard={() => { dirty.current = false; setPending(null); pending.go(); }} />}
+    </LeaveContext.Provider>
   );
 }
 
 // A button that sends a request when pressed (a confirmation's action, mostly): while it runs, a spinner takes the
-// label's place, the width stays, and it takes no more clicks. Forms with a busy state of their own mark their submit
-// button aria-busy for the same look.
-export function Act({ run, className, disabled, children }: { run(): Promise<unknown>; className: string; disabled?: boolean; children: ReactNode }){
+// label's place, the width stays, it takes no more clicks, and its dialog can't be closed. Forms with a busy state of
+// their own mark their submit button aria-busy for the same look, and pass `busy` to their dialog.
+export function Act({ run, className, disabled, title, children }: { run(): Promise<unknown>; className: string; disabled?: boolean; title?: string; children: ReactNode }){
   const [busy, setBusy] = useState(false);
+  const { hold } = useContext(ModalContext);
   return (
-    <button type="button" className={className} disabled={disabled || busy} aria-busy={busy || undefined}
-      onClick={() => { setBusy(true); void run().finally(() => setBusy(false)); }}>{children}</button>
+    <button type="button" className={className} disabled={disabled || busy} aria-busy={busy || undefined} title={title}
+      onClick={() => { setBusy(true); hold(true); void run().finally(() => { setBusy(false); hold(false); }); }}>{children}</button>
+  );
+}
+
+// Tabs (the chosen one underlined in the brand colour): arrow keys, Home and End move between them, and only the
+// chosen one is in the Tab order. Each tab has its name and, when `count` gives one, a number. `after` sits in the bar
+// beside them without being a tab (the profiles page's link to the Trash).
+export function Tabs<T extends string>({ label, value, tabs, name, count, onChange, className, after }: {
+  label: string; value: T; tabs: readonly NoInfer<T>[]; name(t: NoInfer<T>): ReactNode; count?(t: NoInfer<T>): number | null | false; onChange(v: NoInfer<T>): void; className?: string; after?: ReactNode;
+}){
+  const list = useRef<HTMLDivElement>(null);
+  function key(e: KeyEvent){
+    const i = Math.max(0, tabs.indexOf(value)), n = tabs.length;
+    const to = ({ ArrowRight: (i + 1) % n, ArrowLeft: (i + n - 1) % n, Home: 0, End: n - 1 } as Record<string, number>)[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    onChange(tabs[to]);
+    list.current?.querySelectorAll<HTMLElement>('[role="tab"]')[to]?.focus();
+  }
+  // A filter no tab stands for (the profiles page's problems or favourites) leaves the first one to Tab to.
+  const stop = tabs.includes(value) ? value : tabs[0];
+  return (
+    <div className={`tabs${className ? ` ${className}` : ''}`}>
+      <div ref={list} className="tab-list" role="tablist" aria-label={label} onKeyDown={key}>
+        {tabs.map(t => {
+          const n = count?.(t);
+          return <button key={t} type="button" role="tab" aria-selected={t === value} tabIndex={t === stop ? 0 : -1} onClick={() => onChange(t)}>{name(t)}{n != null && n !== false && <small>{n}</small>}</button>;
+        })}
+      </div>
+      {after}
+    </div>
   );
 }
 
@@ -301,6 +452,61 @@ export const LoadFailed = ({ d, code, admin, onRetry }: { d: Dict; code?: string
   : <Empty icon="alertTri" tone="bad" title={d.common.loadFailed} text={d.states.loadFailedText}>
       <button type="button" className="btn btn-sm btn-secondary" onClick={onRetry}>{d.common.loadRetry}</button>
     </Empty>);
+// Grey bars where a table's rows will be, until its list has loaded (delivery spec 5); `check` when the table starts
+// with a checkbox column.
+export const SkelRows = ({ cols, check, rows = 5 }: { cols: number; check?: boolean; rows?: number }) => <>{Array.from({ length: rows }, (_, i) => (
+  <tr key={i} className="skel" aria-hidden="true">
+    {check && <td className="cb"><i /></td>}
+    {Array.from({ length: cols - (check ? 1 : 0) }, (_, j) => <td key={j}><i className={j ? 'w3' : 'w2'} /></td>)}
+  </tr>
+))}</>;
+// The left edge of the detail panel beside a list (delivery spec 2: 360 wide, 320 to 420 by hand): drag it, or press
+// the arrow keys on it. The width is kept on this computer (applyInspector puts it back when the workbench opens).
+const INSPECTOR = 'folio.inspector';
+const inspector = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--inspector')) || 360;
+export function applyInspector(){
+  try { const w = Number(localStorage.getItem(INSPECTOR)); if (w >= 320 && w <= 420) document.documentElement.style.setProperty('--inspector', `${w}px`); } catch { /* the default width */ }
+}
+export function PanelEdge(){
+  const d = useDict();
+  const [w, setW] = useState(inspector);
+  const [dragging, setDragging] = useState(false);
+  const set = (to: number) => {
+    const v = Math.round(Math.min(420, Math.max(320, to)));
+    document.documentElement.style.setProperty('--inspector', `${v}px`);
+    setW(v);
+    try { localStorage.setItem(INSPECTOR, String(v)); } catch { /* this session only */ }
+  };
+  function down(e: PointerDown<HTMLDivElement>){
+    const start = e.clientX, from = inspector();
+    setDragging(true);
+    const move = (m: PointerEvent) => set(from + start - m.clientX);
+    const up = () => { setDragging(false); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+  return <div className={`panel-edge${dragging ? ' on' : ''}`} role="separator" aria-orientation="vertical" aria-label={d.common.resize} aria-valuemin={320} aria-valuemax={420} aria-valuenow={w} tabIndex={0}
+    onPointerDown={down} onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight'){ e.preventDefault(); set(inspector() + (e.key === 'ArrowLeft' ? 20 : -20)); } }} />;
+}
+
+// A list that hasn't loaded yet, in the shape it will have: grey rows in a table, or grey cards.
+export const Loading = ({ cards, cols = 6 }: { cards?: boolean; cols?: number }) => (cards
+  ? <ul className="skel-list skel-cards" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <li key={i}><i className="w2" /><i /><i className="w3" /></li>)}</ul>
+  : <div className="tw"><table><tbody><SkelRows cols={cols} /></tbody></table></div>);
+
+// A page whose own list loaded while one it draws on didn't (the profiles' proxies or groups): a line above the table
+// says which and loads them again, so a gap never passes for the whole picture (delivery spec 5, partial results).
+export function PartialFailed({ d, data, kinds }: { d: Dict; data: WorkspaceData; kinds: Kind[] }){
+  const missing = kinds.filter(k => data.loadFailed.has(k) && data.loadFailed.get(k) !== 'forbidden');
+  if (!missing.length) return null;
+  return (
+    <p className="notice warn partial" role="status"><Icon name="alertTri" />
+      <span>{d.states.partial(missing.map(k => d.states.lists[k]).join(d.states.listSep))}</span>
+      <button type="button" className="linkish" onClick={() => data.refresh(...missing)}>{d.common.retry}</button>
+    </p>
+  );
+}
+
 // One of the workspace's lists, when its last load failed.
 export const ListFailed = ({ d, data, kind }: { d: Dict; data: WorkspaceData; kind: Kind }) => (
   <LoadFailed d={d} code={data.loadFailed.get(kind)} admin={data.admin} onRetry={() => data.refresh(kind)} />

@@ -119,7 +119,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await choose(bulk.getByRole('combobox', { name: 'More' }), 'Tag');
   await bulk.getByRole('textbox', { name: 'Tag name' }).fill('vip');
   await bulk.getByRole('button', { name: 'Add tag' }).click();
-  await expect(row(win, 'P-2').locator('.tag')).toHaveText('vip');
+  await expect(row(win, 'P-2').locator('.badge')).toHaveText('vip');
 
   await choose(bulk.getByRole('combobox', { name: 'More' }), 'Delete');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
@@ -130,14 +130,14 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Delete');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
-  await win.getByRole('button', { name: /^Trash/ }).click();
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Trash' }).click();
   await expect(row(win, 'P-1').or(win.locator('tr[data-id]', { hasText: 'P-1' }))).toBeVisible();
 
   // Fill the plan (2 active + 3 = 5 of 5): restoring no longer fits.
   await acct.api.post(`${base}/profiles/bulk`, { data: { profiles: ['P-4', 'P-5', 'P-6'].map(n => chromiumProfile(n)) } });
   const trashed = win.locator('tr[data-id]', { hasText: 'P-1' });
   await trashed.getByRole('button', { name: 'Restore' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'no room for more profiles' })).toBeVisible();
+  await expect(win.getByRole('alert').filter({ hasText: 'no room for more profiles' })).toBeVisible();
   await trashed.getByRole('button', { name: 'Delete permanently' }).click();
   // Deleting permanently asks for the profile's name.
   const purge = win.getByRole('dialog', { name: 'Permanently delete 1 profile?' });
@@ -164,7 +164,7 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await pi.getByRole('textbox', { name: 'Naming' }).fill('Ops-{n}');
   await pi.getByRole('button', { name: 'Import 2 proxies' }).click();
   // Lines that couldn't be read make it a partly failed job, which the task center explains.
-  await expect(win.getByRole('status').filter({ hasText: 'Import proxies: 2 done, 2 failed' })).toBeVisible();
+  await expect(win.getByRole('alert').filter({ hasText: 'Import proxies: 2 done, 2 failed' })).toBeVisible();
   await expect(pi).toBeHidden();
   // Proxies show as a table first, named from the pattern.
   await expect(win.locator('tr[data-id]')).toHaveCount(2);

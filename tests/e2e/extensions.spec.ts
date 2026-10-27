@@ -57,13 +57,14 @@ test('extensions from a store or a file reach the profiles of their engine, and 
 
   // Chromium from the Chrome Web Store, Firefox from a file.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Extensions' }).click();
-  await win.getByRole('button', { name: 'Add extension' }).click();
+  // The header's button (an empty library offers the same one).
+  await win.locator('header.bar').getByRole('button', { name: 'Add extension' }).click();
   let dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('button', { name: 'Chrome Web Store' }).click();
   await dialog.getByLabel('Link or extension ID').fill('https://chromewebstore.google.com/detail/shop-helper/abcdefghijklmnopabcdefghijklmnop');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper added to the library' })).toBeVisible();
-  await win.getByRole('button', { name: 'Add extension' }).click();
+  await win.locator('header.bar').getByRole('button', { name: 'Add extension' }).click();
   dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
   await dialog.getByLabel('Choose a file…').setInputFiles({ name: 'helper.xpi', mimeType: 'application/x-xpinstall', buffer: firefox('1.0') });
@@ -71,7 +72,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await expect(win.locator('[data-extension="Shop Helper FF"]')).toContainText('1.0');
   // A new version from addons.mozilla.org keeps the add-on's identity.
   await win.locator('[data-extension="Shop Helper FF"]').getByRole('button', { name: 'More actions' }).click();
-  await win.locator('[data-extension="Shop Helper FF"]').getByRole('menuitem', { name: 'New version' }).click();
+  await win.getByRole('menuitem', { name: 'New version' }).click();
   dialog = win.getByRole('dialog', { name: 'New version of Shop Helper FF' });
   await dialog.getByRole('button', { name: 'addons.mozilla.org' }).click();
   await dialog.getByLabel('Link to the add-on (or its short name)').fill('https://addons.mozilla.org/en-US/firefox/addon/shop-helper/');
@@ -90,7 +91,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(form).toHaveCount(0);
   await backToList(win);
-  await win.getByLabel('Select all shown').check();
+  await win.getByLabel('Select this page').check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Shop Helper FF · Firefox');
   await expect(win.getByRole('status').filter({ hasText: 'Shop Helper FF installed in 1 profile; 1 skipped' })).toBeVisible();
 
@@ -118,7 +119,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   const win2 = await logIn(other, acct.email);
   await expect(win2.getByRole('navigation', { name: 'Main' })).toBeVisible();
   expect(await opened(win2, cr.id)).toMatchObject({ state: 'running', extensionErrors: ['Shop Helper'] });
-  await expect(win2.getByRole('status').filter({ hasText: 'Shop-CR opened without Shop Helper: it didn’t pass the integrity check.' })).toBeVisible();
+  await expect(win2.getByRole('alert').filter({ hasText: 'Shop-CR opened without Shop Helper: it didn’t pass the integrity check.' })).toBeVisible();
   expect(await helper(other, cr.id, stores.page)).toBeNull();
   await other.close();
   await stores.close();

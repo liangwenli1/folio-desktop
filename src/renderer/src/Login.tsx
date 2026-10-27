@@ -49,9 +49,9 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
 
   const [us, uk, jp] = d.login.demo;
   const cards = [
-    { cc: 'US', kernel: 'chromium' as const, name: us[0], where: `${us[1]} · Chromium 150`, st: <span className="st run"><Icon name="play" />{P.st.running}<span className="sub">1:42:10</span></span> },
-    { cc: 'GB', kernel: 'firefox' as const, name: uk[0], where: `${uk[1]} · Firefox 156`, st: <span className="st boot"><span className="spin" />{P.stage.restore}<span className="sub">3 / 4</span></span> },
-    { cc: 'JP', kernel: 'chromium' as const, name: jp[0], where: `${jp[1]} · Chromium 150`, st: <span className="st idle"><Icon name="pause" />{P.st.idle}</span> }
+    { cc: 'US', kernel: 'chromium' as const, name: us[0], where: `${us[1]} · Chromium 150`, st: <span className="badge good"><Icon name="play" />{P.st.running}<span className="sub">1:42:10</span></span> },
+    { cc: 'GB', kernel: 'firefox' as const, name: uk[0], where: `${uk[1]} · Firefox 156`, st: <span className="badge info"><span className="spin" />{P.stage.restore}<span className="sub">3 / 4</span></span> },
+    { cc: 'JP', kernel: 'chromium' as const, name: jp[0], where: `${jp[1]} · Chromium 150`, st: <span className="badge"><Icon name="pause" />{P.st.idle}</span> }
   ];
 
   return (

@@ -14,7 +14,7 @@ import { Icon, useToast } from './ui';
 export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
   const W = d.windowSync;
   const toast = useToast();
-  const profiles = data.profiles ?? [];
+  const profiles = data.profiles;
   const name = new Map(profiles.map(p => [p.id, p.name]));
   const [picked, setPicked] = useState<string[]>([]);
   const [leader, setLeader] = useState<string | null>(null);
@@ -105,7 +105,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
               ))}
             </ul>
             {opts && <div className="wbar plain"><Options d={d} opts={opts} onChange={change} /></div>}
-            <div className="d-actions"><button type="button" className="btn btn-primary" disabled={picked.length < 2 || busy} onClick={() => void start()}>{busy ? W.starting : W.start(picked.length)}</button></div>
+            <div className="d-actions"><button type="button" className="btn btn-primary" disabled={picked.length < 2 || busy} aria-busy={busy || undefined} onClick={() => void start()}>{W.start(picked.length)}</button></div>
           </section>
         )}
       </main>
@@ -152,11 +152,11 @@ function Windows({ d, sync, profiles, country }: { d: Dict; sync: WindowSync; pr
             <header className="win-h">
               {p && <Flag country={country(m.id)} kernel={p.kernel} />}
               <b>{p?.name}</b>
-              {lead && <span className="lead-tag">{W.leaderTag}</span>}
+              {lead && <span className="badge good">{W.leaderTag}</span>}
               <span className="sp" />
               {lead ? <span className="hint">{W.workHere}</span>
-                : m.issue ? <span className="st bad"><Icon name="alert" />{m.issue === 'coords' ? W.notFound(null) : W.failed}</span>
-                : <span className="st run"><Icon name="check" />{W.inSync}</span>}
+                : m.issue ? <span className="badge bad"><Icon name="alert" />{m.issue === 'coords' ? W.notFound(null) : W.failed}</span>
+                : <span className="badge good"><Icon name="check" />{W.inSync}</span>}
               {!lead && <button type="button" className="btn btn-sm btn-text" onClick={() => void folio.setSyncLeader(m.id)}>{W.makeLeader}</button>}
             </header>
             <div className="win-shot">

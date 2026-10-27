@@ -8,12 +8,13 @@ import { ActivityTable, dayLabel, said, time, useActivity } from './Activity';
 import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
 import { runTime, type Dict, type Lang } from './i18n';
-import { Empty, Icon, MoreMenu, Progress, bytes, percent, type IconName } from './ui';
+import { Empty, Icon, MoreMenu, Progress, Tabs, bytes, percent, type IconName } from './ui';
 import { Flag, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
 import { CookiesTab } from './ProfileCookies';
 import { Pager } from './Pager';
 import type { Risk } from './risks';
+import { useTrail } from './TopBar';
 
 interface Props {
   d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; p: Profile; h: Health; status?: ProfileStatus; progress?: KernelProgress; now: number;
@@ -88,17 +89,15 @@ export function ProfileDetail(props: Props){
     chip = failed ? <span className="dot-st bad">{d.launch[failed] ?? d.launch.launch_failed}</span> : <span className="dot-st idle">{P.tabs.stopped}</span>;
   }
 
+  useTrail([{ label: P.title, go: onBack }, { label: p.name }], `${p.id}:${p.name}`);
   return (
     <div className="page">
       <main className="main pd" aria-label={D.profile}>
-        <nav className="crumbs" aria-label={D.crumbs}>
-          <button type="button" onClick={onBack}>{P.title}</button><Icon name="chevR" /><span aria-current="page">{p.name}</span>
-        </nav>
         <header className="pd-head">
           <div className="pd-t">
             <div className="pd-n">
               <h1 data-testid="detail-name">{p.name}</h1>{chip}
-              {h.level !== 'ok' && <button type="button" className={`verdict ${h.level}`} onClick={() => show('fingerprint')}>{D.verdict[h.level]}</button>}
+              {h.level !== 'ok' && <button type="button" className={`badge ${h.level}`} onClick={() => show('fingerprint')}>{D.verdict[h.level]}</button>}
               <button type="button" className={`icon-btn bare star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
             </div>
             <p className="pd-sub"><span className="mono">{number}</span>{group && <><span className="sep" aria-hidden="true" /><span className={`gtag gc-${group.color}`}>{group.name}</span></>}</p>
@@ -122,9 +121,7 @@ export function ProfileDetail(props: Props){
         )}
         {(status || downloading) && status?.state !== 'running' && status?.state !== 'saving' && <Opening d={d} p={p} h={h} status={status} progress={downloading ? progress : undefined} />}
 
-        <div className="tabs page-tabs" role="tablist" aria-label={D.profile}>
-          {TABS.map(t => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => show(t)}>{D.tabs[t]}</button>)}
-        </div>
+        <Tabs className="page-tabs" label={D.profile} value={tab} tabs={TABS} name={t => D.tabs[t]} onChange={show} />
         <div className="pd-body">
           {tab === 'overview' && <Overview {...props} entries={recent.entries} onTab={show} onShowProxy={onShowProxy} />}
           {seen.has('fingerprint') && (
@@ -178,7 +175,7 @@ function Overview({ d, lang, p, h, group, owner, extensions, busy, entries, fail
           <dt>{D.fields.name}</dt><dd>{p.name}</dd>
           <dt>{D.fields.number}</dt><dd className="mono">#{String(p.number).padStart(4, '0')}</dd>
           <dt>{d.form.group}</dt><dd>{group?.name ?? d.groups.none}</dd>
-          {p.tags.length > 0 && <><dt>{d.form.tags}</dt><dd className="tags">{p.tags.map(t => <span key={t} className="tag">{t}</span>)}</dd></>}
+          {p.tags.length > 0 && <><dt>{d.form.tags}</dt><dd className="tags">{p.tags.map(t => <span key={t} className="badge">{t}</span>)}</dd></>}
           <dt>{d.form.owner}</dt><dd data-testid="assigned">{owner ?? d.profiles.unassigned}</dd>
           <dt>{D.fields.engine}</dt><dd>{ENGINES[p.kernel]} {p.kernelVersion}</dd>
           <dt>{D.fields.os}</dt><dd><Icon name={p.os} />{d.os[p.os]}</dd>

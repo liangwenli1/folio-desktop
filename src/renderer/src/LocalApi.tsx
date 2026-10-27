@@ -35,7 +35,7 @@ export function ApiPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Worksp
   const [fresh, setFresh] = useState<string | null>(null);
   const [example, setExample] = useState<Example>('playwright');
   const wsName = new Map([[ws.id, ws.name]]);
-  const sample = data.profiles?.[0];
+  const sample = data.profiles[0];
   const ref = sample ? String(sample.number).padStart(4, '0') : '0001';
   const base = `http://127.0.0.1:${state?.port ?? 47210}`;
 
@@ -149,7 +149,7 @@ await page.goto('https://example.com');`
                 {state.tokens.map(t => (
                   <li key={t.id} data-token={t.name}>
                     <Icon name="key" />
-                    <span><b>{t.name}{t.workspaceId !== ws.id && <span className="tag">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}</b>
+                    <span><b>{t.name}{t.workspaceId !== ws.id && <span className="badge">{wsName.get(t.workspaceId) ?? A.otherWorkspace}</span>}</b>
                       <small>{A.made(day(t.createdAt, lang))} · {t.lastUsedAt ? A.used(day(t.lastUsedAt, lang)) : A.unused}</small></span>
                     <span className="sp" />
                     <button type="button" className="btn btn-sm btn-text" aria-label={A.revokeX(t.name)} onClick={() => void folio.revokeApiToken(t.id).then(setState)}>{A.revoke}</button>

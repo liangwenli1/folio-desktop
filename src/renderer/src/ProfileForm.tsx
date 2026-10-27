@@ -10,7 +10,7 @@ import { time } from './Activity';
 import { ENGINES, latencyTone, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Icon, Modal, Switch, bytes, percent } from './ui';
+import { Cancel, Icon, Modal, Switch, bytes, percent } from './ui';
 import { SEARCH_LOGOS } from './Flag';
 import { Select, SelectField, type Opt } from './Select';
 import { elsewhere } from './ProfileDetail';
@@ -37,7 +37,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   const f = d.form, edit = !!profile, set = ws.settings;
   const manager = can(data.role, MANAGE);
   const savedProxy = !edit && set.defaultProxyId && data.proxies.some(p => p.id === set.defaultProxyId) ? set.defaultProxyId : '';
-  const [name, setName] = useState(profile?.name ?? f.defaultName((data.profiles?.length ?? 0) + 1));
+  const [name, setName] = useState(profile?.name ?? f.defaultName(data.profiles.length + 1));
   const [groupId, setGroupId] = useState(profile ? profile.groupId ?? '' : defaultGroup ?? set.defaultGroupId ?? '');
   const [newGroup, setNewGroup] = useState('');
   // 'kind:version' once picked; a new profile otherwise gets the workspace's default engine, or the recommended one.
@@ -63,7 +63,6 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [asking, setAsking] = useState(false);
 
   // The engine versions offered: every one for this computer (a saved profile keeps its engine, so only its own).
   const avail = data.kernels.filter(k => k.available && (!profile || k.kind === profile.kernel)).sort((a, b) => a.kind.localeCompare(b.kind));
@@ -143,7 +142,6 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   };
   const [opened] = useState(fields);
   const changes = Object.keys(fields).filter(k => fields[k] !== opened[k]).length + (fpd.changed ? 1 : 0);
-  const requestClose = () => { if (busy || asking) return; if (changes) setAsking(true); else onClose(); };
 
   // The rail follows the section in view, and a click on it scrolls there (the rail stays on it while it does).
   const scroller = useRef<HTMLDivElement>(null);
@@ -155,7 +153,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
     if (box.scrollTop + box.clientHeight >= box.scrollHeight - 4){ setAt('launch'); return; }
     setAt(SECS.filter(s => (document.getElementById(`pf-sec-${s}`)?.offsetTop ?? 0) <= box.scrollTop + box.clientHeight / 3).at(-1) ?? 'basic');
   }
-  const goTo = (s: Sec) => { clickedAt.current = Date.now(); setAt(s); document.getElementById(`pf-sec-${s}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const goTo = (s: Sec) => { clickedAt.current = Date.now(); setAt(s); document.getElementById(`pf-sec-${s}`)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); };
 
   async function submit(e: FormEvent){
     e.preventDefault();
@@ -208,13 +206,13 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   const F = d.fp, facts = fpd.facts;
   const followed = (own: string | null, seen: string | undefined) => own ?? seen ?? (pxMode === 'none' ? d.detail.hostTz : f.follow);
 
-  return (<>
-    <Modal wide title={edit ? f.editTitle : f.newTitle} sub={profile && `${profile.name} · #${String(profile.number).padStart(4, '0')}`} closeLabel={d.common.close} onClose={requestClose} foot={<>
+  return (
+    <Modal wide title={edit ? f.editTitle : f.newTitle} sub={profile && `${profile.name} · #${String(profile.number).padStart(4, '0')}`} onClose={onClose} busy={busy} dirty={changes > 0} foot={<>
       {edit
         ? changes > 0 && <span className="pf-dirty"><span className="d warn" aria-hidden="true" /><b>{f.unsaved}</b>{f.changedN(changes)}</span>
         : <span className="hint">{f.createHint}</span>}
       <span className="sp" />
-      <button className="btn btn-secondary" type="button" onClick={requestClose}>{d.common.cancel}</button>
+      <Cancel />
       <button className="btn btn-primary" type="submit" form="profile-form" aria-busy={busy || undefined} disabled={busy || fpd.fp.state !== 'ready' || (edit && !changes)}>{edit ? f.save : f.create}</button>
     </>}>
       {profile && (
@@ -240,12 +238,12 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
             <div className="row2">
               <div className="field">
                 <label htmlFor="pf-name">{f.name}{req}</label>
-                <input id="pf-name" type="text" autoComplete="off" value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus required aria-invalid={!!err('pf-name')} />
-                {err('pf-name') && <p className="err">{err('pf-name')}</p>}
+                <input id="pf-name" type="text" autoComplete="off" value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus required aria-invalid={!!err('pf-name')} aria-describedby={err('pf-name') ? 'pf-name-err' : undefined} />
+                {err('pf-name') && <p className="err" id="pf-name-err">{err('pf-name')}</p>}
               </div>
               <div className="field">
                 <span className="label" id="pf-group">{f.group}</span>
-                <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} searchPh={f.searchPh}
+                <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} search searchPh={f.searchPh} loading={!data.loaded.has('groups')} failed={data.loadFailed.has('groups')} onRetry={() => data.refresh('groups')}
                   options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: NEW_GROUP, label: f.newGroup }]} />
                 {groupId === NEW_GROUP && <input aria-label={f.newGroupPh} placeholder={f.newGroupPh} value={newGroup} onChange={e => setNewGroup(e.target.value)} maxLength={80} />}
               </div>
@@ -272,7 +270,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 <input id="pf-tags" type="text" placeholder={f.tagsPh} value={tags} onChange={e => setTags(e.target.value)} autoComplete="off" />
               </div>
               {manager && (
-                <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} searchPh={f.searchPh}
+                <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} search searchPh={f.searchPh} loading={!data.loaded.has('members')} failed={data.loadFailed.has('members')} onRetry={() => data.refresh('members')}
                   options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} />
               )}
             </div>
@@ -293,9 +291,10 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 <span className="label" id="pf-px-l">{pxMode === 'saved' ? f.pickProxy : f.proxyMode.custom}{req}</span>
                 <div className="pxcheck">
                   {pxMode === 'saved'
-                    ? <Select id="pf-px" labelledBy="pf-px-l" placeholder={f.pickProxy} value={proxyId} onChange={pickProxy} options={proxyOptions} searchPh={f.searchPh} empty={d.states.noMatch} required disabled={locked} />
+                    ? <Select id="pf-px" labelledBy="pf-px-l" placeholder={f.pickProxy} value={proxyId} onChange={pickProxy} options={proxyOptions} search searchPh={f.searchPh} loading={!data.loaded.has('proxies')} failed={data.loadFailed.has('proxies')} onRetry={() => data.refresh('proxies')} required disabled={locked} />
                     : <input id="pf-px" className="mono-in" aria-labelledby="pf-px-l" placeholder={f.pastePh} value={paste} onChange={e => { setPaste(e.target.value); setPxNote(null); }} spellCheck={false} autoComplete="off" required disabled={locked} />}
-                  <button className="btn btn-secondary" type="button" onClick={check} disabled={locked || pxNote?.state === 'checking' || (pxMode === 'saved' ? !proxyId : !paste.trim())}>{d.proxies.test}</button>
+                  <button className="btn btn-secondary" type="button" onClick={check} disabled={locked || pxNote?.state === 'checking' || (pxMode === 'saved' ? !proxyId : !paste.trim())}
+                    title={!locked && (pxMode === 'saved' ? !proxyId : !paste.trim()) ? f.pickProxyFirst : undefined}>{d.proxies.test}</button>
                 </div>
                 {err('pf-px') && !pxNote && <p className="err">{err('pf-px')}</p>}
                 {shownNote && (
@@ -345,8 +344,8 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
           {sec('launch', <>
             <div className="field">
               <label htmlFor="pf-start">{f.startUrl}{opt}</label>
-              <input id="pf-start" type="url" placeholder="https://example.com" value={startUrl} onChange={e => setStartUrl(e.target.value)} spellCheck={false} autoComplete="off" aria-invalid={!!err('pf-start')} />
-              {err('pf-start') ? <p className="err">{err('pf-start')}</p> : <p className="hint">{f.startUrlHint}</p>}
+              <input id="pf-start" type="url" placeholder="https://example.com" value={startUrl} onChange={e => setStartUrl(e.target.value)} spellCheck={false} autoComplete="off" aria-invalid={!!err('pf-start')} aria-describedby="pf-start-msg" />
+              {err('pf-start') ? <p className="err" id="pf-start-msg">{err('pf-start')}</p> : <p className="hint" id="pf-start-msg">{f.startUrlHint}</p>}
             </div>
             <div className="field">
               <span className="label" id="pf-window">{f.window}</span>
@@ -358,12 +357,12 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
               {windowMode === 'custom' && (
                 <div className="win-size">
                   <label htmlFor="pf-width">{f.width}</label>
-                  <span className="unit"><input id="pf-width" inputMode="numeric" value={width} onChange={e => setWidth(e.target.value.trim())} aria-invalid={!!err('pf-width')} /><span aria-hidden="true">px</span></span>
+                  <span className="unit"><input id="pf-width" inputMode="numeric" value={width} onChange={e => setWidth(e.target.value.trim())} aria-invalid={!!err('pf-width')} aria-describedby="pf-window-msg" /><span aria-hidden="true">px</span></span>
                   <label htmlFor="pf-height">{f.height}</label>
-                  <span className="unit"><input id="pf-height" inputMode="numeric" value={height} onChange={e => setHeight(e.target.value.trim())} aria-invalid={!!err('pf-width')} /><span aria-hidden="true">px</span></span>
+                  <span className="unit"><input id="pf-height" inputMode="numeric" value={height} onChange={e => setHeight(e.target.value.trim())} aria-invalid={!!err('pf-width')} aria-describedby="pf-window-msg" /><span aria-hidden="true">px</span></span>
                 </div>
               )}
-              {err('pf-width') ? <p className="err">{err('pf-width')}</p> : <p className="hint">{f.windowHint}</p>}
+              {err('pf-width') ? <p className="err" id="pf-window-msg">{err('pf-width')}</p> : <p className="hint" id="pf-window-msg">{f.windowHint}</p>}
             </div>
             <div className="row2">
               <SelectField label={d.browser.search} value={searchEngine} onChange={v => setSearchEngine(v as SearchEngine)}
@@ -397,12 +396,5 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
         </div>
       </form>
     </Modal>
-    {/* Beside the form, not in it: the form's box would clip it. */}
-    {asking && (
-      <Modal kind="warn" title={f.discardTitle} closeLabel={d.common.close} onClose={() => setAsking(false)} foot={<>
-        <button type="button" className="btn btn-secondary" onClick={() => setAsking(false)} autoFocus>{f.keepEditing}</button>
-        <button type="button" className="btn btn-danger solid" onClick={onClose}>{f.discard}</button>
-      </>}><p>{f.discardNote}</p></Modal>
-    )}
-  </>);
+  );
 }

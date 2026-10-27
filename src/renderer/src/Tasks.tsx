@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Act, Empty, Icon, ListFailed, Modal, Switch, useToast, useView, ViewSwitch, type IconName } from './ui';
+import { Act, Cancel, Empty, Icon, ListFailed, Modal, SkelRows, Switch, ViewSwitch, useChanged, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -37,7 +37,7 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
   const task = open ? data.tasks.find(t => t.id === open) : undefined;
   const scheduledHere = data.tasks.some(t => t.schedule && t.runner?.self);
   const proxies = new Map(data.proxies.map(p => [p.id, p]));
-  const profiles = new Map((data.profiles ?? []).map(p => [p.id, p]));
+  const profiles = new Map(data.profiles.map(p => [p.id, p]));
   const flag = (id: string | null) => {
     const p = id ? profiles.get(id) : undefined;
     return p && <Flag key={p.id} country={(p.proxyId && proxies.get(p.proxyId)?.lastCheck?.geo?.country) || null} kernel={p.kernel} />;
@@ -98,6 +98,7 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
               <tbody>
                 {data.loadFailed.has('tasks')
                   ? <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="tasks" /></td></tr>
+                  : !data.loaded.has('tasks') ? <SkelRows cols={6} />
                   : !data.tasks.length && <tr className="empty"><td colSpan={6}><Empty icon="tasks" title={T.emptyTitle} text={T.empty} /></td></tr>}
                 {data.tasks.map(t => {
                   const here = data.active.find(a => a.taskId === t.id);
@@ -131,8 +132,8 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
             onRerun={ids => void start(shown, 'rerun', ids)} />}
         </>}
         {confirm && (
-          <Modal kind="bad" title={T.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
-            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+          <Modal kind="bad" title={T.confirmDelete(confirm.name)} onClose={() => setConfirm(null)} foot={<>
+            <Cancel />
             <Act className="btn btn-danger solid" run={() => remove(confirm)}>{T.delete}</Act>
           </>}><p>{describeTask(d, lang, confirm)}</p></Modal>
         )}
@@ -176,7 +177,9 @@ function ResultBar({ run }: { run: Run }){
 function RunLine({ d, lang, run, here }: { d: Dict; lang: Lang; run: Run; here: boolean }){
   const T = d.tasks, c = run.counts;
   const nothing = run.status === 'missed' || run.status === 'busy';
-  const tone = run.status === 'running' ? 'good' : c.failed || c.signed_out || run.status === 'interrupted' ? 'bad' : nothing || c.skipped || c.canceled ? 'warn' : 'good';
+  // Under way in blue; some failed (with some done) is a partial failure, amber; all failed is red (delivery spec 6).
+  const fails = c.failed + c.signed_out;
+  const tone = run.status === 'running' ? 'info' : run.status === 'interrupted' || (fails && !c.ok) ? 'bad' : fails || nothing || c.skipped || c.canceled ? 'warn' : 'good';
   return (
     <span className="run-line">
       <span className={`d ${tone}${run.status === 'running' ? ' pulse' : ''}`} aria-hidden="true" />
@@ -189,11 +192,11 @@ function RunLine({ d, lang, run, here }: { d: Dict; lang: Lang; run: Run; here: 
 
 // A run item's result as a status label.
 const ITEM_ST: Record<RunItem['status'], [string, IconName | null]> = {
-  ok: ['run', 'check'], failed: ['bad', 'alert'], signed_out: ['warn', 'alert'], skipped: ['idle', 'pause'], canceled: ['idle', 'pause'], pending: ['idle', 'pause'], running: ['boot', null]
+  ok: ['good', 'check'], failed: ['bad', 'alert'], signed_out: ['warn', 'alert'], skipped: ['', 'pause'], canceled: ['', 'pause'], pending: ['', 'pause'], running: ['info', null]
 };
 const ItemStatus = ({ d, status }: { d: Dict; status: RunItem['status'] }) => {
   const [cls, icon] = ITEM_ST[status];
-  return <span className={`st ${cls}`}>{icon ? <Icon name={icon} /> : <span className="spin" aria-hidden="true" />}{d.tasks.item[status]}</span>;
+  return <span className={`badge ${cls}`}>{icon ? <Icon name={icon} /> : <span className="spin" aria-hidden="true" />}{d.tasks.item[status]}</span>;
 };
 
 // The latest run of a task, profile by profile, with the ones that didn't finish to run again.
@@ -362,7 +365,7 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
               {runs?.map(r => (
                 <li key={r.id}>
                   <button type="button" className={r.id === runId ? 'cur' : ''} aria-current={r.id === runId ? 'true' : undefined} onClick={() => setSel(r.id)}>
-                    <span className="l1"><time className="mono">{when(r.scheduledFor ?? r.startedAt, lang)}</time>{r.trigger !== 'manual' && <span className="tag">{T.triggers[r.trigger]}</span>}</span>
+                    <span className="l1"><time className="mono">{when(r.scheduledFor ?? r.startedAt, lang)}</time>{r.trigger !== 'manual' && <span className="badge">{T.triggers[r.trigger]}</span>}</span>
                     <RunLine d={d} lang={lang} run={r} here={data.active.some(a => a.runId === r.id)} />
                     <span className="l2">{[r.startedBy, r.deviceName].filter(Boolean).join(' · ')}</span>
                   </button>
@@ -456,7 +459,7 @@ const toSchedule = (s: Sched): Schedule | null =>
 function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Workspace; data: WorkspaceData; task?: Task; onClose(): void; onSaved(id: string): void }){
   const T = d.tasks.form;
   const toast = useToast();
-  const profiles = data.profiles ?? [];
+  const profiles = data.profiles;
   const [name, setName] = useState(task?.name ?? '');
   const [flowId, setFlowId] = useState(task?.flowId ?? data.flows[0]?.id ?? '');
   const [ids, setIds] = useState<Set<string>>(() => new Set(task?.profileIds ?? []));
@@ -468,6 +471,7 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
   const [vars, setVars] = useState<{ mode: 'keep' | 'replace' | 'clear'; text: string }>({ mode: task?.hasVariables ? 'keep' : 'replace', text: '' });
   const [stored, setStored] = useState<{ count: number; names: string[] } | null>(null);
   const [saving, setSaving] = useState(false);
+  const dirty = useChanged({ name, flowId, ids: [...ids].sort().join(), concurrency, retries, timeoutMin, sched: JSON.stringify(sched), runHere, vars: JSON.stringify(vars) });
   const picked = profiles.filter(p => ids.has(p.id));
   const parsed = useMemo(() => (vars.mode === 'replace' && vars.text.trim() ? readVariables(vars.text, picked) : null), [vars, ids, profiles]);
   const elsewhere = task?.runner && !task.runner.self ? task.runner : null;
@@ -506,8 +510,8 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
   const toggleDay = (n: number) => setSched(s => ({ ...s, days: s.days.includes(n) ? s.days.filter(x => x !== n) : [...s.days, n] }));
 
   return (
-    <Modal title={task ? T.editTitle : T.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+    <Modal title={task ? T.editTitle : T.newTitle} onClose={onClose} busy={saving} dirty={dirty} foot={<>
+      <Cancel />
       <button className="btn btn-primary" type="button" disabled={blocked} aria-busy={saving || undefined} onClick={() => void save()}>{task ? T.save : T.create}</button>
     </>}>
       <div className="m-body">

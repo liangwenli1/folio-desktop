@@ -151,7 +151,7 @@ export function ZoneField({ d, f, geo, proxied, disabled }: FieldProps & { geo: 
       </div>
       {f.tzFollow
         ? <Followed aria-labelledby={id} value={geo?.timezone ?? (proxied ? F.exitUnknown : d.detail.hostTz)} />
-        : <Select labelledBy={id} value={f.tz} onChange={f.setTz} options={options} search searchPh={F.tzPh} empty={F.tzNone} disabled={disabled} />}
+        : <Select labelledBy={id} value={f.tz} onChange={f.setTz} options={options} search searchPh={F.tzPh} disabled={disabled} />}
     </div>
   );
 }

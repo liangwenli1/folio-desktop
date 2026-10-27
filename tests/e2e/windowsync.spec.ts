@@ -148,7 +148,7 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
-  await win.getByLabel('Select all shown').check();
+  await win.getByLabel('Select this page').check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Sync windows');
   const bar = win.getByRole('status', { name: 'Window sync' });
   // The first in the list (newest first) leads.
@@ -179,7 +179,7 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   const app2 = await launch(dataDir());
   const win2 = await logIn(app2, free.email);
   await expect(win2.locator('tr[data-id]')).toHaveCount(2);
-  await win2.getByLabel('Select all shown').check();
+  await win2.getByLabel('Select this page').check();
   // Window sync is not offered on the Free plan.
   await win2.getByTestId('bulk').getByRole('combobox', { name: 'More' }).click();
   await expect(win2.getByRole('listbox').getByRole('option', { name: 'Sync windows' })).toHaveCount(0);

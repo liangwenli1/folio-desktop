@@ -5,7 +5,7 @@ import { useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { GroupsPage } from './Groups';
 import { JobsPage } from './Jobs';
-import { errorText, roleName, type Dict, type Lang } from './i18n';
+import { day, errorText, roleName, type Dict, type Lang } from './i18n';
 import { planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
@@ -22,8 +22,9 @@ import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
-import { Icon, Mark, Progress, Switch, Toasts, useNotice, useOutsideClose, useToast, type IconName } from './ui';
+import { Icon, LeaveGuard, Mark, Progress, Switch, Toasts, applyInspector, useGuard, useNotice, useOutsideClose, useToast, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
+import { Bell, TopBar, TrailProvider, type Crumb, type Notice } from './TopBar';
 import { Flag } from './Flag';
 import { health } from './checks';
 
@@ -37,7 +38,7 @@ type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 
 type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
 
 export function Workbench(props: Props){
-  return <Toasts><Shell {...props} /></Toasts>;
+  return <Toasts><LeaveGuard><Shell {...props} /></LeaveGuard></Toasts>;
 }
 
 function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Props){
@@ -66,24 +67,27 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     // Taken out of the workspace (or left it): the main process has closed its profiles; show another workspace.
     removed(){ toast(d.team.removedYou(ws.name)); onWorkspace(); },
     launchError(st: ProfileStatus){
-      const p = data.profiles?.find(x => x.id === st.id);
+      const p = data.profiles.find(x => x.id === st.id);
       const why = d.launch[st.error ?? ''] ?? d.launch.launch_failed;
       toast(p ? d.profiles.done.failed(p.name, why) : why, st.error === 'kernel_missing' && p
         ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined, 'bad');
     },
     // The profile opened, but some of its extensions failed their check and were left out.
     extensionErrors(st: ProfileStatus){
-      const p = data.profiles?.find(x => x.id === st.id);
+      const p = data.profiles.find(x => x.id === st.id);
       toast(d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []), undefined, 'bad');
     },
     job(id){ go('jobs'); setJobId(id); }
   });
   useJobNotice(d, data);
-  const used = data.profiles?.length ?? ws.usage.profiles;
-  const editing = dialog?.kind === 'edit' ? data.profiles?.find(p => p.id === dialog.id) : undefined;
+  // Until the list loads, the count the workspace came with.
+  const used = data.loaded.has('profiles') ? data.profiles.length : ws.usage.profiles;
+  const editing = dialog?.kind === 'edit' ? data.profiles.find(p => p.id === dialog.id) : undefined;
   const editingProxy = dialog?.kind === 'proxy' && dialog.id ? data.proxies.find(p => p.id === dialog.id) : undefined;
   const close = () => setDialog(null);
-  const go = (p: Page) => { setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); };
+  // Going to another page (or workspace) asks first when the page has changes not saved yet.
+  const guard = useGuard();
+  const go = (p: Page) => guard(() => { setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); });
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
@@ -93,7 +97,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [focus, setFocus] = useState<Focus | null>(null);
   const [update, setUpdate] = useState<Update | null>(null);
   const [palette, setPalette] = useState(false);
-  useEffect(() => { void folio.update().then(setUpdate); return folio.onUpdate(setUpdate); }, []);
+  // A record's page puts itself after the page's name in the top bar.
+  const [trail, setTrail] = useState<Crumb[] | null>(null);
+  useEffect(() => { void folio.update().then(setUpdate); applyInspector(); return folio.onUpdate(setUpdate); }, []);
   useEffect(() => { void folio.startup().then(setStartup); }, [userOpen]);
   // What the main process shows itself follows the workbench's language.
   useEffect(() => { void folio.setLabels(d.tray); }, [d]);
@@ -124,7 +130,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   function commands(): Command[] {
     const C = d.palette, P = d.profiles;
     const proxies = new Map(data.proxies.map(p => [p.id, p]));
-    const recent = [...(data.profiles ?? [])].sort((a, b) => Number(b.starred) - Number(a.starred) || Number(!!data.status[b.id]) - Number(!!data.status[a.id]) || Date.parse(b.lastOpenedAt ?? b.createdAt) - Date.parse(a.lastOpenedAt ?? a.createdAt));
+    const recent = [...data.profiles].sort((a, b) => Number(b.starred) - Number(a.starred) || Number(!!data.status[b.id]) - Number(!!data.status[a.id]) || Date.parse(b.lastOpenedAt ?? b.createdAt) - Date.parse(a.lastOpenedAt ?? a.createdAt));
     const profiles = recent.flatMap<Command>(p => {
       const h = health(p, proxies, data.kernels), on = data.status[p.id]?.state === 'running';
       const hint = [`#${String(p.number).padStart(4, '0')}`, h.geo?.city ?? h.geo?.countryName, on && P.st.running].filter(Boolean).join(' · ');
@@ -135,26 +141,50 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       return on ? [main, { id: `s:${p.id}`, group: 'profiles', label: C.stop(p.name), hint, icon, run: () => void folio.stopProfile(p.id) }] : [main];
     });
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
+    // A proxy opens its details (on the proxies page, for whoever may see it); a member, the team page.
+    const lines: Command[] = manager ? data.proxies.map(px => ({ id: `px:${px.id}`, group: 'proxies', label: px.name, hint: `${px.host}:${px.port}`, icon: <Icon name="proxies" />, run: () => { go('proxies'); setProxyId(px.id); } })) : [];
+    const people: Command[] = data.members.map(m => ({ id: `m:${m.userId}`, group: 'members', label: m.email, hint: roleName(d, m.role), icon: <Icon name="team" />, run: () => go('team') }));
     return [
-      ...profiles,
+      ...profiles, ...lines, ...people,
       ...(creates ? [act('new', C.newProfile, 'plus', () => { go('profiles'); setDialog({ kind: 'new' }); }, `${mod} N`)] : []),
       ...(manager ? [
         act('import', C.importProfiles, 'upload', () => { go('profiles'); setDialog({ kind: 'import' }); }),
         act('add-proxy', C.addProxy, 'proxies', () => setDialog({ kind: 'proxy' })),
         act('check', C.checkProxies, 'check', () => void data.check(data.proxies.map(p => p.id)))
       ] : []),
-      ...me.workspaces.filter(w => w.id !== ws.id).map(w => act(`ws:${w.id}`, C.switchWs(w.name), 'team', () => { go('profiles'); onSwitch(w.id); })),
+      ...me.workspaces.filter(w => w.id !== ws.id).map(w => act(`ws:${w.id}`, C.switchWs(w.name), 'team', () => guard(() => { go('profiles'); onSwitch(w.id); }))),
       act('lang', C.language, 'proxies', () => void onLang(lang === 'en' ? 'zh' : 'en')),
       ...pages.filter(([, , , ok]) => ok).map(([p, icon, label]) => ({ id: `go:${p}`, group: 'pages' as const, label, icon: <Icon name={icon} />, run: () => go(p) }))
     ];
   }
   const loadInvites = () => folio.api<{ invitations: MyInvitation[] }>('GET', '/me/invitations').then(r => setInvites(r.invitations), () => {});
+  // What the bell holds (the design's in-app notices): the plan ending soon without renewing, for whoever manages the
+  // workspace and has the reminder on; invitations to other workspaces; and batch operations of one's own, from the
+  // last week, that ended with failures.
+  function notices(): Notice[] {
+    const T = d.top, week = 7 * 86_400_000;
+    const end = s.status === 'trialing' ? s.trialEndsAt : s.cancelAtPeriodEnd ? s.currentPeriodEnd : null;
+    const left = end ? Date.parse(end) - Date.now() : -1;
+    const plan: Notice[] = manager && ws.settings.expiryReminder && end && left > 0 && left < week ? [{
+      id: `plan:${end}`, icon: 'alert', tone: 'warn', text: s.status === 'trialing' ? T.trialEnds(day(end, lang)) : T.planEnds(d.plans[s.plan], day(end, lang)),
+      actions: [{ label: s.status === 'trialing' ? T.choosePlan : T.renew, primary: true, run: () => folio.openSite(`${site}/checkout/?ws=${ws.id}`) }]
+    }] : [];
+    const asked: Notice[] = invites.map(i => ({
+      id: `invite:${i.id}`, icon: 'mail', text: T.invited(i.inviter ?? 'Folio', i.workspaceName),
+      actions: [{ label: d.team.join, primary: true, run: () => void answer(i, true) }, { label: d.team.decline, run: () => void answer(i, false) }]
+    }));
+    const failed: Notice[] = data.jobs.filter(j => j.startedById === me.user.id && j.status !== 'running' && j.failed > 0 && Date.now() - Date.parse(j.finishedAt ?? j.createdAt) < week).map(j => ({
+      id: `job:${j.id}:${j.failed}`, icon: 'alertTri', tone: 'bad', text: T.jobFailed(d.jobs.kinds[j.kind], j.failed, j.total), when: day(j.finishedAt ?? j.createdAt, lang),
+      actions: [{ label: d.states.viewTask, run: () => data.showJob(j.id) }]
+    }));
+    return [...plan, ...asked, ...failed];
+  }
   useEffect(() => { void loadInvites(); }, [wsOpen]);
   async function answer(i: MyInvitation, accept: boolean){
     try {
       await folio.api('POST', `/invitations/${i.id}/${accept ? 'accept' : 'decline'}`);
       setWsOpen(false);
-      if (accept){ go('profiles'); onSwitch(i.workspaceId); } else void loadInvites();
+      if (accept) guard(() => { go('profiles'); onSwitch(i.workspaceId); }); else void loadInvites();
     } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
   }
 
@@ -168,8 +198,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         <div className="acc-two">
           <section aria-label={d.user.teams}>
             <p className="acc-t">{d.user.teams}</p>
-            <ul className="acc-list" role="listbox" aria-label={d.ws.switch}>
-              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setUserOpen(false); go('profiles'); onSwitch(w); }} onAnswer={answer} />
+            <ul className="acc-list" aria-label={d.ws.switch}>
+              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setUserOpen(false); guard(() => { go('profiles'); onSwitch(w); }); }} onAnswer={answer} />
             </ul>
             {/* The plan itself lives on the Plan & billing page; this is the way to it. */}
             {manager && (
@@ -198,32 +228,33 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
             )}
             {manager && <>
               <p className="acc-t">{d.user.data}</p>
-              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}><Icon name="upload" />{d.user.exportAll}</button>
-              <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}><Icon name="download" />{d.user.importAll}</button>
+              <button className="menu-item" type="button" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}><Icon name="upload" />{d.user.exportAll}</button>
+              <button className="menu-item" type="button" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}><Icon name="download" />{d.user.importAll}</button>
             </>}
           </section>
         </div>
         <footer className="acc-f">
           <span>Folio {version}</span>
-          <button className="menu-item" type="button" role="menuitem" onClick={() => { setUserOpen(false); void onLogout(); }}><Icon name="logout" />{d.user.logout}</button>
+          <button className="menu-item" type="button" onClick={() => { setUserOpen(false); guard(() => void onLogout()); }}><Icon name="logout" />{d.user.logout}</button>
         </footer>
       </section>
   );
 
   return (
+    <TrailProvider value={setTrail}>
     <div className="app">
       <aside className="side" aria-label={d.ws.current}>
         <div className="brand"><Mark /><span className="brand-word">Folio</span></div>
 
         <div className="ws-wrap" ref={wsRef}>
-          <button className="ws" type="button" aria-haspopup="listbox" aria-expanded={wsOpen} onClick={() => setWsOpen(o => !o)} title={d.ws.switch}>
+          <button className="ws" type="button" aria-expanded={wsOpen} onClick={() => setWsOpen(o => !o)} title={d.ws.switch}>
             <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
             {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
             <Icon name="chev" />
           </button>
           {wsOpen && (
-            <ul className="menu" role="listbox" aria-label={d.ws.switch}>
-              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setWsOpen(false); go('profiles'); onSwitch(w); }} onAnswer={answer} />
+            <ul className="menu" aria-label={d.ws.switch}>
+              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setWsOpen(false); guard(() => { go('profiles'); onSwitch(w); }); }} onAnswer={answer} />
             </ul>
           )}
         </div>
@@ -271,8 +302,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         </div>
       </aside>
 
-      {/* On Windows and macOS this strip is the title bar: it is what the window is dragged by. */}
-      <header className="top" />
+      <TopBar d={d} workspace={ws.name} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
+        <Bell d={d} wsId={ws.id} notices={notices()} />
+      </TopBar>
 
       {shown === 'profiles' && (
         <ProfilesPage d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
@@ -309,6 +341,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {palette && <CommandPalette d={d} commands={commands()} onClose={() => setPalette(false)} />}
       {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
     </div>
+    </TrailProvider>
   );
 }
 
@@ -347,7 +380,7 @@ function NavItem({ icon, label, badge, active, onClick }: { icon: IconName; labe
 function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onPick(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void }){
   return <>
     {me.workspaces.map(w => (
-      <li key={w.id} role="option" aria-selected={w.id === ws.id} className="ws-item">
+      <li key={w.id} className="ws-item">
         <button type="button" className="acc-ws" aria-current={w.id === ws.id} onClick={() => onPick(w.id)}>
           <span className="ws-av" aria-hidden="true">{[...w.name][0]?.toUpperCase()}</span>
           <span><b>{w.name}</b><small>{d.plans[w.plan]} · {roleName(d, w.role)}</small></span>

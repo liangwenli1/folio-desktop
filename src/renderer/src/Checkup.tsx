@@ -34,7 +34,7 @@ export function ReportDialog({ d, lang, p, report, busy, onAgain, onClose }: { d
   const ok = passed(report);
   const when = new Date(report.at).toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   return (
-    <Modal title={C.title(p.name)} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal title={C.title(p.name)} onClose={onClose} foot={<>
       <button className="btn btn-secondary" type="button" disabled={busy} onClick={onAgain}>{busy && <span className="spin" aria-hidden="true" />}{busy ? C.running : C.again}</button>
       <button className="btn btn-primary" type="button" onClick={onClose}>{d.common.close}</button>
     </>}>

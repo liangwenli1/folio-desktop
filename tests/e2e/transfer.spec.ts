@@ -9,7 +9,7 @@ test.setTimeout(120_000);
 const PASS = 'correct horse battery staple';
 const menu = async (win: Page, item: string) => {
   await win.locator('.me').click();
-  await win.getByRole('menuitem', { name: item }).click();
+  await win.getByRole('button', { name: item }).click();
 };
 // File dialogs answer with the test's path instead of asking.
 const dialogs = (app: ElectronApplication, path: string) => app.evaluate(({ dialog }, path) => {

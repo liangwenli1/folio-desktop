@@ -7,7 +7,7 @@ import { cookieKey, readCookies, type Cookie } from '@shared/cookies';
 import { can, folio, isApiError, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Act, Empty, Icon, LoadFailed, Modal, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, LoadFailed, Modal, PanelEdge, SkelRows, Tabs, useChanged, useToast } from './ui';
 import { Pager } from './Pager';
 import { Select } from './Select';
 import { dayLabel, time } from './Activity';
@@ -133,7 +133,7 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
                 </tr>
               </thead>
               <tbody>
-                {list === null && state !== 'failed' && Array.from({ length: 4 }, (_, i) => <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i /></td><td><i /></td><td><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td /></tr>)}
+                {list === null && state !== 'failed' && <SkelRows cols={7} check rows={4} />}
                 {state === 'failed' && <tr className="empty"><td colSpan={7}><LoadFailed d={d} onRetry={() => void load()} /></td></tr>}
                 {list !== null && !shown.length && state !== 'failed' && <tr className="empty"><td colSpan={7}>{state === 'none'
                   ? <Empty icon="clock" title={C.notSaved} text={C.notSavedText} />
@@ -141,14 +141,16 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
                     ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                         <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setDomain('all'); setPage(1); }}>{d.states.clear}</button>
                       </Empty>
-                    : <Empty icon="cookie" title={C.none} />}</td></tr>}
+                    : <Empty icon="cookie" title={C.none} text={C.noneText}>
+                        {canImport && writable && <button type="button" className="btn btn-primary btn-sm" onClick={() => setImporting(true)}><Icon name="upload" />{C.import}</button>}
+                      </Empty>}</td></tr>}
                 {rows.map(c => {
                   const k = cookieKey(c);
                   return (
-                    <tr key={k} data-cookie={c.name} className={k === cur ? 'cur' : ''} onClick={e => { if (!(e.target as HTMLElement).closest('button,input')) setCur(k); }}>
-                      <td className="cb"><input type="checkbox" checked={sel.has(k)} onChange={() => toggle(c)} aria-label={d.common.select(c.name)} /></td>
+                    <tr key={k} data-cookie={c.name} className={[k === cur && 'cur', sel.has(k) && 'on'].filter(Boolean).join(' ')} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,td.cb')) setCur(k); }}>
+                      <td className="cb" onClick={e => { if (e.target === e.currentTarget) toggle(c); }}><input type="checkbox" checked={sel.has(k)} onChange={() => toggle(c)} aria-label={d.common.select(c.name)} /></td>
                       <td className="mono">{c.name}</td><td className="mono">{c.domain}</td><td className="mono">{c.path}</td><td className="nowrap">{expiry(c)}</td>
-                      <td><span className="ck-flags">{c.secure && <span className="tag">Secure</span>}{c.httpOnly && <span className="tag">HttpOnly</span>}</span></td>
+                      <td><span className="ck-flags">{c.secure && <span className="badge">Secure</span>}{c.httpOnly && <span className="badge">HttpOnly</span>}</span></td>
                       <td className="act"><span className="actin">
                         {canImport && <button type="button" className="btn btn-sm btn-text" disabled={!writable} onClick={() => setEditing(c)}>{C.edit}</button>}
                         {canDelete && <button type="button" className="btn btn-sm btn-text danger" disabled={!writable} onClick={() => setConfirm([c])}>{C.delete}</button>}
@@ -167,8 +169,8 @@ export function CookiesTab({ d, lang, data, p, running, onExport }: Props){
       {importing && <CookieImport d={d} p={p} existing={new Set(all.map(cookieKey))} onClose={() => setImporting(false)} onDone={() => { setImporting(false); changed(); }} />}
       {editing && <CookieEdit d={d} p={p} c={editing} canRead={canRead} canRename={canDelete} onClose={() => setEditing(null)} onDone={c => { setEditing(null); setCur(cookieKey(c)); changed(); }} />}
       {confirm && (
-        <Modal kind="bad" title={C.deleteN(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
-          <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+        <Modal kind="bad" title={C.deleteN(confirm.length)} onClose={() => setConfirm(null)} foot={<>
+          <Cancel />
           <Act className="btn btn-danger solid" run={() => remove(confirm)}>{C.delete}</Act>
         </>}><p>{running ? C.deleteRunning : C.deleteNote}</p></Modal>
       )}
@@ -185,9 +187,9 @@ function CookiePanel({ d, lang, p, c, canRead, canEdit, onEdit, onClose }: { d: 
   useEffect(() => setValue(null), [k]);
   const read = async () => (await folio.api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values?${new URLSearchParams({ name: c.name, domain: c.domain, path: c.path })}`)).cookies[0]?.value ?? '';
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
-  const on = (yes: boolean) => <span className={`tag${yes ? ' good' : ''}`}>{yes ? C.on : C.off}</span>;
+  const on = (yes: boolean) => <span className={`badge${yes ? ' good' : ''}`}>{yes ? C.on : C.off}</span>;
   return (
-    <aside className="sec ck-panel" aria-label={C.detail}>
+    <aside className="sec ck-panel" aria-label={C.detail}><PanelEdge />
       <div className="sec-row"><h3>{C.detail}</h3><button type="button" className="icon-btn bare" aria-label={C.close} title={C.close} onClick={onClose}><Icon name="x" /></button></div>
       <dl className="kvl">
         <dt>{C.cols.name}</dt><dd className="mono">{c.name}</dd>
@@ -240,6 +242,9 @@ function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict;
       .then(r => { setValue(r.cookies[0]?.value ?? ''); setLoaded(true); }, () => setLoaded(true));
   }, []);
   const bad = !domain.trim() ? C.domainErr : !session && !expires ? C.expiresErr : !canRead && !value ? C.valueErr : null;
+  // The value arrives after the dialog opens, so it counts as changed only once typed in.
+  const [typed, setTyped] = useState(false);
+  const dirty = useChanged({ name, domain, path, session, expires, sameSite, secure, httpOnly }) || typed;
 
   async function save(){
     setTried(true);
@@ -253,9 +258,9 @@ function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict;
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
   return (
-    <Modal title={C.editTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal title={C.editTitle} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       <span className="sp" />
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || !loaded} onClick={() => void save()}>{C.save}</button>
     </>}>
       <div className="m-body">
@@ -266,7 +271,7 @@ function CookieEdit({ d, p, c, canRead, canRename, onClose, onDone }: { d: Dict;
         </div>
         <div className="field">
           <label htmlFor="ck-value">{C.value}</label>
-          <textarea id="ck-value" className="mono-in" rows={3} value={value} placeholder={canRead ? undefined : C.newValue} onChange={e => setValue(e.target.value)} spellCheck={false} aria-invalid={tried && !canRead && !value} />
+          <textarea id="ck-value" className="mono-in" rows={3} value={value} placeholder={canRead ? undefined : C.newValue} onChange={e => { setValue(e.target.value); setTyped(true); }} spellCheck={false} aria-invalid={tried && !canRead && !value} />
         </div>
         <div className="row2">
           <div className="field"><label htmlFor="ck-path">{C.cols.path}</label><input id="ck-path" className="mono-in" value={path} disabled={!canRename} onChange={e => setPath(e.target.value)} spellCheck={false} /></div>
@@ -319,16 +324,14 @@ function CookieImport({ d, p, existing, onClose, onDone }: { d: Dict; p: Profile
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
   return (
-    <Modal wide title={C.importTitle(p.name)} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal wide title={C.importTitle(p.name)} onClose={onClose} busy={busy} dirty={!!(text.trim() || file)} foot={<>
       <span className="sp" />
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || !going.length} onClick={() => void submit()}>{C.submit(going.length)}</button>
     </>}>
       <div className="m-body ck-in">
         {error && <p className="notice error" role="alert">{error}</p>}
-        <div className="tabs" role="tablist" aria-label={C.import}>
-          {(['text', 'file'] as const).map(m => <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}>{C.modes[m]}</button>)}
-        </div>
+        <Tabs label={C.import} value={mode} tabs={['text', 'file']} name={m => C.modes[m]} onChange={setMode} />
         {mode === 'text'
           ? <textarea className="mono-in ck-src" aria-label={C.modes.text} rows={7} value={text} placeholder={'[{"name": "sid", "value": "…", "domain": ".example.com", "path": "/"}]'} onChange={e => { setText(e.target.value); setFile(null); }} spellCheck={false} />
           : <div className="ck-file">

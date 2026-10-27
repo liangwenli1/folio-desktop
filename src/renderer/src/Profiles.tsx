@@ -6,7 +6,7 @@ import { startJob, type JobRun } from './jobRun';
 import { errorText, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
-import { Act, Avatar, BulkBar, Empty, Icon, ListFailed, Modal, MoreMenu, percent, useNow, useToast, useView, ViewSwitch } from './ui';
+import { Act, Avatar, BulkBar, Cancel, Empty, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, ViewSwitch, percent, useChanged, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select } from './Select';
@@ -17,6 +17,8 @@ import { byProfile, risks, type Risk } from './risks';
 
 export type GroupFilter = 'all' | 'none' | string;
 type Status = 'all' | 'running' | 'stopped' | 'issues' | 'starred';
+// The statuses that have a tab (the others are filters).
+type Shown = 'all' | 'running' | 'stopped';
 // An engine and its major version ('chromium:150'), or every one.
 type Engine = 'all' | `${Profile['kernel']}:${string}`;
 const engineOf = (p: Profile): Engine => `${p.kernel}:${p.kernelVersion.split('.')[0]}`;
@@ -64,7 +66,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  const all = useMemo(() => data.profiles ?? [], [data.profiles]);
+  const all = data.profiles;
   const proxies = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
   const extensions = useMemo(() => new Map(data.extensions.map(x => [x.id, x])), [data.extensions]);
   const groupName = useMemo(() => new Map(data.groups.map(g => [g.id, g.name])), [data.groups]);
@@ -112,12 +114,16 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   }, [all, group, engine, status, q, sort, healthOf, data.status, lang, groupName, d, only, riskOf]);
 
   const ids = [...sel].filter(id => all.some(p => p.id === id));
+  const hidden = ids.filter(id => !list.some(p => p.id === id)).length;
+  // What the bulk bar's Open and Stop reach: stopped ones not in use elsewhere; ones running here.
+  const openable = all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)), stoppable = ids.filter(id => data.status[id]);
   const pages = Math.max(1, Math.ceil(list.length / pageSize)), at = Math.min(page, pages);
   const pageList = list.slice((at - 1) * pageSize, at * pageSize);
   const pageSel = pageList.filter(p => sel.has(p.id)).length;
   // A picked profile's page shows in place of the list.
   const curProfile = (detail && all.find(p => p.id === cur)) || null;
-  const filtered = group !== 'all' || engine !== 'all' || status !== 'all' || !!q || !!only;
+  // How many filters are on (shown on Reset); the selection the filters hide, said in the bulk bar.
+  const active = [group !== 'all', engine !== 'all', status !== 'all', !!q, !!only].filter(Boolean).length, filtered = active > 0;
 
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   const why = (w: 'kernel_missing' | 'download_failed') => (w === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed);
@@ -244,7 +250,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const failed = data.loadFailed.has('profiles'), S = d.states;
   const empty = failed
     ? <ListFailed d={d} data={data} kind="profiles" />
-    : data.profiles !== null && !list.length && (all.length
+    : data.loaded.has('profiles') && !list.length && (all.length
       ? <Empty icon="search" title={P.emptyMatch} text={<>{q && P.emptyFor(q)} {P.emptyHint(all.length)}</>}>
           <button type="button" className="btn btn-secondary btn-sm" onClick={reset}>{S.clear}</button>
         </Empty>
@@ -279,14 +285,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           {can(data.role, 'profiles.create') && <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>}
         </header>
 
-        <div className="tabs page-tabs" role="tablist" aria-label={P.filter.label}>
-          {(['all', 'running', 'stopped'] as const).map(t => (
-            <button key={t} type="button" role="tab" aria-selected={status === t} onClick={() => { setStatus(t); setPage(1); }}>
-              {P.tabs[t]}<small>{counts[t]}</small>
-            </button>
-          ))}
-          {manager && <button type="button" role="tab" aria-selected={false} onClick={onTrashPage}>{P.tabs.trash}</button>}
-        </div>
+        <Tabs className="page-tabs" label={P.filter.label} value={status} tabs={['all', 'running', 'stopped']} name={t => P.tabs[t as Shown]} count={t => counts[t as Shown]}
+          onChange={t => { setStatus(t); setPage(1); }} after={manager && <button type="button" className="tab-link" onClick={onTrashPage}>{P.tabs.trash}</button>} />
 
         {shown.length > 0 && (
           <section className={`risk-bar${shown.some(r => r.level === 'bad') ? ' bad' : ''}`} aria-label={d.risks.title(shown.length)} data-testid="risks">
@@ -310,6 +310,8 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           </section>
         )}
 
+        {/* One card holds the filters, the bulk bar, the list and the pager (delivery design 01). */}
+        <section className="list-card" aria-label={P.title}>
         {/* The delivery spec's order: keyword, group, engine, status, reset; how the list is laid out sits at the end. */}
         <div className="filters">
           <label className="search">
@@ -317,13 +319,13 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
             <input type="search" placeholder={P.searchPh} value={q} onChange={e => { setQ(e.target.value); setPage(1); }} autoComplete="off" />
             <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
           </label>
-          <span className="grp-pick"><Select label={d.groups.title} value={group} onChange={v => { setGroup(v as GroupFilter); setPage(1); }}
+          <span className="grp-pick"><Select label={d.groups.title} value={group} search loading={!data.loaded.has('groups')} failed={data.loadFailed.has('groups')} onRetry={() => data.refresh('groups')} onChange={v => { setGroup(v as GroupFilter); setPage(1); }}
             options={[{ value: 'all', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} /></span>
           <span className="grp-pick"><Select label={P.filter.engine} value={engine} onChange={v => { setEngine(v as Engine); setPage(1); }}
             options={[{ value: 'all', label: P.filter.engines }, ...engines.map(e => { const [k, v] = e.split(':'); return { value: e, label: `${ENGINES[k as Profile['kernel']]} ${v}` }; })]} /></span>
           <span className="grp-pick"><Select label={P.filter.label} value={status === 'issues' || status === 'starred' ? status : 'all'} onChange={v => { setStatus(v as Status); setPage(1); }}
             options={(['all', 'issues', 'starred'] as const).map(x => ({ value: x, label: x === 'all' ? P.filter.states : P.filter[x], hint: String(counts[x]) }))} /></span>
-          {filtered && <button type="button" className="btn btn-text" onClick={reset}>{P.reset}</button>}
+          {filtered && <button type="button" className="btn btn-text" onClick={reset}>{P.resetN(active)}</button>}
           {only && <button type="button" className="chip" onClick={() => setOnly(null)}>{d.risks.clear} <span aria-hidden="true">×</span></button>}
           <span className="sp" />
           <span className="sort"><span id="pf-sort">{P.sort}</span>
@@ -332,10 +334,11 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           <ViewSwitch label={P.views.label} value={view} onChange={setView} options={[['list', 'list', P.views.list], ['cards', 'grid', P.views.cards]]} />
         </div>
 
+        {data.loaded.has('profiles') && <PartialFailed d={d} data={data} kinds={['proxies', 'groups', 'extensions']} />}
         {data.sync && <SyncBar d={d} data={data} names={new Map(all.map(p => [p.id, p.name]))} />}
 
         {ids.length > 0 && (
-          <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+          <BulkBar n={ids.length} label={hidden ? d.common.selectedHidden(ids.length, hidden) : d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
             {tagging ? (
               <>
                 <input className="bb-in" aria-label={P.bulk.tagPh} placeholder={P.bulk.tagPh} value={tag} onChange={e => setTag(e.target.value)} maxLength={24} autoFocus />
@@ -345,9 +348,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
               </>
             ) : (
               <>
-                <button type="button" className="bb lead" onClick={() => openMany(all.filter(p => sel.has(p.id) && !data.status[p.id] && !elsewhere(p)))}><Icon name="play" />{P.bulk.open}</button>
-                <button type="button" className="bb" onClick={() => ids.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}</button>
-                <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" searchPh={d.form.searchPh}
+                <button type="button" className="bb lead" disabled={!openable.length} title={openable.length < ids.length ? P.bulk.openSkip(ids.length - openable.length) : undefined} onClick={() => openMany(openable)}><Icon name="play" />{P.bulk.open}<small>{openable.length}</small></button>
+                <button type="button" className="bb" disabled={!stoppable.length} title={stoppable.length < ids.length ? P.bulk.stopSkip(ids.length - stoppable.length) : undefined} onClick={() => stoppable.forEach(id => void folio.stopProfile(id))}><Icon name="stop" />{P.bulk.stop}<small>{stoppable.length}</small></button>
+                <Select variant="bar" action label={P.bulk.move} placeholder={P.bulk.move} value="" search searchPh={d.form.searchPh}
                   options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]}
                   onChange={v => { const g = v === 'none' ? null : v; void batchAction('move', { groupId: g }, n => P.done.moved(n, g ? groupName.get(g) ?? '' : d.groups.none)); }} />
                 <button type="button" className="bb" onClick={() => setEditing(true)}><Icon name="settings" />{P.bulk.edit}</button>
@@ -384,9 +387,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
                 </tr>
               </thead>
               <tbody>
-                {data.profiles === null && !failed && Array.from({ length: 5 }, (_, i) => (
-                  <tr key={i} className="skel" aria-hidden="true"><td className="cb"><i /></td><td><i className="w2" /><i className="w3" /></td><td><i className="w3" /></td><td><i /><i className="w3" /></td><td><i /><i className="w3" /></td><td><i className="w3" /></td><td><i className="w3" /></td><td /></tr>
-                ))}
+                {!data.loaded.has('profiles') && !failed && <SkelRows cols={8} check />}
                 {empty && <tr className="empty"><td colSpan={8}>{empty}</td></tr>}
                 {pageList.map(p => <Row key={p.id} {...item(p)} />)}
               </tbody>
@@ -394,16 +395,18 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
           </div>
         ) : (
           <>
+            {!data.loaded.has('profiles') && !failed && <Loading cards />}
             {empty && <div className="cards-empty">{empty}</div>}
             <ul className="pgrid">{pageList.map(p => <Card key={p.id} {...item(p)} />)}</ul>
           </>
         )}
         {list.length > 0 && <Pager d={d} total={list.length} page={page} size={pageSize} onPage={setPage} onSize={n => { setPageSize(n); setPage(1); }} />}
+        </section>
         {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
 
         {confirm && ids.length > 0 && (
-          <Modal kind="warn" title={P.bulk.confirm(ids.length)} closeLabel={d.common.close} onClose={() => setConfirm(false)} foot={<>
-            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(false)}>{d.common.cancel}</button>
+          <Modal kind="warn" title={P.bulk.confirm(ids.length)} onClose={() => setConfirm(false)} foot={<>
+            <Cancel />
             <Act className="btn btn-danger solid" run={() => trash(ids)}>{P.bulk.doTrash}</Act>
           </>}><p>{P.bulk.confirmNote}</p></Modal>
         )}
@@ -413,7 +416,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
         )}
         {replacing && <ReplaceProxyDialog d={d} data={data} profile={replacing} onClose={() => setReplacing(null)} onDone={() => setReplacing(null)} />}
         {moving && (
-          <Modal title={P.moveTitle(moving.name)} closeLabel={d.common.close} onClose={() => setMoving(null)}>
+          <Modal title={P.moveTitle(moving.name)} onClose={() => setMoving(null)}>
             <ul className="m-body move-list">
               {[...data.groups.map(g => ({ id: g.id as string | null, name: g.name, color: g.color })), { id: null, name: d.groups.none, color: null }].map(g => (
                 <li key={g.id ?? 'none'}>
@@ -487,7 +490,7 @@ function Name({ d, p, risky, onView, onStar }: ItemProps){
   return (
     <span className="prof-cell"><span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><Star d={d} p={p} onStar={onStar} />
       {risky && <span className="risk-flag" title={d.risks.flag}><Icon name="alert" /><span className="sr">{d.risks.flag}</span></span>}
-      {p.tags.map(t => <span key={t} className="tag">{t}</span>)}</span></span>
+      {p.tags.map(t => <span key={t} className="badge">{t}</span>)}</span></span>
   );
 }
 
@@ -502,13 +505,13 @@ function Star({ d, p, onStar }: { d: Dict; p: Profile; onStar(): void }){
 function Row(props: ItemProps){
   const { d, lang, p, h, cur, checked, sync, onToggle, onView } = props;
   return (
-    <tr className={cur ? 'cur' : ''} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) onView(); }}>
-      <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
+    <tr className={[cur && 'cur', checked && 'on'].filter(Boolean).join(' ')} data-id={p.id} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu,td.cb')) onView(); }}>
+      <td className="cb" onClick={e => { if (e.target === e.currentTarget) onToggle(); }}><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
       <td className="prof"><Name {...props} /><span className="l2 mono">#{number(p)}</span></td>
       <td><GroupTag {...props} /></td>
       <td><span className="l1">{h.mismatch ? <span className="flag warn">{d.profiles.mismatch}</span> : engineName(p.kernel, p.kernelVersion)}</span><span className="l2">{d.os[p.os]}</span></td>
       <td><ProxyCell {...props} /></td>
-      <td><Status {...props} />{sync && <span className="synctag">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}</td>
+      <td><Status {...props} />{sync && <span className="badge good">{sync === 'leader' ? d.windowSync.leaderTag : d.windowSync.followerTag}</span>}</td>
       <td className="lastc mono">{lastOpened(p.lastOpenedAt, d, lang)}</td>
       <td className="act"><span className="actin"><RowStart {...props} /><Actions {...props} /></span></td>
     </tr>
@@ -550,14 +553,14 @@ function Tray({ d, data, profiles, onRetry, onClose, onTask }: { d: Dict; data: 
   const rows = profiles.map(p => {
     const why = data.failed[p.id] ? d.launch[data.failed[p.id]] ?? d.launch.launch_failed : null;
     const s = data.status[p.id], pr = data.progress[kernelKey(p.kernel, p.kernelVersion)];
-    if (why) return { p, tone: 'bad', st: <span className="st bad"><Icon name="alert" />{why}</span>, pct: 100 };
-    if (s?.state === 'running') return { p, tone: 'run', st: <span className="st run"><Icon name="check" />{T.opened}</span>, pct: 100 };
+    if (why) return { p, tone: 'bad', st: <span className="badge bad"><Icon name="alert" />{why}</span>, pct: 100 };
+    if (s?.state === 'running') return { p, tone: 'run', st: <span className="badge good"><Icon name="check" />{T.opened}</span>, pct: 100 };
     if (s){
       const at = s.state === 'restoring' ? 2 : s.stage === 'launch' ? 3 : 1;
-      return { p, tone: 'boot', st: <span className="st boot"><span className="spin" />{[P.stage.proxy, P.stage.proxy, P.stage.restore, P.stage.launch][at]}<span className="sub">{at + 1} / {P.stages.length}</span></span>, pct: (at + 1) * 25 };
+      return { p, tone: 'boot', st: <span className="badge info"><span className="spin" />{[P.stage.proxy, P.stage.proxy, P.stage.restore, P.stage.launch][at]}<span className="sub">{at + 1} / {P.stages.length}</span></span>, pct: (at + 1) * 25 };
     }
-    if (pr && !pr.finished && !pr.error) return { p, tone: 'boot', st: <span className="st boot"><span className="spin" />{P.downloading(percent(pr))}<span className="sub">1 / {P.stages.length}</span></span>, pct: percent(pr) / 4 };
-    return { p, tone: 'idle', st: <span className="st idle"><Icon name="pause" />{T.waiting}</span>, pct: 0 };
+    if (pr && !pr.finished && !pr.error) return { p, tone: 'boot', st: <span className="badge info"><span className="spin" />{P.downloading(percent(pr))}<span className="sub">1 / {P.stages.length}</span></span>, pct: percent(pr) / 4 };
+    return { p, tone: 'idle', st: <span className="badge"><Icon name="pause" />{T.waiting}</span>, pct: 0 };
   });
   const settled = rows.filter(r => r.tone === 'run' || r.tone === 'bad').length;
   const allOpen = rows.every(r => r.tone === 'run');
@@ -619,6 +622,7 @@ function BulkEdit({ d, data, profiles, onClose, onDone, onFail }: {
   const [start, setStart] = useState('');
   const [stoppedOnly, setStoppedOnly] = useState(true);
   const [busy, setBusy] = useState(false);
+  const dirty = useChanged({ on: JSON.stringify(on), groupId, proxyId, engine, start, stoppedOnly });
   const runningIds = profiles.filter(p => data.status[p.id]).map(p => p.id);
   const targets = profiles.filter(p => !stoppedOnly || !data.status[p.id]);
   const versions = data.kernels.filter(k => k.installed || k.recommended).map(k => ({ value: `${k.kind}:${k.version}`, label: `${ENGINES[k.kind]} ${k.version}` }));
@@ -652,20 +656,20 @@ function BulkEdit({ d, data, profiles, onClose, onDone, onFail }: {
     </div>
   );
   return (
-    <Modal wide title={B.title} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal wide title={B.title} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       <span className="hint">{B.counts(targets.length, profiles.length - targets.length)}</span>
       <label className="check-row"><input type="checkbox" checked={stoppedOnly} onChange={e => setStoppedOnly(e.target.checked)} />{B.stoppedOnly}</label>
       <span className="sp" />
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={busy || nothing || !targets.length || !okStart} onClick={() => void submit()}>{B.submit(targets.length)}</button>
     </>}>
       <div className="m-body be">
         <p className="hint">{B.lead(profiles.length)}</p>
         <div className="be-grid">
           <div className="be-fields">
-            {row('group', B.group, B.groupHint, <Select label={B.group} value={groupId} onChange={setGroupId} searchPh={d.form.searchPh}
+            {row('group', B.group, B.groupHint, <Select label={B.group} value={groupId} onChange={setGroupId} search searchPh={d.form.searchPh}
               options={[...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: 'none', label: d.groups.none }]} />)}
-            {row('proxy', B.proxy, B.proxyHint, <Select label={B.proxy} value={proxyId} onChange={setProxyId} searchPh={d.form.searchPh}
+            {row('proxy', B.proxy, B.proxyHint, <Select label={B.proxy} value={proxyId} onChange={setProxyId} search searchPh={d.form.searchPh}
               options={[...data.proxies.map(x => ({ value: x.id, label: x.name })), { value: 'none', label: d.profiles.noProxy }]} />)}
             {row('engine', B.engine, B.engineHint, <Select label={B.engine} value={engine} placeholder={B.keep} onChange={setEngine} options={versions} />)}
             {row('start', B.start, B.startHint, <input aria-label={B.startHint} placeholder={B.startPh} value={start} aria-invalid={!okStart} onChange={e => setStart(e.target.value)} />)}

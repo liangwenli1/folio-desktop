@@ -8,7 +8,7 @@ import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { Act, BulkBar, Empty, Icon, ListFailed, Modal, useToast, useView, ViewSwitch } from './ui';
+import { Act, BulkBar, Cancel, Empty, Icon, ListFailed, Loading, Modal, PanelEdge, ViewSwitch, useToast, useView } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -30,7 +30,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
   const [asc, setAsc] = useState(false);
   const [target, setTarget] = useState('');
   const keep = ws.settings.trashDays;
-  const all = data.trash ?? [];
+  const all = data.trash;
   const needle = q.trim().toLowerCase(), num = /^#?\d+$/.test(needle) ? Number(needle.replace('#', '')) : null;
   const list = all.filter(p => (!needle || p.name.toLowerCase().includes(needle) || p.number === num) && (by === 'all' || p.deletedBy === by)
     && (!from || (p.deletedAt ?? '') >= new Date(`${from}T00:00:00`).toISOString()) && (!to || (p.deletedAt ?? '') < new Date(new Date(`${to}T00:00:00`).getTime() + DAY).toISOString()))
@@ -83,38 +83,38 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
           <button className="btn btn-danger outline" type="button" disabled={!all.length} onClick={() => setConfirm(all)}><Icon name="trash" />{T.purgeAll}</button>
         </header>
 
-        <div className="filters tr-f">
-          <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
-            <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-          <span className="lg-dates" role="group" aria-label={T.when}>
-            <Icon name="calendar" />
-            <input type="date" aria-label={d.activity.from} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} />
-            <span aria-hidden="true">{d.activity.to}</span>
-            <input type="date" aria-label={d.activity.until} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} />
-          </span>
-          <span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy}
-            options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: email.get(id) ?? d.activity.someone }))]} /></span>
-          {filtered && <button type="button" className="btn btn-text" onClick={clear}>{d.states.clear}</button>}
-          <span className="sp" />
-          <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
-        </div>
-
-        {picked.length > 0 && (
-          <BulkBar n={picked.length} label={d.common.selected(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-            <button type="button" className="bb" onClick={() => void restore(picked)}><Icon name="refresh" />{T.restore}</button>
-            <button type="button" className="bb danger" onClick={() => setConfirm(picked)}><Icon name="trash" />{T.purge}</button>
-          </BulkBar>
-        )}
-
         <div className={`side-wrap${picked.length ? ' with-panel' : ''}`}>
-          <div className="side-main">
+          <section className="side-main list-card" aria-label={T.title}>
+            <div className="filters tr-f">
+              <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+                <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+              <span className="lg-dates" role="group" aria-label={T.when}>
+                <Icon name="calendar" />
+                <input type="date" aria-label={d.activity.from} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} />
+                <span aria-hidden="true">{d.activity.to}</span>
+                <input type="date" aria-label={d.activity.until} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} />
+              </span>
+              <span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy} search
+                options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: email.get(id) ?? d.activity.someone }))]} /></span>
+              {filtered && <button type="button" className="btn btn-text" onClick={clear}>{d.states.clear}</button>}
+              <span className="sp" />
+              <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
+            </div>
+
+            {picked.length > 0 && (
+              <BulkBar n={picked.length} label={d.common.selected(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+                <button type="button" className="bb" onClick={() => void restore(picked)}><Icon name="refresh" />{T.restore}</button>
+                <button type="button" className="bb danger" onClick={() => setConfirm(picked)}><Icon name="trash" />{T.purge}</button>
+              </BulkBar>
+            )}
             {data.loadFailed.has('trash')
               ? <div className="cards-empty"><ListFailed d={d} data={data} kind="trash" /></div>
-              : data.trash !== null && !list.length && <div className="cards-empty">{all.length
+              : !data.loaded.has('trash') ? <Loading cards={view === 'cards'} cols={7} />
+              : !list.length && <div className="cards-empty">{all.length
                 ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={clear}>{d.states.clear}</button>
                   </Empty>
-                : <Empty icon="trash" title={T.empty} />}</div>}
+                : <Empty icon="trash" title={T.empty} text={T.emptyText(keep)} />}</div>}
             {list.length > 0 && (view === 'cards'
               ? <ul className="pgrid">{list.map(p => <TrashCard key={p.id} {...item(p)} />)}</ul>
               : (
@@ -136,9 +136,9 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
                   </table>
                 </div>
               ))}
-          </div>
+          </section>
           {picked.length > 0 && (
-            <aside className="sec side-panel tr-panel" aria-label={T.picked(picked.length)}>
+            <aside className="sec side-panel tr-panel" aria-label={T.picked(picked.length)}><PanelEdge />
               <div className="sec-row"><h3>{T.picked(picked.length)}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={() => setSel(new Set())}><Icon name="x" /></button></div>
               <dl className="kvl">
                 <dt>{T.cols.profile}</dt><dd>{picked.map(p => p.name).join(lang === 'zh' ? '、' : ', ')}</dd>
@@ -167,8 +167,8 @@ function PurgeDialog({ d, targets, onClose, onPurge }: { d: Dict; targets: Profi
   const [typed, setTyped] = useState('');
   const word = targets.length === 1 ? targets[0].name : String(targets.length);
   return (
-    <Modal kind="bad" title={T.confirmPurge(targets.length)} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+    <Modal kind="bad" title={T.confirmPurge(targets.length)} onClose={onClose} foot={<>
+      <Cancel />
       <Act className="btn btn-danger solid" disabled={typed.trim() !== word} run={onPurge}>{T.purge}</Act>
     </>}>
       <div className="m-body">
@@ -184,7 +184,7 @@ interface TrashItem { d: Dict; p: Profile; checked: boolean; country: string | n
 
 function TrashRow({ d, p, checked, country, group, by, when, left, onToggle, onRestore, onPurge }: TrashItem){
   return (
-    <tr data-id={p.id} className={checked ? 'cur' : ''}>
+    <tr data-id={p.id} className={checked ? 'on' : undefined}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
       <td><span className="prof-cell"><Flag country={country} kernel={p.kernel} /><b>{p.name}</b></span></td>
       <td className="mono">{number(p)}</td>

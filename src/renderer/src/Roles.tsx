@@ -5,7 +5,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { folio, isApiError, type Permission, type Role, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, roleName, type Dict } from './i18n';
-import { Act, Icon, Modal, Switch, useToast } from './ui';
+import { Act, Cancel, Icon, Modal, Switch, useToast } from './ui';
 import { SelectField } from './Select';
 
 type Section = 'profiles' | 'data' | 'proxies' | 'team';
@@ -103,8 +103,8 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
 
       {adding && <NewRoleDialog d={d} ws={ws} data={data} onClose={() => setAdding(false)} onDone={id => { setAdding(false); setCur(id); }} />}
       {deleting && (
-        <Modal kind="bad" title={P.deleteTitle(role.name)} closeLabel={d.common.close} onClose={() => setDeleting(false)} foot={<>
-          <button type="button" className="btn btn-secondary" onClick={() => setDeleting(false)}>{d.common.cancel}</button>
+        <Modal kind="bad" title={P.deleteTitle(role.name)} onClose={() => setDeleting(false)} foot={<>
+          <Cancel />
           <Act className="btn btn-danger solid" run={() => folio.api('DELETE', `/roles/${role.id}`).then(() => {
             toast(P.deleted(role.name)); setDeleting(false); setCur(''); data.refresh('members');
           }, e => { setDeleting(false); toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); })}>{P.delete}</Act>
@@ -129,8 +129,8 @@ function NewRoleDialog({ d, ws, data, onClose, onDone }: { d: Dict; ws: Workspac
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal title={P.newTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+    <Modal title={P.newTitle} onClose={onClose} foot={<>
+      <Cancel />
       <Act className="btn btn-primary" run={() => create()}>{P.create}</Act>
     </>}>
       <div className="m-body">

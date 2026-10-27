@@ -6,7 +6,7 @@ import { parseCookies } from '@shared/cookies';
 import { MAX_ROWS, TEMPLATE, readProfiles } from './csv';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict } from './i18n';
-import { Modal, percent, useToast } from './ui';
+import { Cancel, Modal, percent, useToast } from './ui';
 
 export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Workspace; data: WorkspaceData; onClose(): void }){
   const I = d.importer;
@@ -17,7 +17,7 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
   const [error, setError] = useState<string | null>(null);
   const parsed = useMemo(() => (text.trim() ? readProfiles(text) : null), [text]);
   const rows = parsed?.rows ?? [];
-  const room = ws.subscription.entitlements.profiles - (data.profiles?.length ?? 0);
+  const room = ws.subscription.entitlements.profiles - data.profiles.length;
   // New profiles get the recommended version, which Firefox needs on this computer to make fingerprints.
   const firefox = data.kernels.find(k => k.kind === 'firefox' && k.recommended) ?? data.kernels.find(k => k.kind === 'firefox' && k.available);
   const needsFirefox = rows.some(r => r.kernel === 'firefox') && !firefox?.installed;
@@ -79,9 +79,11 @@ export function ProfileImportDialog({ d, ws, data, onClose }: { d: Dict; ws: Wor
   }
 
   return (
-    <Modal title={I.title} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <button className="btn btn-primary" type="button" disabled={blocked} onClick={() => void submit()}>{step ?? I.submit(rows.length)}</button>
+    <Modal title={I.title} onClose={onClose} busy={!!step} foot={<>
+      {step && <span className="hint" role="status">{step}</span>}
+      <span className="sp" />
+      <Cancel />
+      <button className="btn btn-primary" type="button" disabled={blocked} aria-busy={!!step || undefined} onClick={() => void submit()}>{I.submit(rows.length)}</button>
     </>}>
       <div className="m-body">
         <p className="muted">{I.lead}</p>

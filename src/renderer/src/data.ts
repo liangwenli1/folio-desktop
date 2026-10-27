@@ -21,7 +21,7 @@ export interface WorkspaceData {
   role: MyRole;
   // The workspace's roles, with what each may do: the team page's picker and the scope column read them.
   roles: Role[];
-  profiles: Profile[] | null; trash: Profile[] | null; groups: Group[]; proxies: Proxy[];
+  profiles: Profile[]; trash: Profile[]; groups: Group[]; proxies: Proxy[];
   // The team: everyone in it, and (for whoever manages members) invitations still open.
   members: Member[]; invitations: Invitation[];
   // Whom to ask for access: the owner's email.
@@ -37,6 +37,8 @@ export interface WorkspaceData {
   // Why each profile's last launch on this computer failed, until it is opened again.
   failed: Record<string, string>;
   refresh(...kinds: Kind[]): void;
+  // Lists that have loaded since the workspace opened: until then a list shows a skeleton, not "nothing here".
+  loaded: Set<Kind | 'kernels'>;
   // Lists whose last load failed, with why ('forbidden' when the role may not see it): their table says so and offers
   // `refresh` again, instead of an endless skeleton or an empty list that looks like there is nothing there.
   loadFailed: Map<Kind, string>;
@@ -75,8 +77,8 @@ export interface WorkspaceData {
 }
 
 export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void; job(id: string | null): void }): WorkspaceData {
-  const [profiles, setProfiles] = useState<Profile[] | null>(null);
-  const [trash, setTrash] = useState<Profile[] | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [trash, setTrash] = useState<Profile[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [proxies, setProxies] = useState<Proxy[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -95,6 +97,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   const [failed, setFailed] = useState<Record<string, string>>({});
   const [checking, setChecking] = useState<Set<string>>(() => new Set());
   const [loadFailed, setLoadFailed] = useState<Map<Kind, string>>(() => new Map());
+  const [loaded, setLoaded] = useState<Set<Kind | 'kernels'>>(() => new Set());
   const handlers = useRef(on);
   handlers.current = on;
   const waiting = useRef(new Map<string, (p: KernelProgress) => void>());
@@ -122,7 +125,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
       return n;
     });
     const run = <T>(k: Kind, path: string, set: (v: T) => void) =>
-      folio.api<T>('GET', path).then(v => { set(v); mark(k, null); }).catch(e => mark(k, isApiError(e) ? e.code : 'internal'));
+      folio.api<T>('GET', path).then(v => { set(v); mark(k, null); setLoaded(l => (l.has(k) ? l : new Set(l).add(k))); }).catch(e => mark(k, isApiError(e) ? e.code : 'internal'));
     for (const k of kinds){
       if (k === 'profiles') void run<{ profiles: Profile[] }>(k, `${base}/profiles`, r => setProfiles(r.profiles));
       if (k === 'trash') void run<{ profiles: Profile[] }>(k, `${base}/profiles?trash=1`, r => setTrash(r.profiles));
@@ -141,7 +144,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   }, [wsId, manages]);
 
   useEffect(() => {
-    setProfiles(null); setTrash(null); setGroups([]); setProxies([]); setMembers([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setJobs([]); setLoadFailed(new Map());
+    setProfiles([]); setTrash([]); setGroups([]); setProxies([]); setMembers([]); setInvitations([]); setRoles([]); setFlows([]); setTasks([]); setExtensions([]); setJobs([]); setLoadFailed(new Map()); setLoaded(new Set());
     refresh('profiles', 'trash', 'groups', 'proxies', 'members', 'flows', 'tasks', 'extensions', 'jobs');
     void folio.watch(wsId);
     return folio.onChange(c => {
@@ -155,7 +158,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
 
   useEffect(() => {
     void folio.statuses().then(list => setStatus(Object.fromEntries(list.map(s => [s.id, s]))));
-    void folio.kernels().then(setKernels);
+    void folio.kernels().then(k => { setKernels(k); setLoaded(l => new Set(l).add('kernels')); });
     void folio.activeRuns().then(setActive);
     const offRuns = folio.onRuns(setActive);
     void folio.windowSync().then(setSync);
@@ -312,7 +315,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
   const rerun = useCallback(async (id: string, seqs?: number[]) => {
     const j = await retryJob(id, seqs);
     const run = jobRun(j), ids = j.items.filter(i => i.status === 'pending' && i.targetId).map(i => i.targetId!);
-    const found = (profiles ?? []).filter(p => ids.includes(p.id));
+    const found = profiles.filter(p => ids.includes(p.id));
     // Profiles deleted since can't be reached any more.
     if (j.kind === 'profile.open' || j.kind === 'profile.edit'){
       for (const gone of ids.filter(x => !found.some(p => p.id === x))) await run.report(gone, 'gone');
@@ -337,6 +340,6 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
 
   return {
     role, roles: roleList, profiles, trash, groups, proxies, members, invitations, flows, tasks, extensions, jobs, runsSeq, active, sync, status, kernels, progress, failed,
-    admin: members.find(m => m.role.key === 'owner')?.email ?? null, checking, loadFailed, showJob, refresh, patch, batch, ensureGroup, check, install, launch, openMany, applyEdit, rerun, cancel, mine, removeKernel, reloadKernels
+    admin: members.find(m => m.role.key === 'owner')?.email ?? null, checking, loadFailed, loaded, showJob, refresh, patch, batch, ensureGroup, check, install, launch, openMany, applyEdit, rerun, cancel, mine, removeKernel, reloadKernels
   };
 }

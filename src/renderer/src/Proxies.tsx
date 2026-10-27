@@ -9,10 +9,11 @@ import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { Act, BulkBar, CopyBtn, Empty, Icon, ListFailed, Modal, MoreMenu, Switch, useToast, useView, ViewSwitch, type IconName } from './ui';
+import { Act, BulkBar, Cancel, CopyBtn, Empty, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, PartialFailed, Switch, Tabs, ViewSwitch, useChanged, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
+import { useTrail } from './TopBar';
 
 type ProxyType = Proxy['type'];
 const TYPES: ProxyType[] = ['socks5', 'http', 'https'];
@@ -69,7 +70,7 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   const rows = list.slice((at - 1) * size, at * size);
   const ids = [...sel].filter(id => byId.has(id));
   const shownSel = rows.filter(p => sel.has(p.id)).length;
-  const on = (id: string) => (data.profiles ?? []).filter(p => p.proxyId === id);
+  const on = (id: string) => data.profiles.filter(p => p.proxyId === id);
   const curProxy = cur ? byId.get(cur) ?? null : null;
   const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
 
@@ -100,7 +101,7 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   // The profiles on these lines go without a proxy until another is chosen.
   async function unbind(targets: string[]){
     setUnbinding(null);
-    const bound = (data.profiles ?? []).filter(p => p.proxyId && targets.includes(p.proxyId)).map(p => p.id);
+    const bound = data.profiles.filter(p => p.proxyId && targets.includes(p.proxyId)).map(p => p.id);
     try { toast(X.bulk.unbound(await data.batch('set-proxy', bound, { proxyId: null }))); setSel(new Set()); } catch (e){ fail(e); }
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -113,8 +114,8 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   const reset = () => setPage(1);
   const dialogs = <>
     {confirm && (
-      <Modal kind="bad" title={X.confirmDelete(confirm.length)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
-        <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+      <Modal kind="bad" title={X.confirmDelete(confirm.length)} onClose={() => setConfirm(null)} foot={<>
+        <Cancel />
         <Act className="btn btn-danger solid" run={() => remove(confirm)}>{X.bulkDelete}</Act>
       </>}><p>{X.confirmNote}</p></Modal>
     )}
@@ -128,7 +129,7 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
     {dialogs}
   </>;
 
-  const bound = (data.profiles ?? []).filter(p => p.proxyId && ids.includes(p.proxyId)).length;
+  const bound = data.profiles.filter(p => p.proxyId && ids.includes(p.proxyId)).length;
   return (
     <div className="page">
       <main className="main">
@@ -147,36 +148,38 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
           ))}
         </section>
 
-        <div className="filters">
-          <label className="search">
-            <Icon name="search" /><span className="sr">{X.search}</span>
-            <input type="search" placeholder={X.searchPh} value={q} onChange={e => { setQ(e.target.value); reset(); }} autoComplete="off" />
-          </label>
-          <span className="grp-pick"><Select label={X.filter.type} value={type} onChange={v => { setType(v as 'all' | ProxyType); reset(); }}
-            options={[{ value: 'all', label: X.filter.types }, ...TYPES.map(t => ({ value: t, label: t.toUpperCase() }))]} /></span>
-          <span className="grp-pick"><Select label={X.filter.region} value={region} onChange={v => { setRegion(v); reset(); }}
-            options={[{ value: 'all', label: X.filter.regions }, ...regions.map(([c, n]) => ({ value: c, label: n }))]} /></span>
-          <span className="grp-pick"><Select label={X.filter.state} value={status} onChange={v => { setStatus(v as Status); reset(); }}
-            options={STATUSES.map(s => ({ value: s, label: s === 'all' ? X.filter.states : X.states[s] }))} /></span>
-          <span className="sp" />
-          <button className="btn btn-secondary" type="button" disabled={!data.proxies.length || data.checking.size > 0} title={data.checking.size ? d.common.checking : undefined} onClick={() => void check(data.proxies.map(p => p.id))}>
-            {data.checking.size ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.checkAll}
-          </button>
-          <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
-        </div>
-
-        {ids.length > 0 && (
-          <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-            <button type="button" className="bb" onClick={() => void check(ids)}><Icon name="refresh" />{X.bulkCheck}</button>
-            <button type="button" className="bb" disabled={!bound} onClick={() => setUnbinding(ids)}><Icon name="link" />{X.bulk.unbind}</button>
-            <button type="button" className="bb danger" onClick={() => setConfirm(ids)}><Icon name="trash" />{X.bulkDelete}</button>
-          </BulkBar>
-        )}
-
         <div className={`side-wrap${curProxy ? ' with-panel' : ''}`}>
-          <div className="side-main">
+          <section className="side-main list-card" aria-label={X.title}>
+            <div className="filters">
+              <label className="search">
+                <Icon name="search" /><span className="sr">{X.search}</span>
+                <input type="search" placeholder={X.searchPh} value={q} onChange={e => { setQ(e.target.value); reset(); }} autoComplete="off" />
+              </label>
+              <span className="grp-pick"><Select label={X.filter.type} value={type} onChange={v => { setType(v as 'all' | ProxyType); reset(); }}
+                options={[{ value: 'all', label: X.filter.types }, ...TYPES.map(t => ({ value: t, label: t.toUpperCase() }))]} /></span>
+              <span className="grp-pick"><Select label={X.filter.region} value={region} onChange={v => { setRegion(v); reset(); }}
+                options={[{ value: 'all', label: X.filter.regions }, ...regions.map(([c, n]) => ({ value: c, label: n }))]} /></span>
+              <span className="grp-pick"><Select label={X.filter.state} value={status} onChange={v => { setStatus(v as Status); reset(); }}
+                options={STATUSES.map(s => ({ value: s, label: s === 'all' ? X.filter.states : X.states[s] }))} /></span>
+              <span className="sp" />
+              <button className="btn btn-secondary" type="button" disabled={!data.proxies.length || data.checking.size > 0} title={data.checking.size ? d.common.checking : undefined} onClick={() => void check(data.proxies.map(p => p.id))}>
+                {data.checking.size ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.checkAll}
+              </button>
+              <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
+            </div>
+
+            {ids.length > 0 && (
+              <BulkBar n={ids.length} label={d.common.selected(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+                <button type="button" className="bb" onClick={() => void check(ids)}><Icon name="refresh" />{X.bulkCheck}</button>
+                <button type="button" className="bb" disabled={!bound} title={bound ? undefined : X.bulk.unbindNone} onClick={() => setUnbinding(ids)}><Icon name="link" />{X.bulk.unbind}</button>
+                <button type="button" className="bb danger" onClick={() => setConfirm(ids)}><Icon name="trash" />{X.bulkDelete}</button>
+              </BulkBar>
+            )}
+
+            {data.loaded.has('proxies') && <PartialFailed d={d} data={data} kinds={['profiles']} />}
             {data.loadFailed.has('proxies')
               ? <div className="cards-empty"><ListFailed d={d} data={data} kind="proxies" /></div>
+              : !data.loaded.has('proxies') ? <Loading cards={view === 'cards'} cols={8} />
               : !list.length && <div className="cards-empty">{data.proxies.length
                 ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setType('all'); setRegion('all'); setStatus('all'); reset(); }}>{d.states.clear}</button>
@@ -206,15 +209,15 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
                 </div>
               ))}
             {list.length > 0 && <Pager d={d} total={list.length} page={page} size={size} onPage={setPage} onSize={n => { setSize(n); setPage(1); }} />}
-            {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
-          </div>
+          </section>
           {curProxy && <ProxyPanel {...item(curProxy)} lang={lang} data={data} profiles={on(curProxy.id)} onClose={() => setCur(null)}
             onPage={t => setOpen([curProxy.id, t])} onOpenProfile={id => onShowProfiles(on(curProxy.id).map(x => x.id), id)} />}
         </div>
+        {data.proxies.some(p => p.lastCheck?.geo) && <p className="attrib page-attrib">{d.common.attribution}</p>}
 
         {unbinding && (
-          <Modal kind="warn" title={X.bulk.unbindTitle(unbinding.length, bound)} closeLabel={d.common.close} onClose={() => setUnbinding(null)} foot={<>
-            <button type="button" className="btn btn-secondary" onClick={() => setUnbinding(null)}>{d.common.cancel}</button>
+          <Modal kind="warn" title={X.bulk.unbindTitle(unbinding.length, bound)} onClose={() => setUnbinding(null)} foot={<>
+            <Cancel />
             <Act className="btn btn-primary" run={() => unbind(unbinding)}>{X.bulk.unbind}</Act>
           </>}><p>{X.bulk.unbindNote}</p></Modal>
         )}
@@ -232,7 +235,7 @@ interface ProxyItem {
 // What a proxy is doing now: a coloured dot and a word.
 function ProxyState({ d, p, busy }: { d: Dict; p: Proxy; busy: boolean }){
   const X = d.proxies, s = proxyState(p);
-  const [tone, text] = busy ? ['boot', d.common.checking] : s === 'ok' ? ['run', X.states.ok] : s === 'slow' ? ['boot', X.states.slow] : s === 'down' ? ['bad', X.states.down] : ['idle', X.states.unchecked];
+  const [tone, text] = busy ? ['boot', d.common.checking] : s === 'ok' ? ['run', X.states.ok] : s === 'slow' ? ['warn', X.states.slow] : s === 'down' ? ['bad', X.states.down] : ['idle', X.states.unchecked];
   return <span className={`dot-st ${tone}`}>{text}</span>;
 }
 // How long a line that is down has been: failures in a row at the end, and when it last answered.
@@ -290,8 +293,8 @@ function ProxyRow(props: ProxyItem){
   const { d, p, busy, backup, checked, cur, onToggle, onView, onEdit } = props;
   const X = d.proxies;
   return (
-    <tr data-id={p.id} className={cur ? 'cur' : ''} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu')) onView(); }}>
-      <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
+    <tr data-id={p.id} className={[cur && 'cur', checked && 'on'].filter(Boolean).join(' ')} onClick={e => { if (!(e.target as HTMLElement).closest('button,input,a,.menu,td.cb')) onView(); }}>
+      <td className="cb" onClick={e => { if (e.target === e.currentTarget) onToggle(); }}><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} /></td>
       <td><span className="l1"><button type="button" className="rowlink" onClick={onView}>{p.name}</button></span>{backup && <span className="l2">{X.backupOf(backup)}</span>}</td>
       <td className="mono">{p.type.toUpperCase()}</td>
       <td className="c-addr"><span className="addr mono">{p.host}:{p.port}<CopyBtn text={`${p.host}:${p.port}`} label={d.common.copy} done={d.common.copied} /></span></td>
@@ -323,7 +326,7 @@ function CheckLog({ d, lang, p, n }: { d: Dict; lang: Lang; p: Proxy; n: number 
   return (
     <ol className="ck-log" data-testid="check-log">
       {[...p.history].reverse().slice(0, n).map(h => (
-        <li key={h.at}><time>{dayLabel(h.at, d, lang)} {time(h.at, lang)}</time><span className={`dot-st ${({ good: 'run', warn: 'boot', bad: 'bad' })[latencyTone(h.ok ? h.ms : null)]}`}>{h.ok ? D.ok(h.ms ?? 0) : D.failed}</span></li>
+        <li key={h.at}><time>{dayLabel(h.at, d, lang)} {time(h.at, lang)}</time><span className={`dot-st ${({ good: 'run', warn: 'warn', bad: 'bad' })[latencyTone(h.ok ? h.ms : null)]}`}>{h.ok ? D.ok(h.ms ?? 0) : D.failed}</span></li>
       ))}
     </ol>
   );
@@ -366,7 +369,7 @@ function ProxyPanel(props: ProxyItem & { lang: Lang; data: WorkspaceData; profil
   const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
   const groups = new Map(data.groups.map(g => [g.id, g]));
   return (
-    <aside className="sec side-panel" aria-label={D.label}>
+    <aside className="sec side-panel" aria-label={D.label}><PanelEdge />
       <div className="sec-row"><h3>{D.label}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
       <div className="side-h"><b>{p.name}</b><ProxyState d={d} p={p} busy={busy} /></div>
       <dl className="kvl">
@@ -404,12 +407,10 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onBack]);
+  useTrail([{ label: X.title, go: onBack }, { label: p.name }], `${p.id}:${p.name}`);
   return (
     <div className="page">
       <main className="main pd" aria-label={D.label}>
-        <nav className="crumbs" aria-label={d.detail.crumbs}>
-          <button type="button" onClick={onBack}>{X.title}</button><Icon name="chevR" /><span aria-current="page">{p.name}</span>
-        </nav>
         <header className="pd-head">
           <div className="pd-t">
             <div className="pd-n"><h1 data-testid="proxy-name">{p.name}</h1><ProxyState d={d} p={p} busy={busy} /><span className="cc">{p.type.toUpperCase()}</span></div>
@@ -420,11 +421,7 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
           <button type="button" className="btn btn-primary" disabled={busy} onClick={onCheck}>{busy ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.test}</button>
           <MoreMenu vertical label={X.actionsX(p.name)} items={[{ label: X.bulkDelete, onClick: onDelete, danger: true }]} />
         </header>
-        <div className="tabs page-tabs" role="tablist" aria-label={D.label}>
-          {(['overview', 'bound', 'checks'] as const).map(t => (
-            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{D.tabs[t]}{t === 'bound' && <small>{profiles.length}</small>}</button>
-          ))}
-        </div>
+        <Tabs className="page-tabs" label={D.label} value={tab} tabs={['overview', 'bound', 'checks']} name={t => D.tabs[t]} count={t => t === 'bound' && profiles.length} onChange={setTab} />
         <div className="pd-body">
           {tab === 'overview' && <>
             <dl className="dstats">
@@ -527,7 +524,8 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
   const user = auth ? username.trim() || null : null;
   // A changed detail makes the last check's result stale.
   const change = <T,>(set: (v: T) => void) => (v: T) => { set(v); setResult(null); };
-  const req = <span className="req" aria-hidden="true">*</span>;
+  const req = <span className="req" aria-hidden="true">*</span>, opt = <small className="opt">{d.form.optional}</small>;
+  const dirty = useChanged({ name, type, host, port, auth, username, password, backupId, notes });
 
   async function test(){
     setTried(true);
@@ -562,16 +560,16 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
   }
 
   return (
-    <Modal title={proxy ? X.formEdit : X.formAdd} sub={X.formSub} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal title={proxy ? X.formEdit : X.formAdd} sub={X.formSub} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       {!proxy && <label className="check-row"><input type="checkbox" checked={another} onChange={e => setAnother(e.target.checked)} />{X.addMore}</label>}
       <span className="sp" />
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button className="btn btn-primary" type="submit" form="proxy-form" disabled={busy} aria-busy={busy || undefined}>{X.save}</button>
     </>}>
       <form className="m-body" id="proxy-form" onSubmit={submit} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
         <div className="field">
-          <label htmlFor="px-name">{X.name}</label>
+          <label htmlFor="px-name">{X.name}{opt}</label>
           <input id="px-name" ref={nameRef} placeholder={X.namePh} value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus />
         </div>
         <div className="field">
@@ -583,13 +581,13 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
         <div className="row2 host-port">
           <div className="field">
             <label htmlFor="px-host">{X.host}{req}</label>
-            <input id="px-host" className="mono-in" value={host} onChange={e => change(setHost)(e.target.value)} spellCheck={false} autoComplete="off" required aria-invalid={!!hostErr} />
-            {hostErr && <p className="err">{hostErr}</p>}
+            <input id="px-host" className="mono-in" value={host} onChange={e => change(setHost)(e.target.value)} spellCheck={false} autoComplete="off" required aria-invalid={!!hostErr} aria-describedby={hostErr ? 'px-host-err' : undefined} />
+            {hostErr && <p className="err" id="px-host-err">{hostErr}</p>}
           </div>
           <div className="field">
             <label htmlFor="px-port">{X.port}{req}</label>
-            <input id="px-port" className="mono-in" inputMode="numeric" value={port} onChange={e => change(setPort)(e.target.value.replace(/\D/g, ''))} required aria-invalid={!!portErr} />
-            {portErr && <p className="err">{portErr}</p>}
+            <input id="px-port" className="mono-in" inputMode="numeric" value={port} onChange={e => change(setPort)(e.target.value.replace(/\D/g, ''))} required aria-invalid={!!portErr} aria-describedby={portErr ? 'px-port-err' : undefined} />
+            {portErr && <p className="err" id="px-port-err">{portErr}</p>}
           </div>
         </div>
         <div className="px-auth">
@@ -599,11 +597,11 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
         {auth && (
           <div className="row2">
             <div className="field">
-              <label htmlFor="px-user">{X.user}</label>
+              <label htmlFor="px-user">{X.user}{opt}</label>
               <input id="px-user" value={username} onChange={e => change(setUsername)(e.target.value)} autoComplete="off" spellCheck={false} />
             </div>
             <div className="field">
-              <label htmlFor="px-pass">{X.pass}</label>
+              <label htmlFor="px-pass">{X.pass}{opt}</label>
               <span className="pass-in">
                 <input id="px-pass" type={reveal ? 'text' : 'password'} value={password} onChange={e => change(setPassword)(e.target.value)} autoComplete="new-password" placeholder={proxy?.hasPassword ? X.passKeep : ''} />
                 <button type="button" className="icon-btn bare" aria-label={reveal ? X.conceal : X.reveal} title={reveal ? X.conceal : X.reveal} onClick={() => setReveal(r => !r)}><Icon name={reveal ? 'eyeOff' : 'eye'} /></button>
@@ -611,10 +609,10 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
             </div>
           </div>
         )}
-        <SelectField label={X.backup} value={backupId} onChange={setBackupId} hint={X.backupHint} searchPh={d.form.searchPh}
+        <SelectField label={X.backup} optional value={backupId} onChange={setBackupId} hint={X.backupHint} search searchPh={d.form.searchPh}
           options={[{ value: '', label: X.backupNone }, ...data.proxies.filter(p => p.id !== proxy?.id).map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined }))]} />
         <div className="field">
-          <label htmlFor="px-notes">{X.notes}<small className="opt">{d.form.optional}</small></label>
+          <label htmlFor="px-notes">{X.notes}{opt}</label>
           <input id="px-notes" value={notes} onChange={e => setNotes(e.target.value)} maxLength={500} />
         </div>
         <div className="px-test">
@@ -699,18 +697,16 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
   }
   const example = (pattern.trim() || I.namePh).replaceAll('{n}', '1') + I.sep + (pattern.trim() || I.namePh).replaceAll('{n}', '2');
   return (
-    <Modal wide title={I.title} sub={I.sub} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal wide title={I.title} sub={I.sub} onClose={onClose} busy={busy} dirty={!!(text.trim() || file || pattern)} foot={<>
       <label className="check-row" title={I.skipHelp}><input type="checkbox" checked={skip} onChange={e => setSkip(e.target.checked)} />{I.skip}</label>
       <span className="sp" />
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button className="btn btn-secondary" type="button" disabled={reading || !text.trim()} onClick={() => void read()}>{I.reparse}</button>
       <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || reading || !going} onClick={() => void submit()}>{I.submit(going)}</button>
     </>}>
       <div className="m-body px-imp">
         {error && <p className="notice error" role="alert">{error}</p>}
-        <div className="tabs" role="tablist" aria-label={I.title}>
-          {(['text', 'file'] as const).map(m => <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}>{I.modes[m]}</button>)}
-        </div>
+        <Tabs label={I.title} value={mode} tabs={['text', 'file']} name={m => I.modes[m]} onChange={setMode} />
         <div className="row2">
           <SelectField label={I.protocol} value={type} onChange={v => setType(v as ProxyType)} hint={I.protocolHint} options={TYPES.map(t => ({ value: t, label: t.toUpperCase() }))} />
           <div className="field">
@@ -792,16 +788,16 @@ export function ReplaceProxyDialog({ d, data, profile, onClose, onDone }: { d: D
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
   return (
-    <Modal wide title={R.title} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal wide title={R.title} onClose={onClose} foot={<>
       <span className="sp" />
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || !pick || !!status} onClick={() => void confirm()}>{R.confirm}</button>
     </>}>
       <div className="m-body px-rep">
         {error && <p className="notice error" role="alert">{error}</p>}
         <p>{R.lead(profile.name)}</p>
         <dl className="rep-now">
-          <div><dt>{R.current}</dt><dd>{current ? <span className="tag">{current.name}</span> : <span className="muted">{d.profiles.noProxy}</span>}</dd></div>
+          <div><dt>{R.current}</dt><dd>{current ? <span className="badge">{current.name}</span> : <span className="muted">{d.profiles.noProxy}</span>}</dd></div>
           <div><dt>{R.state}</dt><dd>{status ? <span className="dot-st run">{d.profiles.st.running}</span> : <span className="dot-st idle">{d.profiles.tabs.stopped}</span>}</dd></div>
         </dl>
         {status && <p className="notice warn">{R.running}</p>}

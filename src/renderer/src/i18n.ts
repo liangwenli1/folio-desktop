@@ -35,6 +35,12 @@ export const en = {
     pause: 'Pause walkthrough', play: 'Play walkthrough'
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan & billing', help: 'Help', more: 'More' },
+  top: {
+    search: 'Search profiles, proxies or members…', bell: 'Notifications', bellNew: 'Notifications (new)', none: 'No notifications',
+    planEnds: (plan: string, date: string) => `${plan} ends on ${date}. Renew it to keep its limits.`, trialEnds: (date: string) => `The free trial ends on ${date}.`,
+    renew: 'Renew', choosePlan: 'Choose a plan', invited: (who: string, ws: string) => `${who} invited you to the ${ws} workspace.`,
+    jobFailed: (kind: string, n: number, total: number) => `${kind}: ${n} of ${total} failed.`
+  },
   groups: {
     title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name',
     color: 'Color', colors: { red: 'Red', blue: 'Blue', green: 'Green', amber: 'Amber', purple: 'Purple', teal: 'Teal', gray: 'Gray' },
@@ -44,7 +50,7 @@ export const en = {
     edit: 'Edit group', addProfile: 'Add profile', search: 'Search name or number', state: 'Status', owner: 'Member', owners: 'All members', sort: 'Sort by name',
     states: { all: 'All statuses', running: 'Running', stopped: 'Not running' },
     cols: { name: 'Profile', number: 'No.', region: 'Country/region', status: 'Status', owner: 'Member', actions: 'Actions' },
-    empty: 'No profiles in this group yet', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number) => `${profilesN(n)} removed from the group`,
+    empty: 'No profiles in this group yet', emptyText: 'Create a profile in this group, or move profiles here from the profile list.', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number) => `${profilesN(n)} removed from the group`,
     settings: 'Group settings', name: 'Group name', nameErr: 'Enter a group name.', parent: 'Parent group', parentNone: 'None (top level)', description: 'Description',
     members: 'Member access', people: 'Members of the group', addMember: 'Add member', findMember: 'Search members', noneToAdd: 'Everyone is in this group.',
     roleOf: (e: string) => `Role of ${e}`, removeMember: (e: string) => `Remove ${e}`,
@@ -71,11 +77,12 @@ export const en = {
   },
   // The Plan & billing page: the plan this workspace is on, what it has used, and what it has paid.
   billing: {
-    title: 'Plan & billing', lead: 'The plan this workspace is on, what it has used of it, and what it has paid.',
+    title: 'Plan and usage', lead: 'The plan this workspace is on, what it has used of it, and what it has paid.',
     tabs: { plan: 'Plan', usage: 'Usage', payments: 'Payments' },
     current: 'Current plan', change: 'Change plan', since: 'Started', until: 'Runs until', renew: 'Renews automatically',
     yes: 'Yes', no: 'No', status: 'Status', statusActive: 'Active', statusTrial: 'Free trial',
-    limits: 'Plan limits', profiles: 'Profiles', members: 'Members', logDays: 'Activity log',
+    limits: 'Plan limits', profiles: 'Profiles', members: 'Members', proxies: 'Proxies', logDays: 'Activity log',
+    details: 'Plan details', planRow: 'Plan', all: 'View all',
     logKept: (n: number) => `${n} days`, unlimited: 'Unlimited',
     expiry: 'Remind before the plan ends', expiryHint: 'Admins get an in-app notice shortly before the plan ends.',
     payments: 'Payments', invoice: 'Invoice', date: 'Date', item: 'Item', amount: 'Amount', paid: 'Paid', refunded: 'Refunded',
@@ -91,7 +98,9 @@ export const en = {
     defaults: 'Profile defaults', defaultsLead: 'What a new profile starts with.',
     defaultsNote: 'These apply only to profiles created from now on; existing ones keep their settings.',
     trashDays: 'Keep deleted profiles for', trashDaysHint: 'Profiles in the Trash longer than this are permanently deleted, with their sign-ins.',
-    engine: 'Default engine', engineNone: 'Recommended version', version: 'Version',
+    engine: 'Default engine', engineNone: 'Recommended version', engineAuto: 'Recommended engine', engineHint: 'The engine a new profile starts with.',
+    groupHint: 'The group a new profile goes into.', proxyHint: 'The proxy a new profile connects through.',
+    readOnly: 'Only the owner and admins can change these settings.', idCopied: 'Workspace ID copied',
     group: 'Default group', groupNone: 'No group', proxy: 'Default proxy', proxyNone: 'No proxy',
     opening: 'Opening', openingLead: 'What happens when a profile is opened and closed.',
     openDetail: 'Show the profile\u2019s page after it opens', openDetailHint: 'The profile\u2019s page opens as soon as its browser starts.',
@@ -115,9 +124,11 @@ export const en = {
   },
   common: {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit', copy: 'Copy', copied: 'Copied',
-    selected: (n: number) => `${n} selected`, clearSelection: 'Clear selection', selectAll: 'Select all shown', select: (x: string) => `Select ${x}`,
+    selected: (n: number) => `${n} selected`, selectedHidden: (n: number, hidden: number) => `${n} selected · ${hidden} hidden by filters`, clearSelection: 'Clear selection', selectAll: 'Select this page', select: (x: string) => `Select ${x}`,
     never: 'Never', justNow: 'Just now', minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
-    loadFailed: 'This list couldn’t be loaded', loadRetry: 'Load again',
+    loadFailed: 'This list couldn’t be loaded', loadRetry: 'Load again', resize: 'Resize the panel',
+    discardTitle: 'Discard unsaved changes?', discardNote: 'What you changed here won’t be saved.', keepEditing: 'Keep editing', discard: 'Discard changes',
+    listLoading: 'Loading…', listFailed: 'Couldn’t load the list.', retry: 'Retry', noOptions: 'Nothing to choose from yet', noMatch: 'No matches',
     attribution: 'IP Geolocation by DB-IP'
   },
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
@@ -132,7 +143,7 @@ export const en = {
     views: { label: 'View', list: 'List', cards: 'Cards' },
     tabs: { all: 'All', running: 'Running', stopped: 'Not running', trash: 'Trash' },
     filter: { label: 'Status', all: 'All', states: 'All statuses', running: 'Running', stopped: 'Not running', issues: 'Needs attention', starred: 'Favorites', engine: 'Engine', engines: 'All engines' },
-    reset: 'Reset',
+    reset: 'Reset', resetN: (n: number) => `Reset filters (${n})`,
     page: { total: (n: number) => `${n} in all`, size: (n: number) => `${n} per page`, prev: 'Previous page', next: 'Next page', go: (p: number) => `Page ${p}` },
     star: 'Add to favorites', unstar: 'Remove from favorites', move: 'Move to group', moveTitle: (n: string) => `Move “${n}” to a group`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
@@ -152,7 +163,7 @@ export const en = {
     emptyMatch: 'No profiles match', emptyFor: (q: string) => `Nothing found for “${q}”.`,
     emptyHint: (n: number) => (n === 1 ? 'Try another search, or clear the filters to see it.' : `Try another search, or clear the filters to see all ${n}.`),
     bulk: {
-      open: 'Open', stop: 'Stop', move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Bulk edit', more: 'More',
+      open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group…', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Bulk edit', more: 'More',
       tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
       extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall', sync: 'Sync windows', syncTwo: 'Select at least two profiles',
       confirm: (n: number) => `Move ${profilesN(n)} to the Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
@@ -223,7 +234,7 @@ export const en = {
     deleted: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} deleted`,
     detail: 'Cookie details', close: 'Close details', value: 'Value', show: 'Show', hide: 'Hide', copy: 'Copy the value', copied: 'Value copied',
     hidden: 'Values stay hidden until asked for; each read is recorded in the activity log.', noValue: 'Your role can’t read cookie values.', on: 'On', off: 'Off',
-    none: 'No cookies saved', notSaved: 'Nothing saved yet', notSavedText: 'Cookies are saved when the browser closes, or come in from a file.',
+    none: 'No cookies saved', noneText: 'Cookies are saved here when the browser closes after signing in to sites, or they can be imported.', notSaved: 'Nothing saved yet', notSavedText: 'Cookies are saved when the browser closes, or come in from a file.',
     local: 'Sign-ins stay on the computer that uses this profile; Folio holds no copy to list here.',
     localRunning: 'Sign-ins stay on this computer; cookies imported now go straight into the open browser.',
     away: 'This profile is open on another computer; its cookies can be edited once it is closed there.',
@@ -290,7 +301,7 @@ export const en = {
     optional: ' (optional)',
     group: 'Group', noGroup: 'No group', newGroup: 'New group…', newGroupPh: 'Name of the new group',
     engine: 'Browser engine', os: 'Operating system', notDownloaded: (size: string) => `Not downloaded · ${size}`,
-    proxyKind: 'Proxy type', proxyMode: { saved: 'Saved proxy', custom: 'New proxy', none: 'No proxy' }, pickProxy: 'Choose a proxy',
+    proxyKind: 'Proxy type', proxyMode: { saved: 'Saved proxy', custom: 'New proxy', none: 'No proxy' }, pickProxy: 'Choose a proxy', pickProxyFirst: 'Choose or paste a proxy first.',
     pickErr: 'Choose a proxy, or pick No proxy.', pastePh: 'socks5://user:pass@host:port',
     proxyBad: 'That doesn’t look like a proxy address.',
     proxyOk: (place: string, ms: number) => `Connected · ${place} · ${ms} ms`, proxyDown: 'Can’t connect',
@@ -300,7 +311,7 @@ export const en = {
     firefoxMissing: 'Download the Firefox engine to make this fingerprint.', download: 'Download', downloading: (pct: number) => `Downloading… ${pct}%`,
     fpEdit: 'Edit fingerprint', fpHide: 'Hide fingerprint settings', exitUnknown: 'Exit not checked yet',
     create: 'Create profile', save: 'Save changes', tz: 'Time zone', lang: 'Language', follow: 'Follow the proxy',
-    tzPh: 'Search time zones, e.g., Berlin', langPh: 'de-DE', tzNone: 'No time zone matches.', langErr: 'Use a language tag like de-DE.', searchPh: 'Search…',
+    tzPh: 'Search time zones, e.g., Berlin', langPh: 'de-DE', langErr: 'Use a language tag like de-DE.', searchPh: 'Search…',
     startUrl: 'Start page', startUrlHint: 'Left empty, it opens its last tabs or its search engine’s home page.',
     startUrlErr: 'Use an address that starts with http:// or https://.',
     window: 'Window size', windowModes: { default: 'Default', custom: 'Custom', maximized: 'Maximized' }, width: 'Width', height: 'Height',
@@ -312,8 +323,7 @@ export const en = {
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.',
     nextOpen: 'Changes apply the next time it opens.', runningNote: 'Stop it to change its engine, proxy or fingerprint; other changes apply the next time it opens.',
     lockedNote: 'The profile is running; stop it to change this.', stopNow: 'Stop profile',
-    unsaved: 'Unsaved changes', changedN: (n: number) => `${n} changed`, createHint: 'Everything here can be changed later.',
-    discardTitle: 'Discard unsaved changes?', discardNote: 'What you changed here won’t be saved.', keepEditing: 'Keep editing', discard: 'Discard changes'
+    unsaved: 'Unsaved changes', changedN: (n: number) => `${n} changed`, createHint: 'Everything here can be changed later.'
   },
   // The Fingerprint tab of a profile's page.
   fpTab: {
@@ -356,7 +366,7 @@ export const en = {
     emptyTitle: 'No proxies yet', empty: 'Add one, or import a list from your provider.', addFirst: 'Add the first proxy', importList: 'Import a list',
     bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use a deleted proxy keep working without one.',
     bulk: {
-      unbind: 'Unassign', unbindTitle: (n: number, m: number) => `Unassign ${proxiesN(n)} from ${profilesN(m)}?`,
+      unbind: 'Unassign', unbindNone: 'None of the selected proxies is assigned to a profile.', unbindTitle: (n: number, m: number) => `Unassign ${proxiesN(n)} from ${profilesN(m)}?`,
       unbindNote: 'Those profiles connect without a proxy until another is assigned; running ones change the next time they open.',
       unbound: (m: number) => `${profilesN(m)} unassigned`
     },
@@ -404,7 +414,7 @@ export const en = {
     }
   },
   trash: {
-    title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it permanently.', empty: 'The Trash is empty',
+    title: 'Trash', lead: 'Profiles deleted lately: bring one back, or delete it permanently.', empty: 'The Trash is empty', emptyText: (n: number) => `Deleted profiles stay here for ${n} days and can be restored during that time.`,
     restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete permanently', purgeAll: 'Empty Trash',
     cols: { profile: 'Profile', number: 'No.', group: 'Group', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by', left: 'Days left' },
     keeps: (n: number) => `Kept for ${n} days, then permanently deleted. Change it in Settings.`,
@@ -418,7 +428,7 @@ export const en = {
   },
   engines: {
     title: 'Engines', lead: 'Browser engine versions: the one new profiles start with, and how updates arrive.',
-    check: 'Check for updates', upToDate: 'Every engine is up to date', updates: (n: number) => `${n === 1 ? '1 update' : `${n} updates`} available`,
+    check: 'Check for updates', upToDate: 'Every engine is up to date', upToDateText: 'The installed engines are all on their latest versions.', updates: (n: number) => `${n === 1 ? '1 update' : `${n} updates`} available`,
     defaultKernel: 'Default engine', defaultOf: (engine: string) => `${engine} · recommended`, defaultSet: (v: string) => `New profiles now start with ${v}`,
     tabs: { all: 'All engines', installed: 'Downloaded', updates: 'Updates' },
     search: 'Search versions', searchPh: 'Search versions or notes', system: 'System', systems: 'All systems',
@@ -463,7 +473,7 @@ export const en = {
     tabs: { members: 'Members', invites: 'Invitations', roles: 'Roles' },
     cols: { person: 'Member', role: 'Role', scope: 'Groups', status: 'Status', active: 'Last active', actions: 'Actions', invitedBy: 'Invited by', expires: 'Expires' },
     scopeAll: 'All profiles', scopeOwn: 'Their own profiles', joined: 'Joined',
-    seats: 'Seats', seatsFree: (n: number) => `${n} in use · unlimited`, allRoles: 'All roles', noInvites: 'No invitations waiting',
+    seats: 'Seats', seatsFree: (n: number) => `${n} in use · unlimited`, allRoles: 'All roles', noInvites: 'No invitations waiting', noInvitesText: 'Invitations show here until they are accepted or expire.',
     defsTitle: 'What the roles mean', editAccess: 'Edit access', accessTitle: (e: string) => `Access for ${e}`,
     accessSub: 'The role is theirs across the workspace; the groups decide which profiles they can access.', saved: 'Access saved',
     viaParent: 'through its parent', noGroups: 'There are no groups yet.',
@@ -489,7 +499,7 @@ export const en = {
     sentShort: 'Invitation sent', notSentShort: 'Not emailed: copy the link and pass it on',
     done: 'Done',
     removeTitle: (e: string) => `Remove ${e}`, removeLead: 'Their profiles go to the person you choose. Anything they have open closes on their computer, and their copies there are deleted.',
-    heir: 'Give their profiles to', removeDo: 'Remove from workspace', removed: (e: string) => `${e} was removed`,
+    heir: 'Give their profiles to', heirNeeded: 'Choose who receives their profiles first.', removeDo: 'Remove from workspace', removed: (e: string) => `${e} was removed`,
     leaveTitle: (ws: string) => `Leave ${ws}?`, leaveLead: 'Your profiles there go to the owner, and you lose access to the workspace.', leaveDo: 'Leave',
     removedYou: (ws: string) => `You’re no longer in ${ws}. Its profiles were closed and removed from this computer.`,
     groupAccess: 'Group access',
@@ -504,7 +514,7 @@ export const en = {
     cols: { name: 'Task', by: 'Started by', progress: 'Progress', status: 'Status', created: 'Created', actions: 'Actions', target: 'Target', result: 'Result', reason: 'Why it failed', at: 'Finished' },
     states: { running: 'Running', done: 'Done', partial: 'Partly failed', failed: 'Failed', canceled: 'Canceled' },
     results: { pending: 'Waiting', ok: 'Done', failed: 'Failed', canceled: 'Canceled' },
-    me: 'You', view: 'View', empty: 'No tasks in this period', by: (who: string) => `Started by ${who}`,
+    me: 'You', view: 'View', empty: 'No tasks in this period', emptyText: 'The progress and results of batch operations, such as checking proxies or opening profiles, appear here.', by: (who: string) => `Started by ${who}`,
     total: 'Total', ok: 'Done', failed: 'Failed', canceled: 'Canceled', resultsTab: 'Results', logTab: 'Log',
     started: (n: number) => `Started on ${n === 1 ? '1 target' : `${n} targets`}`, finished: (s: string) => `Finished: ${s}`,
     retry: (n: number) => `Retry failed (${n})`, retryNote: 'Only the failed ones run again; the ones done stay as they are.',
@@ -524,6 +534,8 @@ export const en = {
     contact: 'Email the owner', askSubject: 'Folio: access request',
     offline: 'No connection', offlineText: 'Folio can’t reach its server. Check your network, then connect again.', reconnect: 'Connect again',
     loadFailedText: 'Something went wrong while loading. Try again.',
+    partial: (what: string) => `Some details couldn’t be loaded (${what}), so this list may be incomplete.`,
+    lists: { profiles: 'profiles', trash: 'the Trash', groups: 'groups', proxies: 'proxies', members: 'members', flows: 'flows', tasks: 'scheduled tasks', extensions: 'extensions', jobs: 'tasks' } as Record<string, string>, listSep: ', ',
     underway: (what: string) => `${what}: under way`, resultsThere: 'The task center will have the results.', viewTask: 'View task',
     partly: (what: string, ok: number, failed: number) => `${what}: ${ok} done, ${failed} failed`, seeWhy: 'See why'
   },
@@ -555,7 +567,7 @@ export const en = {
     kinds: { all: 'All actions', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
     dates: 'Dates', from: 'From', until: 'Until', to: 'to',
     partial: 'Your role shows your own actions and what was done to the profiles you can see.',
-    export: 'Export log', exported: (path: string) => `Saved to ${path}`, empty: 'Nothing recorded yet', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
+    export: 'Export log', exported: (path: string) => `Saved to ${path}`, empty: 'Nothing recorded yet', emptyText: 'Changes to profiles, proxies, members and settings in this workspace are recorded here.', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
     today: 'Today', yesterday: 'Yesterday',
     detail: {
       title: 'Entry details', number: 'Entry', person: 'By', time: 'Time', type: 'Action', object: 'Target', device: 'Computer', what: 'What happened',
@@ -607,11 +619,11 @@ export const en = {
   transfer: {
     exportTitle: 'Export all data', exportLead: 'One file with every profile (fingerprints and settings), its sign-ins, the groups and the proxies with their passwords. Profiles in the Trash stay behind.',
     passphrase: 'Passphrase', confirm: 'Confirm passphrase', passHelp: 'At least 10 characters. The file opens only with it, and it is not kept anywhere: if it is lost, so is the file.',
-    passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exporting: 'Exporting…', exported: (path: string) => `Saved to ${path}`,
+    passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exported: (path: string) => `Saved to ${path}`,
     importTitle: 'Import data', importLead: 'Brings a .folio file into this workspace: its profiles are added and numbered here, and identical proxies and same-named groups are reused.',
-    choose: 'Choose a .folio file…', unlock: 'Unlock', unlocking: 'Unlocking…',
+    choose: 'Choose a .folio file…', unlock: 'Unlock',
     preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `From ${p.workspace}: ${profilesN(p.profiles)} (${p.signedIn} with sign-ins), ${p.proxies} ${p.proxies === 1 ? 'proxy' : 'proxies'}, ${p.groups} ${p.groups === 1 ? 'group' : 'groups'}${p.extensions ? `, ${p.extensions} ${p.extensions === 1 ? 'extension' : 'extensions'}` : ''}.`,
-    room: (free: number) => `The plan has room for ${profilesN(free)} more.`, import: 'Import', importing: 'Importing…',
+    room: (free: number) => `The plan has room for ${profilesN(free)} more.`, import: 'Import',
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}`
   },
   flows: {
@@ -622,7 +634,6 @@ export const en = {
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string) => `${n} deleted`, copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
     back: 'Flows', backLabel: 'Back to flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
-    leave: 'Leave without saving your changes?', keepEditing: 'Keep editing', discard: 'Discard changes',
     readOnly: 'Only whoever created this flow, admins and the owner can change it. Duplicate it to make your own version.',
     stale: 'Someone saved this flow while you were editing. Save again to replace their version with yours.',
     issues: (n: number) => (n === 1 ? '1 step needs filling in before saving.' : `${n} steps need filling in before saving.`),
@@ -764,7 +775,7 @@ export const en = {
     leaderTag: 'Leader', followerTag: 'Sync', makeLeader: 'Make leader', stop: 'Stop sync', current: 'Syncing now',
     address: 'Address for every window', addressPh: 'Open an address in every window', open: 'Open',
     pick: 'Pick the windows',
-    running: 'Open', start: (n: number) => (n < 2 ? 'Pick at least two' : `Sync ${n} windows`), starting: 'Starting…',
+    running: 'Open', start: (n: number) => (n < 2 ? 'Pick at least two' : `Sync ${n} windows`),
     ops: { label: 'Repeat', click: 'Clicks', typing: 'Typing', scroll: 'Scrolling' },
     delay: 'Random pause', seconds: 's', delayMin: 'Shortest pause, in seconds', delayMax: 'Longest pause, in seconds',
     synced: (n: number, bad: number) => `${n === 1 ? '1 window' : `${n} windows`} in sync${bad ? ` · ${bad} with a problem` : ''}`,
@@ -795,7 +806,7 @@ export const en = {
     }
   },
   palette: {
-    title: 'Command palette', placeholder: 'Search profiles, pages or actions', groups: { profiles: 'Profiles', actions: 'Actions', pages: 'Pages' },
+    title: 'Command palette', placeholder: 'Search profiles, proxies, members, pages or actions', groups: { profiles: 'Profiles', proxies: 'Proxies', members: 'Members', actions: 'Actions', pages: 'Pages' },
     none: 'Nothing matches.', move: 'select', run: 'run', close: 'close', open: 'open', switchTo: 'switch to its window', stop: (n: string) => `Stop ${n}`,
     newProfile: 'New profile', importProfiles: 'Import profiles', checkProxies: 'Check all proxies', addProxy: 'Add proxy',
     switchWs: (n: string) => `Switch to ${n}`, language: 'Switch to Chinese'
@@ -887,6 +898,12 @@ export const zh: Dict = {
     pause: '暂停演示', play: '播放演示'
   },
   nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '账号与计费', help: '帮助中心', more: '更多' },
+  top: {
+    search: '搜索环境、代理或成员…', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
+    planEnds: (plan: string, date: string) => `${plan}将于 ${date} 到期，续费后可继续使用当前额度。`, trialEnds: (date: string) => `免费试用将于 ${date} 结束。`,
+    renew: '续费', choosePlan: '选择套餐', invited: (who: string, ws: string) => `${who} 邀请您加入工作空间「${ws}」。`,
+    jobFailed: (kind: string, n: number, total: number) => `${kind}：${total} 项中有 ${n} 项失败。`
+  },
   groups: {
     title: '分组', all: '全部分组', none: '未分组', add: '新建分组', namePh: '请输入分组名称',
     color: '分组颜色', colors: { red: '红色', blue: '蓝色', green: '绿色', amber: '琥珀色', purple: '紫色', teal: '青色', gray: '灰色' },
@@ -896,7 +913,7 @@ export const zh: Dict = {
     edit: '编辑分组', addProfile: '添加环境', search: '搜索环境名称或 ID', state: '状态', owner: '所属成员', owners: '全部成员', sort: '按名称排序',
     states: { all: '全部状态', running: '运行中', stopped: '已停止' },
     cols: { name: '环境名称', number: '环境 ID', region: '国家/地区', status: '状态', owner: '所属成员', actions: '操作' },
-    empty: '该分组暂无环境', move: '移动到分组…', moveOut: '移出分组', movedOut: (n: number) => `已将 ${n} 个环境移出分组`,
+    empty: '该分组暂无环境', emptyText: '可在此分组中新建环境，或从环境列表将环境移入此分组。', move: '移动到分组…', moveOut: '移出分组', movedOut: (n: number) => `已将 ${n} 个环境移出分组`,
     settings: '分组设置', name: '分组名称', nameErr: '请填写分组名称。', parent: '上级分组', parentNone: '无（顶级分组）', description: '分组说明',
     members: '成员权限', people: '分组成员', addMember: '添加成员', findMember: '搜索成员', noneToAdd: '所有成员均已在该分组中。',
     roleOf: (e: string) => `${e} 的角色`, removeMember: (e: string) => `移除 ${e}`,
@@ -922,11 +939,12 @@ export const zh: Dict = {
     upgrade: '升级', addProfiles: '增加环境', manage: '账单'
   },
   billing: {
-    title: '账号与计费', lead: '查看当前套餐、资源使用情况及账单记录，便于合理规划团队使用。',
+    title: '套餐与用量', lead: '查看当前套餐、资源使用情况及账单记录，便于合理规划团队使用。',
     tabs: { plan: '当前套餐', usage: '用量', payments: '账单记录' },
     current: '当前套餐', change: '变更套餐', since: '生效时间', until: '到期时间', renew: '自动续期',
     yes: '已开启', no: '未开启', status: '套餐状态', statusActive: '正常使用', statusTrial: '试用中',
-    limits: '套餐额度', profiles: '环境', members: '席位', logDays: '操作日志',
+    limits: '资源额度', profiles: '环境', members: '席位', proxies: '代理', logDays: '操作日志',
+    details: '套餐详情', planRow: '套餐方案', all: '查看全部',
     logKept: (n: number) => `保留 ${n} 天`, unlimited: '不限',
     expiry: '到期提醒', expiryHint: '在套餐临近到期时，通过站内通知提醒管理员。',
     payments: '账单记录', invoice: '发票号', date: '创建时间', item: '项目', amount: '金额', paid: '已支付', refunded: '已退款',
@@ -941,7 +959,9 @@ export const zh: Dict = {
     defaults: '环境默认值', defaultsLead: '设置后续创建环境时的默认配置。',
     defaultsNote: '环境默认值仅应用于后续创建的环境，不会影响已有的环境。',
     trashDays: '回收站保留时间', trashDaysHint: '在回收站中超过该时间的环境将连同登录状态被彻底删除。',
-    engine: '默认内核', engineNone: '使用推荐版本', version: '版本',
+    engine: '默认内核', engineNone: '使用推荐版本', engineAuto: '使用推荐内核', engineHint: '创建环境时默认使用的浏览器内核。',
+    groupHint: '创建环境时默认所属的分组。', proxyHint: '创建环境时默认使用的代理。',
+    readOnly: '仅所有者和管理员可修改工作空间设置。', idCopied: '已复制工作空间 ID',
     group: '默认分组', groupNone: '未分组', proxy: '默认代理', proxyNone: '不使用代理',
     opening: '启动偏好', openingLead: '设置环境启动和关闭时的默认行为。',
     openDetail: '启动后打开环境详情', openDetailHint: '浏览器启动后自动打开该环境的详情页。',
@@ -964,9 +984,11 @@ export const zh: Dict = {
   },
   common: {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑', copy: '复制', copied: '已复制',
-    selected: (n: number) => `已选 ${n} 个`, clearSelection: '取消选择', selectAll: '全选当前列表', select: (x: string) => `选择 ${x}`,
+    selected: (n: number) => `已选 ${n} 个`, selectedHidden: (n: number, hidden: number) => `已选 ${n} 个（${hidden} 个被筛选隐藏）`, clearSelection: '取消选择', selectAll: '选择当前页', select: (x: string) => `选择 ${x}`,
     never: '从未', justNow: '刚刚', minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
-    loadFailed: '列表加载失败', loadRetry: '重新加载',
+    loadFailed: '列表加载失败', loadRetry: '重新加载', resize: '调整面板宽度',
+    discardTitle: '放弃未保存的修改？', discardNote: '关闭后，本次的修改将不会保存。', keepEditing: '继续编辑', discard: '放弃修改',
+    listLoading: '加载中…', listFailed: '列表加载失败。', retry: '重试', noOptions: '暂无可选项', noMatch: '无匹配结果',
     attribution: 'IP Geolocation by DB-IP'
   },
   os: { windows: 'Windows', macos: 'macOS', linux: 'Linux' },
@@ -981,7 +1003,7 @@ export const zh: Dict = {
     views: { label: '视图', list: '列表', cards: '卡片' },
     tabs: { all: '全部', running: '运行中', stopped: '已停止', trash: '回收站' },
     filter: { label: '状态', all: '全部', states: '全部状态', running: '运行中', stopped: '已停止', issues: '需处理', starred: '已收藏', engine: '内核', engines: '全部内核' },
-    reset: '重置',
+    reset: '重置', resetN: (n: number) => `重置筛选（${n}）`,
     page: { total: (n: number) => `共 ${n} 条`, size: (n: number) => `每页 ${n} 条`, prev: '上一页', next: '下一页', go: (p: number) => `第 ${p} 页` },
     star: '收藏', unstar: '取消收藏', move: '移动分组', moveTitle: (n: string) => `将「${n}」移到分组`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
@@ -1001,7 +1023,7 @@ export const zh: Dict = {
     emptyMatch: '无符合条件的环境', emptyFor: (q: string) => `未找到「${q}」。`,
     emptyHint: (n: number) => `请更换关键词，或清除筛选查看全部 ${n} 个环境。`,
     bulk: {
-      open: '批量启动', stop: '批量停止', move: '移动分组…', proxy: '设置代理…', assign: '分配给…', edit: '批量编辑', more: '更多',
+      open: '批量启动', stop: '批量停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组…', proxy: '设置代理…', assign: '分配给…', edit: '批量编辑', more: '更多',
       tag: '标签', tagPh: '标签名', addTag: '添加标签', removeTag: '移除标签', trash: '删除', cookies: '导出 Cookie…',
       extensions: '扩展…', install: '安装', uninstall: '卸载', sync: '同步窗口', syncTwo: '请至少选择两个环境',
       confirm: (n: number) => `将 ${n} 个环境移至回收站？`, confirmNote: '运行中的环境将先停止，此操作可撤销。', doTrash: '移至回收站'
@@ -1070,7 +1092,7 @@ export const zh: Dict = {
     deleted: (n: number) => `已删除 ${n} 条 Cookie`,
     detail: 'Cookie 详情', close: '关闭详情', value: '值', show: '显示', hide: '隐藏', copy: '复制值', copied: '已复制',
     hidden: 'Cookie 值默认隐藏，以保护敏感信息；每次查看均记入操作日志。', noValue: '当前角色无权查看 Cookie 值。', on: '已启用', off: '未启用',
-    none: '暂无 Cookie', notSaved: '尚未保存', notSavedText: '浏览器关闭时将自动保存，也可从文件导入。',
+    none: '暂无 Cookie', noneText: '在环境中登录网站并关闭浏览器后，Cookie 会保存在这里；也可以直接导入。', notSaved: '尚未保存', notSavedText: '浏览器关闭时将自动保存，也可从文件导入。',
     local: '登录状态仅保存在使用该环境的电脑上，Folio 不保留副本，此处无可列出的 Cookie。',
     localRunning: '登录状态仅保存在本机，此时导入的 Cookie 将直接写入正在运行的浏览器。',
     away: '该环境正在其他电脑上使用，关闭后才能修改 Cookie。',
@@ -1134,7 +1156,7 @@ export const zh: Dict = {
     optional: '（选填）',
     group: '所属分组', noGroup: '未分组', newGroup: '新建分组…', newGroupPh: '新分组名称',
     engine: '浏览器内核', os: '操作系统', notDownloaded: (size: string) => `未下载 · ${size}`,
-    proxyKind: '代理类型', proxyMode: { saved: '使用已有代理', custom: '自定义代理', none: '不使用代理' }, pickProxy: '选择代理',
+    proxyKind: '代理类型', proxyMode: { saved: '使用已有代理', custom: '自定义代理', none: '不使用代理' }, pickProxy: '选择代理', pickProxyFirst: '请先选择或填写代理。',
     pickErr: '请选择代理，或改为不使用代理。', pastePh: 'socks5://用户名:密码@主机:端口',
     proxyBad: '无法识别该代理地址。',
     proxyOk: (place: string, ms: number) => `连接正常 · ${place} · ${ms} ms`, proxyDown: '连接失败',
@@ -1144,7 +1166,7 @@ export const zh: Dict = {
     firefoxMissing: '需先下载 Firefox 内核才能生成该指纹。', download: '下载', downloading: (pct: number) => `正在下载… ${pct}%`,
     fpEdit: '编辑指纹配置', fpHide: '收起指纹配置', exitUnknown: '出口尚未检测',
     create: '创建环境', save: '保存修改', tz: '时区', lang: '语言', follow: '跟随代理',
-    tzPh: '搜索时区，如 Berlin', langPh: 'de-DE', tzNone: '没有匹配的时区。', langErr: '请使用 de-DE 格式的语言代码。', searchPh: '搜索…',
+    tzPh: '搜索时区，如 Berlin', langPh: 'de-DE', langErr: '请使用 de-DE 格式的语言代码。', searchPh: '搜索…',
     startUrl: '启动页', startUrlHint: '留空时按「恢复上次的标签页」或搜索引擎首页打开。', startUrlErr: '请填写以 http:// 或 https:// 开头的网址。',
     window: '启动窗口尺寸', windowModes: { default: '默认', custom: '自定义', maximized: '最大化' }, width: '宽度', height: '高度',
     windowHint: '此项控制浏览器窗口大小，屏幕分辨率在指纹配置中设置。', windowErr: '宽度须为 400–7680 像素，高度须为 300–4320 像素。',
@@ -1155,8 +1177,7 @@ export const zh: Dict = {
     stale: '编辑期间该环境已被他人修改。再次保存将覆盖对方的修改，取消则保留对方的修改。',
     nextOpen: '修改将在下次启动时生效。', runningNote: '内核、代理与指纹须停止环境后修改，其他修改将在下次启动时生效。',
     lockedNote: '环境运行中，停止后才能修改此项。', stopNow: '停止环境',
-    unsaved: '有未保存的修改', changedN: (n: number) => `已修改 ${n} 项`, createHint: '创建后可继续调整环境配置。',
-    discardTitle: '放弃未保存的修改？', discardNote: '关闭后，本次的修改将不会保存。', keepEditing: '继续编辑', discard: '放弃修改'
+    unsaved: '有未保存的修改', changedN: (n: number) => `已修改 ${n} 项`, createHint: '创建后可继续调整环境配置。'
   },
   fpTab: {
     next: '修改将在下次启动环境时生效。', locked: '环境运行中，停止后才能修改指纹配置。',
@@ -1197,7 +1218,7 @@ export const zh: Dict = {
     emptyTitle: '暂无代理', empty: '可逐个添加，或导入代理商提供的列表。', addFirst: '添加第一个代理', importList: '导入代理列表',
     bulkCheck: '批量检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '使用这些代理的环境将保留，并改为不使用代理。',
     bulk: {
-      unbind: '解除绑定', unbindTitle: (n: number, m: number) => `解除 ${n} 个代理与 ${m} 个环境的绑定？`,
+      unbind: '解除绑定', unbindNone: '所选代理均未绑定环境。', unbindTitle: (n: number, m: number) => `解除 ${n} 个代理与 ${m} 个环境的绑定？`,
       unbindNote: '这些环境将改为不使用代理，直到重新选择代理；运行中的环境下次启动时生效。',
       unbound: (m: number) => `已解除 ${m} 个环境的绑定`
     },
@@ -1245,7 +1266,7 @@ export const zh: Dict = {
     }
   },
   trash: {
-    title: '回收站', lead: '恢复误删环境或永久删除记录。', empty: '回收站为空',
+    title: '回收站', lead: '恢复误删环境或永久删除记录。', empty: '回收站为空', emptyText: (n: number) => `删除的环境会在此保留 ${n} 天，期间可以恢复。`,
     restore: '恢复', restoreAll: '全部恢复', purge: '彻底删除', purgeAll: '清空回收站',
     cols: { profile: '环境名称', number: '环境 ID', group: '原分组', fingerprint: '指纹', signins: '登录状态', deleted: '删除时间', by: '删除人', left: '剩余保留天数' },
     keeps: (n: number) => `记录保留 ${n} 天，到期后彻底删除，可在设置中修改。`,
@@ -1259,7 +1280,7 @@ export const zh: Dict = {
   },
   engines: {
     title: '内核管理', lead: '管理浏览器内核版本，配置默认内核与更新策略。',
-    check: '检查更新', upToDate: '所有内核均为最新版本', updates: (n: number) => `发现 ${n} 个可更新版本`,
+    check: '检查更新', upToDate: '所有内核均为最新版本', upToDateText: '已安装的内核均为最新版本，无需更新。', updates: (n: number) => `发现 ${n} 个可更新版本`,
     defaultKernel: '默认内核', defaultOf: (engine: string) => `${engine} · 推荐版本`, defaultSet: (v: string) => `新建环境将默认使用 ${v}`,
     tabs: { all: '全部内核', installed: '已安装', updates: '可更新' },
     search: '搜索内核版本', searchPh: '搜索内核版本…', system: '平台', systems: '全部平台',
@@ -1304,7 +1325,7 @@ export const zh: Dict = {
     tabs: { members: '成员', invites: '待接受邀请', roles: '角色权限' },
     cols: { person: '成员', role: '角色', scope: '授权分组', status: '状态', active: '最后活跃时间', actions: '操作', invitedBy: '邀请人', expires: '有效期至' },
     scopeAll: '全部环境', scopeOwn: '自己的环境', joined: '已加入',
-    seats: '成员席位', seatsFree: (n: number) => `已用 ${n} 个 · 不限席位`, allRoles: '全部角色', noInvites: '暂无待接受的邀请',
+    seats: '成员席位', seatsFree: (n: number) => `已用 ${n} 个 · 不限席位`, allRoles: '全部角色', noInvites: '暂无待接受的邀请', noInvitesText: '邀请在被接受或过期之前会显示在这里。',
     defsTitle: '角色定义', editAccess: '编辑权限', accessTitle: (e: string) => `编辑权限：${e}`,
     accessSub: '角色在整个工作空间内生效，分组决定成员可访问的环境范围。', saved: '权限已保存',
     viaParent: '随上级分组', noGroups: '尚未建立分组。',
@@ -1330,7 +1351,7 @@ export const zh: Dict = {
     sentShort: '邀请已发送', notSentShort: '邮件未发出，请复制链接发送给对方',
     done: '完成',
     removeTitle: (e: string) => `移除 ${e}`, removeLead: '其名下环境将转交给指定人员；其电脑上已打开的环境将被关闭，本地数据将被删除。',
-    heir: '环境转交给', removeDo: '移出团队', removed: (e: string) => `已移除 ${e}`,
+    heir: '环境转交给', heirNeeded: '请先选择接收其环境的成员。', removeDo: '移出团队', removed: (e: string) => `已移除 ${e}`,
     leaveTitle: (ws: string) => `退出「${ws}」？`, leaveLead: '您在此团队的环境将转交给所有者，此后将无法访问该团队。', leaveDo: '退出',
     removedYou: (ws: string) => `您已不在「${ws}」中，其环境已在本机关闭并删除。`,
     groupAccess: '分组授权',
@@ -1345,7 +1366,7 @@ export const zh: Dict = {
     cols: { name: '任务名称', by: '发起人', progress: '进度', status: '状态', created: '创建时间', actions: '操作', target: '对象', result: '结果', reason: '失败原因', at: '完成时间' },
     states: { running: '进行中', done: '已完成', partial: '部分失败', failed: '失败', canceled: '已取消' },
     results: { pending: '等待中', ok: '成功', failed: '失败', canceled: '已取消' },
-    me: '我', view: '查看', empty: '该时间段内暂无任务', by: (who: string) => `发起人：${who}`,
+    me: '我', view: '查看', empty: '该时间段内暂无任务', emptyText: '批量检测代理、批量启动环境等操作的进度与结果会显示在这里。', by: (who: string) => `发起人：${who}`,
     total: '总数', ok: '成功', failed: '失败', canceled: '已取消', resultsTab: '执行结果', logTab: '任务日志',
     started: (n: number) => `开始执行，共 ${n} 项`, finished: (s: string) => `执行结束：${s}`,
     retry: (n: number) => `重试失败项（${n}）`, retryNote: '仅重试失败项，已成功项保持当前结果。',
@@ -1365,6 +1386,8 @@ export const zh: Dict = {
     contact: '联系所有者', askSubject: 'Folio 访问权限申请',
     offline: '网络连接中断', offlineText: '与服务器的网络连接已中断，请检查网络状态后重新连接。', reconnect: '重新连接',
     loadFailedText: '加载时出现问题，请重新加载。',
+    partial: (what: string) => `部分数据加载失败（${what}），列表信息可能不完整。`,
+    lists: { profiles: '环境', trash: '回收站', groups: '分组', proxies: '代理', members: '成员', flows: '流程', tasks: '定时任务', extensions: '扩展', jobs: '任务' } as Record<string, string>, listSep: '、',
     underway: (what: string) => `${what}进行中`, resultsThere: '完成后将在任务中心显示结果。', viewTask: '查看任务',
     partly: (what: string, ok: number, failed: number) => `${what}完成：成功 ${ok}，失败 ${failed}`, seeWhy: '查看失败原因'
   },
@@ -1396,7 +1419,7 @@ export const zh: Dict = {
     kinds: { all: '全部操作', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
     dates: '时间范围', from: '开始日期', until: '结束日期', to: '至',
     partial: '当前角色仅显示您本人的操作，以及您可访问的环境的操作记录。',
-    export: '导出日志', exported: (path: string) => `已保存到 ${path}`, empty: '暂无记录', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
+    export: '导出日志', exported: (path: string) => `已保存到 ${path}`, empty: '暂无记录', emptyText: '工作空间内对环境、代理、成员与设置的操作会记录在这里。', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
     today: '今天', yesterday: '昨天',
     detail: {
       title: '操作详情', number: '操作编号', person: '操作人', time: '时间', type: '操作类型', object: '操作对象', device: '来源电脑', what: '操作内容',
@@ -1448,11 +1471,11 @@ export const zh: Dict = {
   transfer: {
     exportTitle: '导出全部数据', exportLead: '导出文件包含全部环境（指纹与设置）、登录状态、分组以及含密码的代理。回收站中的环境不导出。',
     passphrase: '口令', confirm: '确认口令', passHelp: '至少 10 位。文件仅能用此口令打开，口令不会被保存；遗忘口令将无法打开文件。',
-    passShort: '口令至少 10 位。', passMismatch: '两次输入的口令不一致。', export: '导出', exporting: '正在导出…', exported: (path: string) => `已保存到 ${path}`,
+    passShort: '口令至少 10 位。', passMismatch: '两次输入的口令不一致。', export: '导出', exported: (path: string) => `已保存到 ${path}`,
     importTitle: '导入数据', importLead: '将 .folio 文件导入当前团队：环境将新增并重新编号，相同的代理与同名分组将复用。',
-    choose: '选择 .folio 文件…', unlock: '解锁', unlocking: '正在解锁…',
+    choose: '选择 .folio 文件…', unlock: '解锁',
     preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `来自「${p.workspace}」：${p.profiles} 个环境（${p.signedIn} 个含登录状态）、${p.proxies} 个代理、${p.groups} 个分组${p.extensions ? `、${p.extensions} 个扩展` : ''}。`,
-    room: (free: number) => `套餐剩余 ${free} 个环境额度。`, import: '导入', importing: '正在导入…',
+    room: (free: number) => `套餐剩余 ${free} 个环境额度。`, import: '导入',
     imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个含登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组${r.extensions ? `、${r.extensions} 个扩展` : ''}`
   },
   flows: {
@@ -1463,7 +1486,6 @@ export const zh: Dict = {
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制后修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     inUse: (tasks: string) => `正被 ${tasks} 使用，无法删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string) => `已删除 ${n}`, copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
     back: '流程', backLabel: '返回流程列表', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
-    leave: '修改尚未保存，确定离开？', keepEditing: '继续编辑', discard: '放弃修改',
     readOnly: '仅流程创建者、管理员和所有者可修改，可复制一份后修改。',
     stale: '编辑期间该流程已被他人保存。再次保存将以当前版本覆盖对方的修改。',
     issues: (n: number) => `尚有 ${n} 个步骤未填写完整，完成后方可保存。`,
@@ -1604,7 +1626,7 @@ export const zh: Dict = {
     leaderTag: '主控', followerTag: '同步', makeLeader: '设为主控', stop: '停止同步', current: '同步中',
     address: '所有窗口一起打开的网址', addressPh: '在所有窗口中打开网址', open: '打开',
     pick: '选择窗口',
-    running: '已打开', start: (n: number) => (n < 2 ? '至少选择两个' : `同步 ${n} 个窗口`), starting: '正在启动…',
+    running: '已打开', start: (n: number) => (n < 2 ? '至少选择两个' : `同步 ${n} 个窗口`),
     ops: { label: '同步', click: '点击', typing: '输入', scroll: '滚动' },
     delay: '随机延迟', seconds: '秒', delayMin: '最短延迟（秒）', delayMax: '最长延迟（秒）',
     synced: (n: number, bad: number) => `已同步 ${n} 个窗口${bad ? ` · ${bad} 个出错` : ''}`,
@@ -1635,7 +1657,7 @@ export const zh: Dict = {
     }
   },
   palette: {
-    title: '命令面板', placeholder: '搜索环境、页面或操作', groups: { profiles: '环境', actions: '操作', pages: '页面' },
+    title: '命令面板', placeholder: '搜索环境、代理、成员、页面或操作', groups: { profiles: '环境', proxies: '代理', members: '成员', actions: '操作', pages: '页面' },
     none: '没有匹配的结果。', move: '选择', run: '执行', close: '关闭', open: '打开', switchTo: '切换到窗口', stop: (n: string) => `停止 ${n}`,
     newProfile: '创建环境', importProfiles: '导入环境', checkProxies: '检测全部代理', addProxy: '添加代理',
     switchWs: (n: string) => `切换到 ${n}`, language: '切换到 English'

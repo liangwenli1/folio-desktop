@@ -110,7 +110,7 @@ export const lastStatus = (win: Page, id: string) => win.evaluate(pid => (window
 // Opens a profile and waits until it runs, or for its error.
 // A profile's page, and the way back from it to the list.
 export const detail = (win: Page) => win.getByRole('main', { name: 'Profile', exact: true });
-export const backToList = (win: Page) => detail(win).getByRole('navigation', { name: 'Breadcrumb' }).getByRole('button', { name: 'Profiles' }).click();
+export const backToList = (win: Page) => win.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('button', { name: 'Profiles' }).click();
 
 export async function opened(win: Page, id: string){
   await win.evaluate(pid => {

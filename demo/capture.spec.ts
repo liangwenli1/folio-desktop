@@ -274,7 +274,7 @@ for (const lang of ['en', 'zh'] as const){
     await win.waitForTimeout(600);
     await still('new-opening');
     await form.getByRole('button', { name: d.common.cancel }).click();
-    await win.getByRole('button', { name: d.form.discard }).click().catch(() => {});
+    await win.getByRole('button', { name: d.common.discard }).click().catch(() => {});
     // UK-Shop-01's cookies, from the sites it was signed in to on the other computer.
     await row('UK-Shop-01').getByRole('button', { name: 'UK-Shop-01', exact: true }).click();
     await drawer.getByRole('tab', { name: d.detail.tabs.cookies }).click();

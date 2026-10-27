@@ -5,7 +5,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Invitation, type Membe
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Avatar, Empty, Icon, ListFailed, Modal, MoreMenu, Progress, useToast, type IconName } from './ui';
+import { Act, Avatar, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, PartialFailed, Progress, SkelRows, Tabs, useChanged, useToast, type IconName } from './ui';
 import { Select, SelectField } from './Select';
 import { RolesTab } from './Roles';
 
@@ -15,6 +15,8 @@ interface Props { d: Dict; lang: Lang; ws: Workspace; meId: string; data: Worksp
 const DAY = 86_400_000;
 const ROLE_ICON: Record<string, IconName> = { owner: 'crown', admin: 'key', member: 'team', viewer: 'eye' };
 const roleIcon = (r: Member['role']): IconName => ROLE_ICON[r.key ?? ''] ?? 'team';
+// The owner's label in the brand colour, an admin's in blue, the rest grey.
+const ROLE_TONE: Record<string, string> = { owner: ' accent', admin: ' info' };
 
 export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const T = d.team;
@@ -54,7 +56,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     data.refresh('members');
   }
 
-  const tabs: [Tab, string, number | null][] = [['members', T.tabs.members, data.members.length], ...(manager ? [['invites', T.tabs.invites, data.invitations.length] as [Tab, string, number]] : []), ['roles', T.tabs.roles, null]];
+  const tabs: Tab[] = manager ? ['members', 'invites', 'roles'] : ['members', 'roles'];
   return (
     <div className="page">
       <main className="main">
@@ -69,13 +71,12 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
         </header>
 
-        <div className="tabs page-tabs" role="tablist" aria-label={T.title}>
-          {tabs.map(([t, label, n]) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{label}{n !== null && <small>{n}</small>}</button>)}
-        </div>
+        <Tabs className="page-tabs" label={T.title} value={tab} tabs={tabs} name={t => T.tabs[t]} count={t => (t === 'members' ? data.members.length : t === 'invites' ? data.invitations.length : null)} onChange={setTab} />
 
         {tab === 'members' && (
           <div className="tm-wrap">
             <section className="sec tm-main" aria-label={T.tabs.members}>
+              {data.loaded.has('members') && <PartialFailed d={d} data={data} kinds={['groups']} />}
               <div className="filters inline">
                 <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
                   <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
@@ -93,7 +94,8 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                   </thead>
                   <tbody>
                     {data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}><ListFailed d={d} data={data} kind="members" /></td></tr>}
-                    {!people.length && !data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}>
+                    {!data.loaded.has('members') && !data.loadFailed.has('members') && <SkelRows cols={6} />}
+                    {data.loaded.has('members') && !people.length && !data.loadFailed.has('members') && <tr className="empty"><td colSpan={6}>
                       <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                         <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setRoleId('all'); }}>{d.states.clear}</button>
                       </Empty>
@@ -104,7 +106,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                         <tr key={m.userId} data-member={m.email}>
                           <td><span className="prof-cell"><Avatar text={m.email} /><span className="l1"><b>{m.email}</b>{me && <span className="muted">{T.meTag}</span>}</span></span></td>
                           <td className="tm-scope">{scope(m.role, m.groupIds)}</td>
-                          <td><span className={`role ${m.role.key ?? 'custom'}`}><Icon name={roleIcon(m.role)} />{roleName(d, m.role)}</span></td>
+                          <td><span className={`badge${ROLE_TONE[m.role.key ?? ''] ?? ''}`}><Icon name={roleIcon(m.role)} />{roleName(d, m.role)}</span></td>
                           <td><span className="dot-st run">{T.joined}</span></td>
                           <td className="nowrap">{m.lastActiveAt ? `${dayLabel(m.lastActiveAt, d, lang)} ${time(m.lastActiveAt, lang)}` : '—'}</td>
                           <td className="act"><span className="actin">
@@ -142,14 +144,17 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                   </tr>
                 </thead>
                 <tbody>
-                  {!invites.length && <tr className="empty"><td colSpan={6}><Empty icon="mail" title={T.noInvites} /></td></tr>}
+                  {!data.loaded.has('members') && <SkelRows cols={6} rows={2} />}
+                  {data.loaded.has('members') && !invites.length && <tr className="empty"><td colSpan={6}><Empty icon="mail" title={T.noInvites} text={T.noInvitesText}>
+                    {manager && <button className="btn btn-primary btn-sm" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
+                  </Empty></td></tr>}
                   {invites.map(i => (
                     <tr key={i.id} data-invitation={i.email}>
                       <td><span className="prof-cell"><Avatar text={i.email} /><span className="l1"><b>{i.email}</b></span></span></td>
-                      <td><span className={`role ${i.role.key ?? 'custom'}`}><Icon name={roleIcon(i.role)} />{roleName(d, i.role)}</span></td>
+                      <td><span className={`badge${ROLE_TONE[i.role.key ?? ''] ?? ''}`}><Icon name={roleIcon(i.role)} />{roleName(d, i.role)}</span></td>
                       <td className="tm-scope">{scope(i.role, i.groupIds)}</td>
                       <td className="ellip">{i.invitedBy ?? '—'}</td>
-                      <td><span className="dot-st boot">{day(i.expiresAt, lang)}</span></td>
+                      <td><span className="dot-st warn">{day(i.expiresAt, lang)}</span></td>
                       <td className="act"><MoreMenu label={T.moreX(i.email)} items={[
                         { label: T.copyLink, onClick: () => void copyLink(i) },
                         { label: T.resend, onClick: () => void resend(i) },
@@ -170,8 +175,8 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
       {dialog?.kind === 'access' && <AccessDialog d={d} ws={ws} data={data} company={company} member={dialog.member} onClose={close} />}
       {dialog?.kind === 'remove' && <RemoveDialog d={d} ws={ws} data={data} member={dialog.member} meId={meId} onClose={close} />}
       {dialog?.kind === 'leave' && (
-        <Modal kind="bad" title={T.leaveTitle(ws.name)} closeLabel={d.common.close} onClose={close} foot={<>
-          <button className="btn btn-secondary" type="button" onClick={close}>{d.common.cancel}</button>
+        <Modal kind="bad" title={T.leaveTitle(ws.name)} onClose={close} foot={<>
+          <Cancel />
           <Act className="btn btn-danger solid" run={() => folio.api('POST', `/workspaces/${ws.id}/leave`).then(() => { close(); onLeft(); }, fail)}>{T.leaveDo}</Act>
         </>}><p>{T.leaveLead}</p></Modal>
       )}
@@ -264,14 +269,16 @@ function InviteDialog({ d, ws, data, company, seats, limit, onClose }: {
     } finally { setBusy(false); data.refresh('members'); }
   }
   const after = seats + emails.length + (typed.trim() ? 1 : 0);
+  // Once sent there is nothing left to lose.
+  const changed = useChanged({ emails: emails.join(), typed, roleId, groups: groupIds.join(), days });
 
   return (
-    <Modal wide title={T.inviteTitle} sub={T.inviteSub} closeLabel={d.common.close} onClose={onClose} foot={results
+    <Modal wide title={T.inviteTitle} sub={T.inviteSub} onClose={onClose} busy={busy} dirty={!results && changed} foot={results
       ? <button className="btn btn-primary" type="button" onClick={onClose}>{T.done}</button>
       : <>
         {limit !== null && <span className={`hint${after > limit ? ' bad-t' : ''}`}>{T.seatsAfter(after, limit)}</span>}
         <span className="sp" />
-        <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+        <Cancel />
         <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || !roleId} onClick={() => void send()}>{T.send}</button>
       </>}>
       {results ? (
@@ -342,8 +349,8 @@ function AccessDialog({ d, ws, data, company, member, onClose }: { d: Dict; ws: 
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
   return (
-    <Modal title={T.accessTitle(member.email)} sub={T.accessSub} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+    <Modal title={T.accessTitle(member.email)} sub={T.accessSub} onClose={onClose} busy={busy} foot={<>
+      <Cancel />
       <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || (roleId === member.role.id && !changedGroups)} onClick={() => void save()}>{d.common.save}</button>
     </>}>
       <div className="m-body inv">
@@ -375,9 +382,9 @@ function RemoveDialog({ d, ws, data, member, meId, onClose }: { d: Dict; ws: Wor
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal title={T.removeTitle(member.email)} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
-      <Act className="btn btn-danger solid" disabled={!heir} run={() => remove()}>{T.removeDo}</Act>
+    <Modal title={T.removeTitle(member.email)} onClose={onClose} foot={<>
+      <Cancel />
+      <Act className="btn btn-danger solid" disabled={!heir} title={heir ? undefined : T.heirNeeded} run={() => remove()}>{T.removeDo}</Act>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}

@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from '
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { Act, BulkBar, Empty, ExtIcon, Icon, ListFailed, Modal, MoreMenu, useToast, useView, ViewSwitch } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
 
 // The shield on each card: every package is checked against Folio's signature and its sha256 before it is installed.
@@ -31,7 +31,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
   const list = data.extensions.filter(e => (filter === 'all' || e.kernel === filter) && (!needle || `${e.name} ${e.storeId ?? ''}`.toLowerCase().includes(needle)));
   const picked = data.extensions.filter(e => sel.has(e.id));
   // The profiles each extension is in, for their flags.
-  const users = (e: Extension) => (data.profiles ?? []).filter(p => p.extensionIds.includes(e.id));
+  const users = (e: Extension) => data.profiles.filter(p => p.extensionIds.includes(e.id));
   const country = (pid: string | null) => data.proxies.find(p => p.id === pid)?.lastCheck?.geo?.country ?? null;
 
   async function remove(e: Extension){
@@ -62,6 +62,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
         </header>
         {!manager && <p className="hint page-note">{X.memberNote}</p>}
 
+        <section className="list-card" aria-label={X.title}>
         <div className="filters">
           <div className="seg" role="group" aria-label={X.cols.engine}>
             {(['all', 'chromium', 'firefox'] as const).map(f => <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === 'all' ? d.profiles.filter.all : ENGINES[f]} <small>{counts[f]}</small></button>)}
@@ -69,14 +70,22 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
           <span className="sp" />
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>
+        {picked.length > 0 && (
+          <BulkBar n={picked.length} label={d.common.selected(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
+            <button type="button" className="bb" onClick={() => setInstalling(picked)}><Icon name="download" />{X.install}</button>
+          </BulkBar>
+        )}
 
         {data.loadFailed.has('extensions')
           ? <div className="cards-empty"><ListFailed d={d} data={data} kind="extensions" /></div>
+          : !data.loaded.has('extensions') ? <Loading cards={view === 'cards'} cols={5} />
           : !list.length && <div className="cards-empty">{data.extensions.length
             ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setFilter('all'); }}>{d.states.clear}</button>
               </Empty>
-            : <Empty icon="extensions" title={X.emptyTitle} text={X.empty} />}</div>}
+            : <Empty icon="extensions" title={X.emptyTitle} text={X.empty}>
+                {manager && <button className="btn btn-primary btn-sm" type="button" onClick={() => setDialog({})}><Icon name="plus" />{X.add}</button>}
+              </Empty>}</div>}
         {list.length > 0 && (view === 'cards'
           ? <ul className="ext-grid">{list.map(e => <ExtCard key={e.id} {...item(e)} />)}</ul>
           : (
@@ -93,18 +102,14 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
               </table>
             </div>
           ))}
+        </section>
 
-        {picked.length > 0 && (
-          <BulkBar n={picked.length} label={d.common.selected(picked.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
-            <button type="button" className="bb" onClick={() => setInstalling(picked)}><Icon name="download" />{X.install}</button>
-          </BulkBar>
-        )}
       </main>
       {dialog && <ExtensionDialog d={d} ws={ws} data={data} ext={dialog.ext} onClose={() => setDialog(null)} />}
       {installing && <InstallDialog d={d} data={data} exts={installing} onClose={() => setInstalling(null)} onDone={() => { setInstalling(null); setSel(new Set()); }} />}
       {confirm && (
-        <Modal kind="bad" title={X.confirmDelete(confirm.name, confirm.profiles)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
-          <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+        <Modal kind="bad" title={X.confirmDelete(confirm.name, confirm.profiles)} onClose={() => setConfirm(null)} foot={<>
+          <Cancel />
           <Act className="btn btn-danger solid" run={() => remove(confirm)}>{X.delete}</Act>
         </>}><p>{X.deleteNote}</p></Modal>
       )}
@@ -114,7 +119,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
 
 interface ExtItem { d: Dict; e: Extension; manager: boolean; checked: boolean; users: ReactNode; onToggle(): void; onInstall(): void; onUpdate(): void; onDelete(): void }
 
-const Shield = ({ d }: { d: Dict }) => <span className="shield" title={d.extensions.signedNote}><svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d={SHIELD} /></svg>{d.extensions.signed}</span>;
+const Shield = ({ d }: { d: Dict }) => <span className="badge good shield" title={d.extensions.signedNote}><svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d={SHIELD} /></svg>{d.extensions.signed}</span>;
 const source = (d: Dict, e: Extension) => (e.source === 'store' ? e.storeId : d.extensions.uploaded);
 
 // The manager's own actions on an extension: a new version, or deleting it.
@@ -140,7 +145,7 @@ function ExtCard({ d, e, manager, checked, users, onToggle, onInstall, onUpdate,
 
 function ExtRow({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, onDelete }: ExtItem){
   return (
-    <tr data-extension={e.name}>
+    <tr data-extension={e.name} className={checked ? 'on' : undefined}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(e.name)} /></td>
       <td><span className="prof-cell"><ExtIcon src={e.icon} /><span><span className="l1"><b>{e.name}</b></span><span className="l2 mono">{source(d, e)}</span></span></span></td>
       <td className="mono">{e.version}</td>
@@ -161,8 +166,8 @@ function InstallDialog({ d, data, exts, onClose, onDone }: { d: Dict; data: Work
   const X = d.extensions;
   const toast = useToast();
   const kinds = new Set(exts.map(e => e.kernel));
-  const has = (pid: string) => exts.every(e => (data.profiles ?? []).find(p => p.id === pid)?.extensionIds.includes(e.id));
-  const profiles = (data.profiles ?? []).filter(p => kinds.has(p.kernel));
+  const has = (pid: string) => exts.every(e => data.profiles.find(p => p.id === pid)?.extensionIds.includes(e.id));
+  const profiles = data.profiles.filter(p => kinds.has(p.kernel));
   const [q, setQ] = useState('');
   const [chosen, setChosen] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
@@ -178,8 +183,8 @@ function InstallDialog({ d, data, exts, onClose, onDone }: { d: Dict; data: Work
     } catch (err){ toast(errorText(d, isApiError(err) ? err.code : 'internal'), undefined, 'bad'); } finally { setBusy(false); }
   }
   return (
-    <Modal kind="info" title={exts.length === 1 ? X.installTitle(exts[0].name) : X.installMany(exts.length)} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+    <Modal kind="info" title={exts.length === 1 ? X.installTitle(exts[0].name) : X.installMany(exts.length)} onClose={onClose} busy={busy} foot={<>
+      <Cancel />
       <button type="button" className="btn btn-primary" aria-busy={busy || undefined} disabled={!chosen.size || busy} onClick={() => void install()}>{X.installDo(chosen.size)}</button>
     </>}>
       <p>{[...kinds].map(k => ENGINES[k]).join(' · ')}</p>
@@ -224,8 +229,8 @@ function ExtensionDialog({ d, ws, data, ext, onClose }: { d: Dict; ws: Workspace
   const ready = how === 'file' ? !!file : !!store.trim();
 
   return (
-    <Modal title={ext ? X.updateTitle(ext.name) : X.addTitle} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button className="btn btn-secondary" type="button" onClick={onClose}>{d.common.cancel}</button>
+    <Modal title={ext ? X.updateTitle(ext.name) : X.addTitle} onClose={onClose} busy={busy} foot={<>
+      <Cancel />
       <button className="btn btn-primary" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? (how === 'store' ? X.fetching : X.uploading) : ext ? X.updateDo : X.addDo}</button>
     </>}>
       <div className="m-body">

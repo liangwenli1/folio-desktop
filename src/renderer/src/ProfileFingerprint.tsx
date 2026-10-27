@@ -163,7 +163,7 @@ function Consistency({ d, lang, p, h, size, risks, others, busy, onFix }: Pick<P
   return (
     <section className="sec" aria-label={d.fpTab.consistency} id="fp-consistency">
       <div className="sec-row">
-        <h3 className="fpt-h">{d.fpTab.consistency}</h3><span className={`verdict ${h.level}`} data-testid="verdict">{D.verdict[h.level]}</span>
+        <h3 className="fpt-h">{d.fpTab.consistency}</h3><span className={`badge ${h.level === 'ok' ? 'good' : h.level}`} data-testid="verdict">{D.verdict[h.level]}</span>
       </div>
       <ul className="chk">
         {h.checks.map(row)}

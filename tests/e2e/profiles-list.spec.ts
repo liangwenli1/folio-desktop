@@ -27,7 +27,7 @@ test('pages of twenty, tabs that count, and a reset that brings everything back'
   await expect(win.getByRole('button', { name: 'Reset' })).toHaveCount(0);
 
   // The header box picks this page, not the whole list.
-  await win.getByRole('checkbox', { name: 'Select all shown' }).check();
+  await win.getByRole('checkbox', { name: 'Select this page' }).check();
   await expect(win.getByTestId('bulk')).toContainText('20 selected');
   await app.close();
 });

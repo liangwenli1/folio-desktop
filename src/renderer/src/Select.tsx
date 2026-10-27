@@ -2,9 +2,11 @@
 // status dot or a logo and a hint (a proxy's exit city), a search box for long lists. The list opens above everything (dialogs
 // included) and closes on a click elsewhere, Escape, scrolling or resizing. With `action` it is a menu button: the
 // trigger always shows the placeholder, and picking runs onChange (the bulk bar's "Move to group…").
+// A list that comes from the server says so while it loads (`loading`) and when it failed (`failed`, with `onRetry`);
+// no options and no matches for the search are told apart (delivery spec 4). `empty` names what there is none of.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { Icon, type GroupColor } from './ui';
+import { Icon, useDict, useDismiss, type GroupColor } from './ui';
 
 // `dot` is a status, or a group's colour.
 export interface Opt { value: string; label: string; hint?: string; dot?: 'good' | 'warn' | 'bad' | 'idle' | `gc-${GroupColor}`; img?: string; group?: string }
@@ -12,6 +14,7 @@ interface Props {
   value: string; options: Opt[]; onChange(value: string): void;
   id?: string; label?: string; labelledBy?: string; placeholder?: string; disabled?: boolean; required?: boolean;
   variant?: 'field' | 'sm' | 'bar'; action?: boolean; search?: boolean; searchPh?: string; empty?: string;
+  loading?: boolean; failed?: boolean; onRetry?(): void;
 }
 type Place = { left: number; width: number; maxHeight: number; top?: number; bottom?: number };
 // Consecutive options of the same group, with where they start in the list.
@@ -21,7 +24,8 @@ const runs = (opts: Opt[]) => opts.reduce<{ group?: string; from: number; opts: 
   return out;
 }, []);
 
-export function Select({ value, options, onChange, id, label, labelledBy, placeholder, disabled, required, variant = 'field', action, search, searchPh, empty }: Props){
+export function Select({ value, options, onChange, id, label, labelledBy, placeholder, disabled, required, variant = 'field', action, search, searchPh, empty, loading, failed, onRetry }: Props){
+  const d = useDict().common;
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
@@ -49,20 +53,7 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
     setOpen(true);
   }
 
-  useEffect(() => {
-    if (!open) return;
-    const outside = (e: Event) => { if (!pop.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node)) close(false); };
-    const away = () => close(false);
-    document.addEventListener('mousedown', outside);
-    // A scroll that brought the field into view as it was clicked is reported a frame later; only later ones close it.
-    const frame = requestAnimationFrame(() => document.addEventListener('scroll', outside, true));
-    window.addEventListener('resize', away);
-    window.addEventListener('blur', away);
-    return () => {
-      cancelAnimationFrame(frame);
-      document.removeEventListener('mousedown', outside); document.removeEventListener('scroll', outside, true); window.removeEventListener('resize', away); window.removeEventListener('blur', away);
-    };
-  }, [open]);
+  useDismiss(open, [btn, pop], () => close(false));
   useLayoutEffect(() => {
     if (!open) return;
     (searchable ? pop.current?.querySelector('input') : list.current)?.focus();
@@ -72,7 +63,8 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
 
   function key(e: KeyboardEvent){
     const last = shown.length - 1;
-    if (e.key === 'Escape' || e.key === 'Tab'){ e.stopPropagation(); if (e.key === 'Escape') e.preventDefault(); close(e.key === 'Escape'); }
+    // Escape and Tab both give the focus back to the dropdown, so Tab goes on from there.
+    if (e.key === 'Escape' || e.key === 'Tab'){ e.stopPropagation(); if (e.key === 'Escape') e.preventDefault(); close(); }
     else if (e.key === 'ArrowDown'){ e.preventDefault(); setActive(a => Math.min(last, a + 1)); }
     else if (e.key === 'ArrowUp'){ e.preventDefault(); setActive(a => Math.max(0, a - 1)); }
     else if (e.key === 'Home' || e.key === 'End'){ e.preventDefault(); setActive(e.key === 'Home' ? 0 : last); }
@@ -124,19 +116,23 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
                 ? <div key={`${group}:${from}`} role="group" aria-labelledby={`${uid}-g${from}`}><div className="sel-group" id={`${uid}-g${from}`}>{group}</div>{items}</div>
                 : <div key={`:${from}`} role="presentation">{items}</div>;
             })}
-            {!shown.length && <p className="sel-none">{empty ?? '—'}</p>}
+            {loading ? <p className="sel-none"><span className="spin" aria-hidden="true" />{d.listLoading}</p>
+              : failed ? <p className="sel-none bad">{d.listFailed}{onRetry && <button type="button" className="linkish" onClick={onRetry}>{d.retry}</button>}</p>
+              : !options.length ? <p className="sel-none">{empty ?? d.noOptions}</p>
+              : !shown.length && <p className="sel-none">{d.noMatch}</p>}
           </div>
         </div>, document.body)}
     </>
   );
 }
 
-// A labelled dropdown in a form: the label names the dropdown, an optional hint goes below.
-export function SelectField({ label, hint, wide, ...props }: Omit<Props, 'label' | 'labelledBy'> & { label: string; hint?: string; wide?: boolean }){
-  const id = useId();
+// A labelled dropdown in a form: the label names the dropdown (marked when it may be left as it is), an optional hint
+// goes below.
+export function SelectField({ label, optional, hint, wide, ...props }: Omit<Props, 'label' | 'labelledBy'> & { label: string; optional?: boolean; hint?: string; wide?: boolean }){
+  const id = useId(), d = useDict();
   return (
     <div className={`field${wide ? ' wide' : ''}`}>
-      <span className="label" id={id}>{label}</span>
+      <span className="label" id={id}>{label}{optional && <small className="opt">{d.form.optional}</small>}</span>
       <Select {...props} labelledBy={id} />
       {hint && <p className="hint">{hint}</p>}
     </div>

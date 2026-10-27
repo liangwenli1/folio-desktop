@@ -1,11 +1,11 @@
-// Ctrl+K (⌘K on macOS) from anywhere: find a profile and open, stop or switch to it, go to a page, or run a common
-// action, without leaving the keyboard.
+// Ctrl+K (⌘K on macOS) from anywhere, or the top bar's search: find a profile and open, stop or switch to it, find a
+// proxy or a member, go to a page, or run a common action, without leaving the keyboard.
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Dict } from './i18n';
 import { Icon } from './ui';
 
-export interface Command { id: string; group: 'profiles' | 'actions' | 'pages'; label: string; hint?: string; keys?: string; icon: ReactNode; run(): void }
-const GROUPS: Command['group'][] = ['profiles', 'actions', 'pages'];
+export interface Command { id: string; group: 'profiles' | 'proxies' | 'members' | 'actions' | 'pages'; label: string; hint?: string; keys?: string; icon: ReactNode; run(): void }
+const GROUPS: Command['group'][] = ['profiles', 'proxies', 'members', 'actions', 'pages'];
 export const mod = navigator.userAgent.includes('Mac') ? '⌘' : 'Ctrl';
 
 export function CommandPalette({ d, commands, onClose }: { d: Dict; commands: Command[]; onClose(): void }){
@@ -16,7 +16,7 @@ export function CommandPalette({ d, commands, onClose }: { d: Dict; commands: Co
   const uid = useId();
   const needle = q.trim().toLowerCase();
   // In group order, so the arrow keys follow what is on screen.
-  const shown = GROUPS.flatMap(g => commands.filter(c => c.group === g && (!needle || `${c.label} ${c.hint ?? ''}`.toLowerCase().includes(needle))).slice(0, g === 'profiles' ? 8 : 12));
+  const shown = GROUPS.flatMap(g => commands.filter(c => c.group === g && (!needle || `${c.label} ${c.hint ?? ''}`.toLowerCase().includes(needle))).slice(0, g === 'actions' || g === 'pages' ? 12 : 8));
   useEffect(() => setActive(0), [needle]);
   useEffect(() => { list.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' }); }, [active]);
 
@@ -30,7 +30,7 @@ export function CommandPalette({ d, commands, onClose }: { d: Dict; commands: Co
 
   return (
     <>
-      <div className="scrim modal-scrim palette-scrim" onClick={onClose} />
+      <div className="scrim palette-scrim" onClick={onClose} />
       <div className="palette" role="dialog" aria-modal="true" aria-label={C.title} onKeyDown={key}>
         <div className="pal-search">
           <Icon name="search" />

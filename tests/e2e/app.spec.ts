@@ -16,7 +16,7 @@ test('the plan bought on the website shows up after logging in', async () => {
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 100');
 
   await win.click('.ws');
-  await win.getByRole('option', { name: /EU stores/ }).click();
+  await win.getByRole('button', { name: /EU stores/ }).click();
   await expect(win.getByTestId('ws-name')).toHaveText('EU stores');
   await nav('Plan & billing').click();
   await win.getByRole('tab', { name: 'Usage' }).click();
@@ -61,7 +61,7 @@ test('the session survives a restart and ends on log out', async () => {
   win = await app.firstWindow();
   await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await win.click('.me');
-  await win.getByRole('menuitem', { name: 'Log out' }).click();
+  await win.getByRole('button', { name: 'Log out' }).click();
   await expect(win.locator('#email')).toBeVisible();
   await app.close();
 
@@ -83,6 +83,7 @@ test('Chinese accounts get the Chinese workbench, and upgrading opens the site c
   await expect(win.getByTestId('plan-name')).toHaveText('体验版');
   await win.getByRole('tab', { name: '用量' }).click();
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 5');
+  await win.getByRole('tab', { name: '当前套餐' }).click();
   await win.getByTestId('plan-buy').click();
   await expect.poll(() => app.evaluate(() => (globalThis as { opened?: string[] }).opened)).toEqual([`${SITE}/zh/checkout/?ws=${workspaceId}`]);
   await app.close();

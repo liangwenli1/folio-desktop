@@ -10,7 +10,7 @@ import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { Select, SelectField, type Opt } from './Select';
 import { EngineLogo } from './Flag';
-import { Act, bytes, Empty, Icon, Modal, MoreMenu, percent, Progress, Switch, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
@@ -57,7 +57,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   useEffect(() => { void folio.kernelSettings().then(setSettings); }, []);
   const reload = () => { void data.reloadKernels(); loadCatalog(); };
 
-  const profiles = data.profiles ?? [];
+  const profiles = data.profiles;
   const usedHere = (kind: KernelKind, version: string) => profiles.filter(p => p.kernel === kind && p.kernelVersion === version);
   // Versions downloaded here that nothing here uses and that aren't recommended: what a clean-up deletes.
   const unused = data.kernels.filter(k => k.installed && !k.recommended && !usedHere(k.kind, k.version).length);
@@ -195,13 +195,9 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
         ))}
 
         <div className={`side-wrap${side ? ' with-panel' : ''}`}>
-          <div className="side-main">
+          <section className="side-main list-card" aria-label={E.title}>
             <div className="en-bar">
-              <div className="tabs" role="tablist" aria-label={E.title}>
-                {(['all', 'installed', 'updates'] as const).map(t => (
-                  <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}>{E.tabs[t]}{t === 'updates' && updates.size > 0 && <small>{updates.size}</small>}</button>
-                ))}
-              </div>
+              <Tabs label={E.title} value={tab} tabs={['all', 'installed', 'updates']} name={t => E.tabs[t]} count={t => t === 'updates' && updates.size > 0 && updates.size} onChange={setTab} />
               <span className="sp" />
               <label className="search"><Icon name="search" /><span className="sr">{E.search}</span>
                 <input type="search" placeholder={E.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
@@ -217,14 +213,15 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
                   </tr>
                 </thead>
                 <tbody>
-                  {!filtered && KINDS.filter(kind => !rows.some(r => r.kind === kind)).map(kind => (
+                  {!data.loaded.has('kernels') && <SkelRows cols={8} rows={4} />}
+                  {data.loaded.has('kernels') && !filtered && KINDS.filter(kind => !rows.some(r => r.kind === kind)).map(kind => (
                     <tr key={kind}><td colSpan={8}><span className="l1"><EngineLogo kernel={kind} size={18} /><b>{ENGINES[kind]}</b></span><span className="l2">{E.none}</span></td></tr>
                   ))}
                   {filtered && !shown.length && <tr className="empty"><td colSpan={8}>{needle || system !== 'all'
                     ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                         <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setSystem('all'); }}>{d.states.clear}</button>
                       </Empty>
-                    : tab === 'updates' ? <Empty icon="check" title={E.upToDate} />
+                    : tab === 'updates' ? <Empty icon="check" title={E.upToDate} text={E.upToDateText} />
                     : <Empty icon="engines" title={E.noneDownloaded} text={E.noneDownloadedText} />}</td></tr>}
                   {shown.map(r => (
                     <tr key={r.key} className={side?.key === r.key ? 'cur' : ''} data-engine={r.kind} data-version={r.version}
@@ -247,21 +244,21 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
               <span className="en-disk" title={usage?.path}><Icon name="engines" />{E.disk(usage ? bytes(usage.bytes) : '…')}</span>
               <button type="button" className="btn btn-sm btn-secondary" disabled={!unused.length} title={unused.length ? undefined : E.nothingToClean} onClick={() => setCleaning(true)}>{E.cleanup}</button>
             </p>
-          </div>
+          </section>
           {side && <Notes d={d} r={side} admin={admin} onClose={() => setCur(null)} />}
         </div>
       </main>
       {uploading && <UploadDialog d={d} onClose={() => setUploading(false)} onDone={reload} />}
       {recommending && <RecommendDialog d={d} k={recommending} onClose={() => setRecommending(null)} onDone={note => void recommend(recommending, note)} />}
       {retiring && (
-        <Modal kind="bad" title={E.admin.retireTitle(`${ENGINES[retiring[0].kind]} ${retiring[0].version}`)} closeLabel={d.common.close} onClose={() => setRetiring(null)} foot={<>
-          <button type="button" className="btn btn-secondary" onClick={() => setRetiring(null)}>{d.common.cancel}</button>
+        <Modal kind="bad" title={E.admin.retireTitle(`${ENGINES[retiring[0].kind]} ${retiring[0].version}`)} onClose={() => setRetiring(null)} foot={<>
+          <Cancel />
           <Act className="btn btn-danger solid" run={() => retire(retiring)}>{E.admin.retire}</Act>
         </>}><p>{E.admin.retireConfirm(retiring.find(x => x.profiles !== null)?.profiles ?? 0)}</p></Modal>
       )}
       {cleaning && (
-        <Modal kind="warn" title={E.cleanupTitle(unused.length)} closeLabel={d.common.close} onClose={() => setCleaning(false)} foot={<>
-          <button type="button" className="btn btn-secondary" onClick={() => setCleaning(false)}>{d.common.cancel}</button>
+        <Modal kind="warn" title={E.cleanupTitle(unused.length)} onClose={() => setCleaning(false)} foot={<>
+          <Cancel />
           <Act className="btn btn-primary" run={() => clean()}>{E.cleanup}</Act>
         </>}><p>{unused.map(k => `${ENGINES[k.kind]} ${k.version}`).join(' · ')}</p><p>{E.cleanupNote(bytes(unusedSize))}</p></Modal>
       )}
@@ -273,7 +270,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
 function Tags({ d, r }: { d: Dict; r: Row }){
   const E = d.engines, gone = !!r.k && !r.k.available;
   if (!r.recommended && !r.isDefault && !gone) return null;
-  return <span className="en-tags">{r.recommended && <span className="tag rec-tag">{E.recommended}</span>}{r.isDefault && <span className="tag">{E.default}</span>}{gone && <span className="tag">{E.retired}</span>}</span>;
+  return <span className="en-tags">{r.recommended && <span className="badge accent">{E.recommended}</span>}{r.isDefault && <span className="badge">{E.default}</span>}{gone && <span className="badge">{E.retired}</span>}</span>;
 }
 
 // The systems it is built for; platform admins also see packages whose upload didn't finish.
@@ -281,8 +278,8 @@ function Systems({ d, r, admin }: { d: Dict; r: Row; admin: boolean }){
   const E = d.engines;
   return (
     <span className="platforms">
-      {FAMILIES.filter(f => r.platforms.some(p => familyOf(p) === f)).map(f => <span key={f} className="tag first">{E.families[f]}</span>)}
-      {admin && r.pkgs.filter(x => !x.ready).map(x => <span key={x.id} className="tag first warn">{E.platforms[x.platform] ?? x.platform} · {E.admin.unfinished}</span>)}
+      {FAMILIES.filter(f => r.platforms.some(p => familyOf(p) === f)).map(f => <span key={f} className="badge">{E.families[f]}</span>)}
+      {admin && r.pkgs.filter(x => !x.ready).map(x => <span key={x.id} className="badge warn">{E.platforms[x.platform] ?? x.platform} · {E.admin.unfinished}</span>)}
     </span>
   );
 }
@@ -303,7 +300,7 @@ function Notes({ d, r, admin, onClose }: { d: Dict; r: Row; admin: boolean; onCl
   const E = d.engines, N = E.notes;
   const lines = r.note?.split(/\n|[；;]\s*/).map(s => s.trim()).filter(Boolean) ?? [];
   return (
-    <aside className="sec side-panel en-panel" aria-label={N.title}>
+    <aside className="sec side-panel en-panel" aria-label={N.title}><PanelEdge />
       <div className="sec-row"><h3>{N.title}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
       <div className="side-h"><EngineLogo kernel={r.kind} size={28} /><b>{ENGINES[r.kind]} {major(r.version)}</b><Tags d={d} r={r} /></div>
       <dl className="kvl">
@@ -315,7 +312,7 @@ function Notes({ d, r, admin, onClose }: { d: Dict; r: Row; admin: boolean; onCl
       <h4>{N.changes}</h4>
       {lines.length ? <ul className="en-notes">{lines.map(l => <li key={l}>{l}</li>)}</ul> : <p className="hint">{N.none}</p>}
       <h4>{N.systems}</h4>
-      {r.platforms.length ? <span className="platforms">{r.platforms.map(p => <span key={p} className="tag first">{E.platforms[p] ?? p}</span>)}</span> : <p className="hint">—</p>}
+      {r.platforms.length ? <span className="platforms">{r.platforms.map(p => <span key={p} className="badge">{E.platforms[p] ?? p}</span>)}</span> : <p className="hint">—</p>}
       <div className="notice warn en-warn"><Icon name="alert" /><span><b>{N.switchWarn}</b>{N.switchWhy}</span></div>
     </aside>
   );
@@ -326,8 +323,8 @@ function RecommendDialog({ d, k, onClose, onDone }: { d: Dict; k: Kernel; onClos
   const A = d.engines.admin;
   const [note, setNote] = useState('');
   return (
-    <Modal kind="good" title={A.recommendTitle(`${ENGINES[k.kind]} ${k.version}`)} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+    <Modal kind="good" title={A.recommendTitle(`${ENGINES[k.kind]} ${k.version}`)} onClose={onClose} foot={<>
+      <Cancel />
       <button type="button" className="btn btn-primary" onClick={() => onDone(note.trim())}>{A.recommend}</button>
     </>}>
       <p>{A.recommendNote}</p>
@@ -372,8 +369,8 @@ function UploadDialog({ d, onClose, onDone }: { d: Dict; onClose(): void; onDone
   const pct = progress ? percent(progress) : 0;
 
   return (
-    <Modal title={A.title} closeLabel={d.common.close} onClose={busy ? () => {} : onClose} foot={<>
-      <button className="btn btn-secondary" type="button" onClick={onClose} disabled={busy}>{d.common.cancel}</button>
+    <Modal title={A.title} onClose={onClose} busy={busy} foot={<>
+      <Cancel />
       <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || !file || !/^[0-9][0-9A-Za-z.+-]{0,39}$/.test(version.trim())} onClick={() => void send()}>
         {progress ? (progress.stage === 'hash' ? A.hashing(pct) : A.uploading(pct)) : A.send}
       </button>

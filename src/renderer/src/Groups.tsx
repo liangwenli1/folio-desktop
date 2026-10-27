@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Workspace } from './ap
 import { kernelKey, type WorkspaceData } from './data';
 import { health } from './checks';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Avatar, BulkBar, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, Switch, useToast, type GroupColor } from './ui';
+import { Act, Avatar, BulkBar, Cancel, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, PanelEdge, PartialFailed, SkelRows, Switch, useChanged, useToast, type GroupColor } from './ui';
 import { Select, SelectField } from './Select';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
@@ -35,7 +35,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
   const kids = useMemo(() => childrenOf(data.groups), [data.groups]);
   const byId = useMemo(() => new Map(data.groups.map(g => [g.id, g])), [data.groups]);
   const proxies = useMemo(() => new Map(data.proxies.map(p => [p.id, p])), [data.proxies]);
-  const profiles = data.profiles ?? [];
+  const profiles = data.profiles;
   const [pick, setPick] = useState<Pick>('all');
   const [folded, setFolded] = useState<Set<string>>(new Set());
   const [panel, setPanel] = useState(true);
@@ -127,6 +127,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
           </section>
 
           <section className="sec gp-main" aria-label={title}>
+            {data.loaded.has('profiles') && <PartialFailed d={d} data={data} kinds={['members']} />}
             <div className="gp-head">
               <div><h2 data-testid="group-title">{title}</h2><p className="hint">{G.sum(shown.length, group ? group.memberIds.length : null)}</p></div>
               <span className="sp" />
@@ -164,15 +165,18 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
                 </thead>
                 <tbody>
                   {failed && <tr className="empty"><td colSpan={7}><ListFailed d={d} data={data} kind={failed} /></td></tr>}
-                  {!failed && !rows.length && <tr className="empty"><td colSpan={7}>{shown.length
+                  {!failed && !data.loaded.has('profiles') && <SkelRows cols={7} check />}
+                  {!failed && data.loaded.has('profiles') && !rows.length && <tr className="empty"><td colSpan={7}>{shown.length
                     ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                         <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setRun('all'); setOwner('all'); reset(); }}>{d.states.clear}</button>
                       </Empty>
-                    : <Empty icon="folder" title={G.empty} />}</td></tr>}
+                    : <Empty icon="folder" title={G.empty} text={G.emptyText}>
+                        {can(data.role, 'profiles.create') && <button type="button" className="btn btn-primary btn-sm" onClick={() => onNewProfile(group?.id ?? null)}><Icon name="plus" />{G.addProfile}</button>}
+                      </Empty>}</td></tr>}
                   {rows.map(p => {
                     const h = health(p, proxies, data.kernels), [tone, text] = stateOf(d, p, h, data.status[p.id], data.progress[kernelKey(p.kernel, p.kernelVersion)]);
                     return (
-                      <tr key={p.id} data-id={p.id}>
+                      <tr key={p.id} data-id={p.id} className={sel.has(p.id) ? 'on' : undefined}>
                         <td className="cb"><input type="checkbox" checked={sel.has(p.id)} aria-label={d.common.select(p.name)} onChange={() => setSel(s => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; })} /></td>
                         <td><button type="button" className="rowlink" onClick={() => onOpenProfile(p.id)}>{p.name}</button></td>
                         <td className="mono">#{String(p.number).padStart(4, '0')}</td>
@@ -284,7 +288,7 @@ function GroupSettings({ d, ws, data, meId, group, kids, company, onClose, onDel
   }
 
   return (
-    <aside className="sec side-panel gp-set" aria-label={G.settings}>
+    <aside className="sec side-panel gp-set" aria-label={G.settings}><PanelEdge />
       <div className="sec-row"><h3>{G.settings}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
       {error && <p className="notice error" role="alert">{error}</p>}
       <label className="field"><span>{G.name}<span className="req" aria-hidden="true">*</span></span>
@@ -334,6 +338,7 @@ function NewGroupDialog({ d, ws, data, meId, company, parentId: under, onClose, 
   const [tried, setTried] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const dirty = useChanged({ name, parentId, color, description, inherit, members: memberIds.join(), roles: JSON.stringify(roles) });
 
   async function create(){
     setTried(true);
@@ -351,10 +356,10 @@ function NewGroupDialog({ d, ws, data, meId, company, parentId: under, onClose, 
   }
 
   return (
-    <Modal wide title={G.newTitle} sub={G.newSub} closeLabel={d.common.close} onClose={onClose} foot={<>
+    <Modal wide title={G.newTitle} sub={G.newSub} onClose={onClose} busy={busy} dirty={dirty} foot={<>
       <span className="hint">{G.createHint}</span>
       <span className="sp" />
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+      <Cancel />
       <button type="button" className="btn btn-primary" disabled={busy} aria-busy={busy || undefined} onClick={() => void create()}>{G.create}</button>
     </>}>
       <div className="m-body gp-new">
@@ -392,7 +397,7 @@ function DeleteGroupDialog({ d, data, group, onClose, onDone }: { d: Dict; data:
   const toast = useToast();
   const [moveTo, setMoveTo] = useState(group.parentId ?? '');
   const [error, setError] = useState<string | null>(null);
-  const n = (data.profiles ?? []).filter(p => p.groupId === group.id).length;
+  const n = data.profiles.filter(p => p.groupId === group.id).length;
   async function remove(){
     try {
       await folio.api('DELETE', `/groups/${group.id}${moveTo ? `?moveTo=${moveTo}` : ''}`);
@@ -402,8 +407,8 @@ function DeleteGroupDialog({ d, data, group, onClose, onDone }: { d: Dict; data:
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal kind="bad" title={G.deleteTitle(group.name)} closeLabel={d.common.close} onClose={onClose} foot={<>
-      <button type="button" className="btn btn-secondary" onClick={onClose}>{d.common.cancel}</button>
+    <Modal kind="bad" title={G.deleteTitle(group.name)} onClose={onClose} foot={<>
+      <Cancel />
       <Act className="btn btn-danger solid" run={() => remove()}>{G.delete}</Act>
     </>}>
       <div className="m-body">

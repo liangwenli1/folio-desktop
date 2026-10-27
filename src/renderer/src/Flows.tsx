@@ -6,7 +6,7 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
-import { Act, Empty, Icon, ListFailed, Modal, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, ListFailed, Modal, SkelRows, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -119,6 +119,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
             <tbody>
               {data.loadFailed.has('flows')
                 ? <tr className="empty"><td colSpan={5}><ListFailed d={d} data={data} kind="flows" /></td></tr>
+                : !data.loaded.has('flows') ? <SkelRows cols={5} />
                 : !data.flows.length && <tr className="empty"><td colSpan={5}><Empty icon="flows" title={F.emptyTitle} text={F.empty} /></td></tr>}
               {data.flows.map(f => (
                 <tr key={f.id} data-flow={f.name}>
@@ -139,8 +140,8 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
           </table>
         </div>
         {confirm && (
-          <Modal kind="bad" title={F.confirmDelete(confirm.name)} closeLabel={d.common.close} onClose={() => setConfirm(null)} foot={<>
-            <button type="button" className="btn btn-secondary" onClick={() => setConfirm(null)}>{d.common.cancel}</button>
+          <Modal kind="bad" title={F.confirmDelete(confirm.name)} onClose={() => setConfirm(null)} foot={<>
+            <Cancel />
             {!users(confirm.id) && <Act className="btn btn-danger solid" run={() => remove(confirm)}>{F.delete}</Act>}
           </>}>{users(confirm.id) && <p>{F.inUse(users(confirm.id))}</p>}</Modal>
         )}
@@ -179,9 +180,10 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
   const [sel, setSel] = useState<Loc | null>(edit.steps.length ? [0] : null);
   const [zoom, setZoom] = useState(1);
   const [stale, setStale] = useState(false);
-  const [leaving, setLeaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const dirty = !flow || edit.name !== base?.name || JSON.stringify(edit.steps) !== JSON.stringify(base?.steps);
+  // Leaving with changes not saved, by the back button or the rail, asks first.
+  const leave = useLeave(dirty && !readOnly);
   const issues = countIssues(edit.steps);
   const steps = (fn: (s: Step[]) => Step[]) => setEdit(x => ({ ...x, steps: fn(x.steps) }));
 
@@ -224,7 +226,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
     <div className="page">
       <main className="main flow-main">
         <header className="bar flow-bar">
-          <button type="button" className="btn btn-text btn-sm" aria-label={F.backLabel} onClick={() => (dirty && !readOnly ? setLeaving(true) : onClose())}><Icon name="back" />{F.back}</button>
+          <button type="button" className="btn btn-text btn-sm" aria-label={F.backLabel} onClick={() => leave(onClose)}><Icon name="back" />{F.back}</button>
           <span className="vsep" aria-hidden="true" />
           <label className="flow-name">
             <span className="sr">{F.name}</span>
@@ -236,13 +238,6 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
             ? <button type="button" className="btn btn-secondary" onClick={() => flow && onDuplicate(flow)}>{F.duplicateToEdit}</button>
             : <button type="button" className="btn btn-primary" aria-busy={saving || undefined} disabled={!dirty || !!issues || !edit.name.trim() || saving} title={issues ? F.issues(issues) : !edit.name.trim() ? F.nameNeeded : undefined} onClick={() => void save()}>{saving ? F.saving : F.save}</button>}
         </header>
-        {leaving && (
-          <div className="away-note flow-note" role="alertdialog" aria-label={F.leave}>
-            <span>{F.leave}</span>
-            <div className="d-actions"><button type="button" className="btn btn-sm btn-secondary" onClick={() => setLeaving(false)}>{F.keepEditing}</button>
-              <button type="button" className="btn btn-sm btn-danger solid" onClick={onClose}>{F.discard}</button></div>
-          </div>
-        )}
         {readOnly && <p className="hint flow-note">{F.readOnly}</p>}
         {stale && <p className="notice error flow-note" role="alert">{F.stale}</p>}
         {!readOnly && issues > 0 && <p className="hint flow-note">{F.issues(issues)}</p>}
@@ -269,7 +264,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
             <StepPanel d={d} steps={edit.steps} loc={picked ? sel : null} readOnly={readOnly}
               onChange={s => sel && steps(x => editList(x, sel.slice(0, -1), l => l.map((y, k) => (k === sel[sel.length - 1] ? s : y))))}
               onEdit={(fn, next) => { if (sel){ steps(x => editList(x, sel.slice(0, -1), fn)); setSel(next); } }} />
-            <Trial d={d} profiles={data.profiles ?? []} steps={edit.steps} disabled={!!issues} />
+            <Trial d={d} profiles={data.profiles} steps={edit.steps} disabled={!!issues} />
           </div>
         </div>
       </main>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, errorText, fieldName, type Dict, type Lang } from './i18n';
-import { Empty, Icon, LoadFailed, useToast } from './ui';
+import { Empty, Icon, LoadFailed, PanelEdge, SkelRows, useToast } from './ui';
 import { Select } from './Select';
 import { Pager } from './Pager';
 
@@ -100,27 +100,27 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
           {canExport && <button className="btn btn-secondary" type="button" onClick={() => void exportCsv()}><Icon name="upload" />{A.export}</button>}
         </header>
         {!whole && <p className="hint page-note">{A.partial}</p>}
-        <div className="filters lg-f">
-          <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
-            <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
-          <span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} searchPh={d.form.searchPh}
-            options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span>
-          <span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
-            options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span>
-          <span className="lg-dates" role="group" aria-label={A.dates}>
-            <Icon name="calendar" />
-            <input type="date" aria-label={A.from} value={from} max={to || undefined} onChange={e => pick(() => setFrom(e.target.value))} />
-            <span aria-hidden="true">{A.to}</span>
-            <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
-          </span>
-          {filtered && <button type="button" className="btn btn-text" onClick={reset}>{d.states.clear}</button>}
-        </div>
         <div className={`side-wrap${cur ? ' with-panel' : ''}`}>
-          <div className="side-main">
+          <section className="side-main list-card" aria-label={A.title}>
+            <div className="filters">
+              <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
+                <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
+              <span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} search searchPh={d.form.searchPh}
+                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span>
+              <span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
+                options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span>
+              <span className="lg-dates" role="group" aria-label={A.dates}>
+                <Icon name="calendar" />
+                <input type="date" aria-label={A.from} value={from} max={to || undefined} onChange={e => pick(() => setFrom(e.target.value))} />
+                <span aria-hidden="true">{A.to}</span>
+                <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
+              </span>
+              {filtered && <button type="button" className="btn btn-text" onClick={reset}>{d.states.clear}</button>}
+            </div>
             <ActivityTable d={d} lang={lang} entries={entries} failed={failed} admin={data.admin} onRetry={() => void reload()} onClear={filtered ? reset : undefined}
               cur={cur?.seq ?? null} onPick={setCur} asc={asc} onSort={() => pick(() => setAsc(x => !x))} />
             {total > 0 && <Pager d={d} total={total} page={page} size={size} onPage={setPage} onSize={n => { setSize(n); setPage(1); }} />}
-          </div>
+          </section>
           {cur && <EntryPanel d={d} lang={lang} e={cur} onClose={() => setCur(null)} />}
         </div>
       </main>
@@ -148,13 +148,13 @@ export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClea
           </tr>
         </thead>
         <tbody>
-          {entries === null && !failed && Array.from({ length: 6 }, (_, i) => <tr key={i} className="skel" aria-hidden="true">{Array.from({ length: cols }, (_, j) => <td key={j}><i /></td>)}</tr>)}
+          {entries === null && !failed && <SkelRows cols={cols} rows={6} />}
           {failed && <tr className="empty"><td colSpan={cols}><LoadFailed d={d} code={failed} admin={admin} onRetry={onRetry} /></td></tr>}
           {!failed && entries !== null && !entries.length && <tr className="empty"><td colSpan={cols}>{onClear
             ? <Empty icon="search" title={d.states.noMatch} text={d.states.noMatchText}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={onClear}>{d.states.clear}</button>
               </Empty>
-            : <Empty icon="activity" title={A.empty} />}</td></tr>}
+            : <Empty icon="activity" title={A.empty} text={A.emptyText} />}</td></tr>}
           {entries?.map(e => (
             <tr key={e.seq} data-action={e.action} className={cur === e.seq ? 'cur' : ''} onClick={onPick ? ev => { if (!(ev.target as HTMLElement).closest('button')) onPick(e); } : undefined}>
               <td className="nowrap"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>
@@ -176,7 +176,7 @@ function EntryPanel({ d, lang, e, onClose }: { d: Dict; lang: Lang; e: ActivityE
   const fields = Array.isArray(e.detail.fields) ? (e.detail.fields as string[]).map(f => fieldName(lang, f)) : [];
   const change = typeof e.detail.from === 'string' ? [String(e.detail.from), String(e.detail.name ?? '')] : null;
   return (
-    <aside className="sec side-panel lg-panel" aria-label={D.title}>
+    <aside className="sec side-panel lg-panel" aria-label={D.title}><PanelEdge />
       <div className="sec-row"><h3>{D.title}</h3><button type="button" className="icon-btn bare" aria-label={d.common.close} title={d.common.close} onClick={onClose}><Icon name="x" /></button></div>
       <dl className="kvl">
         <dt>{D.number}</dt><dd className="mono">#{e.seq}</dd>

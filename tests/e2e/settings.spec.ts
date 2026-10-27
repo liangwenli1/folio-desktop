@@ -17,6 +17,13 @@ test('the workspace keeps what new profiles start with, and only a manager may c
   await win.getByLabel('Workspace name').fill('Larkspur Trading');
   await expect(win.getByLabel('Workspace ID')).toHaveValue(owner.workspaceId);
 
+  // One page: leaving it with changes not saved asks first, and keeping them stays here.
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Proxies' }).click();
+  const ask = win.getByRole('dialog', { name: 'Discard unsaved changes?' });
+  await ask.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(ask).toBeHidden();
+  await expect(win.getByLabel('Workspace name')).toHaveValue('Larkspur Trading');
+
   await open('Profile defaults');
   await win.getByRole('combobox', { name: 'Default group' }).click();
   await win.getByRole('option', { name: 'US stores' }).click();
