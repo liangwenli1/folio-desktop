@@ -136,7 +136,8 @@ for (const lang of ['en', 'zh'] as const){
     const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: new RegExp(`^${name}`) });
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
     const drawer = win.getByRole('main', { name: d.detail.profile, exact: true });
-    const back = () => drawer.getByRole('navigation', { name: d.detail.crumbs }).getByRole('button', { name: d.profiles.title }).click();
+    // The way back from a profile's page is in the top bar.
+    const back = () => win.getByRole('navigation', { name: d.detail.crumbs }).getByRole('button', { name: d.profiles.title }).click();
 
     const frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[] = [];
     const pictures: { file: string; light: Buffer; dark: Buffer }[] = [];
