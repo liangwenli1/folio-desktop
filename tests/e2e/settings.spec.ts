@@ -17,7 +17,7 @@ test('the workspace keeps what new profiles start with, and only a manager may c
   await win.getByLabel('Workspace name').fill('Larkspur Trading');
   await expect(win.getByLabel('Workspace ID')).toHaveValue(owner.workspaceId);
 
-  // One page: leaving it with changes not saved asks first, and keeping them stays here.
+  // Leaving with changes not saved asks first, and keeping them stays here.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Proxies' }).click();
   const ask = win.getByRole('dialog', { name: 'Discard unsaved changes?' });
   await ask.getByRole('button', { name: 'Keep editing' }).click();
@@ -29,7 +29,7 @@ test('the workspace keeps what new profiles start with, and only a manager may c
   await win.getByRole('option', { name: 'US stores' }).click();
   await open('Opening');
   await win.getByRole('switch', { name: 'Stop the profile when its last window closes' }).uncheck();
-  await win.getByRole('button', { name: 'Save settings' }).click();
+  await win.getByRole('button', { name: 'Save changes' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Settings saved' })).toBeVisible();
   await app.close();
 
@@ -56,7 +56,7 @@ test('the workspace keeps what new profiles start with, and only a manager may c
   await expect(win2.getByTestId('ws-name')).toHaveText('Larkspur Trading');
   await win2.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(win2.getByLabel('Workspace name')).toBeDisabled();
-  await expect(win2.getByRole('button', { name: 'Save settings' })).toHaveCount(0);
-  await expect(win2.getByRole('button', { name: 'Plan & billing', exact: true })).toHaveCount(0);
+  await expect(win2.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
+  await expect(win2.getByRole('button', { name: 'Plan and usage', exact: true })).toHaveCount(0);
   await theirs.close();
 });

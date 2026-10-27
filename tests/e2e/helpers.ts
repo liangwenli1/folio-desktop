@@ -95,10 +95,10 @@ export function launch(userData: string, env: Record<string, string> = {}){
   });
 }
 
-export async function logIn(app: ElectronApplication, email: string){
+export async function logIn(app: ElectronApplication, email: string, password = PASSWORD){
   const win = await app.firstWindow();
   await win.fill('#email', email);
-  await win.fill('#password', PASSWORD);
+  await win.fill('#password', password);
   await win.click('button[type="submit"]');
   return win;
 }

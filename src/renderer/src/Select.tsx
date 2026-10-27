@@ -132,7 +132,7 @@ export function SelectField({ label, optional, hint, wide, ...props }: Omit<Prop
   const id = useId(), d = useDict();
   return (
     <div className={`field${wide ? ' wide' : ''}`}>
-      <span className="label" id={id}>{label}{optional && <small className="opt">{d.form.optional}</small>}</span>
+      <span className="label" id={id}>{label}{props.required && <span className="req" aria-hidden="true">*</span>}{optional && <small className="opt">{d.form.optional}</small>}</span>
       <Select {...props} labelledBy={id} />
       {hint && <p className="hint">{hint}</p>}
     </div>

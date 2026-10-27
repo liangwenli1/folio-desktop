@@ -80,7 +80,7 @@ svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .full{width:100%}
 .linkish{border:0;background:none;padding:0;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .seal{width:28px;height:28px;flex:none;color:var(--accent)}
-.brand-word{font-weight:600;font-size:19px;line-height:1}
+.brand-word{font-weight:600;font-size:26px;line-height:1;color:var(--ink)}
 .spin{display:inline-block;width:12px;height:12px;flex:none;border:1.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Check boxes as v2 draws them: a 16px square with 4px corners, filled with the action colour and a white tick when
@@ -149,7 +149,7 @@ input[type="radio"]{width:16px;height:16px;margin:0;vertical-align:middle;accent
 .field input:focus,.field textarea:focus,.sel:focus-visible,.sel.open,.sel-search input:focus,.search input:focus,.ck-src:focus,.chips-in:focus-within,.pi-edit:focus-within,.so-delay input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .field input::placeholder,.field textarea::placeholder{color:var(--ink-3)}
 .field [aria-invalid="true"]{border-color:var(--bad-ink)}
-.field input:disabled,.field textarea:disabled{background:var(--head);color:var(--ink-4);cursor:not-allowed}
+.field input:not([type="checkbox"]):not([type="radio"]):disabled,.field textarea:disabled{background:var(--head);color:var(--ink-4);cursor:not-allowed}
 .mono-in{font-family:var(--f-data)}
 .check-row{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;color:var(--ink-2);cursor:pointer}
 .row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;gap:12px}
@@ -169,7 +169,8 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .choice span{display:grid;gap:2px}
 .choice input{margin-top:3px}
 .file-row{display:flex;align-items:center;gap:8px}
-.switch{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink);cursor:pointer}
+/* A switch is only as wide as its track and label: a click beside it, in a grid row, does nothing. */
+.switch{position:relative;display:inline-flex;align-items:center;justify-self:start;width:fit-content;max-width:100%;gap:8px;font-size:14px;font-weight:500;color:var(--ink-body);cursor:pointer}
 .switch input{position:absolute;z-index:1;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
 .switch .track{position:relative;width:34px;height:20px;flex:none;border-radius:99px;background:var(--line-2);transition:background-color var(--t) ease}
 .switch .track::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform var(--t) ease}
@@ -260,15 +261,15 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .app{display:grid;grid-template-columns:208px minmax(0,1fr);grid-template-rows:var(--tb) minmax(0,1fr);height:100%}
 .app > :not(.side):not(.top){grid-column:2;grid-row:2}
 /* The account panel opens out of the rail, so the rail may not clip it; the group list scrolls on its own. */
-.side{grid-row:1/-1;display:flex;flex-direction:column;gap:4px;min-height:0;background:var(--side);border-right:1px solid var(--line);padding:14px 12px}
+.side{grid-row:1/-1;display:flex;flex-direction:column;min-height:0;background:var(--side);border-right:1px solid var(--line);padding:20px 16px 16px}
 html[data-platform="darwin"] .side{padding-top:calc(var(--tb) + 2px)}
 .top{grid-column:2;grid-row:1;display:flex;align-items:center;gap:8px;min-width:0;padding:0 var(--gx);background:var(--card);border-bottom:1px solid var(--line);-webkit-app-region:drag}
 .top > :not(.sp){-webkit-app-region:no-drag}
 /* Windows draws its minimize, maximize and close buttons over the bar's right end. */
 html[data-platform="win32"] .top{padding-right:150px}
 /* the top bar: where you are on the left; search, help and notifications on the right */
-.top-crumbs{display:flex;align-items:center;gap:6px;min-width:0;color:var(--ink-3)}
-.top-crumbs > .i{flex:none}
+.top-crumbs{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--ink-3)}
+.top-crumbs > .sep{flex:none;color:var(--ink-4)}
 .top-crumbs button{padding:0;border:0;background:none;font:inherit;color:var(--ink-2);cursor:pointer}
 .top-crumbs button:hover{color:var(--accent-ink)}
 .top-crumbs [aria-current]{color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -288,25 +289,27 @@ html[data-platform="win32"] .top{padding-right:150px}
 .bell-pop li small{font-size:12px;color:var(--ink-3)}
 .bell-acts{display:flex;gap:8px}
 .bell-none{padding:24px 16px;text-align:center;color:var(--ink-2)}
-.brand{display:flex;align-items:center;gap:9px;padding:2px 6px 10px}
-.ws-wrap,.me-wrap{position:relative}
-.ws{display:flex;align-items:center;gap:10px;width:100%;margin-bottom:6px;padding:8px 10px;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);cursor:pointer}
-.ws:hover{border-color:var(--line-2)}
-.ws > span:first-child{min-width:0;flex:1}
-.ws b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ws small{display:block;font-size:12px;color:var(--ink-2)}
+.brand{display:flex;align-items:center;gap:10px;height:40px;padding:0 8px;flex:none}
+.brand .seal{width:32px;height:32px}
+.ws{display:flex;align-items:center;gap:8px;width:100%;height:var(--h-ctl);margin-top:24px;padding:0 10px 0 12px;flex:none;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
+.ws:hover{border-color:var(--line-2);background:var(--hover)}
+.ws > span:first-child{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1}
+.ws b{min-width:0;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws small{flex:none;font-size:12px;color:var(--ink-3)}
 .ws .i{color:var(--ink-3)}
 .ws .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
-.nav{display:grid;gap:1px}
+.nav{display:grid;align-content:start;gap:8px;flex:1 1 auto;min-height:0;margin:28px -8px 0;padding:0 8px 8px;overflow-y:auto}
+/* The rail scrolls when the window is short, without a scrollbar of its own. */
+.nav{scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
 /* A section: its icon (20px, no box) and name; the one shown is tinted, with a bar on its left edge. */
-.nav-i{position:relative;display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 10px;border:0;border-radius:var(--r);background:transparent;color:var(--ink-2);text-align:left;font-size:14px;cursor:pointer}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;width:100%;height:40px;flex:none;padding:0 16px;border:0;border-radius:var(--r);background:transparent;color:var(--ink-2);text-align:left;font-size:14px;font-weight:500;cursor:pointer}
 .nav-i > .i{width:20px;height:20px;color:var(--ink-3)}
 .nav-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-i:hover:not(:disabled){background:var(--hover);color:var(--ink)}
-.nav-i:hover:not(:disabled) > .i{color:var(--ink-2)}
+.nav-i:hover:not(:disabled){background:var(--hover);color:var(--ink-body)}
+.nav-i:hover:not(:disabled) > .i{color:var(--ink-body)}
 .nav-i.active{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
-.nav-i.active > .i{color:var(--accent)}
-.nav-i.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.nav-i.active > .i{color:var(--accent-ink)}
 .nav-i:disabled{opacity:.7;cursor:default}
 .cnt{margin-left:auto;font:500 12px var(--f-data);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .nav-i.active .cnt{color:var(--accent-ink)}
@@ -328,62 +331,26 @@ html[data-platform="win32"] .top{padding-right:150px}
 .move-to .i{margin-left:auto;color:var(--accent)}
 .update{flex:none;display:grid;justify-items:start;gap:6px;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:14px}
 .update .muted{font-size:12px}
-/* the pages under the main ones: help, settings, billing */
-.foot-nav{flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
-/* the account, at the foot of the rail */
-.me{display:flex;align-items:center;gap:9px;width:100%;margin-top:4px;padding:7px 8px;border:1px solid transparent;border-radius:var(--r);background:transparent;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
-.me:hover,.me[aria-expanded="true"]{background:var(--hover);border-color:var(--line)}
-.me-who{display:grid;flex:1;min-width:0}
-.me-who b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.me-who small{font-size:12px;font-weight:400;color:var(--ink-2)}
-.me .i{color:var(--ink-3)}
-.me .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+/* The foot of the rail (v2): Settings as a link, then the account as a button, "name · Profile". */
+.side-foot{display:grid;gap:12px;flex:none;padding-top:12px}
+.side-set{display:flex;align-items:center;justify-content:center;gap:8px;height:var(--h-ctl);border:0;border-radius:var(--r);background:transparent;color:var(--accent-ink);font-size:14px;font-weight:500;cursor:pointer}
+.side-set:hover,.side-set.active{background:var(--accent-soft)}
+.side-set > .i{display:none}
+.me{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:var(--h-ctl);padding:0 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);font-size:14px;font-weight:500;cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
+.me:hover{border-color:var(--line-2);background:var(--hover)}
+.me.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.me > .av{display:none}
+.me-who{display:flex;align-items:baseline;gap:4px;min-width:0}
+.me-who b{min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-who small{flex:none;font-size:14px;color:inherit}
+.me-who small::before{content:'· '}
+.me .dot,.ws .dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--accent)}
 .av{display:inline-grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:600}
-.av.lg{width:44px;height:44px;font-size:16px}
-.account{position:absolute;z-index:var(--z-pop);left:0;bottom:calc(100% + 6px);width:min(520px,calc(100vw - 48px));border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop);overflow:hidden}
-.acc-h{display:flex;align-items:center;gap:12px;padding:16px 16px 14px;border-bottom:1px solid var(--line)}
-.acc-h > div{display:grid;flex:1;min-width:0}
-.acc-h b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.acc-h small{font-size:12px;color:var(--ink-2)}
-.acc-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.acc-two > section{display:grid;align-content:start;gap:4px;padding:10px 10px 12px}
-.acc-two > section + section{border-left:1px solid var(--line)}
-.acc-t{padding:6px 6px 4px;font-size:12px;font-weight:600;color:var(--ink-3)}
-.acc-ws{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border:0;border-radius:var(--r);background:transparent;text-align:left;cursor:pointer}
-.acc-ws:hover{background:var(--hover)}
-.acc-ws[aria-current="true"]{background:var(--panel)}
-.acc-ws > span:nth-child(2){display:grid;flex:1;min-width:0}
-.acc-ws b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.acc-ws small{font-size:12px;color:var(--ink-2)}
-.acc-ws > .i{color:var(--accent)}
-.ws-av{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;border-radius:var(--r);background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:600}
-.acc-plan{display:grid;gap:4px;margin:6px 4px 0;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--panel);font-size:12px;color:var(--ink-2)}
-.acc-plan b{font-size:14px;color:var(--ink)}
-.acc-plan .meter{height:4px;margin:4px 0 2px}
-.acc-plan .linkish{justify-self:start;font-size:12px;font-weight:600;color:var(--ink);text-decoration:none}
-.acc-row{display:grid;gap:6px;padding:4px 6px 8px}
-.acc-row > span{display:flex;align-items:center;gap:8px}
-.acc-row .seg{display:flex}
-.acc-row .seg button{flex:1}
-.acc-switch{display:grid;gap:2px;padding:4px 6px 8px}
-.acc-switch .hint{font-size:12px;padding-left:42px}
-.acc-two .menu-item{display:flex;align-items:center;gap:8px;padding:7px 8px}
-.acc-two .menu-item .i{color:var(--ink-2)}
-.acc-f{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2)}
-.acc-f .menu-item{display:flex;align-items:center;gap:6px;width:auto;padding:5px 8px;color:var(--bad-ink);font-weight:600}
-.acc-f .menu-item:hover{background:var(--bad-soft)}
-
-/* menus */
 .menu{position:absolute;z-index:var(--z-menu);left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);display:grid;gap:2px}
 .menu.up{top:auto;bottom:calc(100% + 6px)}
 .menu-item{display:grid;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:var(--r);background:transparent;font-size:14px;cursor:pointer}
 .menu-item:hover{background:var(--hover)}
-.acc-list{display:grid;gap:2px;margin:0;padding:0;list-style:none}
 .menu small{color:var(--ink-2);font-size:12px}
-.menu-t{padding:8px 10px 2px;font-size:12px;font-weight:600;color:var(--ink-3)}
-.invite-item{display:grid;gap:6px;padding:8px 10px;border-radius:var(--r);background:var(--hover)}
-.invite-item > span:first-child{display:grid}
-.invite-acts{display:flex;gap:6px}
 
 /* pages */
 .page{display:flex;min-width:0;min-height:0;height:100%}
@@ -1335,7 +1302,8 @@ tr.bad-row td{background:var(--bad-soft)}
 .px-result dd{display:flex;align-items:center;gap:6px;margin:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pass-in{position:relative;display:flex}
 .pass-in input{flex:1;min-width:0;padding-right:38px}
-.pass-in .icon-btn{position:absolute;right:3px;top:50%;transform:translateY(-50%)}
+/* Centred by its edges, not moved: the press effect moves buttons, and a moved one would drop. */
+.pass-in .icon-btn{position:absolute;right:3px;top:0;bottom:0;margin:auto 0}
 
 /* extensions: cards (or rows) with the extension's own icon, its engine, the signature check and where it is installed */
 .ext-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin:0 var(--gx) 24px;padding:0;list-style:none}
@@ -1527,11 +1495,16 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
    reachable through the filter bar's group picker. */
 @media (max-width:1023px){
   .app{grid-template-columns:64px minmax(0,1fr)}
-  .side{padding:14px 10px}
-  .brand{justify-content:center;padding:2px 0 10px}
-  /* The workspace switcher, the plan and the invitation dot are all in the account menu as well. */
-  .brand-word,.nav-l,.cnt,.plan,.update,.ws{display:none}
+  .side{padding:16px 10px 12px}
+  .brand{justify-content:center;padding:0}
+  /* The workspace and the plan are on the switch dialog, from the account's page too. */
+  .brand-word,.nav-l,.cnt,.update,.ws,.me-who,.me .dot{display:none}
+  .nav{margin:24px -4px 0;padding:0 4px 8px}
   .nav-i{justify-content:center;gap:0;padding:0}
+  .side-set > .i{display:block;width:20px;height:20px}
+  .side-set{color:var(--ink-3)}
+  .me{padding:0;border-color:transparent;background:transparent}
+  .me > .av{display:inline-grid}
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -1553,28 +1526,37 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .grp-pick{flex:none;min-width:150px}
 .pc-px{display:grid;gap:2px}
 
-/* settings (delivery design 23): an index that follows the card in view, the cards one under another, Cancel and Save
-   at the foot */
-.setup{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:start;margin:0 var(--gx) 24px;min-width:0}
-.setup-nav{position:sticky;top:16px;display:grid;gap:2px;padding:8px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
-.setup-body{display:grid;gap:16px;min-width:0}
-.setup-body .sec{gap:16px;padding:24px;scroll-margin-top:16px}
+/* Settings and the account page (v2 23, 32): a 220px menu card, the chosen part in a card beside it with its Save. The
+   chosen item is a filled button, the rest read as links. */
+.duo{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;align-items:start;margin:0 var(--gx) 24px;min-width:0}
+.duo-nav{display:grid;align-content:start;gap:8px;padding:20px 12px}
+.duo-i{display:flex;align-items:center;justify-content:center;height:var(--h-ctl);padding:0 12px;border:0;border-radius:var(--r);background:transparent;color:var(--accent-ink);font-size:14px;font-weight:500;cursor:pointer;transition:background-color var(--t-fast) ease,color var(--t-fast) ease}
+.duo-i:hover{background:var(--accent-soft)}
+.duo-i.on{background:var(--action);color:var(--on-accent)}
+.duo-foot{margin-top:8px;text-align:center;font-size:12px;color:var(--ink-3)}
+.duo-body{gap:20px;min-width:0}
+.duo-body h4{margin:8px 0 0;font-size:14px;font-weight:600;color:var(--ink)}
+.duo-act{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:8px}
+.duo-btns{display:flex;flex-wrap:wrap;gap:12px}
+.duo-body .notice,.m-body .notice{display:flex;align-items:flex-start;gap:10px}
+.duo-body .notice > .i,.m-body .notice > .i{flex:none;margin-top:2px}
 .set-row{display:grid;gap:4px;align-content:start}
 .set-row .hint{padding-left:42px}
-.set-h{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-.set-note{display:flex;align-items:center;gap:8px;max-width:440px;margin:0;padding:8px 12px;border-radius:var(--r);background:var(--warn-soft);color:var(--warn-ink);font-size:12px}
-.set-note .i{flex:none;color:var(--warn-ink)}
 .count-in,.copy-in{position:relative;display:flex}
 .count-in input{padding-right:64px !important}
-.count-in small{position:absolute;right:12px;top:50%;transform:translateY(-50%);font:12px var(--f-data);color:var(--ink-3);pointer-events:none}
-.copy-in input{padding-right:44px !important;background:var(--panel) !important}
-.copy-in .copy-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);margin:0}
+.count-in small{position:absolute;right:12px;top:0;bottom:0;display:flex;align-items:center;font:12px var(--f-data);color:var(--ink-3);pointer-events:none}
+.copy-in input{padding-right:44px !important;background:var(--head) !important}
+.copy-in .copy-btn{position:absolute;right:4px;top:0;bottom:0;margin:auto 0}
 .set-owner{display:flex;align-items:center;gap:10px;min-height:var(--h-ctl)}
-.set-owner .pav{width:32px;height:32px}
-.set-ro{display:flex;align-items:center;gap:8px}
-.set-foot{position:sticky;bottom:0;display:flex;align-items:center;gap:8px;margin-top:auto;padding:16px var(--gx);border-top:1px solid var(--line);background:var(--card);flex:none}
+.set-owner small{color:var(--ink-3);font-size:12px}
 .notice.warn{background:var(--warn-soft);color:var(--warn-ink)}
-@media (max-width:1023px){ .setup{grid-template-columns:minmax(0,1fr)} .setup-nav{position:static} .set-h{flex-direction:column} }
+.sw-invites{display:grid;gap:8px}
+.sw-invites h4{margin:0;font-size:14px;font-weight:600}
+.sw-invites ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.sw-invites li{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r)}
+.sw-invites li > span{display:grid;flex:1;min-width:0}
+.sw-invites li small{font-size:12px;color:var(--ink-3)}
+@media (max-width:1023px){ .duo{grid-template-columns:minmax(0,1fr)} }
 
 /* the plan and its usage (delivery design 24): the plan, its quotas and the reminder side by side, then its details
    and the latest payments */

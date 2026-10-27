@@ -1,6 +1,5 @@
-// The bar along the top of every page (the delivery's white 56 px bar): where you are on the left — the workspace,
-// the page, and on a record's own page that record — and on the right the search (the command palette), help and
-// notifications. Its empty space still drags the window: on Windows and macOS it is the title bar.
+// The bar along the top of every page (v2's white 56 px bar): where you are on the left, as "workspace / page" (and
+// on a record's own page that record), and on the right the search (the command palette), help and notifications. Its empty space still drags the window: on Windows and macOS it is the title bar.
 import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { Dict } from './i18n';
@@ -25,7 +24,7 @@ export function TopBar({ d, workspace, page, trail, onSearch, onHelp, children }
         <span>{workspace}</span>
         {steps.map((c, i) => (
           <Fragment key={i}>
-            <Icon name="chevR" />
+            <span className="sep" aria-hidden="true">/</span>
             {c.go ? <button type="button" onClick={c.go}>{c.label}</button> : <span aria-current={i === steps.length - 1 ? 'page' : undefined}>{c.label}</span>}
           </Fragment>
         ))}

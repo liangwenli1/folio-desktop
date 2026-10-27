@@ -133,6 +133,14 @@ export interface paths {
                                 emailVerified: boolean;
                                 /** @enum {string} */
                                 locale: "en" | "zh";
+                                displayName: string;
+                                note: string | null;
+                                notify: {
+                                    taskDone: boolean;
+                                    taskFailed: boolean;
+                                    proxyDown: boolean;
+                                    productUpdate: boolean;
+                                };
                             };
                         };
                     };
@@ -194,6 +202,14 @@ export interface paths {
                                 emailVerified: boolean;
                                 /** @enum {string} */
                                 locale: "en" | "zh";
+                                displayName: string;
+                                note: string | null;
+                                notify: {
+                                    taskDone: boolean;
+                                    taskFailed: boolean;
+                                    proxyDown: boolean;
+                                    productUpdate: boolean;
+                                };
                             };
                             token?: string;
                         };
@@ -279,6 +295,14 @@ export interface paths {
                                 emailVerified: boolean;
                                 /** @enum {string} */
                                 locale: "en" | "zh";
+                                displayName: string;
+                                note: string | null;
+                                notify: {
+                                    taskDone: boolean;
+                                    taskFailed: boolean;
+                                    proxyDown: boolean;
+                                    productUpdate: boolean;
+                                };
                             };
                         };
                     };
@@ -484,6 +508,14 @@ export interface paths {
                                 emailVerified: boolean;
                                 /** @enum {string} */
                                 locale: "en" | "zh";
+                                displayName: string;
+                                note: string | null;
+                                notify: {
+                                    taskDone: boolean;
+                                    taskFailed: boolean;
+                                    proxyDown: boolean;
+                                    productUpdate: boolean;
+                                };
                             };
                             workspaces: {
                                 id: string;
@@ -522,7 +554,15 @@ export interface paths {
                 content: {
                     "application/json": {
                         /** @enum {string} */
-                        locale: "en" | "zh";
+                        locale?: "en" | "zh";
+                        displayName?: string;
+                        note?: string | null;
+                        notify?: {
+                            taskDone: boolean;
+                            taskFailed: boolean;
+                            proxyDown: boolean;
+                            productUpdate: boolean;
+                        };
                     };
                 };
             };
@@ -540,12 +580,60 @@ export interface paths {
                                 emailVerified: boolean;
                                 /** @enum {string} */
                                 locale: "en" | "zh";
+                                displayName: string;
+                                note: string | null;
+                                notify: {
+                                    taskDone: boolean;
+                                    taskFailed: boolean;
+                                    proxyDown: boolean;
+                                    productUpdate: boolean;
+                                };
                             };
                         };
                     };
                 };
             };
         };
+        trace?: never;
+    };
+    "/auth/password/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        current: string;
+                        password: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/workspaces/{id}": {
@@ -4217,7 +4305,65 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        patch?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        from: {
+                            name: string;
+                            domain: string;
+                            /** @default / */
+                            path?: string;
+                        };
+                        cookie: {
+                            name: string;
+                            value?: string;
+                            domain: string;
+                            /** @default / */
+                            path?: string;
+                            /** @default -1 */
+                            expires?: number;
+                            /** @default false */
+                            httpOnly?: boolean;
+                            /** @default false */
+                            secure?: boolean;
+                            /**
+                             * @default Lax
+                             * @enum {string}
+                             */
+                            sameSite?: "Strict" | "Lax" | "None";
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            version: number;
+                            size: number;
+                            cookies: number;
+                            storageBytes: number;
+                            origins: number;
+                            savedAt: string;
+                            deviceName: string | null;
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/profiles/{id}/cookies/values": {
@@ -4309,6 +4455,7 @@ export interface paths {
                             members: {
                                 userId: string;
                                 email: string;
+                                displayName: string;
                                 role: {
                                     id: string;
                                     /** @enum {string|null} */
@@ -4964,9 +5111,10 @@ export interface paths {
                                 seq: number;
                                 at: string;
                                 actor: string | null;
+                                actorName: string | null;
                                 deviceName: string | null;
                                 /** @enum {string} */
-                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.groups" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "cookies.delete" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
+                                action: "profile.create" | "profile.update" | "profile.move" | "profile.tag" | "profile.untag" | "profile.set-proxy" | "profile.assign" | "profile.trash" | "profile.restore" | "profile.purge" | "profile.open" | "profile.close" | "profile.takeover" | "proxy.create" | "proxy.import" | "proxy.update" | "proxy.delete" | "group.create" | "group.rename" | "group.delete" | "group.members" | "member.invite" | "member.join" | "member.role" | "member.groups" | "member.remove" | "member.leave" | "invitation.withdraw" | "role.create" | "role.update" | "role.delete" | "cookies.export" | "cookies.import" | "cookies.edit" | "cookies.delete" | "workspace.export" | "workspace.import" | "flow.create" | "flow.update" | "flow.delete" | "task.create" | "task.update" | "task.delete" | "run.start" | "run.finish" | "extension.add" | "extension.update" | "extension.delete" | "profile.add-extension" | "profile.remove-extension" | "profile.set-kernel" | "profile.set-browser";
                                 profile: {
                                     id: string | null;
                                     name: string;

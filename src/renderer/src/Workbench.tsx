@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ProfileStatus, Update } from '@shared/bridge';
 import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { failure, useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { GroupsPage } from './Groups';
 import { JobsPage } from './Jobs';
-import { day, errorText, launchWhy, roleName, type Dict, type Lang } from './i18n';
-import { planStatus } from './plan';
+import { checkWhy, day, errorText, launchWhy, roleName, type Dict, type Lang } from './i18n';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
 import { ProfilesPage, type GroupFilter } from './Profiles';
@@ -22,7 +21,8 @@ import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
-import { Icon, LeaveGuard, Mark, Progress, Switch, Toasts, applyInspector, useGuard, useNotice, useOutsideClose, useToast, type IconName } from './ui';
+import { AccountPage, LogoutDialog, SwitchDialog } from './Account';
+import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useGuard, useNotice, useToast, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Bell, TopBar, TrailProvider, type Crumb, type Notice } from './TopBar';
 import { Flag } from './Flag';
@@ -30,18 +30,18 @@ import { health } from './checks';
 
 interface Props {
   d: Dict; lang: Lang; version: string; me: Me; ws: Workspace;
-  onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void;
+  onSwitch(id: string): void; onLang(l: Lang): Promise<void>; onLogout(): Promise<void>; onWorkspace(): void; onAccount(): Promise<void>;
 }
 
-type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'jobs' | 'trash' | 'settings' | 'billing';
+type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'jobs' | 'trash' | 'settings' | 'billing' | 'me';
 // A new profile can start in a group picked on the Groups page.
-type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | null;
+type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | { kind: 'switch' } | { kind: 'logout' } | null;
 
 export function Workbench(props: Props){
   return <Toasts><LeaveGuard><Shell {...props} /></LeaveGuard></Toasts>;
 }
 
-function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspace }: Props){
+function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspace, onAccount }: Props){
   const toast = useToast();
   const s = ws.subscription;
   const site = `/${lang}`;
@@ -55,12 +55,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   // A job to show when the task center opens (from a toast about it).
   const [jobId, setJobId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
-  const [wsOpen, setWsOpen] = useState(false);
-  const [userOpen, setUserOpen] = useState(false);
-  const wsRef = useOutsideClose(wsOpen, () => setWsOpen(false));
-  const userRef = useOutsideClose(userOpen, () => setUserOpen(false));
   const manager = can(ws.role, MANAGE), creates = can(ws.role, 'profiles.create');
-  const limit = s.entitlements.profiles;
 
   const data = useWorkspaceData(ws.id, ws.role, {
     workspace: onWorkspace,
@@ -91,9 +86,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
-  // Invitations to this account from other workspaces, in the workspace menu.
+  // Invitations to this account from other workspaces, in the switch dialog and the bell.
   const [invites, setInvites] = useState<MyInvitation[]>([]);
-  const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [update, setUpdate] = useState<Update | null>(null);
   const [palette, setPalette] = useState(false);
@@ -101,7 +95,6 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [trail, setTrail] = useState<Crumb[] | null>(null);
   // What the main process knew at start never replaces news that arrived meanwhile.
   useEffect(() => { void folio.update().then(u => setUpdate(cur => cur ?? u)); applyInspector(); return folio.onUpdate(setUpdate); }, []);
-  useEffect(() => { void folio.startup().then(setStartup); }, [userOpen]);
   // What the main process shows itself follows the workbench's language.
   useEffect(() => { void folio.setLabels(d.tray); }, [d]);
   // A run found profiles signed out: a desktop notification that opens the run.
@@ -180,100 +173,34 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     }));
     return [...plan, ...asked, ...failed];
   }
-  useEffect(() => { void loadInvites(); }, [wsOpen]);
+  useEffect(() => { void loadInvites(); }, [dialog?.kind === 'switch']);
+  useDesktopNotices(d, me, data, update, manager, { proxies: () => go('proxies'), job: id => data.showJob(id) });
   async function answer(i: MyInvitation, accept: boolean){
     try {
       await folio.api('POST', `/invitations/${i.id}/${accept ? 'accept' : 'decline'}`);
-      setWsOpen(false);
       if (accept) guard(() => { go('profiles'); onSwitch(i.workspaceId); }); else void loadInvites();
     } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
   }
 
-  const accountPanel = (
-      <section className="account" role="dialog" aria-label={d.user.account}>
-        <header className="acc-h">
-          <span className="av lg" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
-          <div><b>{me.user.email}</b><small>{ws.name} · {roleName(d, ws.role)}</small></div>
-          <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/account/`)}>{d.user.manage}<Icon name="chevR" /></button>
-        </header>
-        <div className="acc-two">
-          <section aria-label={d.user.teams}>
-            <p className="acc-t">{d.user.teams}</p>
-            <ul className="acc-list" aria-label={d.ws.switch}>
-              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setUserOpen(false); guard(() => { go('profiles'); onSwitch(w); }); }} onAnswer={answer} />
-            </ul>
-            {/* The plan itself lives on the Plan & billing page; this is the way to it. */}
-            {manager && (
-              <div className="acc-plan">
-                <b>{d.plans[s.plan]}</b>
-                <span>{[d.plan.usage(used, limit), planStatus(s, d, lang)].filter(Boolean).join(' · ')}</span>
-                <button className="linkish" type="button" onClick={() => { setUserOpen(false); go('billing'); }}>{d.nav.billing} ›</button>
-              </div>
-            )}
-          </section>
-          <section aria-label={d.user.settings}>
-            <p className="acc-t">{d.user.settings}</p>
-            <div className="acc-row">
-              <span><Icon name="proxies" />{d.user.language}</span>
-              <div className="seg fill">
-                {(['zh', 'en'] as const).map(l => (
-                  <button key={l} type="button" aria-pressed={lang === l} onClick={() => { setUserOpen(false); void onLang(l); }}>{d.user.langs[l]}</button>
-                ))}
-              </div>
-            </div>
-            {startup?.supported && (
-              <div className="acc-switch">
-                <Switch label={d.user.startup} checked={startup.enabled} onChange={on => void folio.setStartup(on).then(() => folio.startup()).then(setStartup)} />
-                <p className="hint">{d.user.startupHint}</p>
-              </div>
-            )}
-            {manager && <>
-              <p className="acc-t">{d.user.data}</p>
-              <button className="menu-item" type="button" onClick={() => { setUserOpen(false); setDialog({ kind: 'export-all' }); }}><Icon name="upload" />{d.user.exportAll}</button>
-              <button className="menu-item" type="button" onClick={() => { setUserOpen(false); setDialog({ kind: 'import-all' }); }}><Icon name="download" />{d.user.importAll}</button>
-            </>}
-          </section>
-        </div>
-        <footer className="acc-f">
-          <span>Folio {version}</span>
-          <button className="menu-item" type="button" onClick={() => { setUserOpen(false); guard(() => void onLogout()); }}><Icon name="logout" />{d.user.logout}</button>
-        </footer>
-      </section>
-  );
+  // Settings and the plan sit under the link at the foot of the rail; the person's own page under the account button.
+  const nav = pages.filter(([p, , , ok]) => ok && p !== 'settings' && p !== 'billing');
+  const runningHere = Object.values(data.status).filter(x => x.state !== 'stopped' && x.state !== 'error').length;
 
   return (
     <TrailProvider value={setTrail}>
     <div className="app">
       <aside className="side" aria-label={d.ws.current}>
         <div className="brand"><Mark /><span className="brand-word">Folio</span></div>
-
-        <div className="ws-wrap" ref={wsRef}>
-          <button className="ws" type="button" aria-expanded={wsOpen} onClick={() => setWsOpen(o => !o)} title={d.ws.switch}>
-            <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
-            {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
-            <Icon name="chev" />
-          </button>
-          {wsOpen && (
-            <ul className="menu" aria-label={d.ws.switch}>
-              <WorkspaceItems d={d} me={me} ws={ws} invites={invites} onPick={w => { setWsOpen(false); guard(() => { go('profiles'); onSwitch(w); }); }} onAnswer={answer} />
-            </ul>
-          )}
-        </div>
+        <button className="ws" type="button" onClick={() => setDialog({ kind: 'switch' })} title={d.ws.switch}>
+          <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
+          {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
+          <Icon name="chev" />
+        </button>
 
         <nav className="nav" aria-label="Main">
-          <NavItem icon="profiles" label={d.nav.profiles} active={shown === 'profiles'} onClick={() => go('profiles')} />
-          {manager && <NavItem icon="proxies" label={d.nav.proxies} active={shown === 'proxies'} onClick={() => go('proxies')} />}
-          <NavItem icon="engines" label={d.nav.engines} active={shown === 'engines'} onClick={() => go('engines')} />
-          <NavItem icon="folder" label={d.nav.groups} active={shown === 'groups'} onClick={() => go('groups')} />
-          <NavItem icon="team" label={d.nav.team} active={shown === 'team'} onClick={() => go('team')} />
-          <NavItem icon="activity" label={d.nav.activity} active={shown === 'activity'} onClick={() => go('activity')} />
-          <NavItem icon="jobs" label={d.nav.jobs} active={shown === 'jobs'} onClick={() => go('jobs')} />
-          <NavItem icon="tasks" label={d.nav.tasks} active={shown === 'tasks'} onClick={() => go('tasks')} />
-          <NavItem icon="extensions" label={d.nav.extensions} active={shown === 'extensions'} onClick={() => go('extensions')} />
-          <NavItem icon="sync" label={d.nav.sync} badge={data.sync ? d.windowSync.onBadge : undefined} active={shown === 'sync'} onClick={() => go('sync')} />
-          <NavItem icon="flows" label={d.nav.flows} active={shown === 'flows'} onClick={() => go('flows')} />
-          <NavItem icon="api" label={d.nav.api} active={shown === 'api'} onClick={() => go('api')} />
-          {manager && <NavItem icon="trash" label={d.nav.trash} active={shown === 'trash'} onClick={() => go('trash')} />}
+          {nav.map(([p, icon, label]) => (
+            <NavItem key={p} icon={icon} label={label} active={shown === p} badge={p === 'sync' && data.sync ? d.windowSync.onBadge : undefined} onClick={() => go(p)} />
+          ))}
         </nav>
 
         {update && (
@@ -286,24 +213,19 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           </section>
         )}
 
-        <nav className="nav foot-nav" aria-label={d.nav.more}>
-          <NavItem icon="help" label={d.nav.help} active={false} onClick={() => folio.openSite(`${site}/help/`)} />
-          <NavItem icon="settings" label={d.nav.settings} active={shown === 'settings'} onClick={() => go('settings')} />
-          {manager && <NavItem icon="billing" label={d.nav.billing} active={shown === 'billing'} onClick={() => go('billing')} />}
-        </nav>
-
-        <div className="me-wrap" ref={userRef}>
-          <button className="me" type="button" aria-haspopup="dialog" aria-expanded={userOpen} aria-label={d.user.account} onClick={() => setUserOpen(o => !o)}>
-            <span className="av" aria-hidden="true">{me.user.email.slice(0, 1).toUpperCase()}</span>
-            <span className="me-who"><b>{me.user.email}</b><small>{roleName(d, ws.role)}</small></span>
-            {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
-            <Icon name="chev" />
+        <div className="side-foot">
+          <button className={`side-set${shown === 'settings' || shown === 'billing' ? ' active' : ''}`} type="button" aria-current={shown === 'settings' ? 'page' : undefined} title={d.nav.settings} onClick={() => go('settings')}>
+            <Icon name="settings" /><span className="nav-l">{d.nav.settings}</span>
           </button>
-          {userOpen && accountPanel}
+          <button className={`me${shown === 'me' ? ' active' : ''}`} type="button" aria-current={shown === 'me' ? 'page' : undefined} aria-label={d.account.title} title={d.account.title} onClick={() => go('me')}>
+            <span className="av" aria-hidden="true">{[...me.user.displayName][0]?.toUpperCase()}</span>
+            <span className="me-who"><b>{me.user.displayName}</b><small>{d.account.title}</small></span>
+            {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
+          </button>
         </div>
       </aside>
 
-      <TopBar d={d} workspace={ws.name} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
+      <TopBar d={d} workspace={ws.name} page={shown === 'me' ? d.account.title : pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
         <Bell d={d} wsId={ws.id} notices={notices()} />
       </TopBar>
 
@@ -327,7 +249,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'jobs' && <JobsPage key={jobId ?? ''} d={d} lang={lang} meId={me.user.id} data={data} openId={jobId} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
-      {shown === 'settings' && <SettingsPage d={d} ws={ws} data={data} manager={manager} />}
+      {shown === 'settings' && <SettingsPage d={d} ws={ws} me={me} data={data} manager={manager} onSaved={onAccount}
+        onExport={() => setDialog({ kind: 'export-all' })} onImport={() => setDialog({ kind: 'import-all' })} onBilling={() => go('billing')} />}
+      {shown === 'me' && <AccountPage d={d} lang={lang} version={version} me={me} onSaved={onAccount}
+        onSwitch={() => setDialog({ kind: 'switch' })} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />}
       {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
@@ -341,6 +266,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {dialog?.kind === 'export-all' && <ExportDialog d={d} ws={ws} onClose={close} />}
       {palette && <CommandPalette d={d} commands={commands()} onClose={() => setPalette(false)} />}
       {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
+      {dialog?.kind === 'switch' && <SwitchDialog d={d} me={me} ws={ws} invites={invites} onClose={close} onAnswer={(i, ok) => void answer(i, ok)}
+        onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })} />}
+      {dialog?.kind === 'logout' && <LogoutDialog d={d} profiles={runningHere} runs={data.active.length} sync={!!data.sync} onClose={close} onLogout={onLogout} />}
     </div>
     </TrailProvider>
   );
@@ -377,27 +305,36 @@ function NavItem({ icon, label, badge, active, onClick }: { icon: IconName; labe
   );
 }
 
-// The workspaces this account is in, and invitations to others: in the sidebar's switcher and the account panel.
-function WorkspaceItems({ d, me, ws, invites, onPick, onAnswer }: { d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onPick(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void }){
-  return <>
-    {me.workspaces.map(w => (
-      <li key={w.id} className="ws-item">
-        <button type="button" className="acc-ws" aria-current={w.id === ws.id} onClick={() => onPick(w.id)}>
-          <span className="ws-av" aria-hidden="true">{[...w.name][0]?.toUpperCase()}</span>
-          <span><b>{w.name}</b><small>{d.plans[w.plan]} · {roleName(d, w.role)}</small></span>
-          {w.id === ws.id && <Icon name="check" />}
-        </button>
-      </li>
-    ))}
-    {invites.length > 0 && <li className="menu-t" role="presentation">{d.team.invites}</li>}
-    {invites.map(i => (
-      <li key={i.id} role="presentation" className="invite-item" data-invite={i.workspaceName}>
-        <span><span>{i.workspaceName}</span><small>{d.team.from(i.inviter ?? 'Folio', roleName(d, i.role))}</small></span>
-        <span className="invite-acts">
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => onAnswer(i, true)}>{d.team.join}</button>
-          <button type="button" className="btn btn-sm btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>
-        </span>
-      </li>
-    ))}
-  </>;
+// Desktop notices the person asked for (v2 38): their batch operations finishing (with or without failures), a proxy
+// that stops connecting, a new version. Each says so once; clicking one shows the window and what it is about.
+function useDesktopNotices(d: Dict, me: Me, data: WorkspaceData, update: Update | null, manager: boolean, show: { proxies(): void; job(id: string): void }){
+  const n = me.user.notify;
+  const jobs = useRef(new Map<string, string>()), down = useRef<Set<string> | null>(null), told = useRef<string | null>(null);
+  const say = (t: { title: string; body: string }, open: () => void) => {
+    const x = new Notification(t.title, { body: t.body });
+    x.onclick = () => { void folio.showWindow(); open(); };
+  };
+  useEffect(() => {
+    for (const j of data.jobs){
+      const before = jobs.current.get(j.id);
+      jobs.current.set(j.id, j.status);
+      if (before !== 'running' || j.status === 'running' || !data.mine.has(j.id)) continue;
+      if (j.failed > 0 && n.taskFailed) say(d.notify.taskFailed(d.jobs.kinds[j.kind], j.failed, j.total), () => show.job(j.id));
+      else if (!j.failed && j.status === 'done' && n.taskDone) say(d.notify.taskDone(d.jobs.kinds[j.kind], j.ok), () => show.job(j.id));
+    }
+  }, [data.jobs]);
+  useEffect(() => {
+    if (!manager || !data.loaded.has('proxies')) return;
+    const now = new Set(data.proxies.filter(p => p.lastCheck && !p.lastCheck.ok).map(p => p.id));
+    // The first list is what was already down: only lines that go down from now on are told.
+    if (down.current && n.proxyDown){
+      for (const p of data.proxies) if (now.has(p.id) && !down.current.has(p.id)) say(d.notify.proxyDown(p.name, checkWhy(d, p.lastCheck?.error ?? null) ?? d.proxies.states.down), show.proxies);
+    }
+    down.current = now;
+  }, [data.proxies]);
+  useEffect(() => {
+    if (!update || told.current === update.version || !n.productUpdate) return;
+    told.current = update.version;
+    say(d.notify.productUpdate(update.version), () => {});
+  }, [update?.version]);
 }

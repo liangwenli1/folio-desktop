@@ -34,7 +34,7 @@ export const en = {
     walkthrough: 'Workbench walkthrough: checking proxies, opening a browser profile, restoring tabs, a health check, installing an extension, batch opening, window sync and teamwork.',
     pause: 'Pause walkthrough', play: 'Play walkthrough'
   },
-  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan & billing', help: 'Help', more: 'More' },
+  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan and usage', help: 'Help', more: 'More' },
   top: {
     search: 'Search profiles, proxies or members…', bell: 'Notifications', bellNew: 'Notifications (new)', none: 'No notifications',
     planEnds: (plan: string, date: string) => `${plan} ends on ${date}. Renew it to keep its limits.`, trialEnds: (date: string) => `The free trial ends on ${date}.`,
@@ -91,7 +91,7 @@ export const en = {
   // The Settings page: what the workspace is, what new profiles start with, and how opening one behaves.
   settings: {
     title: 'Settings', lead: 'The workspace, what new profiles start with, and how opening one behaves.',
-    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notices' },
+    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notifications', data: 'Data', billing: 'Plan and usage' },
     basics: 'Basics', basicsLead: 'The workspace\u2019s name, its ID and who owns it.',
     name: 'Workspace name', id: 'Workspace ID', idHint: 'The ID identifies this workspace and never changes.',
     owner: 'Owner', ownerHint: 'The person who created the workspace.',
@@ -105,9 +105,27 @@ export const en = {
     opening: 'Opening', openingLead: 'What happens when a profile is opened and closed.',
     openDetail: 'Show the profile\u2019s page after it opens', openDetailHint: 'The profile\u2019s page opens as soon as its browser starts.',
     stopOnClose: 'Stop the profile when its last window closes', stopOnCloseHint: 'With this off, closing the browser leaves the profile running: Go to window opens it again, and Stop ends it and saves its sign-ins.',
-    notices: 'Notices', noticesLead: 'What the app tells you about.',
+    notices: 'Notifications', noticesLead: 'What Folio tells you about, on the desktop and under the bell. These follow your account wherever you sign in.',
+    notifyItems: { taskDone: 'Batch task finished', taskFailed: 'Batch task with failures', proxyDown: 'Proxy can’t connect', productUpdate: 'New version' },
+    on: 'On', off: 'Off', workspaceNotices: 'Workspace reminder',
     expiry: 'Remind before the plan ends',
-    saved: 'Settings saved', save: 'Save settings'
+    data: 'Export and import', dataLead: 'A whole workspace in one encrypted file: profiles, proxies, groups and sign-ins.',
+    saved: 'Settings saved', save: 'Save changes'
+  },
+  // The person's own page (v2 32–35): their name and note, password, workspaces, logging out.
+  account: {
+    title: 'Profile', lead: 'Your name, password and workspaces.',
+    menu: { profile: 'Profile', password: 'Change password', switch: 'Switch workspace', logout: 'Log out' },
+    info: 'Account', displayName: 'Display name', displayNameHint: 'How colleagues see you: in the team, the log and as an owner.', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
+    emailNote: 'Your email is how you log in; change it on the website’s account page.', nameErr: 'Enter a name.', saved: 'Profile saved',
+    password: { current: 'Current password', next: 'New password', confirm: 'Confirm new password', rule: '8 to 64 characters.', currentErr: 'Enter your current password.', short: 'Use 8 to 64 characters.', mismatch: 'The two new passwords don’t match.', done: 'Password changed. Sign-ins on other computers have ended.' },
+    switchDlg: { title: 'Switch workspace', sub: 'Choose the workspace to work in.', field: 'Workspace', note: 'Switching changes what you see; nothing moves between workspaces. Save changes before you switch.', invites: 'Invitations', go: 'Switch' },
+    logoutDlg: {
+      title: 'Log out', sub: 'You return to the login screen.', ask: 'Log out of this account?',
+      running: (profiles: number, runs: number) => [profiles ? `${profiles} running ${profiles === 1 ? 'profile saves its' : 'profiles save their'} sign-ins and ${profiles === 1 ? 'closes' : 'close'}` : '', runs ? `${runs} ${runs === 1 ? 'flow or task stops' : 'flows and tasks stop'}` : ''].filter(Boolean).join('; ') + '.',
+      sync: 'Window sync stops.', go: 'Log out'
+    },
+    version: (v: string) => `Folio ${v}`, save: 'Save changes'
   },
   user: {
     account: 'Account', manage: 'Manage account', teams: 'Workspaces', settings: 'Settings', data: 'Data', language: 'Language',
@@ -117,7 +135,13 @@ export const en = {
     startup: 'Open Folio at startup', startupHint: 'Opens minimized in the tray, so scheduled tasks run on time.'
   },
   tray: { open: 'Open Folio', quit: 'Quit Folio', background: 'Folio keeps running in the background so scheduled tasks run on time. Quit it from the tray icon.' },
-  notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }) },
+  notify: {
+    signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} is signed out` : `${names.length} profiles are signed out`, body: `${task}: ${names.join(', ')}` }),
+    taskDone: (kind: string, n: number) => ({ title: `${kind} finished`, body: `${n} ${n === 1 ? 'item' : 'items'} done.` }),
+    taskFailed: (kind: string, failed: number, total: number) => ({ title: `${kind}: ${failed} failed`, body: `${failed} of ${total} failed. The task center says why.` }),
+    proxyDown: (name: string, why: string) => ({ title: `${name} can’t connect`, body: why }),
+    productUpdate: (v: string) => ({ title: `Folio ${v} is out`, body: 'Update it from the sidebar.' })
+  },
   update: {
     ready: (v: string) => `Folio ${v} is ready to install.`, restart: 'Restart to update', restartNote: 'Open profiles are saved and closed first. Otherwise, it installs the next time you quit Folio.',
     out: (v: string) => `Folio ${v} is out.`, download: 'Download'
@@ -600,7 +624,7 @@ export const en = {
       'group.create': 'Create group', 'group.rename': 'Rename group', 'group.delete': 'Delete group', 'group.members': 'Group access',
       'member.invite': 'Invite', 'member.join': 'Join', 'member.role': 'Change role', 'member.groups': 'Change groups', 'member.remove': 'Remove member', 'member.leave': 'Leave workspace',
       'invitation.withdraw': 'Withdraw invitation', 'role.create': 'Create role', 'role.update': 'Edit role', 'role.delete': 'Delete role',
-      'cookies.export': 'Export cookies', 'cookies.import': 'Import cookies', 'cookies.delete': 'Delete cookies', 'workspace.export': 'Export workspace', 'workspace.import': 'Import workspace',
+      'cookies.export': 'Export cookies', 'cookies.import': 'Import cookies', 'cookies.edit': 'Edit cookie', 'cookies.delete': 'Delete cookies', 'workspace.export': 'Export workspace', 'workspace.import': 'Import workspace',
       'flow.create': 'Create flow', 'flow.update': 'Edit flow', 'flow.delete': 'Delete flow', 'task.create': 'Create scheduled task', 'task.update': 'Edit scheduled task', 'task.delete': 'Delete scheduled task',
       'run.start': 'Start run', 'run.finish': 'Finish run', 'extension.add': 'Add extension', 'extension.update': 'Update extension', 'extension.delete': 'Delete extension',
       'profile.add-extension': 'Install extension', 'profile.remove-extension': 'Uninstall extension', 'profile.set-kernel': 'Change engine', 'profile.set-browser': 'Browser settings'
@@ -622,6 +646,7 @@ export const en = {
       'role.create': (_p, x) => `created the role ${x.name}`, 'role.update': (_p, x) => `changed what ${x.name} may do`, 'role.delete': (_p, x) => `deleted the role ${x.name}`,
       'cookies.delete': (p, x) => `deleted ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} from ${p}`,
       'cookies.export': (p, x) => `exported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} from ${p}`, 'cookies.import': (p, x) => `imported ${x.count} ${x.count === 1 ? 'cookie' : 'cookies'} into ${p}`,
+      'cookies.edit': (p, x) => `edited the cookie ${x.name} (${x.domain}) of ${p}`,
       'workspace.export': (_p, x) => `exported all data (${profilesN(x.profiles)}, ${x.proxies} ${x.proxies === 1 ? 'proxy' : 'proxies'})`,
       'workspace.import': (_p, x) => `imported ${profilesN(x.profiles)}, ${x.proxies} new ${x.proxies === 1 ? 'proxy' : 'proxies'} and ${x.groups} new ${x.groups === 1 ? 'group' : 'groups'}`,
       'flow.create': (_p, x) => `created the flow ${x.name}`, 'flow.update': (_p, x) => (x.from ? `renamed the flow ${x.from} to ${x.name}` : `changed the flow ${x.name}`),
@@ -859,6 +884,7 @@ export const en = {
   },
   errors: {
     invalid_credentials: 'The email or password is incorrect.',
+    wrong_password: 'The current password isn’t right.',
     unauthenticated: 'Your session has ended. Log in again.',
     rate_limited: 'Too many attempts. Wait a minute and try again.',
     validation: 'Enter your email and password.',
@@ -916,7 +942,7 @@ export const zh: Dict = {
     walkthrough: '工作台操作演示：检查代理、打开浏览器环境、恢复标签页、体检、安装扩展、批量打开、窗口同步与团队协作。',
     pause: '暂停演示', play: '播放演示'
   },
-  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '账号与计费', help: '帮助中心', more: '更多' },
+  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '套餐与用量', help: '帮助中心', more: '更多' },
   top: {
     search: '搜索环境、代理或成员…', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
     planEnds: (plan: string, date: string) => `${plan}将于 ${date} 到期，续费后可继续使用当前额度。`, trialEnds: (date: string) => `免费试用将于 ${date} 结束。`,
@@ -948,7 +974,7 @@ export const zh: Dict = {
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
   periods: { monthly: '月付', yearly: '年付' },
   roles: { owner: '所有者', admin: '管理员', member: '成员', viewer: '仅查看' },
-  ws: { switch: '切换团队', current: '当前团队' },
+  ws: { switch: '切换工作空间', current: '当前工作空间' },
   plan: {
     usage: (used: number, limit: number) => `已用 ${used} / ${limit} 个环境`,
     renews: (date: string, period: string) => `${date} 续费 · ${period}`,
@@ -971,7 +997,7 @@ export const zh: Dict = {
   },
   settings: {
     title: '设置', lead: '管理工作空间的基本信息与默认设置，这些设置将影响后续创建的环境。',
-    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置' },
+    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置', data: '数据', billing: '套餐与用量' },
     basics: '基础信息', basicsLead: '管理工作空间的名称、标识和所有者信息。',
     name: '工作空间名称', id: '工作空间 ID', idHint: '工作空间 ID 用于标识该工作空间，创建后不可修改。',
     owner: '所有者', ownerHint: '工作空间的创建者。',
@@ -985,9 +1011,26 @@ export const zh: Dict = {
     opening: '启动偏好', openingLead: '设置环境启动和关闭时的默认行为。',
     openDetail: '启动后打开环境详情', openDetailHint: '浏览器启动后自动打开该环境的详情页。',
     stopOnClose: '关闭窗口后停止环境', stopOnCloseHint: '关闭此项后，关闭浏览器窗口时环境继续运行：点「进入」重新打开窗口，点「停止」才结束并保存登录状态。',
-    notices: '通知设置', noticesLead: '设置应用内提醒。',
+    notices: '通知设置', noticesLead: '选择需要接收的提醒，以桌面通知和铃铛显示。该设置随账号生效。',
+    notifyItems: { taskDone: '任务完成通知', taskFailed: '任务失败通知', proxyDown: '代理异常通知', productUpdate: '产品更新通知' },
+    on: '开启', off: '关闭', workspaceNotices: '工作空间提醒',
     expiry: '套餐临近到期时提醒',
-    saved: '设置已保存', save: '保存设置'
+    data: '导出与导入', dataLead: '将整个工作空间的环境、代理、分组与登录状态导出为一个加密文件，或从文件导入。',
+    saved: '设置已保存', save: '保存修改'
+  },
+  account: {
+    title: '个人资料', lead: '管理账号信息、密码与工作空间。',
+    menu: { profile: '个人资料', password: '修改密码', switch: '切换工作空间', logout: '退出登录' },
+    info: '账号信息', displayName: '显示名称', displayNameHint: '团队成员、操作日志与负责人处显示该名称。', email: '账号邮箱', note: '备注', notePh: '例如：店铺运营',
+    emailNote: '邮箱用于登录，如需修改请前往官网账户页。', nameErr: '请输入显示名称。', saved: '个人资料已保存',
+    password: { current: '当前密码', next: '新密码', confirm: '确认新密码', rule: '8–64 个字符。', currentErr: '请输入当前密码。', short: '密码需为 8–64 个字符。', mismatch: '两次输入的新密码不一致。', done: '密码已修改，其他设备上的登录已退出。' },
+    switchDlg: { title: '切换工作空间', sub: '选择要进入的工作空间。', field: '工作空间', note: '切换仅改变当前查看的资源，不会迁移环境。未保存的修改请在切换前处理。', invites: '待接受的邀请', go: '切换' },
+    logoutDlg: {
+      title: '退出登录', sub: '退出后将返回登录页面。', ask: '是否退出当前账号？',
+      running: (profiles: number, runs: number) => [profiles ? `${profiles} 个运行中的环境将保存登录状态后关闭` : '', runs ? `${runs} 个流程或定时任务将中止` : ''].filter(Boolean).join('，') + '。',
+      sync: '窗口同步将停止。', go: '退出登录'
+    },
+    version: (v: string) => `Folio ${v}`, save: '保存修改'
   },
   user: {
     account: '账户', manage: '管理账号', teams: '团队', settings: '设置', data: '数据', language: '语言',
@@ -996,7 +1039,13 @@ export const zh: Dict = {
     startup: '开机自动启动', startupHint: '开机后最小化到托盘，定时任务照常运行。'
   },
   tray: { open: '打开 Folio', quit: '退出 Folio', background: 'Folio 将在后台运行，以确保定时任务按时执行。如需退出，请使用托盘图标。' },
-  notify: { signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} 已掉线` : `${names.length} 个环境已掉线`, body: `${task}：${names.join('、')}` }) },
+  notify: {
+    signedOut: (task: string, names: string[]) => ({ title: names.length === 1 ? `${names[0]} 已掉线` : `${names.length} 个环境已掉线`, body: `${task}：${names.join('、')}` }),
+    taskDone: (kind: string, n: number) => ({ title: `${kind}已完成`, body: `共 ${n} 项。` }),
+    taskFailed: (kind: string, failed: number, total: number) => ({ title: `${kind}：${failed} 项失败`, body: `${total} 项中有 ${failed} 项失败，可在任务中心查看原因。` }),
+    proxyDown: (name: string, why: string) => ({ title: `代理 ${name} 连接失败`, body: why }),
+    productUpdate: (v: string) => ({ title: `Folio ${v} 已发布`, body: '可在侧栏完成更新。' })
+  },
   update: {
     ready: (v: string) => `Folio ${v} 已下载完成。`, restart: '重启并更新', restartNote: '将先保存并关闭已打开的环境；如不重启，将在下次退出 Folio 时自动安装。',
     out: (v: string) => `Folio ${v} 已发布。`, download: '前往下载'
@@ -1468,7 +1517,7 @@ export const zh: Dict = {
       'group.create': '新建分组', 'group.rename': '重命名分组', 'group.delete': '删除分组', 'group.members': '分组授权',
       'member.invite': '邀请成员', 'member.join': '加入团队', 'member.role': '变更角色', 'member.groups': '调整授权分组', 'member.remove': '移除成员', 'member.leave': '退出团队',
       'invitation.withdraw': '撤回邀请', 'role.create': '新建角色', 'role.update': '修改角色', 'role.delete': '删除角色',
-      'cookies.export': '导出 Cookie', 'cookies.import': '导入 Cookie', 'cookies.delete': '删除 Cookie', 'workspace.export': '导出工作空间', 'workspace.import': '导入工作空间',
+      'cookies.export': '导出 Cookie', 'cookies.import': '导入 Cookie', 'cookies.edit': '编辑 Cookie', 'cookies.delete': '删除 Cookie', 'workspace.export': '导出工作空间', 'workspace.import': '导入工作空间',
       'flow.create': '新建流程', 'flow.update': '编辑流程', 'flow.delete': '删除流程', 'task.create': '新建定时任务', 'task.update': '编辑定时任务', 'task.delete': '删除定时任务',
       'run.start': '开始运行', 'run.finish': '运行结束', 'extension.add': '添加扩展', 'extension.update': '更新扩展', 'extension.delete': '删除扩展',
       'profile.add-extension': '安装扩展', 'profile.remove-extension': '卸载扩展', 'profile.set-kernel': '变更内核', 'profile.set-browser': '浏览器设置'
@@ -1490,6 +1539,7 @@ export const zh: Dict = {
       'role.create': (_p, x) => `新建了角色「${x.name}」`, 'role.update': (_p, x) => `调整了角色「${x.name}」的权限`, 'role.delete': (_p, x) => `删除了角色「${x.name}」`,
       'cookies.delete': (p, x) => `删除了 ${p} 的 ${x.count} 个 Cookie`,
       'cookies.export': (p, x) => `导出了 ${p} 的 ${x.count} 个 Cookie`, 'cookies.import': (p, x) => `向 ${p} 导入了 ${x.count} 个 Cookie`,
+      'cookies.edit': (p, x) => `编辑了 ${p} 的 Cookie ${x.name}（${x.domain}）`,
       'workspace.export': (_p, x) => `导出了全部数据（${x.profiles} 个环境、${x.proxies} 个代理）`,
       'workspace.import': (_p, x) => `导入了 ${x.profiles} 个环境，新增 ${x.proxies} 个代理和 ${x.groups} 个分组`,
       'flow.create': (_p, x) => `新建了流程 ${x.name}`, 'flow.update': (_p, x) => (x.from ? `将流程 ${x.from} 重命名为 ${x.name}` : `修改了流程 ${x.name}`),
@@ -1726,6 +1776,7 @@ export const zh: Dict = {
   },
   errors: {
     invalid_credentials: '邮箱或密码错误。',
+    wrong_password: '当前密码不正确。',
     unauthenticated: '登录已过期，请重新登录。',
     rate_limited: '操作过于频繁，请一分钟后重试。',
     validation: '请填写邮箱和密码。',

@@ -67,6 +67,7 @@ export function App(){
       onWorkspace={() => load()}
       onLang={async l => { await folio.api('PATCH', '/me', { locale: l }); await load(); }}
       onLogout={async () => { await folio.logout(); setMe(null); setWs(null); setPhase('login'); }}
+      onAccount={() => load()}
     />
   );
   }

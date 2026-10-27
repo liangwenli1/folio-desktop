@@ -7,8 +7,10 @@ import { account, chromiumProfile, dataDir, launch, logIn } from './helpers';
 
 test.setTimeout(120_000);
 const PASS = 'correct horse battery staple';
+// Exporting and importing a whole workspace are under Settings, Data.
 const menu = async (win: Page, item: string) => {
-  await win.locator('.me').click();
+  await win.getByRole('button', { name: 'Settings', exact: true }).click();
+  await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'Data' }).click();
   await win.getByRole('button', { name: item }).click();
 };
 // File dialogs answer with the test's path instead of asking.
@@ -61,6 +63,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   await expect(im.getByRole('status')).toHaveText('From Larkspur Trading: 2 profiles (1 with sign-ins), 1 proxy, 1 group.');
   await im.getByRole('button', { name: 'Import' }).click();
   await expect(winB.getByRole('status').filter({ hasText: '2 profiles imported, 1 with sign-ins; 1 new proxy, 1 new group' })).toBeVisible();
+  await winB.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Profiles' }).click();
   await expect(winB.locator('tr[data-id]')).toHaveCount(2);
 
   const list = (await (await to.api.get(`/workspaces/${to.workspaceId}/profiles`)).json()).profiles;

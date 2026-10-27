@@ -7,18 +7,25 @@ test('the plan bought on the website shows up after logging in', async () => {
   const app = await launch(dataDir());
   const win = await logIn(app, email);
 
-  // Plan & billing sits under the main pages, in the rail's second group.
-  const nav = (name: string) => win.getByRole('button', { name, exact: true });
-  await nav('Plan & billing').click();
+  // The plan is under Settings (design v2): Settings at the foot of the rail, then Plan and usage.
+  const plan = async () => {
+    await win.getByRole('button', { name: 'Settings', exact: true }).click();
+    await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'Plan and usage' }).click();
+  };
+  await plan();
   await expect(win.getByTestId('plan-name')).toHaveText('Studio');
   await expect(win.getByTestId('plan-status')).toContainText('Renews');
   await win.getByRole('tab', { name: 'Usage' }).click();
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 100');
 
+  // The workspace button opens the switch dialog (v2 35).
   await win.click('.ws');
-  await win.getByRole('button', { name: /EU stores/ }).click();
+  const sw = win.getByRole('dialog', { name: 'Switch workspace' });
+  await sw.getByRole('combobox', { name: 'Workspace' }).click();
+  await win.getByRole('option', { name: /EU stores/ }).click();
+  await sw.getByRole('button', { name: 'Switch' }).click();
   await expect(win.getByTestId('ws-name')).toHaveText('EU stores');
-  await nav('Plan & billing').click();
+  await plan();
   await win.getByRole('tab', { name: 'Usage' }).click();
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 5');
   await app.close();
@@ -60,8 +67,10 @@ test('the session survives a restart and ends on log out', async () => {
   app = await launch(dir);
   win = await app.firstWindow();
   await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  // The account button opens the person's page; logging out from there asks first (design v2 34).
   await win.click('.me');
-  await win.getByRole('button', { name: 'Log out' }).click();
+  await win.getByRole('navigation', { name: 'Profile' }).getByRole('button', { name: 'Log out' }).click();
+  await win.getByRole('dialog', { name: 'Log out' }).getByRole('button', { name: 'Log out' }).click();
   await expect(win.locator('#email')).toBeVisible();
   await app.close();
 
@@ -79,7 +88,8 @@ test('Chinese accounts get the Chinese workbench, and upgrading opens the site c
     shell.openExternal = async (url: string) => { opened.push(url); };
   });
   const win = await logIn(app, email);
-  await win.getByRole('button', { name: '账号与计费', exact: true }).click();
+  await win.getByRole('button', { name: '设置', exact: true }).click();
+  await win.getByRole('navigation', { name: '设置' }).getByRole('button', { name: '套餐与用量' }).click();
   await expect(win.getByTestId('plan-name')).toHaveText('体验版');
   await win.getByRole('tab', { name: '用量' }).click();
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 5');

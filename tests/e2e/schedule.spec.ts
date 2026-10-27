@@ -54,6 +54,7 @@ test('a daily task runs on time on its computer; times missed while Folio was cl
   await expect(win.locator('.ttl .sub')).toContainText(`Every day ${hhmm}`);
   // Startup at login is a Windows and macOS setting; this Linux machine doesn't offer it.
   await win.locator('.me').click();
+  await expect(win.getByRole('heading', { name: 'Profile' })).toBeVisible();
   await expect(win.getByRole('switch', { name: 'Open Folio at startup' })).toHaveCount(0);
   await app.close();
 
