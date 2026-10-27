@@ -1,7 +1,7 @@
 // The world the demo is recorded in, all on this machine: proxies that stand for exits around the world and the example
-// sites the profiles browse. Each proxy answers Folio's exit check (/net/echo) itself, after a delay like a real line's,
-// with its own exit IP (documentation addresses) and place; plain-HTTP pages for *.example hosts come from here. One
-// proxy never answers, for the profile that fails to open.
+// sites the profiles browse. Each proxy answers Folio's exit check (the echo at ECHO) itself, after a delay like a real
+// line's, with its own exit IP (documentation addresses, which the dev server places like the `geo` here); plain-HTTP
+// pages for *.example hosts come from here. One proxy never answers, for the profile that fails to open.
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -17,6 +17,8 @@ export const EXITS = [
   { key: 'down', ip: '', ms: 0, geo: null }
 ] as const;
 export type ExitKey = typeof EXITS[number]['key'];
+// The echo the app's proxy checks ask (FOLIO_ECHO_URLS), answered by each proxy like Cloudflare's trace.
+export const ECHO = 'echo.example';
 // The proxies' host names, each pointing at this machine (the capture's container maps them).
 export const hostOf = (key: ExitKey) => `${key}.proxy.example`;
 
@@ -54,9 +56,7 @@ export async function startExits(base: number){
     const server = http.createServer((req, res) => {
       if (x.key === 'down') return; // never answers
       const url = new URL(req.url ?? '/', 'http://x');
-      if (url.pathname === '/net/echo'){
-        return void setTimeout(() => { res.setHeader('content-type', 'application/json'); res.end(JSON.stringify({ ip: x.ip, geo: x.geo })); }, x.ms);
-      }
+      if (url.hostname === ECHO) return void setTimeout(() => { res.setHeader('content-type', 'text/plain'); res.end(`ip=${x.ip}\n`); }, x.ms);
       const site = SITES[url.hostname];
       res.writeHead(site ? 200 : 404, { 'content-type': 'text/html; charset=utf-8', ...(site ? { 'set-cookie': 'session=demo; Path=/; Max-Age=2592000' } : {}) });
       res.end(site?.html ?? '<!doctype html><title>Not found</title>');

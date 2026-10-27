@@ -3804,7 +3804,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/net/echo": {
+    "/net/locate": {
         parameters: {
             query?: never;
             header?: never;
@@ -3813,7 +3813,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query: {
+                    ip: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -3827,7 +3829,6 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            ip: string;
                             geo: {
                                 country: string;
                                 countryName: string;

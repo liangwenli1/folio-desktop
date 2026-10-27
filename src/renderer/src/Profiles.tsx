@@ -3,7 +3,7 @@ import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profil
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type BulkChange, type WorkspaceData } from './data';
 import { startJob, type JobRun } from './jobRun';
-import { errorText, type Dict, type Lang } from './i18n';
+import { errorText, launchWhy, type Dict, type Lang } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { dayLabel, time } from './Activity';
 import { Act, Avatar, BulkBar, Cancel, Empty, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, ViewSwitch, percent, useChanged, useNow, useToast, useView } from './ui';
@@ -551,7 +551,7 @@ function Tray({ d, data, profiles, onRetry, onClose, onTask }: { d: Dict; data: 
   const T = d.batchOpen, P = d.profiles;
   const [folded, setFolded] = useState(false);
   const rows = profiles.map(p => {
-    const why = data.failed[p.id] ? d.launch[data.failed[p.id]] ?? d.launch.launch_failed : null;
+    const why = data.failed[p.id] ? launchWhy(d, data.failed[p.id]) : null;
     const s = data.status[p.id], pr = data.progress[kernelKey(p.kernel, p.kernelVersion)];
     if (why) return { p, tone: 'bad', st: <span className="badge bad"><Icon name="alert" />{why}</span>, pct: 100 };
     if (s?.state === 'running') return { p, tone: 'run', st: <span className="badge good"><Icon name="check" />{T.opened}</span>, pct: 100 };

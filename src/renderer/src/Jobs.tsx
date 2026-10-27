@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { folio, isApiError, type Job, type JobDetail, type JobKind } from './api';
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
-import { errorText, type Dict, type Lang } from './i18n';
+import { checkWhy, errorText, launchWhy, type Dict, type Lang } from './i18n';
 import { Empty, Icon, ListFailed, PanelEdge, SkelRows, Switch, Tabs, useToast, type IconName } from './ui';
 import { Select } from './Select';
 
@@ -25,9 +25,9 @@ export function jobError(d: Dict, kind: JobKind, code: string | null){
   if (!code) return '—';
   const J = d.jobs.errors;
   if (code in J) return J[code];
-  if (kind === 'proxy.check') return d.proxies.why[code] ?? code;
+  if (kind === 'proxy.check') return checkWhy(d, code) ?? errorText(d, code);
   if (kind === 'proxy.import') return d.proxies.imp.why[code as 'format' | 'port'] ?? code;
-  if (kind === 'profile.open' && d.launch[code]) return d.launch[code];
+  if (kind === 'profile.open' && d.launch[code.split(':')[0]]) return launchWhy(d, code);
   return kind === 'kernel.download' ? code : errorText(d, code);
 }
 

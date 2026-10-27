@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { ProfileStatus, Update } from '@shared/bridge';
 import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
-import { useWorkspaceData, type WorkspaceData } from './data';
+import { failure, useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { GroupsPage } from './Groups';
 import { JobsPage } from './Jobs';
-import { day, errorText, roleName, type Dict, type Lang } from './i18n';
+import { day, errorText, launchWhy, roleName, type Dict, type Lang } from './i18n';
 import { planStatus } from './plan';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
@@ -68,7 +68,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     removed(){ toast(d.team.removedYou(ws.name)); onWorkspace(); },
     launchError(st: ProfileStatus){
       const p = data.profiles.find(x => x.id === st.id);
-      const why = d.launch[st.error ?? ''] ?? d.launch.launch_failed;
+      const why = launchWhy(d, failure(st));
       toast(p ? d.profiles.done.failed(p.name, why) : why, st.error === 'kernel_missing' && p
         ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined, 'bad');
     },
@@ -99,7 +99,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [palette, setPalette] = useState(false);
   // A record's page puts itself after the page's name in the top bar.
   const [trail, setTrail] = useState<Crumb[] | null>(null);
-  useEffect(() => { void folio.update().then(setUpdate); applyInspector(); return folio.onUpdate(setUpdate); }, []);
+  // What the main process knew at start never replaces news that arrived meanwhile.
+  useEffect(() => { void folio.update().then(u => setUpdate(cur => cur ?? u)); applyInspector(); return folio.onUpdate(setUpdate); }, []);
   useEffect(() => { void folio.startup().then(setStartup); }, [userOpen]);
   // What the main process shows itself follows the workbench's language.
   useEffect(() => { void folio.setLabels(d.tray); }, [d]);

@@ -7,7 +7,7 @@ import { folio, type ActivityEntry, type Extension, type Group, type Profile, ty
 import { ActivityTable, dayLabel, said, time, useActivity } from './Activity';
 import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
-import { runTime, type Dict, type Lang } from './i18n';
+import { launchWhy, runTime, type Dict, type Lang } from './i18n';
 import { Empty, Icon, MoreMenu, Progress, Tabs, bytes, percent, type IconName } from './ui';
 import { Flag, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
@@ -86,7 +86,7 @@ export function ProfileDetail(props: Props){
     chip = <span className="dot-st away">{P.inUseOn(away.deviceName ?? away.email)}</span>;
   } else {
     primary = <button type="button" className="btn btn-primary" onClick={onOpen}><Icon name="play" />{D.openProfile}</button>;
-    chip = failed ? <span className="dot-st bad">{d.launch[failed] ?? d.launch.launch_failed}</span> : <span className="dot-st idle">{P.tabs.stopped}</span>;
+    chip = failed ? <span className="dot-st bad">{launchWhy(d, failed)}</span> : <span className="dot-st idle">{P.tabs.stopped}</span>;
   }
 
   useTrail([{ label: P.title, go: onBack }, { label: p.name }], `${p.id}:${p.name}`);
@@ -148,7 +148,7 @@ function LaunchFailed({ d, p, why, onOpen }: { d: Dict; p: Profile; why: string;
   const S = d.states;
   const [shown, setShown] = useState(false);
   return (
-    <Empty icon="xCircle" tone="bad" title={S.launchFailed} text={<>{S.launchFailedText(p.name)}{shown && <><br /><b>{d.launch[why] ?? d.launch.launch_failed}</b></>}</>}>
+    <Empty icon="xCircle" tone="bad" title={S.launchFailed} text={<>{S.launchFailedText(p.name)}{shown && <><br /><b>{launchWhy(d, why)}</b></>}</>}>
       <button type="button" className="btn btn-secondary btn-sm" aria-expanded={shown} onClick={() => setShown(x => !x)}>{S.why}</button>
       <button type="button" className="btn btn-primary btn-sm" onClick={onOpen}>{S.retry}</button>
     </Empty>

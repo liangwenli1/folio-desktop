@@ -1,34 +1,34 @@
-// Checks a proxy the way a profile will use it: through a local forwarder, then the proxy, to the server's
-// /net/echo, which reports the exit IP and its location. The result is stored on the server for the team.
-import { randomUUID } from 'node:crypto';
-import { session } from 'electron';
-import { API_URL, api } from './api';
-import { getToken } from './session';
-import { startForwarder, type Upstream } from './forwarder';
+// Checks a proxy the way a profile will use it: through the forwarder's tunnels to a public IP echo, which reports the
+// exit IP; the server then places it (DB-IP). A failure names the step that failed. The result is stored on the server
+// for the team.
+import { api } from './api';
+import { probe, type ProbeFailure, type Upstream } from './forwarder';
 import type { CheckResult, Geo, ProxyDraft } from '../shared/bridge';
 
 export interface ProxySecret extends Upstream { id: string }
 
-const TIMEOUT = 10_000;
+// Cloudflare's trace, then ipify when the first can't be reached through the proxy. Tests and the demo point the check
+// at their own echo (FOLIO_ECHO_URLS, comma-separated).
+const ECHOES = (process.env.FOLIO_ECHO_URLS ?? 'https://www.cloudflare.com/cdn-cgi/trace,https://api.ipify.org/?format=json').split(',').map(u => new URL(u));
+const TIMEOUT = 15_000;
+// The proxy's own failures: another echo would fare no better.
+const OWN = new Set<ProbeFailure>(['proxy_unreachable', 'proxy_timeout', 'proxy_auth', 'proxy_protocol']);
 
 export async function echoThrough(up: Upstream | null): Promise<CheckResult> {
-  const fwd = await startForwarder(up);
-  // A throwaway session whose only route out is the forwarder, including for loopback addresses.
-  const ses = session.fromPartition(`folio-check-${randomUUID()}`, { cache: false });
-  await ses.setProxy({ proxyRules: `http=127.0.0.1:${fwd.port};https=127.0.0.1:${fwd.port}`, proxyBypassRules: '<-loopback>' });
   const started = Date.now();
-  try {
-    const res = await ses.fetch(`${API_URL}/net/echo`, { headers: { authorization: `Bearer ${getToken()}` }, signal: AbortSignal.timeout(TIMEOUT) });
-    if (!res.ok) return { ok: false, ms: null, ip: null, geo: null, error: `HTTP ${res.status}` };
-    const body = await res.json() as { ip: string; geo: Geo | null };
-    return { ok: true, ms: Date.now() - started, ip: body.ip, geo: body.geo, error: null };
-  } catch (e){
-    const timedOut = (e as Error).name === 'TimeoutError';
-    return { ok: false, ms: null, ip: null, geo: null, error: timedOut ? 'timeout' : 'unreachable' };
-  } finally {
-    await fwd.close();
-    await ses.clearStorageData().catch(() => {});
+  let error: ProbeFailure = 'proxy_timeout';
+  for (const echo of ECHOES){
+    const left = TIMEOUT - (Date.now() - started);
+    if (left <= 0) break;
+    const r = await probe(up, echo, left);
+    if (r.ok){
+      const at = await api<{ geo: Geo | null }>('GET', `/net/locate?ip=${encodeURIComponent(r.ip)}`);
+      return { ok: true, ms: r.ms, ip: r.ip, geo: at.ok ? at.data.geo : null, error: null };
+    }
+    error = r.error;
+    if (OWN.has(error)) break;
   }
+  return { ok: false, ms: null, ip: null, geo: null, error };
 }
 
 export async function checkProxy(p: ProxySecret){

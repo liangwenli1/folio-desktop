@@ -14,7 +14,7 @@ import { _electron as electron, expect, request, test, type ElectronApplication,
 import { strToU8, zipSync } from 'fflate';
 import { dicts, type Lang } from '../src/renderer/src/i18n';
 import { API, ENGINE_ENV, PASSWORD, SITE, closeWindows, dataDir, lastMail, lastStatus, opened } from '../tests/e2e/helpers';
-import { EXITS, SITES, hostOf, startExits, type ExitKey } from './world';
+import { ECHO, EXITS, SITES, hostOf, startExits, type ExitKey } from './world';
 
 test.setTimeout(900_000);
 const OUT = 'src/renderer/src/demo', STILLS = 'demo/stills', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
@@ -54,7 +54,7 @@ const ICON = (win: Page, letter: string, color: string) => win.evaluate(async ({
 
 const launchApp = (userData: string, scale = 1) => electron.launch({
   args: ['out/main/index.js', '--no-sandbox', `--force-device-scale-factor=${scale}`],
-  env: { ...process.env, ...ENGINE_ENV, FOLIO_PROXY_LOOPBACK: '', FOLIO_API_URL: API, FOLIO_SITE_URL: SITE, FOLIO_PASSWORD_STORE: 'basic', FOLIO_USER_DATA: userData }
+  env: { ...process.env, ...ENGINE_ENV, FOLIO_PROXY_LOOPBACK: '', FOLIO_API_URL: API, FOLIO_SITE_URL: SITE, FOLIO_ECHO_URLS: `http://${ECHO}/`, FOLIO_PASSWORD_STORE: 'basic', FOLIO_USER_DATA: userData }
 });
 // Signs in to the demo workspace (kept for the workbench to open first).
 async function signIn(app: ElectronApplication, email: string, ws: string){

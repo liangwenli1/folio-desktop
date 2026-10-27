@@ -7,13 +7,14 @@ import type { CheckResult } from '@shared/bridge';
 import { folio, isApiError, type ImportLine, type Profile, type Proxy, type ProxyImport } from './api';
 import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
-import { ago, errorText, type Dict, type Lang } from './i18n';
+import { ago, checkWhy, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { Act, BulkBar, Cancel, CopyBtn, Empty, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, PartialFailed, Switch, Tabs, ViewSwitch, useChanged, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
 import { useTrail } from './TopBar';
+import { elsewhere } from './ProfileDetail';
 
 type ProxyType = Proxy['type'];
 const TYPES: ProxyType[] = ['socks5', 'http', 'https'];
@@ -236,7 +237,8 @@ interface ProxyItem {
 function ProxyState({ d, p, busy }: { d: Dict; p: Proxy; busy: boolean }){
   const X = d.proxies, s = proxyState(p);
   const [tone, text] = busy ? ['boot', d.common.checking] : s === 'ok' ? ['run', X.states.ok] : s === 'slow' ? ['warn', X.states.slow] : s === 'down' ? ['bad', X.states.down] : ['idle', X.states.unchecked];
-  return <span className={`dot-st ${tone}`}>{text}</span>;
+  const why = s === 'down' && !busy ? checkWhy(d, p.lastCheck?.error ?? null) : null;
+  return <span className={`dot-st ${tone}`} title={why ?? undefined}>{text}</span>;
 }
 // How long a line that is down has been: failures in a row at the end, and when it last answered.
 function downNote(d: Dict, p: Proxy){
@@ -379,6 +381,7 @@ function ProxyPanel(props: ProxyItem & { lang: Lang; data: WorkspaceData; profil
         <dt>{D.exitIp}</dt><dd className="mono">{ex?.ip ?? '—'}</dd>
         <dt>{D.created}</dt><dd>{when(p.createdAt)}</dd>
         <dt>{D.lastChecked}</dt><dd>{p.lastCheck ? when(p.lastCheck.checkedAt) : X.never}</dd>
+        {p.lastCheck && !p.lastCheck.ok && <><dt>{D.failure}</dt><dd className="bad-t">{checkWhy(d, p.lastCheck.error) ?? X.states.down}</dd></>}
       </dl>
       <div className="sec-row"><h4>{D.history}</h4>{p.history.length > 0 && <button type="button" className="linkish act-link" onClick={() => onPage('checks')}>{D.viewAll}</button>}</div>
       <CheckLog d={d} lang={lang} p={p} n={5} />
@@ -414,7 +417,8 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
         <header className="pd-head">
           <div className="pd-t">
             <div className="pd-n"><h1 data-testid="proxy-name">{p.name}</h1><ProxyState d={d} p={p} busy={busy} /><span className="cc">{p.type.toUpperCase()}</span></div>
-            <p className="pd-sub"><span>{D.createdOn(when(p.createdAt))}</span>{p.lastCheck && <><span className="sep" aria-hidden="true" /><span>{D.checkedOn(when(p.lastCheck.checkedAt))}</span></>}</p>
+            <p className="pd-sub"><span>{D.createdOn(when(p.createdAt))}</span>{p.lastCheck && <><span className="sep" aria-hidden="true" /><span>{D.checkedOn(when(p.lastCheck.checkedAt))}</span></>}
+              {p.lastCheck && !p.lastCheck.ok && <><span className="sep" aria-hidden="true" /><span className="bad-t">{checkWhy(d, p.lastCheck.error) ?? X.states.down}</span></>}</p>
           </div>
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={onEdit}><Icon name="edit" />{X.formEdit}</button>
@@ -485,7 +489,8 @@ export function CheckCard({ d, r }: { d: Dict; r: CheckResult }){
   const X = d.proxies;
   return (
     <div className={`px-result ${r.ok ? 'ok' : 'bad'}`} role="status" data-testid="proxy-test">
-      <p><Icon name={r.ok ? 'check' : 'alert'} /><b>{r.ok ? X.testOk : X.testBad}</b>{!r.ok && r.error && <span>{X.why[r.error] ?? r.error}</span>}</p>
+      <p><Icon name={r.ok ? 'check' : 'alert'} /><b>{r.ok ? X.testOk : X.testBad}</b>{!r.ok && r.error && <span>{checkWhy(d, r.error) ?? errorText(d, r.error)}</span>}</p>
+      {!r.ok && r.error && X.fix[r.error] && <p className="hint">{X.fix[r.error]}</p>}
       {r.ok && (
         <dl>
           <div><dt>{X.detail.exitIp}</dt><dd className="mono">{r.ip}</dd></div>
@@ -526,6 +531,12 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
   const change = <T,>(set: (v: T) => void) => (v: T) => { set(v); setResult(null); };
   const req = <span className="req" aria-hidden="true">*</span>, opt = <small className="opt">{d.form.optional}</small>;
   const dirty = useChanged({ name, type, host, port, auth, username, password, backupId, notes });
+  // Reached another way (v2 27): its old checks no longer count, and profiles running on this computer stop first (they
+  // took the old details when they started); ones running elsewhere take the new details when they start next.
+  const moved = !!proxy && (type !== proxy.type || host.trim() !== proxy.host || portN !== proxy.port || user !== proxy.username || !!password || (!auth && proxy.hasPassword));
+  const bound = proxy ? data.profiles.filter(x => x.proxyId === proxy.id) : [];
+  const here = bound.filter(x => data.status[x.id]), there = bound.filter(x => !data.status[x.id] && elsewhere(x));
+  const stopFirst = moved && here.length > 0;
 
   async function test(){
     setTried(true);
@@ -539,6 +550,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
     setTried(true);
     if (!valid) return;
     setBusy(true); setError(null);
+    if (stopFirst) await Promise.all(here.map(x => folio.stopProfile(x.id)));
     const body = {
       name: name.trim() || `${host.trim()}:${portN}`, type, host: host.trim(), port: portN, username: user, backupId: backupId || null, notes: notes.trim() || null,
       ...(keep ? {} : { password: auth ? password || null : null })
@@ -564,10 +576,13 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
       {!proxy && <label className="check-row"><input type="checkbox" checked={another} onChange={e => setAnother(e.target.checked)} />{X.addMore}</label>}
       <span className="sp" />
       <Cancel />
-      <button className="btn btn-primary" type="submit" form="proxy-form" disabled={busy} aria-busy={busy || undefined}>{X.save}</button>
+      <button className="btn btn-primary" type="submit" form="proxy-form" disabled={busy} aria-busy={busy || undefined}>{stopFirst ? X.stopSave : X.save}</button>
     </>}>
       <form className="m-body" id="proxy-form" onSubmit={submit} noValidate>
         {error && <p className="notice error" role="alert">{error}</p>}
+        {here.length + there.length > 0 && (
+          <p className="notice warn" data-testid="proxy-bound">{X.bound(bound.length, here.length + there.length)}{stopFirst && ` ${X.boundHere}`}{moved && there.length > 0 && ` ${X.boundThere(there.length)}`}</p>
+        )}
         <div className="field">
           <label htmlFor="px-name">{X.name}{opt}</label>
           <input id="px-name" ref={nameRef} placeholder={X.namePh} value={name} onChange={e => setName(e.target.value)} maxLength={80} autoFocus />
@@ -621,6 +636,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose }: { d: Dict; wsId: st
           </button>
           {result && result !== 'checking' && <span className="hint">{X.lastTest(X.justNow)}</span>}
         </div>
+        {moved && !result && <p className="notice info">{X.recheck}</p>}
         {result && result !== 'checking' && <CheckCard d={d} r={result} />}
       </form>
     </Modal>
@@ -800,7 +816,7 @@ export function ReplaceProxyDialog({ d, data, profile, onClose, onDone }: { d: D
           <div><dt>{R.current}</dt><dd>{current ? <span className="badge">{current.name}</span> : <span className="muted">{d.profiles.noProxy}</span>}</dd></div>
           <div><dt>{R.state}</dt><dd>{status ? <span className="dot-st run">{d.profiles.st.running}</span> : <span className="dot-st idle">{d.profiles.tabs.stopped}</span>}</dd></div>
         </dl>
-        {status && <p className="notice warn">{R.running}</p>}
+        {status && <p className="notice warn">{R.running}<button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(profile.id)}>{R.stop}</button></p>}
         <div className="filters inline">
           <label className="search"><Icon name="search" /><span className="sr">{X.search}</span>
             <input type="search" placeholder={X.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>

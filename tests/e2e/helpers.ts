@@ -90,7 +90,8 @@ export const dataDir = () => mkdtempSync(join(tmpdir(), 'folio-'));
 export function launch(userData: string, env: Record<string, string> = {}){
   return electron.launch({
     args: ['out/main/index.js', '--no-sandbox'],
-    env: { ...process.env, FOLIO_API_URL: API, FOLIO_SITE_URL: SITE, FOLIO_PASSWORD_STORE: 'basic', FOLIO_USER_DATA: userData, ...env }
+    // Proxy checks ask the server's stand-in for the public echo, which the fixture proxies can reach.
+    env: { ...process.env, FOLIO_API_URL: API, FOLIO_SITE_URL: SITE, FOLIO_ECHO_URLS: `${API}/dev/echo`, FOLIO_PASSWORD_STORE: 'basic', FOLIO_USER_DATA: userData, ...env }
   });
 }
 

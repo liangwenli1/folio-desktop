@@ -32,7 +32,8 @@ interface LaunchProfile {
 }
 interface LaunchData { profile: LaunchProfile; proxy: ProxySecret | null; backup: ProxySecret | null; extensions: Extension[]; stopOnWindowClose: boolean }
 
-class LaunchError extends Error { constructor(public code: string){ super(code); } }
+// `reason` says why the proxy check failed, for 'proxy_down'.
+class LaunchError extends Error { constructor(public code: string, public reason?: string){ super(code); } }
 
 const RENEW_MS = 30_000, AUTOSAVE_MS = 5 * 60_000;
 // Tabs kept for the next opening. Tabs that close within a second of each other at the end went with the browser.
@@ -254,7 +255,7 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
         void report(backup.id, b);
         if (b.ok){ line = backup; check = b; usedBackup = true; }
       }
-      if (!check.ok) throw new LaunchError('proxy_down');
+      if (!check.ok) throw new LaunchError('proxy_down', check.error ?? undefined);
     }
     const geo = check?.geo ?? null;
     const tz = profile.timezoneOverride ?? geo?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -342,7 +343,7 @@ export async function open(id: string, opts: { api?: boolean; tabs?: boolean } =
     await fwd?.close();
     if (locked) await api('DELETE', `/profiles/${id}/lock`);
     const error = e instanceof LaunchError ? e.code : 'launch_failed';
-    notify({ id, state: 'error', error });
+    notify({ id, state: 'error', error, ...(e instanceof LaunchError && e.reason ? { reason: e.reason } : {}) });
     if (!(e instanceof LaunchError)) console.error('launch failed', e);
     return error;
   } finally {

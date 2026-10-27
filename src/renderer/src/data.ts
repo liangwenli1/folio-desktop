@@ -76,6 +76,9 @@ export interface WorkspaceData {
   reloadKernels(): Promise<KernelState[]>;
 }
 
+// Why a profile didn't open, as kept and shown: a failed proxy check carries why it failed ('proxy_down:<why>').
+export const failure = (s: Pick<ProfileStatus, 'error' | 'reason'>) => (s.error ? (s.reason ? `${s.error}:${s.reason}` : s.error) : 'launch_failed');
+
 export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): void; removed(): void; launchError(s: ProfileStatus): void; extensionErrors(s: ProfileStatus): void; job(id: string | null): void }): WorkspaceData {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [trash, setTrash] = useState<Profile[]>([]);
@@ -168,7 +171,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
       const waiter = opening.current.get(s.id);
       if (waiter && (s.state === 'running' || s.state === 'error' || s.state === 'stopped')){
         opening.current.delete(s.id);
-        waiter(s.state === 'running' ? null : s.error ?? 'launch_failed');
+        waiter(s.state === 'running' ? null : failure(s));
       }
       setStatus(m => {
         const next = { ...m };
@@ -176,7 +179,7 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
         return next;
       });
       setFailed(m => {
-        if (s.state === 'error') return { ...m, [s.id]: s.error ?? 'launch_failed' };
+        if (s.state === 'error') return { ...m, [s.id]: failure(s) };
         if (!(s.id in m)) return m;
         const next = { ...m }; delete next[s.id]; return next;
       });

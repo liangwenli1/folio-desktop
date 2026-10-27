@@ -136,7 +136,7 @@ export const en = {
     title: 'Profiles', lead: 'Browser profiles that run apart from each other, and what each is doing.', count: profilesN,
     search: 'Search profiles', searchPh: 'Search name, number, city or tag', new: 'New profile', import: 'Import',
     sum: {
-      running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies responding',
+      running: 'Running', proxy: 'Proxy problems', proxyOk: 'All proxies connected',
       proxyNote: (down: number, slow: number) => [down && `${down} not responding`, slow && `${slow} slow`].filter(Boolean).join(' · '),
       risks: 'Linking risks', risksOk: 'No linking risks found'
     },
@@ -360,8 +360,8 @@ export const en = {
     filter: { type: 'Protocol', types: 'All protocols', region: 'Region', regions: 'All regions', state: 'Status', states: 'All statuses' },
     cols: { name: 'Name', type: 'Protocol', address: 'Address', exit: 'Exit', status: 'Status', latency: 'Latency', profiles: 'Profiles', actions: 'Actions' },
     labels: { latency: 'Latency', uptime: 'Uptime', profiles: 'Profiles' }, backupOf: (n: string) => `backup ${n}`, noExit: 'Exit unknown',
-    downNote: (n: number, when: string | null) => `${n === 1 ? 'No response the last time' : `No response the last ${n} times`}${when ? ` · last responded ${when}` : ''}`,
-    states: { ok: 'Responding', slow: 'Slow', down: 'Not responding', unchecked: 'Not checked', issues: 'Slow or not responding', unbound: 'Unused' },
+    downNote: (n: number, when: string | null) => `${n === 1 ? 'Couldn’t connect the last time' : `Couldn’t connect the last ${n} times`}${when ? ` · last connected ${when}` : ''}`,
+    states: { ok: 'Connected', slow: 'Slow', down: 'Can’t connect', unchecked: 'Not checked', issues: 'Slow or can’t connect', unbound: 'Unused' },
     history: (n: number) => `Last ${n} ${n === 1 ? 'check' : 'checks'}`, never: 'Not checked',
     emptyTitle: 'No proxies yet', empty: 'Add one, or import a list from your provider.', addFirst: 'Add the first proxy', importList: 'Import a list',
     bulkCheck: 'Check', bulkDelete: 'Delete', confirmDelete: (n: number) => `Delete ${proxiesN(n)}?`, confirmNote: 'Profiles that use a deleted proxy keep working without one.',
@@ -376,7 +376,7 @@ export const en = {
       ok: (ms: number) => `Responded · ${ms} ms`, failed: 'No response', passSet: 'Saved', passNone: 'None', uptime: 'Uptime',
       uptimeOf: (pct: number, n: number) => `${pct}% of the last ${n === 1 ? 'check' : `${n} checks`}`, bound: (n: number) => `Profiles (${n})`,
       none: 'No profile uses it.', noHistory: 'Not checked yet.',
-      created: 'Added', lastChecked: 'Last checked', viewAll: 'View all', manage: 'Manage', details: 'View details',
+      created: 'Added', lastChecked: 'Last checked', failure: 'Why it failed', viewAll: 'View all', manage: 'Manage', details: 'View details',
       tabs: { overview: 'Overview', bound: 'Profiles', checks: 'Checks' },
       createdOn: (when: string) => `Added ${when}`, checkedOn: (when: string) => `last checked ${when}`, authOn: 'On', authOff: 'Off',
       runningWarn: 'Stop the running profiles that use this proxy before changing how it connects.', viewProfile: 'View profile'
@@ -386,7 +386,26 @@ export const en = {
     auth: 'Authentication', authHint: 'When on, the proxy is reached with a username and password.',
     user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
     lastTest: (when: string) => `Last checked: ${when}`, justNow: 'just now',
-    test: 'Check connection', testOk: 'Connected', testBad: 'Can’t connect', why: { timeout: 'Timed out', unreachable: 'Unreachable' } as Record<string, string>,
+    test: 'Check connection', testOk: 'Connected', testBad: 'Can’t connect',
+    // Why a check failed (the step that failed), and what to look at.
+    why: {
+      proxy_unreachable: 'Can’t reach the proxy server', proxy_timeout: 'The proxy server didn’t answer in time', proxy_auth: 'Username or password rejected',
+      proxy_protocol: 'The proxy didn’t answer in the chosen protocol', target_refused: 'The proxy couldn’t reach the check address',
+      target_timeout: 'The proxy took too long to reach the check address', tls: 'The secure connection failed', no_ip: 'No exit IP came back'
+    } as Record<string, string>,
+    whyHttp: (status: string) => `The check address answered HTTP ${status}`,
+    fix: {
+      proxy_unreachable: 'Check the proxy’s address and port.', proxy_timeout: 'The proxy may be down, or this network can’t reach it.',
+      proxy_auth: 'Check the proxy’s username and password.', proxy_protocol: 'Check the type (SOCKS5 or HTTP), and whether the proxy only accepts listed IP addresses.',
+      target_refused: 'The proxy is up, but it turned down or couldn’t reach the public check address.', target_timeout: 'The proxy is up, but too slow.',
+      tls: 'The secure connection to the check address through the proxy failed.', no_ip: 'The check address didn’t return an exit IP. Try again later.'
+    } as Record<string, string>,
+    recheck: 'The connection details changed. Check the connection again.',
+    bound: (n: number, running: number) => `Used by ${n} ${n === 1 ? 'profile' : 'profiles'}, ${running} running now.`,
+    boundHere: 'To change how it connects, the ones running on this computer stop first.',
+    boundThere: (n: number) => `${n} running on other computers ${n === 1 ? 'uses' : 'use'} the new details from the next start.`,
+    stopSave: 'Stop them and save',
+    launchWhy: (why: string) => `The proxy check failed (${why}), and there’s no working backup line.`,
     addMore: 'Add another after saving',
     backup: 'Backup line', backupNone: 'None', backupHint: 'Used automatically when this line doesn’t respond.',
     hostErr: 'Enter a host name or IP address.', portErr: 'Ports go from 1 to 65535.',
@@ -409,7 +428,7 @@ export const en = {
     replace: {
       title: 'Change proxy', lead: (name: string) => `Choose the proxy ${name} connects through.`, current: 'Current proxy', state: 'Status',
       pick: 'Pick', test: 'Check the chosen proxy', confirm: 'Change proxy',
-      running: 'The profile is running; stop it to change its proxy.', warn: 'After changing it, check the profile’s time zone and language.',
+      running: 'The profile is running; stop it to change its proxy.', stop: 'Stop profile', warn: 'After changing it, check the profile’s time zone and language.',
       done: (profile: string, proxy: string) => `${profile} now connects through ${proxy}`
     }
   },
@@ -996,7 +1015,7 @@ export const zh: Dict = {
     title: '环境管理', lead: '统一管理独立的浏览器环境与运行状态。', count: (n: number) => `${n} 个环境`,
     search: '搜索环境', searchPh: '搜索名称、编号、城市或标签', new: '创建环境', import: '导入',
     sum: {
-      running: '运行中', proxy: '代理异常', proxyOk: '全部代理响应正常',
+      running: '运行中', proxy: '代理异常', proxyOk: '全部代理连接正常',
       proxyNote: (down: number, slow: number) => [down && `${down} 个无响应`, slow && `${slow} 个较慢`].filter(Boolean).join(' · '),
       risks: '关联风险', risksOk: '未发现关联风险'
     },
@@ -1009,7 +1028,7 @@ export const zh: Dict = {
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
     cols: { profile: '名称 / 编号', group: '分组', engine: '内核 / 系统', proxy: '代理 / 地区', last: '最近使用', status: '状态', actions: '操作' },
     open: '启动', stop: '停止', enter: '进入', actionsX: (n: string) => `${n} 的操作`, starting: '启动中…', inUse: '正在使用',
-    st: { idle: '未运行', running: '运行中', noWindow: '运行中 · 窗口已关闭', proxyDown: '代理异常' }, checkProxy: '检测代理',
+    st: { idle: '已停止', running: '运行中', noWindow: '运行中 · 窗口已关闭', proxyDown: '代理异常' }, checkProxy: '检测代理',
     stage: { proxy: '检查代理…', restore: '恢复登录…', launch: '启动浏览器…' }, stages: ['内核', '代理', '登录', '浏览器'],
     map: {
       label: '各环境代理的出口位置',
@@ -1212,8 +1231,8 @@ export const zh: Dict = {
     filter: { type: '协议', types: '全部协议', region: '地区', regions: '全部地区', state: '状态', states: '全部状态' },
     cols: { name: '代理名称', type: '协议', address: '代理地址', exit: '出口地区', status: '状态', latency: '延迟', profiles: '绑定环境', actions: '操作' },
     labels: { latency: '延迟', uptime: '可用率', profiles: '环境' }, backupOf: (n: string) => `备用 ${n}`, noExit: '出口未知',
-    downNote: (n: number, when: string | null) => `连续 ${n} 次无响应${when ? ` · 最后正常于${when}` : ''}`,
-    states: { ok: '正常', slow: '较慢', down: '无响应', unchecked: '未检测', issues: '异常', unbound: '未绑定' },
+    downNote: (n: number, when: string | null) => `连续 ${n} 次连接失败${when ? ` · 最后正常于${when}` : ''}`,
+    states: { ok: '连接正常', slow: '较慢', down: '连接失败', unchecked: '未检测', issues: '异常', unbound: '未绑定' },
     history: (n: number) => `最近 ${n} 次检测`, never: '未检测',
     emptyTitle: '暂无代理', empty: '可逐个添加，或导入代理商提供的列表。', addFirst: '添加第一个代理', importList: '导入代理列表',
     bulkCheck: '批量检测', bulkDelete: '删除', confirmDelete: (n: number) => `删除 ${n} 个代理？`, confirmNote: '使用这些代理的环境将保留，并改为不使用代理。',
@@ -1228,7 +1247,7 @@ export const zh: Dict = {
       ok: (ms: number) => `连接正常 · ${ms} ms`, failed: '连接失败', passSet: '已保存', passNone: '未设置', uptime: '可用率',
       uptimeOf: (pct: number, n: number) => `${pct}%（最近 ${n} 次）`, bound: (n: number) => `绑定环境（${n}）`,
       none: '暂无环境使用此代理。', noHistory: '尚未检测。',
-      created: '创建时间', lastChecked: '最后检测', viewAll: '查看全部', manage: '管理', details: '查看详情',
+      created: '创建时间', lastChecked: '最后检测', failure: '失败原因', viewAll: '查看全部', manage: '管理', details: '查看详情',
       tabs: { overview: '概览', bound: '绑定环境', checks: '检测记录' },
       createdOn: (when: string) => `创建于 ${when}`, checkedOn: (when: string) => `最近检测 ${when}`, authOn: '已启用', authOff: '未启用',
       runningWarn: '更新连接配置前，请先停止使用该代理的运行中环境。', viewProfile: '查看环境'
@@ -1238,7 +1257,23 @@ export const zh: Dict = {
     auth: '身份验证', authHint: '启用后需要填写用户名和密码进行代理认证。',
     user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
     lastTest: (when: string) => `最近检测：${when}`, justNow: '刚刚',
-    test: '检测连接', testOk: '连接正常', testBad: '连接失败', why: { timeout: '连接超时', unreachable: '无法连接' } as Record<string, string>,
+    test: '检测连接', testOk: '连接正常', testBad: '连接失败',
+    why: {
+      proxy_unreachable: '无法连接代理服务器', proxy_timeout: '连接代理服务器超时', proxy_auth: '用户名或密码被拒绝', proxy_protocol: '代理未按所选协议应答',
+      target_refused: '代理无法访问检测地址', target_timeout: '代理访问检测地址超时', tls: '加密连接失败', no_ip: '未取得出口 IP'
+    } as Record<string, string>,
+    whyHttp: (status: string) => `检测地址返回 HTTP ${status}`,
+    fix: {
+      proxy_unreachable: '请检查代理地址与端口。', proxy_timeout: '代理可能已失效，或本机网络无法访问该地址。', proxy_auth: '请核对代理的用户名与密码。',
+      proxy_protocol: '请确认协议类型（SOCKS5 或 HTTP），以及代理是否只允许白名单 IP 使用。', target_refused: '代理已连接，但拒绝或无法访问公共检测地址。',
+      target_timeout: '代理已连接，但响应过慢。', tls: '经代理与检测地址建立加密连接失败。', no_ip: '检测地址未返回出口 IP，请稍后重试。'
+    } as Record<string, string>,
+    recheck: '连接信息已更改，请重新检测。',
+    bound: (n: number, running: number) => `已绑定 ${n} 个环境，其中 ${running} 个正在运行。`,
+    boundHere: '修改连接信息需先停止本机运行中的相关环境。',
+    boundThere: (n: number) => `另有 ${n} 个在其他电脑上运行，将在下次启动时使用新的连接信息。`,
+    stopSave: '停止相关环境后保存',
+    launchWhy: (why: string) => `代理检测未通过（${why}），且没有可用的备用线路。`,
     addMore: '保存后继续添加',
     backup: '备用线路', backupNone: '无', backupHint: '该线路无响应时自动切换至备用线路。',
     hostErr: '请填写主机名或 IP 地址。', portErr: '端口范围是 1 到 65535。',
@@ -1261,7 +1296,7 @@ export const zh: Dict = {
     replace: {
       title: '更换代理', lead: (name: string) => `为环境 ${name} 更换代理，请选择新的代理。`, current: '当前代理', state: '当前状态',
       pick: '选择', test: '检测所选代理', confirm: '确认更换',
-      running: '环境运行中，停止后才能更换代理。', warn: '更换代理后，请检查语言与时区配置。',
+      running: '环境运行中，停止后才能更换代理。', stop: '停止环境', warn: '更换代理后，请检查语言与时区配置。',
       done: (profile: string, proxy: string) => `${profile} 已更换为 ${proxy}`
     }
   },
@@ -1759,5 +1794,13 @@ export function runTime(ms: number){
   return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
 }
 export const errorText = (d: Dict, code: string) => d.errors[code] ?? d.errors.internal;
+// Why a proxy check failed, in words; null for a code that isn't one of the check's own.
+export const checkWhy = (d: Dict, code: string | null) => (!code ? null : d.proxies.why[code] ?? (/^http_\d+$/.test(code) ? d.proxies.whyHttp(code.slice(5)) : null));
+// Why a profile didn't open. A failed proxy check comes as 'proxy_down:<why>' and says why it failed.
+export function launchWhy(d: Dict, code: string){
+  const [c, reason = null] = code.split(':');
+  const why = c === 'proxy_down' ? checkWhy(d, reason) : null;
+  return why ? d.proxies.launchWhy(why) : d.launch[c] ?? d.launch.launch_failed;
+}
 // A role's wording: the four every workspace starts with are translated, a workspace's own keeps its name.
 export const roleName = (d: Dict, r: { key: string | null; name: string }) => (r.key ? d.roles[r.key as keyof Dict['roles']] : r.name);

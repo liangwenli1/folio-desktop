@@ -27,7 +27,8 @@ export interface ProfileStatus {
   id: string; state: 'starting' | 'restoring' | 'running' | 'saving' | 'stopped' | 'error';
   // While it starts: checking the proxy, restoring sign-ins, starting the browser.
   stage?: 'proxy' | 'restore' | 'launch';
-  error?: string; startedAt?: number; usedBackup?: boolean; exitIp?: string | null; exitGeo?: Geo | null;
+  // `reason`: why the proxy check failed, with error 'proxy_down'.
+  error?: string; reason?: string; startedAt?: number; usedBackup?: boolean; exitIp?: string | null; exitGeo?: Geo | null;
   // Extensions that failed their check (signature or hash) and were not installed, by name.
   extensionErrors?: string[];
   // Running without a window: its last one was closed and the workspace keeps profiles running then.
