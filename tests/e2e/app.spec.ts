@@ -31,17 +31,14 @@ test('the plan bought on the website shows up after logging in', async () => {
   await app.close();
 });
 
-test('the sign-in page plays the walkthrough, which pauses with its button', async () => {
+test('the sign-in page shows the workbench beside the form, in the window’s colour scheme', async () => {
   const app = await launch(dataDir());
   const win = await app.firstWindow();
-  const demo = win.getByRole('group', { name: /^Workbench walkthrough/ });
-  await expect(demo).toHaveAttribute('data-state', 'playing');
-  await expect(demo).not.toHaveAttribute('data-frame', '0', { timeout: 15_000 });
-  await demo.getByRole('button', { name: 'Pause walkthrough' }).click();
-  await expect(demo).toHaveAttribute('data-state', 'paused');
-  const at = await demo.getAttribute('data-frame');
-  await win.waitForTimeout(4000);
-  await expect(demo).toHaveAttribute('data-frame', at!);
+  const picture = win.getByRole('img', { name: 'The Folio workbench: the list of browser profiles' });
+  const shown = () => picture.evaluate((img: HTMLImageElement) => (img.complete && img.naturalWidth > 0 ? img.currentSrc.match(/en-(light|dark)/)?.[1] : null));
+  await expect.poll(shown).toBe('light');
+  await win.emulateMedia({ colorScheme: 'dark' });
+  await expect.poll(shown).toBe('dark');
   await app.close();
 });
 

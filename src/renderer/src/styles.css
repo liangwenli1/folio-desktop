@@ -230,7 +230,7 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .sel-none .linkish{margin-left:auto;font-weight:600;color:var(--accent-ink);text-decoration:none}
 .sel-none .spin{width:14px;height:14px;border-width:2px}
 
-/* login: the form on the left, the brand panel on the right (cards that float in, then the product at work) */
+/* login: the form on the left; on the brand panel on the right, a picture of the workbench in a window */
 .login{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%;background:var(--card)}
 .login-l{position:relative;display:grid;place-content:center;padding:32px}
 .login-form{width:min(380px,100%);display:grid;gap:14px}
@@ -250,16 +250,8 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .login-r::before{content:'';position:absolute;inset:-40px;background:radial-gradient(60% 50% at 20% 20%,#F0806A,transparent 70%),radial-gradient(60% 60% at 80% 30%,#D2445E,transparent 70%),radial-gradient(70% 60% at 50% 100%,#7C2348,transparent 70%)}
 @media (max-width:1100px){ .login{grid-template-columns:minmax(0,1fr)} .login-r{display:none} }
 
-.login-cards{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:22px;padding:24px;pointer-events:none}
-/* the walkthrough: the workbench as a window in the panel, its cards floating over it */
-.login-demo{position:absolute;left:5%;right:5%;top:50%;translate:0 -50%}
-.login-pc{display:flex;align-items:center;gap:12px;width:min(430px,88%);padding:14px 16px;border-radius:var(--r-lg);background:var(--card);box-shadow:0 24px 40px -18px rgba(0,0,0,.55)}
-.login-pc:nth-child(1){transform:translateX(-36px) rotate(-3deg)}
-.login-pc:nth-child(2){transform:translateX(44px) rotate(2deg)}
-.login-pc:nth-child(3){transform:translateX(-12px) rotate(-1.5deg)}
-.login-pc > span:nth-child(2){display:grid;flex:1;min-width:0}
-.login-pc b{font-size:14px;font-weight:600}
-.login-pc small{font-size:12px;color:var(--ink-2)}
+.login-shot{position:absolute;left:5%;right:5%;top:50%;translate:0 -50%}
+.login-shot img{display:block;width:100%;height:auto;border-radius:var(--r-lg);background:#fff;box-shadow:0 0 0 1px rgba(29,28,43,.1),0 40px 80px -30px rgba(40,10,30,.55)}
 /* The window can be dragged by its top strip; on Windows its buttons sit there, over the brand panel's margin. */
 .login::before{content:'';position:fixed;top:0;left:0;right:0;height:var(--tb);-webkit-app-region:drag}
 .login-l > *,.login-r{-webkit-app-region:no-drag}
@@ -1210,9 +1202,9 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 .side-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .side-h b{font-size:16px;font-weight:600}
 .side-panel .bound li{grid-template-columns:minmax(0,1fr) auto}
-/* proxies: with the panel open on a narrower window, the address goes (the panel shows it) so every other column stays
-   in view; and a proxy's own page */
-@container (max-width:920px){.px-t .c-addr{display:none}}
+/* proxies: on a narrower window, or with the panel open, the address goes (the panel and the proxy's page show it) so
+   every other column stays in view; and a proxy's own page */
+@container (max-width:1100px){.px-t .c-addr{display:none}}
 .px-grid{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .pd-col{display:grid;gap:16px;align-content:start;min-width:0}
 .kvl.two{grid-template-columns:88px minmax(0,1fr) 88px minmax(0,1fr)}
@@ -1311,6 +1303,7 @@ tr.bad-row td{background:var(--bad-soft)}
 /* groups: the tree, the picked group's profiles, and its settings */
 .gp{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
 .gp.with-panel{grid-template-columns:240px minmax(0,1fr) var(--inspector)}
+@media (max-width:1439px){.gp.with-panel{grid-template-columns:200px minmax(0,1fr) var(--inspector)}}
 .gp-tree{position:sticky;top:12px;align-content:start}
 .gp-tree ul{margin:0;padding:0;list-style:none}
 .gt-row{display:flex;align-items:center;gap:2px;border-radius:var(--r)}
@@ -1327,8 +1320,10 @@ tr.bad-row td{background:var(--bad-soft)}
 .gt-c{font:500 12px var(--f-data);color:var(--ink-3);font-variant-numeric:tabular-nums}
 .gt-row.cur .gt-c{color:var(--accent-ink)}
 .gp-main{gap:12px;min-width:0;container-type:inline-size}
-/* beside the tree and the settings on a narrower window, the country column goes so the rest stays in view */
+/* beside the tree and the settings on a narrower window, the country column goes, then the number, so the rest stays
+   in view */
 @container (max-width:640px){.gp-t .c-region{display:none}}
+@container (max-width:520px){.gp-t .c-num{display:none}}
 .gp-t table{min-width:0}
 .gp-main .filters .search{flex:1;width:auto;min-width:150px}
 .gp-main .filters .grp-pick{min-width:120px}
@@ -1562,8 +1557,6 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .be-list{display:grid;gap:4px;max-height:220px;overflow-y:auto;margin:0;padding:0;list-style:none}
 .be-list li{display:flex;justify-content:space-between;gap:10px}
 
-/* A list's card (delivery designs 01, 07, 13, 14, 22): its filters, the bulk bar, the table or the cards and the pager
-   in one white box under the page's tabs; a detail panel beside it is a card of its own. */
 /* A list's card (v2): the filters, the bulk row, the table and the pager, as tall as its rows; the page scrolls. */
 .list-card{display:flex;flex-direction:column;gap:0;flex:none;min-width:0;margin:16px var(--gx) 24px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);overflow:hidden}
 .side-wrap .list-card{margin:0;flex:none}

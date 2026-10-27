@@ -1,27 +1,30 @@
-// Records the product demo (PLAN 6.15, part four): the real workbench, driven through the storyboard against a local
-// server with demo data and the real engines, one picture per step for each language and colour scheme, and what the
-// player needs to animate between them: what each step is about (the player's camera moves in on it), where the pointer
-// clicks, where the opening cards land, the restored browser.
-// Writes src/renderer/src/demo/, which the website copies to public/demo/, and demo/stills/: pictures of other pages
-// that only the website shows (copied next to the demo's), kept out of the workbench's own bundle.
+// Records pictures of the real workbench (PLAN 6.21, 1.1 and 1.2): the workbench against a local server with demo data
+// and the real engines, each picture in the light and the dark colour scheme for each language. Whole-window stills for
+// the website's pages (features, solutions, the help guides, the first screens), and four pieces of the workbench for
+// the home page's cards: a profile card, a proxy card, the group tree and the members with their roles.
+// Writes demo/stills/{lang}-{scheme}/ (the website copies it to public/shots/), and the profile list to
+// src/renderer/src/shots/, the picture beside the sign-in form.
 //   npm run build && npx playwright test -c demo
 // Needs what the end-to-end tests need (folio-server with DEV_TOOLS and MOCK_PAYMENTS, Mailpit, the engines in
 // FOLIO_KERNELS_DIR), API_URL pointing at the server, and the demo proxies' host names (<exit>.proxy.example, see
 // world.ts) pointing at this machine. Each run gives the demo accounts a new workspace.
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { _electron as electron, expect, request, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { strToU8, zipSync } from 'fflate';
 import { dicts, type Lang } from '../src/renderer/src/i18n';
 import { API, ENGINE_ENV, PASSWORD, SITE, closeWindows, dataDir, lastMail, lastStatus, opened } from '../tests/e2e/helpers';
-import { ECHO, EXITS, SITES, hostOf, startExits, type ExitKey } from './world';
+import { ECHO, EXITS, hostOf, startExits, type ExitKey } from './world';
 
 test.setTimeout(900_000);
-const OUT = 'src/renderer/src/demo', STILLS = 'demo/stills', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
+const STILLS = 'demo/stills', LOGIN = 'src/renderer/src/shots', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
 
+// The workspace's owner, an admin and a member, by the names colleagues see them by.
 const PEOPLE = {
-  en: { owner: 'ava@larkspur.example', mate: 'jordan@larkspur.example', device: 'Jordan’s MacBook Pro', workspace: 'Larkspur Trading', groups: ['US stores', 'EU shops', 'Social'] },
-  zh: { owner: 'lin.yue@yunfan.example', mate: 'zhou.hang@yunfan.example', device: '周航的 MacBook Pro', workspace: '云帆贸易', groups: ['美区店铺', '欧洲店铺', '社媒'] }
+  en: { workspace: 'Larkspur Trading', groups: ['US stores', 'EU shops', 'Social'],
+    owner: ['ava@larkspur.example', 'Ava Brooks'], mate: ['jordan@larkspur.example', 'Jordan Lee'], member: ['riley@larkspur.example', 'Riley Chen'] },
+  zh: { workspace: '云帆贸易', groups: ['美区店铺', '欧洲店铺', '社媒'],
+    owner: ['lin.yue@yunfan.example', '林悦'], mate: ['zhou.hang@yunfan.example', '周航'], member: ['he.lan@yunfan.example', '何岚'] }
 };
 // Name, engine, system, exit, group (index into PEOPLE's groups).
 const PROFILES: [string, 'chromium' | 'firefox', 'windows' | 'macos', ExitKey, number][] = [
@@ -30,27 +33,87 @@ const PROFILES: [string, 'chromium' | 'firefox', 'windows' | 'macos', ExitKey, n
   ['US-Store-03', 'chromium', 'windows', 'down', 0]
 ];
 const PROXY_NAMES: Record<ExitKey, string> = { 'us-west': 'US-West-ISP', 'us-east': 'US-East-Resi', uk: 'UK-ISP-02', jp: 'JP-ISP-01', de: 'DE-Resi-01', sg: 'SG-DC-01', down: 'MY-Resi-02' };
+// The tabs UK-Shop-01 had open on the other computer; it signed in to these sites there.
 const TABS = ['shop.example', 'mail.example', 'ads.example'];
+// Where the line that is down now used to come out.
+const WAS = { country: 'MY', countryName: 'Malaysia', region: 'Kuala Lumpur', city: 'Kuala Lumpur', lat: 3.14, lon: 101.69, timezone: 'Asia/Kuala_Lumpur', locale: 'ms-MY' };
+
+// Chromium extensions, with icons drawn like an extension's (none is a real product's logo), and the profiles they are
+// in: one has four (three shown and +1), two have none.
+type Ext = 'write' | 'pass' | 'translate' | 'price' | 'block' | 'wallet' | 'privacy';
+const EXTENSIONS: Record<Lang, Record<Ext, string>> = {
+  en: { write: 'Writing Assistant', pass: 'Password Keeper', translate: 'Page Translator', price: 'Price Compare', block: 'Ad Blocker', wallet: 'Crypto Wallet', privacy: 'Privacy Guard' },
+  zh: { write: '写作助手', pass: '密码管家', translate: '网页翻译', price: '比价助手', block: '广告拦截', wallet: '加密钱包', privacy: '隐私卫士' }
+};
+const INSTALLED: Record<string, Ext[]> = {
+  'US-Store-01': ['write', 'pass', 'translate', 'price'], 'US-Store-02': ['price', 'wallet'], 'JP-Social-01': ['translate', 'privacy'],
+  'DE-Shop-01': ['block'], 'SG-Ads-01': ['block', 'price', 'write']
+};
 
 type Running = { __folioRunning: Map<string, { ctx: import('playwright-core').BrowserContext }> };
+type Box = { x: number; y: number; width: number; height: number };
 
-// A demo person's web session: registered the first time, signed in after that.
-async function person(email: string, locale: Lang){
+// A demo person's web session: registered the first time, signed in after that; the name colleagues see is set each time.
+async function person([email, name]: string[], locale: Lang){
   const api = await request.newContext({ baseURL: API, extraHTTPHeaders: { origin: SITE } });
   if ((await api.post('/auth/signup-code', { data: { email, locale } })).ok()){
     await api.post('/auth/register', { data: { email, code: (await lastMail(email)).Text.match(/\b\d{6}\b/)![0], password: PASSWORD, locale } });
   } else expect((await api.post('/auth/login', { data: { email, password: PASSWORD } })).ok()).toBe(true);
+  expect((await api.patch('/me', { data: { displayName: name } })).ok()).toBe(true);
   return api;
 }
 
-// A small square icon with a letter, for the demo extensions.
-const ICON = (win: Page, letter: string, color: string) => win.evaluate(async ({ letter, color }) => {
-  const c = new OffscreenCanvas(96, 96), g = c.getContext('2d')!;
-  g.fillStyle = color; g.beginPath(); g.roundRect(0, 0, 96, 96, 22); g.fill();
-  g.fillStyle = '#fff'; g.font = '700 54px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(letter, 48, 52);
-  const bytes = new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer());
-  return Array.from(bytes);
-}, { letter, color }).then(a => Uint8Array.from(a));
+// An extension's icon, drawn in the app's window (where the fonts are): 96px, as a PNG.
+const ICON = (win: Page, kind: Ext, lang: Lang) => win.evaluate(async ({ kind, lang }) => {
+  await document.fonts.load('800 60px "Inter Variable"');
+  await document.fonts.load('700 36px "Noto Sans SC Variable"', '文A');
+  const S = 96, c = new OffscreenCanvas(S, S), g = c.getContext('2d')!;
+  const F = '"Inter Variable", system-ui, sans-serif', CJK = '"Noto Sans SC Variable", system-ui, sans-serif';
+  const tile = (fill: string) => { g.fillStyle = fill; g.beginPath(); g.roundRect(0, 0, S, S, 22); g.fill(); };
+  const disc = (fill: string) => { g.fillStyle = fill; g.beginPath(); g.arc(48, 48, 48, 0, Math.PI * 2); g.fill(); };
+  const text = (t: string, font: string, color = '#fff', y = 51) => { g.fillStyle = color; g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 48, y); };
+  const shield = (fill: string, x: number, y: number, w: number, h: number) => {
+    g.fillStyle = fill; g.beginPath(); g.moveTo(x + w / 2, y); g.lineTo(x + w, y + h * 0.16); g.lineTo(x + w, y + h * 0.5);
+    g.bezierCurveTo(x + w, y + h * 0.78, x + w * 0.72, y + h * 0.92, x + w / 2, y + h); g.bezierCurveTo(x + w * 0.28, y + h * 0.92, x, y + h * 0.78, x, y + h * 0.5);
+    g.lineTo(x, y + h * 0.16); g.closePath(); g.fill();
+  };
+  const polygon = (n: number, r: number, turn: number, fill: string | null, stroke: string | null, lw = 0) => {
+    g.beginPath();
+    for (let i = 0; i < n; i++){ const a = turn + Math.PI * 2 / n * i; const x = 48 + r * Math.cos(a), y = 48 + r * Math.sin(a); if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.closePath(); if (fill){ g.fillStyle = fill; g.fill(); } if (stroke){ g.strokeStyle = stroke; g.lineWidth = lw; g.stroke(); }
+  };
+  if (kind === 'write'){
+    // A pen, slanted, on a green disc.
+    disc('#15C39A');
+    g.save(); g.translate(50, 46); g.rotate(Math.PI / 4); g.fillStyle = '#fff';
+    g.beginPath(); g.roundRect(-8, -32, 16, 42, 4); g.fill();
+    g.beginPath(); g.moveTo(-8, 13); g.lineTo(8, 13); g.lineTo(0, 30); g.closePath(); g.fill();
+    g.restore();
+  }
+  if (kind === 'pass'){
+    // A shield with a keyhole.
+    tile('#175DDC'); shield('#fff', 26, 16, 44, 62);
+    g.fillStyle = '#175DDC'; g.beginPath(); g.arc(48, 42, 7, 0, Math.PI * 2); g.fill(); g.beginPath(); g.roundRect(44.5, 44, 7, 16, 3); g.fill();
+  }
+  if (kind === 'translate'){ tile('#1A73E8'); text('文A', `700 36px ${CJK}`); }
+  if (kind === 'price'){ tile('#FF6A00'); text(lang === 'zh' ? '¥' : '$', `800 58px ${F}`); }
+  if (kind === 'block'){
+    // A stop sign with a bar.
+    polygon(8, 47, Math.PI / 8, '#D92D20', null);
+    g.fillStyle = '#fff'; g.beginPath(); g.roundRect(22, 40, 52, 16, 4); g.fill();
+  }
+  if (kind === 'wallet'){ tile('#111827'); polygon(6, 30, -Math.PI / 2, null, '#fff', 8); polygon(6, 12, -Math.PI / 2, '#F6851B', null); }
+  if (kind === 'privacy'){
+    // An eye, crossed out.
+    disc('#EEF2F6');
+    g.strokeStyle = '#344054'; g.lineWidth = 7; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(18, 48); g.quadraticCurveTo(48, 18, 78, 48); g.quadraticCurveTo(48, 78, 18, 48); g.stroke();
+    g.fillStyle = '#344054'; g.beginPath(); g.arc(48, 48, 9, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#EEF2F6'; g.lineWidth = 15; g.beginPath(); g.moveTo(25, 73); g.lineTo(71, 23); g.stroke();
+    g.strokeStyle = '#344054'; g.lineWidth = 7; g.beginPath(); g.moveTo(25, 73); g.lineTo(71, 23); g.stroke();
+  }
+  return Array.from(new Uint8Array(await (await c.convertToBlob({ type: 'image/png' })).arrayBuffer()));
+}, { kind, lang }).then(a => Uint8Array.from(a));
 
 const launchApp = (userData: string, scale = 1) => electron.launch({
   args: ['out/main/index.js', '--no-sandbox', `--force-device-scale-factor=${scale}`],
@@ -72,7 +135,7 @@ test.beforeAll(async () => { exits = await startExits(PORT); });
 test.afterAll(async () => { await exits?.close(); });
 
 for (const lang of ['en', 'zh'] as const){
-  test(`demo ${lang}`, async () => {
+  test(`stills ${lang}`, async () => {
     const d = dicts[lang], who = PEOPLE[lang];
 
     // ---------- the demo workspace ----------
@@ -80,10 +143,12 @@ for (const lang of ['en', 'zh'] as const){
     const ws = (await (await owner.post('/workspaces', { data: { name: who.workspace } })).json()).id as string;
     const { checkoutId } = await (await owner.post(`/workspaces/${ws}/billing/checkout`, { data: { plan: 'studio', period: 'monthly', addonPacks: 0 } })).json();
     await owner.post(`/billing/checkouts/${checkoutId}/pay`, { data: { card: { number: '4242424242424242', expMonth: 12, expYear: 2030, cvc: '123' } } });
-    const mate = await person(who.mate, lang);
     const roles = (await (await owner.get(`/workspaces/${ws}/roles`)).json()).roles as { id: string; key: string | null }[];
-    const invite = await (await owner.post(`/workspaces/${ws}/invitations`, { data: { email: who.mate, roleId: roles.find(r => r.key === 'admin')!.id, notify: false } })).json();
-    expect((await mate.post(`/invitations/${invite.invitation.id}/accept`)).ok()).toBe(true);
+    for (const [who_, role] of [[who.mate, 'admin'], [who.member, 'member']] as const){
+      const them = await person(who_, lang);
+      const invite = await (await owner.post(`/workspaces/${ws}/invitations`, { data: { email: who_[0], roleId: roles.find(r => r.key === role)!.id, notify: false } })).json();
+      expect((await them.post(`/invitations/${invite.invitation.id}/accept`)).ok()).toBe(true);
+    }
 
     const groups = [];
     for (const [i, name] of who.groups.entries()) groups.push((await (await owner.post(`/workspaces/${ws}/groups`, { data: { name, color: (['blue', 'teal', 'purple'] as const)[i] } })).json()).id as string);
@@ -94,29 +159,27 @@ for (const lang of ['en', 'zh'] as const){
       for (let k = 0; k < 18; k++){
         const ok = x.key === 'down' ? k < 12 : k % 9 !== 4;
         await owner.post(`/proxies/${proxy[x.key]}/check`, { data: ok
-          ? { ok: true, ms: Math.round((x.ms || 240) * (0.75 + ((k * 37) % 10) / 16)), ip: x.ip || '192.0.2.200', geo: x.geo ?? EXITS[5].geo, error: null }
+          ? { ok: true, ms: Math.round((x.ms || 240) * (0.75 + ((k * 37) % 10) / 16)), ip: x.ip || '192.0.2.200', geo: x.geo ?? WAS, error: null }
           : { ok: false, ms: null, ip: null, geo: null, error: 'timeout' } });
       }
     }
 
     // ---------- another computer: UK-Shop-01 was used there, with three tabs open ----------
     const prep = await launchApp(dataDir());
-    const prepWin = await signIn(prep, who.owner, ws);
+    const prepWin = await signIn(prep, who.owner[0], ws);
     const ids: Record<string, string> = {};
     for (const [name, kernel, os, exit, group] of PROFILES){
       const { fingerprint, kernelVersion } = await prepWin.evaluate(({ kernel, os }) => window.folio.newFingerprint(kernel, os), { kernel, os });
       ids[name] = (await (await owner.post(`/workspaces/${ws}/profiles`, { data: { name, kernel, kernelVersion, os, fingerprint, proxyId: proxy[exit], groupId: groups[group] } })).json()).id;
     }
-    const ext = async (kernel: 'chromium' | 'firefox', name: string, version: string, letter: string, color: string) => {
-      const manifest = kernel === 'chromium'
-        ? { manifest_version: 3, name, version, icons: { 48: 'icon.png' } }
-        : { manifest_version: 2, name, version, icons: { 48: 'icon.png' }, browser_specific_settings: { gecko: { id: `${letter.toLowerCase()}@demo.example` } } };
-      const pkg = Buffer.from(zipSync({ 'manifest.json': strToU8(JSON.stringify(manifest)), 'icon.png': await ICON(prepWin, letter, color) }));
-      await owner.post(`/workspaces/${ws}/extensions?kernel=${kernel}`, { headers: { 'content-type': 'application/octet-stream' }, data: pkg });
-    };
-    await ext('chromium', 'Order Helper', '2.4.1', 'O', '#2563eb');
-    await ext('chromium', 'Tab Notes', '1.2.0', 'T', '#0f766e');
-    await ext('firefox', 'Price Watch', '1.0.3', 'P', '#c2410c');
+    const ext = {} as Record<Ext, string>;
+    for (const [i, kind] of (Object.keys(EXTENSIONS[lang]) as Ext[]).entries()){
+      const manifest = { manifest_version: 3, name: EXTENSIONS[lang][kind], version: `1.${i}.0`, icons: { 48: 'icon.png' } };
+      const pkg = Buffer.from(zipSync({ 'manifest.json': strToU8(JSON.stringify(manifest)), 'icon.png': await ICON(prepWin, kind, lang) }));
+      ext[kind] = (await (await owner.post(`/workspaces/${ws}/extensions?kernel=chromium`, { headers: { 'content-type': 'application/octet-stream' }, data: pkg })).json()).id;
+    }
+    for (const [name, kinds] of Object.entries(INSTALLED)) for (const kind of kinds)
+      expect((await owner.post(`/workspaces/${ws}/profiles/batch`, { data: { action: 'add-extension', ids: [ids[name]], extensionId: ext[kind] } })).ok()).toBe(true);
     expect(await opened(prepWin, ids['UK-Shop-01'])).toMatchObject({ state: 'running' });
     await prep.evaluate(async (_e, { id, urls }) => {
       const ctx = (globalThis as unknown as Running).__folioRunning.get(id)!.ctx;
@@ -128,145 +191,77 @@ for (const lang of ['en', 'zh'] as const){
 
     // ---------- this computer, recorded ----------
     const app = await launchApp(dataDir(), SCALE);
-    const win = await signIn(app, who.owner, ws);
+    const win = await signIn(app, who.owner[0], ws);
     // Sized as a window (sizing the page would undo the scale). Toasts would linger into the next pictures.
     await app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0].setContentSize(w, h), [W, H]);
     await win.addStyleTag({ content: '.toasts{display:none!important}' });
     expect(await opened(win, ids['US-Store-01'])).toMatchObject({ state: 'running' });
     const nav = (name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: new RegExp(`^${name}`) });
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
-    const drawer = win.getByRole('main', { name: d.detail.profile, exact: true });
+    const page = win.getByRole('main', { name: d.detail.profile, exact: true });
     // The way back from a profile's page is in the top bar.
     const back = () => win.getByRole('navigation', { name: d.detail.crumbs }).getByRole('button', { name: d.profiles.title }).click();
 
-    const frames: { file: string; clicks: [number, number][]; focus?: number[]; browser?: true }[] = [];
-    const pictures: { file: string; light: Buffer; dark: Buffer }[] = [];
+    // A picture of this moment, light and dark (after their colour transitions): the whole window, or the part `clip`
+    // gives (in the window's coordinates).
     const stills: { file: string; light: Buffer; dark: Buffer }[] = [];
-    const at = async (l: Locator): Promise<[number, number]> => {
-      const b = (await l.boundingBox())!;
-      return [+((b.x + b.width / 2) / W).toFixed(4), +((b.y + b.height / 2) / H).toFixed(4)];
-    };
-    // Left, top, width, height as fractions of the window: of one element, or of several together.
-    const box = async (...ls: Locator[]) => {
-      const bs = await Promise.all(ls.map(async l => (await l.boundingBox())!));
-      const x = Math.min(...bs.map(b => b.x)), y = Math.min(...bs.map(b => b.y));
-      const r = Math.max(...bs.map(b => b.x + b.width)), btm = Math.max(...bs.map(b => b.y + b.height));
-      return [x / W, y / H, (r - x) / W, (btm - y) / H].map(v => +Math.max(0, v).toFixed(4));
-    };
-    // This moment, light and dark (after their colour transitions).
-    async function shoot(){
+    async function still(file: string, clip?: () => Promise<Box>){
       await win.mouse.move(W / 2, 3);
       await win.waitForTimeout(500);
-      const light = await win.screenshot();
+      const at = clip && await clip();
+      const light = await win.screenshot(at ? { clip: at } : {});
       await win.emulateMedia({ colorScheme: 'dark' });
       await win.waitForTimeout(450);
-      const dark = await win.screenshot();
+      const dark = await win.screenshot(at ? { clip: at } : {});
       await win.emulateMedia({ colorScheme: 'light' });
       await win.waitForTimeout(300);
-      return { light, dark };
+      stills.push({ file, light, dark });
     }
-    // A step of the demo: its picture, and what it is about.
-    async function snap(file: string, { focus, browser }: { focus?: Locator[]; browser?: true } = {}){
-      const extra = { ...(focus ? { focus: await box(...focus) } : {}), ...(browser ? { browser } : {}) };
-      pictures.push({ file, ...await shoot() });
-      frames.push({ file, clicks: [], ...extra });
-    }
-    // The pointer clicks it in the demo, then the recording does.
-    async function click(l: Locator){
-      frames.at(-1)!.clicks.push(await at(l));
-      await l.click();
-    }
+    const box = async (l: Locator) => (await l.boundingBox())!;
 
-    // 1. The list; the three opening cards land on their rows.
+    // The profile list, US-Store-01 open.
     await expect(row('US-Store-01').locator('.dot-st.run')).toBeVisible();
-    const cards = [await box(row('US-Store-01')), await box(row('UK-Shop-01')), await box(row('JP-Social-01'))];
-    await snap('list');
-    // 2. Proxies, checked all at once.
-    await click(nav(d.nav.proxies));
+    await still('list');
+    // Proxies, all checked.
+    await nav(d.nav.proxies).click();
     await expect(win.locator('tr[data-id]')).toHaveCount(EXITS.length);
-    await snap('proxies');
-    await click(win.getByRole('button', { name: d.proxies.checkAll }));
-    await expect(win.getByRole('button', { name: d.proxies.checkAll }).locator('.spin')).toHaveCount(0, { timeout: 30_000 });
-    await snap('proxies-checked', { focus: [win.locator('tr[data-id]').first()] });
-    // 3. Opening UK-Shop-01: proxy, its sign-ins from the other computer, the browser.
-    await click(nav(d.nav.profiles));
-    await snap('profiles');
-    await click(row('UK-Shop-01').getByRole('button', { name: 'UK-Shop-01', exact: true }));
-    await snap('drawer');
-    await click(drawer.getByRole('button', { name: d.detail.openProfile }));
-    await expect(drawer.locator('.opening .step-r').nth(2)).toHaveClass(/now/, { timeout: 60_000 });
-    await snap('opening', { focus: [drawer.locator('.opening')] });
-    // 4. Its three tabs come back.
-    await expect(drawer.locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
+    await win.getByRole('button', { name: d.proxies.checkAll }).click();
+    const checking = win.locator('tr[data-id] .dot-st.boot');
+    await expect(checking).not.toHaveCount(0);
+    await expect(checking).toHaveCount(0, { timeout: 60_000 });
+    await still('proxies');
+    // Opening UK-Shop-01: its proxy, then the sign-ins and tabs from the other computer.
+    await nav(d.nav.profiles).click();
+    await row('UK-Shop-01').getByRole('button', { name: 'UK-Shop-01', exact: true }).click();
+    await page.getByRole('button', { name: d.detail.openProfile }).click();
+    await expect(page.locator('.opening .step-r').nth(2)).toHaveClass(/now/, { timeout: 60_000 });
+    await still('opening');
+    await expect(page.locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
+    // Its cookies, from the sites it was signed in to there.
+    await page.getByRole('tab', { name: d.detail.tabs.cookies }).click();
+    await expect(page.locator('tr[data-cookie]').first()).toBeVisible({ timeout: 30_000 });
+    await still('cookies');
     await back();
-    await expect.poll(() => app.evaluate((_e, id) => (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages().length, ids['UK-Shop-01'])).toBe(3);
-    const browser = await app.evaluate(async (_e, id) => {
-      const page = (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages()[0];
-      await page.setViewportSize({ width: 1000, height: 640 });
-      await page.waitForLoadState();
-      return Array.from(await page.screenshot());
-    }, ids['UK-Shop-01']);
-    await snap('restored', { browser: true });
-    // 5. US-Store-02's health check.
-    await click(row('US-Store-02').getByRole('button', { name: 'US-Store-02', exact: true }));
-    await click(drawer.getByRole('tab', { name: d.detail.tabs.fingerprint }));
-    await drawer.getByRole('button', { name: d.checkup.run, exact: true }).scrollIntoViewIfNeeded();
-    await snap('drawer-check');
-    await click(drawer.getByRole('button', { name: d.checkup.run, exact: true }));
-    const report = win.getByRole('dialog', { name: d.checkup.title('US-Store-02') });
-    await expect(report).toBeVisible({ timeout: 120_000 });
-    await snap('checkup', { focus: [report] });
-    await click(report.locator('.m-foot').getByRole('button', { name: d.common.close }));
+    // US-Store-02's fingerprint, the health check at hand.
+    await row('US-Store-02').getByRole('button', { name: 'US-Store-02', exact: true }).click();
+    await page.getByRole('tab', { name: d.detail.tabs.fingerprint }).click();
+    await page.getByRole('button', { name: d.checkup.run, exact: true }).scrollIntoViewIfNeeded();
+    await still('drawer-check');
     await back();
-    // 6. An extension goes into three profiles.
-    await click(nav(d.nav.extensions));
-    await snap('extensions');
-    await click(win.locator('[data-extension="Order Helper"]').getByRole('button', { name: d.extensions.install }));
-    const install = win.getByRole('dialog', { name: d.extensions.installTitle('Order Helper') });
-    for (const n of ['US-Store-03', 'DE-Shop-01', 'SG-Ads-01']) await install.getByRole('checkbox', { name: new RegExp(n) }).check();
-    await snap('install', { focus: [install] });
-    await click(install.getByRole('button', { name: d.extensions.installDo(3) }));
-    await snap('installed', { focus: [win.locator('[data-extension="Order Helper"]')] });
-    // 7. Three profiles opened together; the one whose line is down can be retried.
-    await click(nav(d.nav.profiles));
-    await snap('profiles-again');
-    for (const n of ['US-Store-03', 'DE-Shop-01', 'SG-Ads-01']){
-      const cb = win.getByRole('checkbox', { name: d.common.select(n) });
-      frames.at(-1)!.clicks.push(await at(cb));
-      await cb.check();
-    }
-    await snap('selected', { focus: [win.getByTestId('bulk')] });
-    await click(win.getByTestId('bulk').getByRole('button', { name: d.profiles.bulk.open }));
-    const tray = win.locator('section.tray');
-    await expect(tray.locator('li.run')).not.toHaveCount(0, { timeout: 60_000 });
-    await snap('batch', { focus: [tray] });
-    await expect(tray.locator('li.bad')).toHaveCount(1, { timeout: 60_000 });
-    await expect(tray.locator('li.boot, li.idle')).toHaveCount(0, { timeout: 60_000 });
-    await snap('batch-done', { focus: [tray] });
-    // 8. Window sync: a click in the leader's window happens in the others.
+    // Window sync: a click in the leader's window happens in the others.
     const synced = [ids['US-Store-01'], ids['DE-Shop-01'], ids['SG-Ads-01']];
+    for (const id of synced.slice(1)) expect(await opened(win, id)).toMatchObject({ state: 'running' });
     await app.evaluate(async (_e, ids) => {
       for (const id of ids) await (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages()[0].goto('http://shop.example/');
     }, synced);
     await win.evaluate(ids => window.folio.startWindowSync(ids), synced);
-    await click(nav(d.nav.sync));
+    await nav(d.nav.sync).click();
     await app.evaluate(async (_e, id) => { await (globalThis as unknown as Running).__folioRunning.get(id)!.ctx.pages()[0].click('#add2'); }, synced[0]);
     await win.waitForTimeout(4500);
-    await snap('sync', { focus: [win.locator('article.win').nth(0), win.locator('article.win').nth(1)] });
+    await still('sync');
     await win.evaluate(() => window.folio.stopWindowSync());
-    // 9. A teammate opens JP-Social-01 on their computer.
-    await click(nav(d.nav.profiles));
-    const mateDesk = await request.newContext({ baseURL: API });
-    const { token } = await (await mateDesk.post('/auth/login', { data: { email: who.mate, password: PASSWORD, client: 'desktop', deviceName: who.device } })).json();
-    expect((await mateDesk.post(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } })).ok()).toBe(true);
-    await expect(row('JP-Social-01')).toContainText(who.device, { timeout: 30_000 });
-    await row('JP-Social-01').scrollIntoViewIfNeeded();
-    await snap('team', { focus: [row('JP-Social-01').locator('.dot-st.away')] });
-
-    await mateDesk.delete(`/profiles/${ids['JP-Social-01']}/lock`, { headers: { authorization: `Bearer ${token}` } });
-
-    // ---------- stills for the website's pages ----------
-    const still = async (file: string) => { stills.push({ file, ...await shoot() }); };
+    // A new profile: its basics, then how it opens.
+    await nav(d.nav.profiles).click();
     await win.getByRole('button', { name: d.profiles.new }).click();
     const form = win.getByRole('dialog', { name: d.form.newTitle });
     await form.getByRole('textbox', { name: d.form.name, exact: true }).fill('US-Store-04');
@@ -276,28 +271,48 @@ for (const lang of ['en', 'zh'] as const){
     await still('new-opening');
     await form.getByRole('button', { name: d.common.cancel }).click();
     await win.getByRole('button', { name: d.common.discard }).click().catch(() => {});
-    // UK-Shop-01's cookies, from the sites it was signed in to on the other computer.
-    await row('UK-Shop-01').getByRole('button', { name: 'UK-Shop-01', exact: true }).click();
-    await drawer.getByRole('tab', { name: d.detail.tabs.cookies }).click();
-    await expect(drawer.locator('tr[data-cookie]').first()).toBeVisible({ timeout: 30_000 });
-    await still('cookies');
-    await back();
+    // Engines, a group, the team.
     await nav(d.nav.engines).click();
     await expect(win.locator('tr[data-engine]').first()).toBeVisible();
     await still('engines');
     await nav(d.nav.groups).click();
-    await win.getByRole('tree').getByRole('button', { name: new RegExp(`^${who.groups[0]}`) }).click();
+    const tree = win.getByRole('tree');
+    await tree.getByRole('button', { name: new RegExp(`^${who.groups[0]}`) }).click();
     await expect(win.locator('tr[data-id]').first()).toBeVisible();
     await still('groups');
     await nav(d.nav.team).click();
-    await expect(win.locator(`tr[data-member="${who.mate}"]`)).toBeVisible();
+    const members = win.locator('tr[data-member]');
+    await expect(members).toHaveCount(3);
     await still('members');
-    await nav(d.nav.jobs).click();
-    await expect(win.locator('tr[data-job]').first()).toBeVisible();
-    await still('jobs');
+
+    // ---------- the home page's cards: a piece of the workbench each ----------
+    // The members and their roles: the table's head and rows, as far as the role column.
+    const table = win.locator('table', { has: members.first() });
+    await still('card-team', async () => {
+      const t = await box(table), role = await box(table.locator('thead th').nth(1)), last = await box(members.last());
+      return { x: t.x, y: t.y, width: role.x + role.width - t.x, height: last.y + last.height - t.y };
+    });
+    // The group tree, a group picked.
+    await nav(d.nav.groups).click();
+    await tree.getByRole('button', { name: new RegExp(`^${who.groups[0]}`) }).click();
+    await expect(win.locator('tr[data-id]').first()).toBeVisible();
+    await still('card-groups', () => box(win.locator('section.gp-tree')));
+    // A proxy and a profile, as cards (the card view is chosen last: the choice stays). The proxy cards at the width
+    // they have on a wider window, where three fit in a row, so the picture reads at the home page's size.
+    await nav(d.nav.proxies).click();
+    await win.getByRole('group', { name: d.profiles.views.label }).getByRole('button', { name: d.profiles.views.cards }).click();
+    await win.addStyleTag({ content: '.pxg{grid-template-columns:repeat(auto-fill,340px)!important}' });
+    const proxyCard = win.locator('li.pxc', { hasText: PROXY_NAMES['us-west'] });
+    await proxyCard.scrollIntoViewIfNeeded();
+    await still('card-proxies', () => box(proxyCard));
+    await nav(d.nav.profiles).click();
+    await win.getByRole('group', { name: d.profiles.views.label }).getByRole('button', { name: d.profiles.views.cards }).click();
+    const profileCard = win.locator('li.pcard', { hasText: 'US-Store-01' });
+    await profileCard.scrollIntoViewIfNeeded();
+    await still('card-profiles', () => box(profileCard));
 
     // ---------- pictures ----------
-    const webp = (png: Buffer | Uint8Array) => win.evaluate(async ({ b64, q }) => {
+    const webp = (png: Buffer) => win.evaluate(async ({ b64, q }) => {
       const bin = atob(b64), bytes = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       const bmp = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
@@ -307,23 +322,15 @@ for (const lang of ['en', 'zh'] as const){
       let s = '';
       for (let i = 0; i < out.length; i += 0x8000) s += String.fromCharCode(...out.subarray(i, i + 0x8000));
       return btoa(s);
-    }, { b64: Buffer.from(png).toString('base64'), q: QUALITY }).then(b => Buffer.from(b, 'base64'));
-    const browserPic = await webp(Uint8Array.from(browser));
+    }, { b64: png.toString('base64'), q: QUALITY }).then(b => Buffer.from(b, 'base64'));
+    mkdirSync(LOGIN, { recursive: true });
     for (const scheme of ['light', 'dark'] as const){
-      const dir = join(OUT, `${lang}-${scheme}`);
+      const dir = join(STILLS, `${lang}-${scheme}`);
       rmSync(dir, { recursive: true, force: true });
       mkdirSync(dir, { recursive: true });
-      for (const p of pictures) writeFileSync(join(dir, `${p.file}.webp`), await webp(p[scheme]));
-      writeFileSync(join(dir, 'browser.webp'), browserPic);
-      const stillDir = join(STILLS, `${lang}-${scheme}`);
-      rmSync(stillDir, { recursive: true, force: true });
-      mkdirSync(stillDir, { recursive: true });
-      for (const p of stills) writeFileSync(join(stillDir, `${p.file}.webp`), await webp(p[scheme]));
+      for (const p of stills) writeFileSync(join(dir, `${p.file}.webp`), await webp(p[scheme]));
+      copyFileSync(join(dir, 'list.webp'), join(LOGIN, `${lang}-${scheme}.webp`));
     }
-    writeFileSync(join(OUT, `${lang}.json`), JSON.stringify({
-      width: W, height: H, frames, cards,
-      browser: { tabs: TABS.map(h => ({ host: h, title: SITES[h].title })) }
-    }, null, 1));
     await app.close();
   });
 }

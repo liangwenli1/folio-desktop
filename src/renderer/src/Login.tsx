@@ -1,39 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { folio, isApiError } from './api';
 import type { Dict, Lang } from './i18n';
-import { Icon, Mark } from './ui';
-import { Flag } from './Flag';
-import { mountDemo, type DemoManifest } from './demo/player';
-import enDemo from './demo/en.json';
-import zhDemo from './demo/zh.json';
+import { Mark } from './ui';
 
-// The walkthrough's pictures, all four sets (language, light or dark) shipped so it plays offline.
-const PICTURES = import.meta.glob<string>('./demo/*/*.webp', { query: '?url', import: 'default', eager: true });
-const MANIFESTS: Record<Lang, DemoManifest> = { en: enDemo as DemoManifest, zh: zhDemo as DemoManifest };
-const darkScheme = matchMedia('(prefers-color-scheme: dark)');
+// The profile list, in each language and colour scheme, as demo/capture.spec.ts recorded it.
+const PICTURES = import.meta.glob<string>('./shots/*.webp', { query: '?url', import: 'default', eager: true });
 
-// The form on the left; on the right the walkthrough: a few profiles as they look in the workbench float in and land in
-// it, and it goes through the workbench.
+// The form on the left; on the right the workbench, as it looks once signed in.
 export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lang; version: string; onLang(l: Lang): void; onDone: () => void }){
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const site = `/${lang}`;
-  const P = d.profiles;
-  const demo = useRef<HTMLDivElement>(null), intro = useRef<HTMLDivElement>(null);
-  const [dark, setDark] = useState(darkScheme.matches);
-  useEffect(() => {
-    const f = () => setDark(darkScheme.matches);
-    darkScheme.addEventListener('change', f);
-    return () => darkScheme.removeEventListener('change', f);
-  }, []);
-  useEffect(() => {
-    const set = `${lang}-${dark ? 'dark' : 'light'}`;
-    return mountDemo(demo.current!, {
-      manifest: MANIFESTS[lang], src: file => PICTURES[`./demo/${set}/${file}.webp`], intro: intro.current!, labels: { pause: d.login.pause, play: d.login.play }
-    });
-  }, [lang, dark, d]);
 
   async function submit(ev: FormEvent){
     ev.preventDefault();
@@ -46,13 +25,6 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
       setError((isApiError(e) && d.errors[e.code]) || d.errors.internal);
     } finally { setBusy(false); }
   }
-
-  const [us, uk, jp] = d.login.demo;
-  const cards = [
-    { cc: 'US', kernel: 'chromium' as const, name: us[0], where: `${us[1]} · Chromium 150`, st: <span className="badge good"><Icon name="play" />{P.st.running}<span className="sub">1:42:10</span></span> },
-    { cc: 'GB', kernel: 'firefox' as const, name: uk[0], where: `${uk[1]} · Firefox 156`, st: <span className="badge info"><span className="spin" />{P.stage.restore}<span className="sub">3 / 4</span></span> },
-    { cc: 'JP', kernel: 'chromium' as const, name: jp[0], where: `${jp[1]} · Chromium 150`, st: <span className="badge"><Icon name="pause" />{P.st.idle}</span> }
-  ];
 
   return (
     <main className="login">
@@ -82,16 +54,10 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
         </p>
       </div>
       <div className="login-r">
-        <div className="login-demo" ref={demo} role="group" aria-label={d.login.walkthrough} />
-        <div className="login-cards" ref={intro} aria-hidden="true">
-          {cards.map(c => (
-            <div key={c.name} className="login-pc">
-              <Flag country={c.cc} kernel={c.kernel} />
-              <span><b>{c.name}</b><small>{c.where}</small></span>
-              {c.st}
-            </div>
-          ))}
-        </div>
+        <picture className="login-shot">
+          <source srcSet={PICTURES[`./shots/${lang}-dark.webp`]} media="(prefers-color-scheme: dark)" />
+          <img src={PICTURES[`./shots/${lang}-light.webp`]} width={1920} height={1200} alt={d.login.picture} />
+        </picture>
       </div>
     </main>
   );

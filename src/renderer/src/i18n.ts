@@ -35,10 +35,7 @@ export const en = {
     title: 'Log in to Folio', lead: 'Use the account you created on the Folio website.',
     email: 'Email', password: 'Password', submit: 'Log in',
     noAccount: 'No account yet?', create: 'Sign up on the website', forgot: 'Forgot password?',
-    // The profiles on the brand panel beside the form: name, exit city.
-    demo: [['US-Store-01', 'Seattle'], ['UK-Shop-01', 'London'], ['JP-Social-01', 'Tokyo']] as [string, string][],
-    walkthrough: 'Workbench walkthrough: checking proxies, opening a browser profile, restoring tabs, a health check, installing an extension, batch opening, window sync and teamwork.',
-    pause: 'Pause walkthrough', play: 'Play walkthrough'
+    picture: 'The Folio workbench: the list of browser profiles'
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan and usage', help: 'Help', more: 'More' },
   top: {
@@ -55,7 +52,7 @@ export const en = {
     expand: (g: string) => `Show the groups under ${g}`, collapse: (g: string) => `Hide the groups under ${g}`,
     edit: 'Edit group', addProfile: 'Add profile', search: 'Search name or number', state: 'Status', owner: 'Member', owners: 'All members', sort: 'Sort by name',
     states: { all: 'All statuses', running: 'Running', stopped: 'Not running' },
-    cols: { name: 'Profile', number: 'No.', region: 'Country/region', status: 'Status', owner: 'Owner', actions: 'Actions' },
+    cols: { name: 'Profile', number: 'No.', region: 'Country/region', status: 'Status', owner: 'Owner' },
     empty: 'No profiles in this group yet', emptyText: 'Create a profile in this group, or move profiles here from the profile list.', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number) => `${profilesN(n)} removed from the group`,
     settings: 'Group settings', name: 'Group name', nameErr: 'Enter a group name.', parent: 'Parent group', parentNone: 'None (top level)', description: 'Description',
     members: 'Member access', people: 'Members of the group', addMember: 'Add member', findMember: 'Search members', noneToAdd: 'Everyone is in this group.',
@@ -966,9 +963,7 @@ export const zh: Dict = {
     title: '登录 Folio', lead: '使用在 Folio 官网注册的账号登录。',
     email: '邮箱', password: '密码', submit: '登录',
     noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？',
-    demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][],
-    walkthrough: '工作台操作演示：检查代理、打开浏览器环境、恢复标签页、体检、安装扩展、批量打开、窗口同步与团队协作。',
-    pause: '暂停演示', play: '播放演示'
+    picture: 'Folio 工作台：浏览器环境列表'
   },
   nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '套餐与用量', help: '帮助中心', more: '更多' },
   top: {
@@ -985,7 +980,7 @@ export const zh: Dict = {
     expand: (g: string) => `展开 ${g}`, collapse: (g: string) => `收起 ${g}`,
     edit: '编辑分组', addProfile: '添加环境', search: '搜索环境名称或 ID', state: '状态', owner: '所属成员', owners: '全部成员', sort: '按名称排序',
     states: { all: '全部状态', running: '运行中', stopped: '已停止' },
-    cols: { name: '环境名称', number: '环境 ID', region: '国家/地区', status: '状态', owner: '负责人', actions: '操作' },
+    cols: { name: '环境名称', number: '环境 ID', region: '国家/地区', status: '状态', owner: '负责人' },
     empty: '该分组暂无环境', emptyText: '可在此分组中新建环境，或从环境列表将环境移入此分组。', move: '移动到分组…', moveOut: '移出分组', movedOut: (n: number) => `已将 ${n} 个环境移出分组`,
     settings: '分组设置', name: '分组名称', nameErr: '请填写分组名称。', parent: '上级分组', parentNone: '无（顶级分组）', description: '分组说明',
     members: '成员权限', people: '分组成员', addMember: '添加成员', findMember: '搜索成员', noneToAdd: '所有成员均已在该分组中。',

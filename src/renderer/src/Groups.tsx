@@ -83,7 +83,9 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
   }
 
   // One row of the tree: its colour, name and how many profiles are in it and under it, with a fold for the
-  // groups under it.
+  // groups under it. The folds' room is kept only when some group has groups under it, so a flat tree lines up with
+  // its title.
+  const nested = data.groups.some(g => g.parentId);
   const node = (g: Group, depth: number): ReactNode => {
     const below = kids.get(g.id) ?? [], open = !folded.has(g.id);
     return (
@@ -91,7 +93,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
         <div className={`gt-row${pick === g.id ? ' cur' : ''}`} style={{ paddingLeft: 8 + depth * 18 }}>
           {below.length
             ? <button type="button" className="gt-fold" aria-label={open ? G.collapse(g.name) : G.expand(g.name)} onClick={() => setFolded(s => { const n = new Set(s); if (open) n.add(g.id); else n.delete(g.id); return n; })}><Icon name={open ? 'chev' : 'chevR'} /></button>
-            : <span className="gt-fold" />}
+            : nested && <span className="gt-fold" />}
           <button type="button" className="gt-pick" data-group={g.name} onClick={() => setPick(g.id)}>
             <span className={`gt-ic gc-${g.color}`}><Icon name="folder" /></span><span className="gt-n">{g.name}</span><span className="gt-c">{within(g.id).length}</span>
           </button>
@@ -103,7 +105,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
   const fixed = (k: 'all' | 'none', label: string, n: number) => (
     <li role="treeitem" aria-selected={pick === k}>
       <div className={`gt-row${pick === k ? ' cur' : ''}`} style={{ paddingLeft: 8 }}>
-        <span className="gt-fold" />
+        {nested && <span className="gt-fold" />}
         <button type="button" className="gt-pick" onClick={() => setPick(k)}><span className="gt-ic"><Icon name="folder" /></span><span className="gt-n">{label}</span><span className="gt-c">{n}</span></button>
       </div>
     </li>
@@ -133,7 +135,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
             <div className="gp-head">
               <div><h2 data-testid="group-title">{title}</h2><p className="hint">{G.sum(shown.length, group ? group.memberIds.length : null)}</p></div>
               <span className="sp" />
-              {group && manager && <button type="button" className="btn btn-secondary" onClick={() => setPanel(true)}>{G.edit}</button>}
+              {group && manager && !panel && <button type="button" className="btn btn-secondary" onClick={() => setPanel(true)}>{G.edit}</button>}
               {can(data.role, 'profiles.create') && <button type="button" className="btn btn-primary" onClick={() => onNewProfile(group?.id ?? null)}><Icon name="plus" />{G.addProfile}</button>}
             </div>
             <div className="filters inline">
@@ -161,8 +163,8 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
                         ref={el => { if (el) el.indeterminate = shownSel > 0 && shownSel < rows.length; }}
                         onChange={() => setSel(s => { const n = new Set(s); rows.forEach(p => (shownSel === rows.length ? n.delete(p.id) : n.add(p.id))); return n; })} />
                     </th>
-                    <th scope="col">{G.cols.name}</th><th className="mid" scope="col">{G.cols.number}</th><th className="c-region ic" scope="col">{G.cols.region}</th>
-                    <th className="mid" scope="col">{G.cols.status}</th><th scope="col">{G.cols.owner}</th><th className="act" scope="col">{G.cols.actions}</th>
+                    <th scope="col">{G.cols.name}</th><th className="mid c-num" scope="col">{G.cols.number}</th><th className="c-region ic" scope="col">{G.cols.region}</th>
+                    <th className="mid" scope="col">{G.cols.status}</th><th scope="col">{G.cols.owner}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -181,11 +183,11 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
                       <tr key={p.id} data-id={p.id} className={sel.has(p.id) ? 'on' : undefined}>
                         <td className="cb"><input type="checkbox" checked={sel.has(p.id)} aria-label={d.common.select(p.name)} onChange={() => setSel(s => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; })} /></td>
                         <td><button type="button" className="rowlink" onClick={() => onOpenProfile(p.id)}>{p.name}</button></td>
-                        <td className="mono mid">#{String(p.number).padStart(4, '0')}</td>
+                        <td className="mono mid c-num">#{String(p.number).padStart(4, '0')}</td>
                         <td className="c-region">{h.geo ? <span className="px-exit"><Flag country={h.geo.country} size="xs" />{h.geo.countryName}</span> : <span className="muted hang">—</span>}</td>
                         <td className="mid"><span className={`dot-st ${tone}`}>{text}</span></td>
                         <td className="ellip">{names.get(p.ownerId ?? '') ?? '—'}</td>
-                        <td className="act"><MoreMenu label={d.profiles.actionsX(p.name)} items={[
+                        <td className="more"><MoreMenu label={d.profiles.actionsX(p.name)} items={[
                           { label: d.proxies.detail.viewProfile, onClick: () => onOpenProfile(p.id) },
                           ...(editor && p.groupId ? [{ label: G.moveOut, onClick: () => void move([p.id], null) }] : [])
                         ]} /></td>
