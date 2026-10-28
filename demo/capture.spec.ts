@@ -292,11 +292,13 @@ for (const lang of ['en', 'zh'] as const){
       const t = await box(table), role = await box(table.locator('thead th').nth(1)), last = await box(members.last());
       return { x: t.x, y: t.y, width: role.x + role.width - t.x, height: last.y + last.height - t.y };
     });
-    // The group tree, a group picked.
+    // The group tree, a group picked; as tall as its groups for the card (on the page it fills the window beside the list).
     await nav(d.nav.groups).click();
     await tree.getByRole('button', { name: new RegExp(`^${who.groups[0]}`) }).click();
     await expect(win.locator('tr[data-id]').first()).toBeVisible();
+    const natural = await win.addStyleTag({ content: '.gp > .gp-tree{align-self:start}' });
     await still('card-groups', () => box(win.locator('section.gp-tree')));
+    await natural.evaluate(el => (el as Element).remove());
     // A proxy and a profile, as cards (the card view is chosen last: the choice stays). The proxy cards at the width
     // they have on a wider window, where three fit in a row, so the picture reads at the home page's size.
     await nav(d.nav.proxies).click();
