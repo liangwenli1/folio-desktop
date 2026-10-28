@@ -32,6 +32,8 @@ test('the activity log says who did what, and each profile shows its recent entr
   await expect(items.first()).toContainText('changed the name of Shop Berlin');
   await expect(items.last()).toContainText(name);
   await expect(items.last()).toContainText('created the group EU stores');
+  // When, on one line as in the other lists: the day, then the time.
+  await expect(items.first().locator('td').first()).toHaveText(/^Today \d{2}:\d{2} [AP]M$/);
   // An entry's details beside the log: what it changed, from what to what.
   await items.first().getByRole('button', { name: 'View' }).click();
   const entry = win.getByRole('complementary', { name: 'Entry details' });

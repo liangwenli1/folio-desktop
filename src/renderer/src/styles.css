@@ -292,7 +292,7 @@ html[data-platform="win32"] .top{padding-right:150px}
 .brand{display:flex;align-items:center;gap:10px;height:40px;padding:0 8px;flex:none}
 .brand .seal{width:32px;height:32px}
 .ws{display:flex;align-items:center;gap:8px;width:100%;height:var(--h-ctl);margin-top:24px;padding:0 10px 0 12px;flex:none;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
-.ws:hover{border-color:var(--line-2);background:var(--hover)}
+.ws:hover{border-color:var(--line-2);background:var(--seg)}
 .ws > span:first-child{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1}
 .ws b{min-width:0;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ws small{flex:none;font-size:12px;color:var(--ink-3)}
@@ -306,7 +306,8 @@ html[data-platform="win32"] .top{padding-right:150px}
 .nav-i{position:relative;display:flex;align-items:center;gap:12px;width:100%;height:40px;flex:none;padding:0 16px;border:0;border-radius:var(--r);background:transparent;color:var(--ink-2);text-align:left;font-size:14px;font-weight:500;cursor:pointer}
 .nav-i > .i{width:20px;height:20px;color:var(--ink-3)}
 .nav-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-i:hover:not(:disabled){background:var(--hover);color:var(--ink-body)}
+/* The sidebar is white, so its hover is the grey of a segment (--hover would barely show on it). */
+.nav-i:hover:not(:disabled){background:var(--seg);color:var(--ink)}
 .nav-i:hover:not(:disabled) > .i{color:var(--ink-body)}
 .nav-i.active{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
 .nav-i.active > .i{color:var(--accent-ink)}
@@ -336,7 +337,7 @@ html[data-platform="win32"] .top{padding-right:150px}
 .side-set:hover,.side-set.active{background:var(--accent-soft)}
 .side-set > .i{display:none}
 .me{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:var(--h-ctl);padding:0 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);font-size:14px;font-weight:500;cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
-.me:hover{border-color:var(--line-2);background:var(--hover)}
+.me:hover{border-color:var(--line-2);background:var(--seg)}
 .me.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
 .me > .av{display:none}
 .me-who{display:flex;align-items:baseline;gap:4px;min-width:0}
@@ -382,16 +383,16 @@ html[data-platform="win32"] .top{padding-right:150px}
 .ext-ic img{width:16px;height:16px;object-fit:contain}
 @media (max-width:1280px){ .tw .lastc{display:none} }
 @media (max-width:1100px){ .tw .c-ext{display:none} }
-/* a profile's extensions: their own logos, small and overlapping a little on a white ring, then how many more in a
-   grey pill; one without a logo gets a grey tile with the extension mark */
-.ext-stack{display:inline-flex;align-items:center;vertical-align:middle}
-.ext-stack .ext-ic,.ext-chip .ext-ic{width:20px;height:20px;border:0;border-radius:6px;background:transparent}
-.ext-stack .ext-ic img,.ext-chip .ext-ic img{width:20px;height:20px;border-radius:6px}
-.ext-stack .ext-ic:not(:has(img)),.ext-chip .ext-ic:not(:has(img)){background:var(--seg)}
+/* A profile's extensions, as the user specified (10-28): white 20px tiles, their 2px white edge inside that size, the
+   logo 14px in the middle; each overlaps the one before by 6px with the later on top. Then how many more in a pill, or
+   a short line for none. The tiles stay white in dark mode, so every logo reads on them. */
+.ext-stack{display:inline-flex;align-items:center;vertical-align:middle;isolation:isolate}
+.ext-stack .ext-ic,.ext-chip .ext-ic{position:relative;width:20px;height:20px;border:2px solid #FFFFFF;border-radius:6px;background:#FFFFFF;box-shadow:0 1px 3px rgba(16,24,40,.12);color:#98A2B3}
+.ext-stack .ext-ic img,.ext-chip .ext-ic img{width:14px;height:14px;object-fit:contain}
 .ext-stack .ext-ic .i,.ext-chip .ext-ic .i{width:14px;height:14px}
-.ext-stack .ext-ic{box-shadow:0 0 0 2px var(--card)}
-.ext-stack .ext-ic + .ext-ic{margin-left:-4px}
-.ext-stack small{height:18px;margin-left:6px;padding:0 6px;border-radius:9px;background:var(--seg);font:500 11px/18px var(--f-data);color:var(--ink-3)}
+.ext-stack .ext-ic + .ext-ic{margin-left:-6px}
+.ext-stack small{min-width:22px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--seg);font-size:10px;font-weight:500;line-height:18px;text-align:center;color:var(--ink-3)}
+.ext-none{display:inline-block;width:12px;height:1px;vertical-align:middle;background:var(--ink-4)}
 .pc-ext{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--ink-2)}
 .kvl dd.ext-chips{flex-wrap:wrap;gap:6px 14px}
 /* the profiles an extension is in: their flags, then how many */
@@ -1189,7 +1190,8 @@ pre.code{margin:0;padding:14px 16px;border-radius:var(--r);background:var(--code
 .px-test{display:flex;align-items:center;gap:10px}
 .px-auth{display:grid;gap:4px}
 /* a list with the one picked beside it (proxies, engines) */
-.side-wrap{display:grid;gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
+.side-wrap{display:grid;gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:1 0 auto}
+.side-wrap > .list-card{align-self:stretch}
 .side-wrap.with-panel{grid-template-columns:minmax(0,1fr) var(--inspector)}
 .side-main{display:grid;gap:12px;min-width:0;container-type:inline-size}
 .side-main .tw,.side-main .pxg,.side-main .cards-empty{margin:0;flex:none;min-height:0}
@@ -1301,7 +1303,12 @@ tr.bad-row td{background:var(--bad-soft)}
 .en-foot{display:flex;align-items:center;gap:12px;margin:0}
 
 /* groups: the tree, the picked group's profiles, and its settings */
-.gp{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:none}
+/* the tree and the list fill the rest of the window side by side, like a list's card; the pager and the note sit at
+   the list's foot */
+.gp{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start;margin:0 var(--gx) 18px;flex:1 0 auto}
+.gp > .gp-tree,.gp > .gp-main{align-self:stretch}
+.gp-main{display:flex;flex-direction:column}
+.gp-main > .pager{margin:auto 0 0}
 .gp.with-panel{grid-template-columns:240px minmax(0,1fr) var(--inspector)}
 @media (max-width:1439px){.gp.with-panel{grid-template-columns:200px minmax(0,1fr) var(--inspector)}}
 .gp-tree{position:sticky;top:12px;align-content:start}
@@ -1557,9 +1564,11 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .be-list{display:grid;gap:4px;max-height:220px;overflow-y:auto;margin:0;padding:0;list-style:none}
 .be-list li{display:flex;justify-content:space-between;gap:10px}
 
-/* A list's card (v2): the filters, the bulk row, the table and the pager, as tall as its rows; the page scrolls. */
-.list-card{display:flex;flex-direction:column;gap:0;flex:none;min-width:0;margin:16px var(--gx) 24px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);overflow:hidden}
-.side-wrap .list-card{margin:0;flex:none}
+/* A list's card (v2): the filters, the bulk row, the table and the pager. It fills the rest of the window (the user,
+   10-28: not a card that ends halfway down); with more rows it is as tall as they are and the page scrolls. The pager
+   or the count sits at its foot, and an empty list's message in the middle of it. */
+.list-card{display:flex;flex-direction:column;gap:0;flex:1 0 auto;min-width:0;margin:16px var(--gx) 24px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);overflow:hidden}
+.side-wrap .list-card{margin:0}
 .list-card > .filters{padding:20px 20px 16px}
 .list-card > .bulk,.list-card > .notice.partial,.list-card > .syncbar{margin:0 20px 16px}
 /* The table as tall as its rows (v2: no box that scrolls inside the card); it scrolls sideways when narrow. */
@@ -1568,10 +1577,14 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .list-card > .tw tbody tr.empty td{border-bottom:0}
 .list-card > .tw:last-child{margin-bottom:20px}
 .list-card > .pgrid,.list-card > .ext-grid,.list-card > .pxg,.list-card > .cards-empty,.list-card > .skel-cards{margin:0 20px 16px}
-.list-card > .pager{margin:0;padding:16px 20px}
-.list-card > .en-foot{padding:16px 20px}
+.list-card > .pager{margin:auto 0 0;padding:16px 20px}
+.list-card > .en-foot{margin-top:auto;padding:16px 20px}
 /* A list without pages still says how many rows it holds (v2's footer). */
-.list-foot{margin:0;padding:16px 20px;font-size:12px;color:var(--ink-3)}
+.list-foot{margin:auto 0 0;padding:16px 20px;font-size:12px;color:var(--ink-3)}
+/* Nothing to list: the message fills the middle of the card, in a table under its header as in cards. */
+.list-card > .tw:has(tr.empty),.gp-main > .tw:has(tr.empty){flex:1 0 auto}
+.list-card > .tw:has(tr.empty) table,.gp-main > .tw:has(tr.empty) table{height:100%}
+.list-card > .cards-empty{display:grid;place-content:center;flex:1 0 auto;border:0}
 .btn-text.accent{color:var(--accent-ink)}
 .btn-text.accent:hover:not(:disabled){background:var(--accent-soft);color:var(--accent-ink)}
 /* A line about the list under its card (v2 01, 22). */

@@ -486,9 +486,9 @@ function ProxyCell({ d, lang, h }: ItemProps){
   );
 }
 
-// The extensions installed in it: their icons (three, then how many more), named on hover; — for none.
-function ExtStack({ exts }: ItemProps){
-  if (!exts.length) return <span className="muted">—</span>;
+// The extensions installed in it: their icons (three, then how many more), named on hover; a short line for none.
+function ExtStack({ d, exts }: ItemProps){
+  if (!exts.length) return <span className="ext-none" role="img" aria-label={d.profiles.extensionsN(0)} />;
   return (
     <span className="ext-stack" title={exts.map(x => x.name).join(', ')}>
       {exts.slice(0, 3).map(x => <ExtIcon key={x.id} src={x.icon} />)}{exts.length > 3 && <small>+{exts.length - 3}</small>}

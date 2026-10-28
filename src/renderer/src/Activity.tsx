@@ -151,7 +151,7 @@ export function ActivityTable({ d, lang, entries, failed, admin, onRetry, onClea
             : <Empty icon="activity" title={A.empty} text={A.emptyText} />}</td></tr>}
           {entries?.map(e => (
             <tr key={e.seq} data-action={e.action} className={cur === e.seq ? 'cur' : ''} onClick={onPick ? ev => { if (!(ev.target as HTMLElement).closest('button')) onPick(e); } : undefined}>
-              <td className="nowrap mid"><span className="l1">{dayLabel(e.at, d, lang)}</span><span className="l2 mono">{time(e.at, lang)}</span></td>
+              <td className="nowrap mid">{dayLabel(e.at, d, lang)} {time(e.at, lang)}</td>
               <td className="who-cell"><b>{who(d, e)}</b></td>
               <td>{A.types[e.action]}</td>
               {!profile && <td>{objectOf(e) ? <><span className="l1">{objectOf(e)}</span>{numberOf(e) && <span className="l2 mono">{numberOf(e)}</span>}</> : <span className="muted">—</span>}</td>}

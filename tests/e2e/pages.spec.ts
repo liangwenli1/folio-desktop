@@ -32,6 +32,28 @@ test('the Trash shows who deleted each profile, picks several on cards, and rest
   await app.close();
 });
 
+test('a list’s card fills the window, with the pager at its foot and an empty list’s message in its middle', async () => {
+  const acct = await account();
+  await acct.api.post(`/workspaces/${acct.workspaceId}/proxies`, { data: { name: 'Only-One', type: 'http', host: 'one.proxy.example', port: 8080 } });
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1920, 1040));
+  await nav(win, /^Proxies/);
+  await expect(win.locator('tr[data-id]')).toHaveCount(1);
+  const height = await win.evaluate(() => innerHeight);
+  const card = (await win.locator('section.list-card').boundingBox())!;
+  const pager = (await win.locator('section.list-card > .pager').boundingBox())!;
+  expect(card.y + card.height).toBeGreaterThan(height - 60);
+  expect(Math.abs(pager.y + pager.height - (card.y + card.height))).toBeLessThan(2);
+  await nav(win, /^Trash/);
+  const empty = (await win.getByText('The Trash is empty').boundingBox())!;
+  const trash = (await win.locator('section.list-card').boundingBox())!;
+  expect(trash.y + trash.height).toBeGreaterThan(height - 100);
+  expect(empty.y).toBeGreaterThan(trash.y + trash.height * 0.4);
+  expect(empty.y).toBeLessThan(trash.y + trash.height * 0.7);
+  await app.close();
+});
+
 test('an extension goes into the profiles picked from its card', async () => {
   const acct = await account({ buy: STUDIO });
   const base = `/workspaces/${acct.workspaceId}`;
