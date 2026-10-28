@@ -61,7 +61,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   await expect(dialog).toContainText('1 to change · 1 skipped');
   await expect(dialog).toContainText('1 of them is running');
   await dialog.getByRole('button', { name: 'Change 1 profile' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '1 profile changed' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Profiles changed' })).toContainText('1 profile');
 
   const list = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { id: string; groupId: string | null; startUrl: string | null }[];
   expect(list.find(p => p.id === b.id)).toMatchObject({ groupId: group.id, startUrl: 'https://shop.example/' });

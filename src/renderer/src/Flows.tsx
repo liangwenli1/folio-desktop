@@ -5,8 +5,8 @@ import { createPortal } from 'react-dom';
 import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
-import { ago, errorText, type Dict } from './i18n';
-import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, useLeave, useToast } from './ui';
+import { ago, type Dict } from './i18n';
+import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, useFail, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -82,7 +82,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   const needle = q.trim().toLowerCase();
   const flows = data.flows.filter(f => !needle || f.name.toLowerCase().includes(needle));
   const person = new Map(data.members.map(m => [m.userId, m.displayName]));
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
   // The tasks a flow is used by, by name; such a flow can't be deleted.
   const users = (id: string) => data.tasks.filter(t => t.flowId === id).map(t => t.name).join(', ');
 
@@ -187,7 +187,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
   d: Dict; wsId: string; data: WorkspaceData; flow: Flow | null; template: boolean; onClose(): void; onCreated(id: string): void; onDuplicate(f: Flow): void;
 }){
   const F = d.flows;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const readOnly = !!flow && !flow.canEdit;
   const [base, setBase] = useState(flow);
   const [edit, setEdit] = useState({ name: flow?.name ?? (template ? F.templateName : F.untitled), steps: flow?.steps ?? (template ? [fresh('signedIn')] : []) });
@@ -215,7 +215,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
       if (!base){
         const created = await folio.api<Flow>('POST', `/workspaces/${wsId}/flows`, body);
         data.refresh('flows');
-        toast(F.saved);
+        toast({ title: F.saved, detail: created.name });
         onCreated(created.id);
         return;
       }
@@ -224,10 +224,10 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
       const saved = await folio.api<Flow>('PATCH', `/flows/${base.id}`, { version, ...body });
       setBase(saved); setStale(false);
       data.refresh('flows');
-      toast(F.saved);
+      toast({ title: F.saved, detail: saved.name });
     } catch (e){
       if (isApiError(e) && e.code === 'stale') setStale(true);
-      else toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+      else fail(e);
     } finally { setSaving(false); }
   }
 

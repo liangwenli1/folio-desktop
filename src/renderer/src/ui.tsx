@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as KeyEvent, type PointerEvent as PointerDown, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { folio } from './api';
+import { folio, isApiError } from './api';
 import type { Kind, WorkspaceData } from './data';
-import type { Dict } from './i18n';
+import { errorText, type Dict, type News } from './i18n';
 
 // The dictionary for the building blocks in this file and Select.tsx (a dialog's buttons, a dropdown's states), which
 // every page uses and none passes it to. Pages get theirs as a prop.
@@ -184,7 +184,7 @@ export function MoreMenu({ label, items, vertical }: { label: string; items: { l
 // A small button that copies a value, saying so in a toast.
 export function CopyBtn({ text, label, done }: { text: string; label: string; done: string }){
   const toast = useToast();
-  return <button type="button" className="icon-btn bare copy-btn" aria-label={label} title={label} onClick={() => void navigator.clipboard.writeText(text).then(() => toast(done))}><Icon name="copy" /></button>;
+  return <button type="button" className="icon-btn bare copy-btn" aria-label={label} title={label} onClick={() => void navigator.clipboard.writeText(text).then(() => toast({ title: done }))}><Icon name="copy" /></button>;
 }
 
 // How a page shows its items (rows, cards, a calendar), remembered on this computer.
@@ -214,29 +214,36 @@ export function useNow(on: boolean){
   return now;
 }
 
-// `bad` for something that went wrong; anything else is news of something done. One action, or two (a partly failed
-// batch: view it, retry the failed ones), in short words under the message.
+// What happened and to what (News), as the user drew it (10-28); `bad` for something that went wrong. One action, or
+// two (a partly failed batch: its details, and a retry of the failed ones).
 interface ToastAction { label: string; fn(): void }
-interface ToastItem { id: number; msg: string; actions: ToastAction[]; tone?: 'bad' }
-type Push = (msg: string, action?: ToastAction | ToastAction[], tone?: 'bad') => void;
+export interface Note extends News { action?: ToastAction | ToastAction[]; tone?: 'bad' }
+interface ToastItem extends News { id: number; actions: ToastAction[]; tone?: 'bad' }
+type Push = (note: Note) => void;
 const ToastContext = createContext<Push>(() => {});
 export const useToast = () => useContext(ToastContext);
+// A request that failed, said in a toast by why.
+export function useFail(){
+  const toast = useToast(), d = useDict();
+  return useCallback((e: unknown) => toast({ title: errorText(d, isApiError(e) ? e.code : 'internal'), tone: 'bad' }), [toast, d]);
+}
 // Something under way, shown above the toasts until it is replaced, or cleared with null.
 const NoticeContext = createContext<(notice: ReactNode) => void>(() => {});
 export const useNotice = () => useContext(NoticeContext);
 
-// News of something done goes after 3 seconds (8 when it offers an action); a failure has a close button and goes after
-// 12 (the bell keeps a batch's). The stack sits in <body> at the top right, above dialogs and usable while one is open.
+// News of something done goes after 3 seconds (8 when it offers an action), a failure after 12 (the bell keeps a
+// batch's); any can be closed sooner. The stack sits in <body> at the top right, above dialogs and usable while one is
+// open. Each is one row: the state's icon, what happened with what to under it, the action in red words, and ×.
 export function Toasts({ children }: { children: ReactNode }){
   const d = useDict();
   const [list, setList] = useState<ToastItem[]>([]);
   const [notice, setNotice] = useState<ReactNode>(null);
   const seq = useRef(0);
   const drop = (id: number) => setList(l => l.filter(t => t.id !== id));
-  const push = useCallback<Push>((msg, action, tone) => {
+  const push = useCallback<Push>(({ action, ...note }) => {
     const id = ++seq.current, actions = action ? [action].flat() : [];
-    setList(l => [...l.slice(-2), { id, msg, actions, tone }]);
-    setTimeout(() => drop(id), tone ? 12_000 : actions.length ? 8000 : 3000);
+    setList(l => [...l.slice(-2), { ...note, id, actions }]);
+    setTimeout(() => drop(id), note.tone ? 12_000 : actions.length ? 8000 : 3000);
   }, []);
   return (
     <ToastContext.Provider value={push}>
@@ -248,13 +255,9 @@ export function Toasts({ children }: { children: ReactNode }){
             {list.map(t => (
               <div key={t.id} className={`toast${t.tone ? ` ${t.tone}` : ''}`} role={t.tone ? 'alert' : 'status'}>
                 <span className="t-ic" aria-hidden="true"><Icon name={t.tone ? 'bang' : 'check'} /></span>
-                <div className="t-body">
-                  <span>{t.msg}</span>
-                  {t.actions.length > 0 && <span className="t-acts">{t.actions.map(a => (
-                    <button key={a.label} type="button" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>
-                  ))}</span>}
-                </div>
-                {t.tone && <button type="button" className="t-x" aria-label={d.common.close} title={d.common.close} onClick={() => drop(t.id)}><Icon name="x" /></button>}
+                <p className="t-body"><b>{t.title}</b>{t.detail && <small>{t.detail}</small>}</p>
+                {t.actions.map(a => <button key={a.label} type="button" className="t-act" onClick={() => { drop(t.id); a.fn(); }}>{a.label}</button>)}
+                <button type="button" className="t-x" aria-label={d.common.close} title={d.common.close} onClick={() => drop(t.id)}><Icon name="x" /></button>
               </div>
             ))}
           </div>, document.body)}

@@ -10,7 +10,7 @@ import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { Select, SelectField, type Opt } from './Select';
 import { EngineLogo } from './Flag';
-import { Act, Cancel, Empty, Flt, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useToast } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useFail, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
@@ -34,7 +34,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   d: Dict; ws: Workspace; data: WorkspaceData; admin: boolean; manager: boolean; onShowProfiles(ids: string[]): void;
 }){
   const E = d.engines;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const [catalog, setCatalog] = useState<Kernel[]>([]);
   const [uploading, setUploading] = useState(false);
   const [retiring, setRetiring] = useState<Kernel[] | null>(null);
@@ -48,7 +48,6 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   const [system, setSystem] = useState<'all' | Family>('all');
   // The version whose notes show beside the table: the default one until another is picked, none once closed.
   const [cur, setCur] = useState<string | null>(null);
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
   // Admins manage every system's packages; everyone else needs only this computer's list.
   const loadCatalog = () => { if (admin) void folio.api<{ kernels: Kernel[] }>('GET', '/kernels').then(r => setCatalog(r.kernels), fail); };
   useEffect(loadCatalog, [admin]);
@@ -110,7 +109,7 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
     loadCatalog();
     const n = newer(await data.reloadKernels()).length;
     setChecking(false);
-    toast(n ? E.updates(n) : E.upToDate);
+    toast({ title: n ? E.updates(n) : E.upToDate });
   }
   async function makeDefault(value: string){
     const [kind, version] = value.split(':') as [KernelKind, string];

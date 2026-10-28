@@ -3,11 +3,11 @@
 // failed. Retrying runs only the failed targets again, on the computer that ran the job; a job running here can be
 // canceled. With auto-refresh off the list holds still.
 import { useEffect, useState } from 'react';
-import { folio, isApiError, type Job, type JobDetail, type JobKind } from './api';
+import { folio, type Job, type JobDetail, type JobKind } from './api';
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { checkWhy, errorText, launchWhy, type Dict, type Lang } from './i18n';
-import { Empty, Flt, Icon, ListFailed, PanelEdge, SkelRows, Switch, Tabs, useToast } from './ui';
+import { Empty, Flt, Icon, ListFailed, PanelEdge, SkelRows, Switch, Tabs, useFail, useToast } from './ui';
 import { Select } from './Select';
 
 type Tab = 'all' | 'running' | 'done' | 'partial' | 'canceled';
@@ -34,7 +34,7 @@ export function jobError(d: Dict, kind: JobKind, code: string | null){
 
 export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang; meId: string; data: WorkspaceData; openId: string | null }){
   const J = d.jobs;
-  const toast = useToast();
+  const fail = useFail();
   const [tab, setTab] = useState<Tab>('all');
   const [kind, setKind] = useState<'all' | JobKind>('all');
   const [range, setRange] = useState<Range>('week');
@@ -97,7 +97,7 @@ export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang;
             {shown.length > 0 && <p className="list-foot">{d.profiles.page.total(shown.length)}</p>}
           </section>
           {picked && <JobPanel key={picked.id} d={d} lang={lang} data={data} job={picked} by={starter(picked)} mine={picked.startedById === meId} here={!!device && picked.deviceId === device}
-            onClose={() => setCur(null)} onFail={e => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad')} />}
+            onClose={() => setCur(null)} onFail={fail} />}
         </div>
       </main>
     </div>

@@ -7,7 +7,7 @@ import { cookieKey, readCookies, type Cookie, type CookieEdit, type CookieKey } 
 import { can, folio, isApiError, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Act, BulkBar, Cancel, Empty, Icon, LoadFailed, Modal, MoreMenu, PanelEdge, SkelRows, Tabs, useChanged, useToast } from './ui';
+import { Act, BulkBar, Cancel, Empty, Icon, LoadFailed, Modal, MoreMenu, PanelEdge, SkelRows, Tabs, useChanged, useFail, useToast } from './ui';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
 import { dayLabel, time } from './Activity';
@@ -40,7 +40,7 @@ export function CookiesTab({ d, lang, data, p, running }: Props){
   const [exporting, setExporting] = useState(false);
   const canImport = can(data.role, 'cookies.import'), canRead = can(data.role, 'cookies.export'), canDelete = can(data.role, 'profiles.edit');
   const away = !!p.lock && !p.lock.self;
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
 
   const load = useCallback(async () => {
     if (p.syncMode === 'local'){ setState('local'); setList([]); return; }
@@ -183,7 +183,7 @@ function CookiePanel({ d, lang, p, c, canRead, canEdit, onEdit, onClose }: { d: 
   const k = cookieKey(c);
   useEffect(() => setValue(null), [k]);
   const read = async () => (await folio.api<{ cookies: Cookie[] }>('GET', `/profiles/${p.id}/cookies/values?${new URLSearchParams({ name: c.name, domain: c.domain, path: c.path })}`)).cookies[0]?.value ?? '';
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
   const on = (yes: boolean) => <span className={`badge${yes ? ' good' : ''}`}>{yes ? C.on : C.off}</span>;
   return (
     <aside className="sec ck-panel" aria-label={C.detail}><PanelEdge />
@@ -206,7 +206,7 @@ function CookiePanel({ d, lang, p, c, canRead, canEdit, onEdit, onClose }: { d: 
               <Icon name={value === null ? 'eye' : 'eyeOff'} />{value === null ? C.show : C.hide}
             </button>
             <button type="button" className="icon-btn" aria-label={C.copy} title={C.copy}
-              onClick={() => void read().then(v => navigator.clipboard.writeText(v)).then(() => toast(C.copied), fail)}><Icon name="copy" /></button>
+              onClick={() => void read().then(v => navigator.clipboard.writeText(v)).then(() => toast({ title: C.copied }), fail)}><Icon name="copy" /></button>
           </div>
         ) : <p className="hint">{C.noValue}</p>}
         <p className="hint ck-note"><Icon name="info" />{C.hidden}</p>
@@ -316,7 +316,7 @@ export function CookieExport({ d, profiles, picked, site, onClose }: { d: Dict; 
     if (!r) return;
     onClose();
     if (r.saved) toast(d.detail.exported(r.saved, r.path));
-    r.failed.forEach(f => toast(d.detail.exportFailed(f.name, errorText(d, f.code)), undefined, 'bad'));
+    r.failed.forEach(f => toast({ title: errorText(d, f.code), detail: f.name, tone: 'bad' }));
   }
   const one = profiles.length === 1;
   return (

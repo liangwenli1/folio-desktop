@@ -3,11 +3,11 @@
 // happen on the website, which this page opens. The plans and prices are the real ones, so nothing here is marked as
 // a sample.
 import { useEffect, useState, type ReactNode } from 'react';
-import { folio, isApiError, type Payment, type Workspace } from './api';
+import { folio, type Payment, type Workspace } from './api';
 import type { WorkspaceData } from './data';
-import { day, errorText, type Dict, type Lang } from './i18n';
+import { day, type Dict, type Lang } from './i18n';
 import { isPaid, planStatus } from './plan';
-import { Empty, LoadFailed, SkelRows, Switch, Tabs, useToast } from './ui';
+import { Empty, LoadFailed, SkelRows, Switch, Tabs, useFail } from './ui';
 
 type Tab = 'plan' | 'usage' | 'payments';
 
@@ -15,7 +15,7 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
   d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; manager: boolean; used: number;
 }){
   const B = d.billing;
-  const toast = useToast();
+  const fail = useFail();
   const s = ws.subscription, e = s.entitlements;
   const [tab, setTab] = useState<Tab>('plan');
   const [payments, setPayments] = useState<Payment[] | null>(null);
@@ -30,7 +30,7 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
   async function setReminder(on: boolean){
     setExpiry(on);
     try { await folio.api('PATCH', `/workspaces/${ws.id}`, { settings: { expiryReminder: on } }); }
-    catch (err){ setExpiry(!on); toast(errorText(d, isApiError(err) ? err.code : 'internal'), undefined, 'bad'); }
+    catch (err){ setExpiry(!on); fail(err); }
   }
 
   // A quota: what is used of it, with a bar when it has a limit (none is drawn for an unlimited one).

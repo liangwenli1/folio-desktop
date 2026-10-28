@@ -35,7 +35,7 @@ test('a profile changes proxy from its menu, and proxies are unbound in bulk', a
   await win.locator(`tr[data-id="${b}"]`).getByRole('checkbox').check();
   await win.getByTestId('bulk').getByRole('button', { name: 'Unassign' }).click();
   await win.getByRole('dialog', { name: 'Unassign 1 proxy from 1 profile?' }).getByRole('button', { name: 'Unassign' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '1 profile unassigned' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Proxy unassigned' })).toContainText('1 profile');
   expect(await proxyOf()).toBeNull();
   await app.close();
 });

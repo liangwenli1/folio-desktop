@@ -4,10 +4,10 @@
 // account. Data (exporting or importing the whole workspace) and the plan are for managers. Changes stay while moving
 // between parts and are saved together; leaving with some unsaved asks first.
 import { useState } from 'react';
-import { folio, isApiError, type Me, type Workspace } from './api';
+import { folio, type Me, type Workspace } from './api';
 import type { WorkspaceData } from './data';
-import { errorText, type Dict } from './i18n';
-import { Avatar, CopyBtn, Icon, Switch, useLeave, useToast } from './ui';
+import { type Dict } from './i18n';
+import { Avatar, CopyBtn, Icon, Switch, useFail, useLeave, useToast } from './ui';
 import { SelectField, type Opt } from './Select';
 
 type Settings = Workspace['settings'];
@@ -19,7 +19,7 @@ export function SettingsPage({ d, ws, me, data, manager, onSaved, onExport, onIm
   d: Dict; ws: Workspace; me: Me; data: WorkspaceData; manager: boolean; onSaved(): Promise<void>; onExport(): void; onImport(): void; onBilling(): void;
 }){
   const S = d.settings;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const [part, setPart] = useState<Part>('workspace');
   // What the server holds (Cancel goes back to it), and what is being edited.
   const [saved, setSaved] = useState({ name: ws.name, set: ws.settings, notify: me.user.notify });
@@ -52,8 +52,8 @@ export function SettingsPage({ d, ws, me, data, manager, onSaved, onExport, onIm
       }
       if (meDirty){ await folio.api('PATCH', '/me', { notify }); await onSaved(); }
       setSaved({ name: name.trim() || saved.name, set, notify });
-      toast(S.saved);
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); } finally { setBusy(false); }
+      toast({ title: S.saved });
+    } catch (e){ fail(e); } finally { setBusy(false); }
   }
   const revert = () => { setName(saved.name); setSet(saved.set); setNotify(saved.notify); };
   const ro = !manager;

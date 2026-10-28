@@ -8,7 +8,7 @@ import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { Act, BulkBar, Cancel, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useFail, useToast, useView } from './ui';
 import { Flag, OsLogo } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -18,7 +18,7 @@ const number = (p: Profile) => `#${String(p.number).padStart(4, '0')}`;
 const signins = (d: Dict, p: Profile) => (p.syncMode === 'local' ? d.opening.local : d.trash.sites(p.data?.origins ?? 0));
 
 export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const T = d.trash;
   const [view, setView] = useView<'table' | 'cards'>('trash', 'table');
   const [sel, setSel] = useState<Set<string>>(() => new Set());
@@ -54,13 +54,13 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
       toast(T.restored(n));
     } catch (e){
       const code = isApiError(e) ? e.code : 'internal';
-      toast(errorText(d, code), code === 'plan_limit' && manager
-        ? { label: d.plan.addProfiles, fn: () => void folio.openSite(`/${lang}/checkout/?ws=${ws.id}`) } : undefined, 'bad');
+      toast({ title: errorText(d, code), tone: 'bad', action: code === 'plan_limit' && manager
+        ? { label: d.plan.addProfiles, fn: () => void folio.openSite(`/${lang}/checkout/?ws=${ws.id}`) } : undefined });
     }
   }
   async function purge(targets: Profile[]){
     setConfirm(null);
-    try { toast(T.purged(await data.batch('purge', targets.map(p => p.id)))); setSel(new Set()); } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
+    try { toast(T.purged(await data.batch('purge', targets.map(p => p.id)))); setSel(new Set()); } catch (e){ fail(e); }
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const item = (p: Profile): TrashItem => ({

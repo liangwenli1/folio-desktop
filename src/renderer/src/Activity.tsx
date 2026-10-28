@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
-import { day, errorText, fieldName, type Dict, type Lang } from './i18n';
-import { Empty, Flt, Icon, LoadFailed, PanelEdge, SkelRows, useToast } from './ui';
+import { day, fieldName, type Dict, type Lang } from './i18n';
+import { Empty, Flt, Icon, LoadFailed, PanelEdge, SkelRows, useFail, useToast } from './ui';
 import { Select } from './Select';
 import { Pager } from './Pager';
 
@@ -50,7 +50,7 @@ const dayStart = (date: string, plus = 0) => { const t = new Date(`${date}T00:00
 
 export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
   const A = d.activity;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const [person, setPerson] = useState('');
   const [kind, setKind] = useState<Kind>('all');
   const [q, setQ] = useState('');
@@ -77,7 +77,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
       const csv = await folio.api<string>('GET', `/workspaces/${ws.id}/activity.csv?${query.slice(1)}`);
       const path = await folio.saveFile(`folio-activity-${new Date().toISOString().slice(0, 10)}.csv`, csv);
       if (path) toast(A.exported(path));
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
+    } catch (e){ fail(e); }
   }
 
   return (

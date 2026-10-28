@@ -5,6 +5,8 @@ import type { Step } from '@shared/bridge';
 import { SEARCH_ENGINES, type SearchEngine } from '@shared/search';
 
 export type Lang = 'en' | 'zh';
+// A toast's words: what happened, and under it what to (a name, a count, a file).
+export interface News { title: string; detail?: string }
 type CheckText = { t: (x: CheckVars) => string; d: (x: CheckVars) => string };
 // Activity entries: who did it comes first; `p` is the profile ("Shop-07 #0007"), `x` the entry's details.
 type Said = (p: string, x: Record<string, any>) => string;
@@ -53,7 +55,7 @@ export const en = {
     edit: 'Edit group', addProfile: 'Add profile', search: 'Search name or number', state: 'Status', owner: 'Member', owners: 'All members', sort: 'Sort by name',
     states: { all: 'All statuses', running: 'Running', stopped: 'Not running' },
     cols: { name: 'Profile', number: 'No.', region: 'Country/region', status: 'Status', owner: 'Owner' },
-    empty: 'No profiles in this group yet', emptyText: 'Create a profile in this group, or move profiles here from the profile list.', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number) => `${profilesN(n)} removed from the group`,
+    empty: 'No profiles in this group yet', emptyText: 'Create a profile in this group, or move profiles here from the profile list.', move: 'Move to group…', moveOut: 'Remove from group', movedOut: (n: number): News => ({ title: 'Removed from the group', detail: profilesN(n) }),
     settings: 'Group settings', name: 'Group name', nameErr: 'Enter a group name.', parent: 'Parent group', parentNone: 'None (top level)', description: 'Description',
     members: 'Member access', people: 'Members of the group', addMember: 'Add member', findMember: 'Search members', noneToAdd: 'Everyone is in this group.',
     roleOf: (e: string) => `Role of ${e}`, removeMember: (e: string) => `Remove ${e}`,
@@ -65,8 +67,8 @@ export const en = {
     deleteHas: (g: string, n: number) => `“${g}” has ${profilesN(n)}. Choose where they go before it is deleted.`,
     deleteNote: 'Only the group goes, not its profiles; who can reach them follows the group they move to.', deleteEmpty: 'There are no profiles in it; only the group goes.',
     deleteKids: (n: number) => (n === 1 ? 'The group under it moves up a level.' : `The ${n} groups under it move up a level.`),
-    deleted: (g: string) => `“${g}” deleted`,
-    newTitle: 'New group', create: 'Create group', created: (g: string) => `“${g}” created`,
+    deleted: (g: string): News => ({ title: 'Group deleted', detail: g }),
+    newTitle: 'New group', create: 'Create group', created: (g: string): News => ({ title: 'Group created', detail: g }),
     createHint: 'Profiles can be added once it exists.', rolesTitle: 'About roles'
   },
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
@@ -124,7 +126,7 @@ export const en = {
     menu: { profile: 'Profile', password: 'Change password', switch: 'Switch workspace', logout: 'Log out' },
     info: 'Account', displayName: 'Display name', displayNameHint: 'How colleagues see you: in the team, the log and as an owner.', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
     emailNote: 'Your email is how you log in; change it on the website’s account page.', nameErr: 'Enter a name.', saved: 'Profile saved',
-    password: { current: 'Current password', next: 'New password', confirm: 'Confirm new password', rule: '8 to 64 characters.', currentErr: 'Enter your current password.', short: 'Use 8 to 64 characters.', mismatch: 'The two new passwords don’t match.', done: 'Password changed. Sign-ins on other computers have ended.' },
+    password: { current: 'Current password', next: 'New password', confirm: 'Confirm new password', rule: '8 to 64 characters.', currentErr: 'Enter your current password.', short: 'Use 8 to 64 characters.', mismatch: 'The two new passwords don’t match.', done: { title: 'Password changed', detail: 'Sign-ins on other computers have ended' } },
     switchDlg: { title: 'Switch workspace', field: 'Workspace', note: 'Switching changes what you see; nothing moves between workspaces. Save changes before you switch.', invites: 'Invitations', go: 'Switch' },
     logoutDlg: {
       title: 'Log out', ask: 'Log out of this account?',
@@ -203,14 +205,14 @@ export const en = {
       confirm: (n: number) => `Move ${profilesN(n)} to the Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
-      trashed: (n: number) => `${profilesN(n)} moved to the Trash`, moved: (n: number, g: string) => `${profilesN(n)} moved to ${g}`,
-      tagged: (n: number, t: string) => `Tagged ${profilesN(n)} “${t}”`, untagged: (n: number, t: string) => `Removed “${t}” from ${profilesN(n)}`,
-      proxySet: (n: number) => `Proxy changed on ${profilesN(n)}`, assigned: (n: number, who: string) => `${profilesN(n)} assigned to ${who}`,
-      created: (x: string) => `${x} is ready`, saved: 'Saved', failed: (name: string, why: string) => `${name}: ${why}`,
+      trashed: (n: number): News => ({ title: 'Moved to the Trash', detail: profilesN(n) }), moved: (n: number, g: string): News => ({ title: `Moved to ${g}`, detail: profilesN(n) }),
+      tagged: (n: number, t: string): News => ({ title: `Tagged “${t}”`, detail: profilesN(n) }), untagged: (n: number, t: string): News => ({ title: `“${t}” removed`, detail: profilesN(n) }),
+      proxySet: (n: number): News => ({ title: 'Proxy changed', detail: profilesN(n) }), assigned: (n: number, who: string): News => ({ title: `Assigned to ${who}`, detail: profilesN(n) }),
+      created: 'Profile created', saved: 'Changes saved',
       stale: 'Someone changed this profile in the meantime. Try again.',
-      extAdded: (n: number, x: string, skipped: number) => `${x} installed in ${profilesN(n)}${skipped ? `; ${skipped} skipped (other engine, or already there)` : ''}`,
-      extRemoved: (n: number, x: string) => `${x} uninstalled from ${profilesN(n)}`,
-      syncing: (leader: string, n: number) => `Window sync started: ${leader} leads, ${n === 1 ? '1 window follows' : `${n} windows follow`}`, syncFailed: 'Window sync needs at least two open profiles.'
+      extAdded: (n: number, x: string, skipped: number): News => ({ title: 'Extension installed', detail: `${x} · ${profilesN(n)}${skipped ? `; ${skipped} skipped (other engine, or already there)` : ''}` }),
+      extRemoved: (n: number, x: string): News => ({ title: 'Extension uninstalled', detail: `${x} · ${profilesN(n)}` }),
+      syncing: (leader: string, n: number): News => ({ title: 'Window sync started', detail: `${leader} leads · ${n === 1 ? '1 window follows' : `${n} windows follow`}` }), syncFailed: 'Window sync needs at least two open profiles.'
     }
   },
   // Several profiles changed at once: what changes, which ones it reaches, and which are skipped.
@@ -224,7 +226,7 @@ export const en = {
     picked: (n: number) => `Selected (${n})`, running: (n: number) => (n === 1 ? '1 of them is running and stays as it is.' : `${n} of them are running and stay as they are.`),
     stoppedOnly: 'Only change profiles that are not running', stoppedOnlyHint: 'A running profile keeps its settings until it is closed.',
     counts: (ok: number, skip: number) => `${ok} to change · ${skip} skipped`,
-    submit: (n: number) => `Change ${profilesN(n)}`, done: (n: number) => `${profilesN(n)} changed`
+    submit: (n: number) => `Change ${profilesN(n)}`, done: (n: number): News => ({ title: 'Profiles changed', detail: profilesN(n) })
   },
   launch: {
     kernel_missing: 'This engine isn’t downloaded on this computer.', proxy_down: 'The proxy didn’t respond, and there’s no working backup line.',
@@ -250,8 +252,7 @@ export const en = {
     cookies: 'Cookies', siteData: 'Site storage', sites: 'Sites', extensions: 'Extensions', noExtensions: 'None installed',
     notSaved: 'Nothing saved yet. Sign-ins are saved when the browser closes.', localOnly: 'Kept on the computer that uses it; Folio holds no copy.',
     json: 'JSON', netscape: 'cookies.txt',
-    exported: (n: number, path: string) => `${profilesN(n)} exported to ${path}`, imported: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} imported`,
-    exportFailed: (name: string, why: string) => `${name}: ${why}`,
+    exported: (n: number, path: string): News => ({ title: 'Cookies exported', detail: `${profilesN(n)} · ${path}` }), imported: (n: number): News => ({ title: 'Cookies imported', detail: `${n} ${n === 1 ? 'cookie' : 'cookies'}` }),
     inUse: 'In use elsewhere', away: (device: string, email: string, since: string) => `Open on ${device} (${email}) since ${since}.`,
     takeover: 'Take over', takeoverNote: 'Their browser closes. Changes made there in the last few minutes are lost.', takeoverDo: 'Take over and open'
   },
@@ -265,7 +266,7 @@ export const en = {
     deleteN: (n: number) => (n === 1 ? 'Delete this cookie?' : `Delete ${n} cookies?`),
     deleteNote: 'Deleted cookies are removed from the saved sign-ins. This can’t be undone.',
     deleteRunning: 'Deleted cookies are removed from the saved sign-ins and from the browser open on this computer. This can’t be undone.',
-    deleted: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} deleted`,
+    deleted: (n: number): News => ({ title: 'Cookies deleted', detail: `${n} ${n === 1 ? 'cookie' : 'cookies'}` }),
     detail: 'Cookie details', close: 'Close details', value: 'Value', show: 'Show', hide: 'Hide', copy: 'Copy the value', copied: 'Value copied',
     hidden: 'Values stay hidden until asked for; each read is recorded in the activity log.', noValue: 'Your role can’t read cookie values.', on: 'On', off: 'Off',
     none: 'No cookies saved', noneText: 'Cookies are saved here when the browser closes after signing in to sites, or they can be imported.', notSaved: 'Nothing saved yet', notSavedText: 'Cookies are saved when the browser closes, or come in from a file.',
@@ -378,8 +379,8 @@ export const en = {
     restore: 'Restore last tabs',
     start: 'On opening', startTabs: 'Restores the last tabs', startHome: (name: string) => `Opens the ${name} home page`, startBlank: 'Opens a blank page',
     bulk: 'Browser settings…', on: 'On', off: 'Off',
-    searchSet: (n: number, name: string) => `Search engine set to ${name} on ${profilesN(n)}`,
-    tabsSet: (n: number, on: boolean) => `Tab restoring turned ${on ? 'on' : 'off'} for ${profilesN(n)}`
+    searchSet: (n: number, name: string): News => ({ title: `Search engine set to ${name}`, detail: profilesN(n) }),
+    tabsSet: (n: number, on: boolean): News => ({ title: `Tab restoring turned ${on ? 'on' : 'off'}`, detail: profilesN(n) })
   },
   importer: {
     title: 'Import profiles', lead: 'One profile per row with a header row. Save Excel sheets as CSV first; up to 500 rows at a time.',
@@ -389,7 +390,7 @@ export const en = {
     errs: { name: 'the name is missing or too long', os: 'unknown system', engine: 'unknown engine', tags: 'up to 10 tags, 24 characters each', timezone: 'unknown time zone', language: 'not a language tag', proxy: 'the proxy can’t be read', cookies: 'no cookies could be read', search: 'unknown search engine', restoreTabs: 'use yes or no', header: '' } satisfies Record<Problem | 'proxy', string>,
     tooMany: 'Up to 500 rows at a time.', room: (free: number) => `The plan has room for ${profilesN(free)} more.`, firefox: 'Some rows use Firefox: download its engine first.',
     submit: (n: number) => `Import ${profilesN(n)}`, steps: { proxies: 'Adding proxies…', groups: 'Creating groups…', fingerprints: (i: number, n: number) => `Making fingerprints… ${i} / ${n}`, saving: 'Saving…', cookies: (i: number, n: number) => `Importing cookies… ${i} / ${n}` },
-    done: (n: number) => `${profilesN(n)} imported`
+    done: (n: number): News => ({ title: 'Profiles imported', detail: profilesN(n) })
   },
   proxies: {
     title: 'Proxies',
@@ -407,9 +408,9 @@ export const en = {
     bulk: {
       unbind: 'Unassign', unbindNone: 'None of the selected proxies is assigned to a profile.', unbindTitle: (n: number, m: number) => `Unassign ${proxiesN(n)} from ${profilesN(m)}?`,
       unbindNote: 'Those profiles connect without a proxy until another is assigned; running ones change the next time they open.',
-      unbound: (m: number) => `${profilesN(m)} unassigned`
+      unbound: (m: number): News => ({ title: 'Proxy unassigned', detail: profilesN(m) })
     },
-    deleted: (n: number) => `${proxiesN(n)} deleted`, checked: (n: number) => `Checked ${proxiesN(n)}`, actionsX: (n: string) => `Actions for ${n}`,
+    deleted: (n: number): News => ({ title: n === 1 ? 'Proxy deleted' : 'Proxies deleted', detail: proxiesN(n) }), checked: (n: number): News => ({ title: 'Check finished', detail: proxiesN(n) }), actionsX: (n: string) => `Actions for ${n}`,
     detail: {
       label: 'Proxy', exitIp: 'Exit IP', region: 'Region', latency: 'Latency', profiles: 'Profiles', config: 'Connection', history: 'Recent checks',
       ok: (ms: number) => `Responded · ${ms} ms`, failed: 'No response', passSet: 'Saved', passNone: 'None', uptime: 'Uptime',
@@ -420,7 +421,7 @@ export const en = {
       createdOn: (when: string) => `Added ${when}`, checkedOn: (when: string) => `last checked ${when}`, authOn: 'On', authOff: 'Off',
       runningWarn: 'Stop the running profiles that use this proxy before changing how it connects.', viewProfile: 'View profile'
     },
-    formAdd: 'Add proxy', formEdit: 'Edit proxy', save: 'Save proxy', added: (n: string) => `${n} added`,
+    formAdd: 'Add proxy', formEdit: 'Edit proxy', save: 'Save proxy', added: 'Proxy added',
     name: 'Name', namePh: 'e.g., US-West-01', nameErr: 'Enter a name for the proxy.', type: 'Protocol', host: 'Host', port: 'Port', notes: 'Notes',
     auth: 'Authentication', authHint: 'When on, the proxy is reached with a username and password.',
     user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
@@ -462,13 +463,13 @@ export const en = {
       invalidNote: 'Invalid lines aren’t imported; correct them and read the list again.',
       skip: 'Skip duplicate proxies', skipHelp: 'A line identical to a saved proxy, or to a line above, uses that one instead of adding another.',
       reparse: 'Read again', submit: (n: number) => `Import ${proxiesN(n)}`,
-      done: (added: number, reused: number) => `${proxiesN(added)} added${reused ? `, ${reused} already saved` : ''}`
+      done: (added: number, reused: number): News => ({ title: 'Proxies imported', detail: `${proxiesN(added)} added${reused ? `, ${reused} already saved` : ''}` })
     },
     replace: {
       title: 'Change proxy', lead: (name: string) => `Choose the proxy ${name} connects through.`, current: 'Current proxy', state: 'Status',
       pick: 'Pick', test: 'Check the chosen proxy', confirm: 'Change proxy',
       running: 'The profile is running; stop it to change its proxy.', stop: 'Stop profile', warn: 'After changing it, check the profile’s time zone and language.',
-      done: (profile: string, proxy: string) => `${profile} now connects through ${proxy}`
+      done: (profile: string, proxy: string): News => ({ title: 'Proxy replaced', detail: `${profile} now connects through ${proxy}` })
     }
   },
   trash: {
@@ -483,12 +484,12 @@ export const en = {
     typeName: (name: string) => `Type ${name} to confirm`, typeCount: (n: number) => `Type ${n} to confirm`,
     sites: (n: number) => (n ? `${n} ${n === 1 ? 'site' : 'sites'}` : 'None'), byAt: (who: string, when: string) => `${who} deleted it ${when}`,
     confirmPurge: (n: number) => `Permanently delete ${profilesN(n)}?`, confirmNote: 'This can’t be undone: their fingerprints and settings can’t be recovered.',
-    restored: (n: number) => `${profilesN(n)} restored`, purged: (n: number) => `${profilesN(n)} permanently deleted`
+    restored: (n: number): News => ({ title: 'Restored', detail: profilesN(n) }), purged: (n: number): News => ({ title: 'Permanently deleted', detail: profilesN(n) })
   },
   engines: {
     title: 'Engines',
     check: 'Check for updates', upToDate: 'Every engine is up to date', upToDateText: 'The installed engines are all on their latest versions.', updates: (n: number) => `${n === 1 ? '1 update' : `${n} updates`} available`,
-    defaultKernel: 'Default engine', defaultOf: (engine: string) => `${engine} · recommended`, defaultSet: (v: string) => `New profiles now start with ${v}`,
+    defaultKernel: 'Default engine', defaultOf: (engine: string) => `${engine} · recommended`, defaultSet: (v: string): News => ({ title: 'Default engine set', detail: `New profiles now start with ${v}` }),
     tabs: { all: 'All engines', installed: 'Downloaded', updates: 'Updates' },
     search: 'Search versions', searchPh: 'Search versions or notes', system: 'System', systems: 'All systems', filterLabels: { keyword: 'Keyword', system: 'Platform' }, tip: 'To switch existing profiles to another engine, stop them first.',
     families: { win: 'Windows', mac: 'macOS', linux: 'Linux' },
@@ -496,7 +497,7 @@ export const en = {
     recommended: 'Recommended', default: 'Default', installed: 'Downloaded', notDownloaded: 'Not downloaded', download: 'Download', failed: 'Download failed',
     downloadingPct: (pct: number) => `Downloading ${pct}%`, everywhere: (n: number) => `${n} in all workspaces`, actionsX: (v: string) => `Actions for ${v}`,
     setDefault: 'Make default', details: 'Details',
-    remove: 'Delete from this computer', removeBusy: 'Can’t delete: a profile is running on it', removed: (v: string) => `${v} deleted from this computer`,
+    remove: 'Delete from this computer', removeBusy: 'Can’t delete: a profile is running on it', removed: (v: string): News => ({ title: 'Deleted from this computer', detail: v }),
     retired: 'Retired', none: 'No version of this engine is built for this computer.',
     noneDownloaded: 'Nothing downloaded yet', noneDownloadedText: 'Download a version from All engines; a profile also downloads its own when it opens.',
     outdated: (n: number, kernel: string) => `${profilesN(n)} ${n === 1 ? 'uses' : 'use'} the older ${kernel}`, upgrade: (v: string) => `Upgrade to ${v}`,
@@ -505,11 +506,11 @@ export const en = {
     paused: (pct: number) => `Paused at ${pct}%`, pause: 'Pause', resume: 'Resume',
     disk: (size: string) => `Engines on this computer take ${size}`, cleanup: 'Delete unused versions', nothingToClean: 'Every downloaded version is in use or recommended.',
     cleanupTitle: (n: number) => `Delete ${n === 1 ? '1 unused version' : `${n} unused versions`}?`, cleanupNote: (size: string) => `Frees ${size}. A version downloads again if a profile needs it.`,
-    cleaned: (n: number) => `${n === 1 ? '1 version' : `${n} versions`} deleted from this computer`,
+    cleaned: (n: number): News => ({ title: 'Unused versions deleted', detail: n === 1 ? '1 version' : `${n} versions` }),
     settings: 'Download settings', autoDownload: 'Download updates automatically', autoHint: 'Existing profiles keep their version',
     autoHelp: 'New recommended versions download to this computer in the background. Profiles stay on their version until you upgrade them.',
     idleOnly: 'Download only while idle',
-    upgraded: (n: number, v: string) => `${profilesN(n)} now ${n === 1 ? 'uses' : 'use'} ${v}`,
+    upgraded: (n: number, v: string): News => ({ title: 'Engine upgraded', detail: `${profilesN(n)} now ${n === 1 ? 'uses' : 'use'} ${v}` }),
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple silicon', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
     notes: {
       title: 'Version notes', version: 'Version', released: 'Released', size: 'Size', profiles: 'Profiles', changes: 'What changed', none: 'No notes for this version.',
@@ -518,12 +519,12 @@ export const en = {
     admin: {
       upload: 'Upload a version', title: 'Upload an engine version', kind: 'Engine', version: 'Version', versionPh: 'e.g., 151.0.7900.10', platform: 'System',
       file: 'Package', choose: 'Choose a file…', fileHint: 'The package as the engine publishes it: .zip, .tar.xz or .dmg. It goes straight to Folio’s storage.',
-      hashing: (pct: number) => `Checking the file… ${pct}%`, uploading: (pct: number) => `Uploading… ${pct}%`, send: 'Upload', done: (v: string) => `${v} added to the catalog`,
-      recommend: 'Make recommended', recommended: (v: string) => `${v} is now recommended`, retire: 'Retire', unfinished: 'Upload unfinished',
+      hashing: (pct: number) => `Checking the file… ${pct}%`, uploading: (pct: number) => `Uploading… ${pct}%`, send: 'Upload', done: (v: string): News => ({ title: 'Added to the catalog', detail: v }),
+      recommend: 'Make recommended', recommended: (v: string): News => ({ title: 'Now recommended', detail: v }), retire: 'Retire', unfinished: 'Upload unfinished',
       recommendTitle: (v: string) => `Make ${v} the recommended version?`, recommendNote: 'Workspaces without a default engine start new profiles on it; the note below shows in its version notes.', note: 'What changed (optional)',
       retireTitle: (v: string) => `Retire ${v} from the catalog?`,
       retireConfirm: (n: number) => `${n ? `${profilesN(n)} in all workspaces ${n === 1 ? 'uses' : 'use'} it. ` : ''}Computers that downloaded it keep it; elsewhere its profiles are offered another version.`,
-      retiredDone: (v: string) => `${v} retired from the catalog`
+      retiredDone: (v: string): News => ({ title: 'Retired from the catalog', detail: v })
     }
   },
   team: {
@@ -540,7 +541,7 @@ export const en = {
     accessSub: 'The role is theirs across the workspace; the groups decide which profiles they can access.', saved: 'Access saved',
     viaParent: 'through its parent', noGroups: 'There are no groups yet.',
     search: 'Search members', meTag: '(you)', moreX: (e: string) => `More for ${e}`,
-    copiedNew: 'A new invitation link was copied; the earlier one no longer works.',
+    copiedNew: { title: 'New invitation link copied', detail: 'The earlier link no longer works' },
     roleHelp: {
       owner: 'Has every permission: people, groups, every profile and the workspace’s settings. Can’t be changed.',
       admin: 'Sees and manages every profile, proxy and person, but can’t change the owner.',
@@ -557,13 +558,13 @@ export const en = {
     summaryOwn: 'Only the profiles given to them; the role decides what they may do.',
     validity: 'Link works for', days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
     seatsAfter: (n: number, max: number) => `Seats after inviting: ${n} / ${max}`,
-    send: 'Send invitation', sent: (e: string) => `Invitation sent to ${e}.`, notSent: 'The email couldn’t be sent. Copy the link and pass it on yourself.',
+    send: 'Send invitation', sent: (e: string): News => ({ title: 'Invitation sent', detail: e }), notSent: { title: 'The email couldn’t be sent', detail: 'Copy the link and pass it on yourself' },
     sentShort: 'Invitation sent', notSentShort: 'Not emailed: copy the link and pass it on',
     done: 'Done',
     removeTitle: (e: string) => `Remove ${e}`, removeLead: 'Their profiles go to the person you choose. Anything they have open closes on their computer, and their copies there are deleted.',
-    heir: 'Give their profiles to', heirNeeded: 'Choose who receives their profiles first.', removeDo: 'Remove from workspace', removed: (e: string) => `${e} was removed`,
+    heir: 'Give their profiles to', heirNeeded: 'Choose who receives their profiles first.', removeDo: 'Remove from workspace', removed: (e: string): News => ({ title: 'Member removed', detail: e }),
     leaveTitle: (ws: string) => `Leave ${ws}?`, leaveLead: 'Your profiles there go to the owner, and you lose access to the workspace.', leaveDo: 'Leave',
-    removedYou: (ws: string) => `You’re no longer in ${ws}. Its profiles were closed and removed from this computer.`,
+    removedYou: (ws: string): News => ({ title: `You’re no longer in ${ws}`, detail: 'Its profiles were closed and removed from this computer' }),
     groupAccess: 'Group access',
     invites: 'Invitations to you', join: 'Join', decline: 'Decline', from: (who: string, role: string) => `From ${who}, as ${role}`
   },
@@ -581,7 +582,7 @@ export const en = {
     started: (n: number) => `Started on ${n === 1 ? '1 target' : `${n} targets`}`, finished: (s: string) => `Finished: ${s}`,
     retry: (n: number) => `Retry failed (${n})`, retryNote: 'Only the failed ones run again; the ones done stay as they are.',
     retryElsewhere: 'It ran on another computer: retry it there.', retryTheirs: 'Only whoever started it can retry it.',
-    cancel: 'Cancel task', download: 'Download results', saved: (p: string) => `Saved to ${p}`,
+    cancel: 'Cancel task', download: 'Download results', saved: (p: string): News => ({ title: 'Results saved', detail: p }),
     errors: { running: 'The profile was running', gone: 'The profile was deleted', paused: 'The download was paused', failed: 'Failed', canceled: 'Canceled' } as Record<string, string>
   },
   states: {
@@ -599,7 +600,7 @@ export const en = {
     partial: (what: string) => `Some details couldn’t be loaded (${what}), so this list may be incomplete.`,
     lists: { profiles: 'profiles', trash: 'the Trash', groups: 'groups', proxies: 'proxies', members: 'members', flows: 'flows', tasks: 'scheduled tasks', extensions: 'extensions', jobs: 'tasks' } as Record<string, string>, listSep: ', ',
     underway: (what: string) => `${what}: under way`, resultsThere: 'The task center will have the results.', viewTask: 'View task',
-    partly: (what: string, ok: number, failed: number) => `${what}: ${ok} done, ${failed} failed`, view: 'View'
+    partly: (what: string, ok: number, failed: number): News => ({ title: `${what}: some failed`, detail: `${ok} done, ${failed} failed` }), view: 'View details'
   },
   rolesPage: {
     list: 'Roles', add: 'New role', note: 'A role decides what someone may do; the groups they are in decide which profiles.',
@@ -618,8 +619,8 @@ export const en = {
       'team.manage': ['Manage the team', 'Invite and remove people, set roles and groups, and manage the workspace settings and plan'],
       'activity.view': ['View the activity log', 'See what the team has done']
     } as Record<string, [string, string]>,
-    reset: 'Restore defaults', save: 'Save permissions', saved: (r: string) => `${r} saved`,
-    delete: 'Delete role', deleteTitle: (r: string) => `Delete the role ${r}?`, deleteNote: 'Only roles that no member holds and no pending invitation uses can be deleted.', deleted: (r: string) => `${r} deleted`,
+    reset: 'Restore defaults', save: 'Save permissions', saved: (r: string): News => ({ title: 'Permissions saved', detail: r }),
+    delete: 'Delete role', deleteTitle: (r: string) => `Delete the role ${r}?`, deleteNote: 'Only roles that no member holds and no pending invitation uses can be deleted.', deleted: (r: string): News => ({ title: 'Role deleted', detail: r }),
     newTitle: 'New role', name: 'Role name', nameErr: 'Enter a role name.', from: 'Start from', fromNone: 'No permissions', create: 'Create role'
   },
   activity: {
@@ -629,7 +630,7 @@ export const en = {
     kinds: { all: 'All actions', open: 'Opening and closing', profiles: 'Profile changes', trash: 'Trash', proxies: 'Proxies and groups', cookies: 'Cookies and exports', team: 'Team', extensions: 'Extensions', automation: 'Automation' },
     dates: 'Dates', from: 'From', until: 'Until', to: 'to',
     partial: 'Your role shows your own actions and what was done to the profiles you can see.',
-    export: 'Export log', exported: (path: string) => `Saved to ${path}`, empty: 'Nothing recorded yet', emptyText: 'Changes to profiles, proxies, members and settings in this workspace are recorded here.', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
+    export: 'Export log', exported: (path: string): News => ({ title: 'Log exported', detail: path }), empty: 'Nothing recorded yet', emptyText: 'Changes to profiles, proxies, members and settings in this workspace are recorded here.', someone: 'Someone', recent: 'Recent activity', by: (who: string) => `by ${who}`,
     today: 'Today', yesterday: 'Yesterday',
     detail: {
       title: 'Entry details', number: 'Entry', person: 'By', time: 'Time', type: 'Action', object: 'Target', device: 'Computer', what: 'What happened',
@@ -683,12 +684,12 @@ export const en = {
   transfer: {
     exportTitle: 'Export all data', exportLead: 'One file with every profile (fingerprints and settings), its sign-ins, the groups and the proxies with their passwords. Profiles in the Trash stay behind.',
     passphrase: 'Passphrase', confirm: 'Confirm passphrase', passHelp: 'At least 10 characters. The file opens only with it, and it is not kept anywhere: if it is lost, so is the file.',
-    passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exported: (path: string) => `Saved to ${path}`,
+    passShort: 'Use at least 10 characters.', passMismatch: 'The two passphrases differ.', export: 'Export', exported: (path: string): News => ({ title: 'Profiles exported', detail: path }),
     importTitle: 'Import data', importLead: 'Brings a .folio file into this workspace: its profiles are added and numbered here, and identical proxies and same-named groups are reused.',
     choose: 'Choose a .folio file…', unlock: 'Unlock',
     preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `From ${p.workspace}: ${profilesN(p.profiles)} (${p.signedIn} with sign-ins), ${p.proxies} ${p.proxies === 1 ? 'proxy' : 'proxies'}, ${p.groups} ${p.groups === 1 ? 'group' : 'groups'}${p.extensions ? `, ${p.extensions} ${p.extensions === 1 ? 'extension' : 'extensions'}` : ''}.`,
     room: (free: number) => `The plan has room for ${profilesN(free)} more.`, import: 'Import',
-    imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `${profilesN(r.profiles)} imported, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}`
+    imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) : News => ({ title: 'Profiles imported', detail: `${profilesN(r.profiles)}, ${r.signedIn} with sign-ins; ${r.proxies} new ${r.proxies === 1 ? 'proxy' : 'proxies'}, ${r.groups} new ${r.groups === 1 ? 'group' : 'groups'}${r.extensions ? `, ${r.extensions} new ${r.extensions === 1 ? 'extension' : 'extensions'}` : ''}` })
   },
   flows: {
     title: 'Flows', new: 'New flow',
@@ -696,7 +697,7 @@ export const en = {
     cols: { name: 'Flow', steps: 'Steps', by: 'Created by', updated: 'Changed' }, search: 'Search flows by name',
     emptyTitle: 'No flows yet', empty: 'A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
-    inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string) => `${n} deleted`, copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
+    inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string): News => ({ title: 'Flow deleted', detail: n }), copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
     back: 'Flows', backLabel: 'Back to flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
     readOnly: 'Only whoever created this flow, admins and the owner can change it. Duplicate it to make your own version.',
     stale: 'Someone saved this flow while you were editing. Save again to replace their version with yours.',
@@ -766,7 +767,7 @@ export const en = {
     onlyOpen: 'Scheduled tasks run on their computer while Folio is open and logged in there; times missed are recorded, not run late.', enableStartup: 'Open Folio at startup',
     run: 'Run', runX: (n: string) => `Run ${n}`, stop: 'Stop', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     noProfilesHere: 'None of its profiles are yours to run.', runningElsewhere: 'It is running now.',
-    confirmDelete: (n: string) => `Delete “${n}” and its runs?`, deleted: (n: string) => `${n} deleted`, started: (n: string) => `${n} started on this computer`,
+    confirmDelete: (n: string) => `Delete “${n}” and its runs?`, deleted: (n: string): News => ({ title: 'Task deleted', detail: n }), started: (n: string): News => ({ title: 'Started on this computer', detail: n }),
     saved: 'Task saved', stale: 'Someone changed this task in the meantime. Open it again and redo your change.',
     status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted', missed: 'Missed', busy: 'Skipped' },
     progress: (done: number, all: number) => `${done} of ${all} done`, elsewhere: (where: string) => `on ${where}`,
@@ -776,7 +777,7 @@ export const en = {
     missedNote: (at: string, device: string) => `Nothing ran at ${at}: Folio wasn’t open and logged in on ${device || 'its computer'}, or the computer was asleep.`,
     busyNote: (at: string) => `Nothing ran at ${at}: the run before was still going.`, runNow: 'Run it now',
     startedBy: (who: string, device: string | null, when: string) => `${who}${device ? ` on ${device}` : ''}, ${when}`,
-    rerun: (n: number) => `Rerun the ${n === 1 ? 'one' : n} that didn’t succeed`, export: 'Export CSV', exported: (path: string) => `Saved to ${path}`,
+    rerun: (n: number) => `Rerun the ${n === 1 ? 'one' : n} that didn’t succeed`, export: 'Export CSV', exported: (path: string): News => ({ title: 'Runs exported', detail: path }),
     csv: { number: 'Number', profile: 'Profile', status: 'Result', attempts: 'Tries', problem: 'Problem' },
     item: { pending: 'Waiting', running: 'Running', ok: 'Done', failed: 'Failed', signed_out: 'Signed out', skipped: 'Skipped', canceled: 'Not run' },
     noLog: 'Nothing was logged.', attempt: (n: number) => `Try ${n}`, shotsWhere: (device: string) => (device ? `Screenshots are kept on ${device}.` : 'Screenshots are kept on the computer that ran it.'),
@@ -829,14 +830,14 @@ export const en = {
     uploaded: 'Uploaded file', update: 'New version', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     signed: 'Signature checked', signedNote: 'Before installing it in a profile, Folio checks the package against its signature and checksum, and leaves it out if either fails.',
     confirmDelete: (n: string, count: number) => (count ? `Delete “${n}”? It will be uninstalled from ${profilesN(count)}.` : `Delete “${n}”?`),
-    deleted: (n: string) => `${n} deleted`, added: (n: string) => `${n} added to the library`, updated: (n: string) => `${n} updated; profiles get it the next time they open`,
+    deleted: (n: string): News => ({ title: 'Extension deleted', detail: n }), added: (n: string): News => ({ title: 'Added to the library', detail: n }), updated: (n: string): News => ({ title: 'Extension updated', detail: `${n} · profiles get it the next time they open` }),
     addTitle: 'Add extension', updateTitle: (n: string) => `New version of ${n}`, from: 'From', fromFile: 'A file', fromStore: (k: string): string => (k === 'chromium' ? 'Chrome Web Store' : 'addons.mozilla.org'),
     chooseFile: 'Choose a file…', fileHintChromium: 'A .crx or .zip with manifest.json at the top.', fileHintFirefox: 'An .xpi (or .zip) with manifest.json at the top.',
     storeChromium: 'Link or extension ID', storeFirefox: 'Link to the add-on (or its short name)',
     idNote: 'Folio gives the extension a key of its own so it has the same ID on every computer and its data can follow the profile. Its ID differs from the store’s, which a few extensions that pair with a desktop program or a site rely on.',
     uuidNote: 'Each profile gets its own internal address for the add-on, so sites can’t link profiles through it.',
     addDo: 'Add', updateDo: 'Upload', uploading: 'Uploading…', fetching: 'Downloading from the store…',
-    failedCheck: (profile: string, names: string[]) => `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.`
+    failedCheck: (profile: string, names: string[]): News => ({ title: 'Integrity check failed', detail: `${profile} opened without ${names.join(', ')}: ${names.length === 1 ? 'it' : 'they'} didn’t pass the integrity check.` })
   },
   windowSync: {
     title: 'Window sync', on: 'Window sync is on.', onBadge: 'On',
@@ -981,7 +982,7 @@ export const zh: Dict = {
     edit: '编辑分组', addProfile: '添加环境', search: '搜索环境名称或 ID', state: '状态', owner: '所属成员', owners: '全部成员', sort: '按名称排序',
     states: { all: '全部状态', running: '运行中', stopped: '已停止' },
     cols: { name: '环境名称', number: '环境 ID', region: '国家/地区', status: '状态', owner: '负责人' },
-    empty: '该分组暂无环境', emptyText: '可在此分组中新建环境，或从环境列表将环境移入此分组。', move: '移动到分组…', moveOut: '移出分组', movedOut: (n: number) => `已将 ${n} 个环境移出分组`,
+    empty: '该分组暂无环境', emptyText: '可在此分组中新建环境，或从环境列表将环境移入此分组。', move: '移动到分组…', moveOut: '移出分组', movedOut: (n: number): News => ({ title: '已移出分组', detail: `${n} 个环境` }),
     settings: '分组设置', name: '分组名称', nameErr: '请填写分组名称。', parent: '上级分组', parentNone: '无（顶级分组）', description: '分组说明',
     members: '成员权限', people: '分组成员', addMember: '添加成员', findMember: '搜索成员', noneToAdd: '所有成员均已在该分组中。',
     roleOf: (e: string) => `${e} 的角色`, removeMember: (e: string) => `移除 ${e}`,
@@ -993,8 +994,8 @@ export const zh: Dict = {
     deleteHas: (g: string, n: number) => `「${g}」包含 ${n} 个环境，删除前请选择这些环境的迁移去向。`,
     deleteNote: '本操作仅删除分组结构，不删除环境；成员对迁移后环境的访问权限按新分组重新计算。', deleteEmpty: '该分组内没有环境，删除后仅移除分组结构。',
     deleteKids: (n: number) => `其下 ${n} 个子分组将上移一级。`,
-    deleted: (g: string) => `已删除「${g}」`,
-    newTitle: '新建分组', create: '创建分组', created: (g: string) => `已创建「${g}」`,
+    deleted: (g: string): News => ({ title: '分组已删除', detail: g }),
+    newTitle: '新建分组', create: '创建分组', created: (g: string): News => ({ title: '分组已创建', detail: g }),
     createHint: '创建后可添加浏览器环境', rolesTitle: '权限说明'
   },
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
@@ -1049,7 +1050,7 @@ export const zh: Dict = {
     menu: { profile: '个人资料', password: '修改密码', switch: '切换工作空间', logout: '退出登录' },
     info: '账号信息', displayName: '显示名称', displayNameHint: '团队成员、操作日志与负责人处显示该名称。', email: '账号邮箱', note: '备注', notePh: '例如：店铺运营',
     emailNote: '邮箱用于登录，如需修改请前往官网账户页。', nameErr: '请输入显示名称。', saved: '个人资料已保存',
-    password: { current: '当前密码', next: '新密码', confirm: '确认新密码', rule: '8–64 个字符。', currentErr: '请输入当前密码。', short: '密码需为 8–64 个字符。', mismatch: '两次输入的新密码不一致。', done: '密码已修改，其他设备上的登录已退出。' },
+    password: { current: '当前密码', next: '新密码', confirm: '确认新密码', rule: '8–64 个字符。', currentErr: '请输入当前密码。', short: '密码需为 8–64 个字符。', mismatch: '两次输入的新密码不一致。', done: { title: '密码已修改', detail: '其他设备上的登录已退出' } },
     switchDlg: { title: '切换工作空间', field: '工作空间', note: '切换仅改变当前查看的资源，不会迁移环境。未保存的修改请在切换前处理。', invites: '待接受的邀请', go: '切换' },
     logoutDlg: {
       title: '退出登录', ask: '是否退出当前账号？',
@@ -1126,14 +1127,14 @@ export const zh: Dict = {
       confirm: (n: number) => `将 ${n} 个环境移至回收站？`, confirmNote: '运行中的环境将先停止，此操作可撤销。', doTrash: '移至回收站'
     },
     done: {
-      trashed: (n: number) => `已将 ${n} 个环境移至回收站`, moved: (n: number, g: string) => `已将 ${n} 个环境移至「${g}」`,
-      tagged: (n: number, t: string) => `已为 ${n} 个环境添加标签「${t}」`, untagged: (n: number, t: string) => `已从 ${n} 个环境移除标签「${t}」`,
-      proxySet: (n: number) => `已更换 ${n} 个环境的代理`, assigned: (n: number, who: string) => `已将 ${n} 个环境分配给 ${who}`,
-      created: (x: string) => `「${x}」已创建`, saved: '已保存', failed: (name: string, why: string) => `${name}：${why}`,
+      trashed: (n: number): News => ({ title: '已移至回收站', detail: `${n} 个环境` }), moved: (n: number, g: string): News => ({ title: `已移至「${g}」`, detail: `${n} 个环境` }),
+      tagged: (n: number, t: string): News => ({ title: `已添加标签「${t}」`, detail: `${n} 个环境` }), untagged: (n: number, t: string): News => ({ title: `已移除标签「${t}」`, detail: `${n} 个环境` }),
+      proxySet: (n: number): News => ({ title: '代理已更换', detail: `${n} 个环境` }), assigned: (n: number, who: string): News => ({ title: `已分配给 ${who}`, detail: `${n} 个环境` }),
+      created: '环境已创建', saved: '修改已保存',
       stale: '该环境刚被他人修改，请重试。',
-      extAdded: (n: number, x: string, skipped: number) => `已为 ${n} 个环境安装 ${x}${skipped ? `，跳过 ${skipped} 个（内核不符或已安装）` : ''}`,
-      extRemoved: (n: number, x: string) => `已从 ${n} 个环境卸载 ${x}`,
-      syncing: (leader: string, n: number) => `窗口同步已开始：${leader} 主控，${n} 个窗口跟随`, syncFailed: '窗口同步需要至少两个已打开的环境。'
+      extAdded: (n: number, x: string, skipped: number): News => ({ title: '扩展已安装', detail: `${x} · ${n} 个环境${skipped ? `，跳过 ${skipped} 个（内核不符或已安装）` : ''}` }),
+      extRemoved: (n: number, x: string): News => ({ title: '扩展已卸载', detail: `${x} · ${n} 个环境` }),
+      syncing: (leader: string, n: number): News => ({ title: '窗口同步已开始', detail: `${leader} 主控 · ${n} 个窗口跟随` }), syncFailed: '窗口同步需要至少两个已打开的环境。'
     }
   },
   bulkEdit: {
@@ -1146,7 +1147,7 @@ export const zh: Dict = {
     picked: (n: number) => `已选择的环境（${n}）`, running: (n: number) => `其中 ${n} 个环境正在运行，暂不可修改。`,
     stoppedOnly: '仅更新已停止的环境', stoppedOnlyHint: '运行中的环境在关闭前保持原设置。',
     counts: (ok: number, skip: number) => `可更新 ${ok} 个 · 跳过 ${skip} 个`,
-    submit: (n: number) => `更新 ${n} 个环境`, done: (n: number) => `已更新 ${n} 个环境`
+    submit: (n: number) => `更新 ${n} 个环境`, done: (n: number): News => ({ title: '环境已更新', detail: `${n} 个环境` })
   },
   launch: {
     kernel_missing: '本机尚未下载该内核。', proxy_down: '代理无响应，且没有可用的备用线路。',
@@ -1172,8 +1173,7 @@ export const zh: Dict = {
     cookies: 'Cookie', siteData: '网站存储', sites: '站点', extensions: '扩展', noExtensions: '未安装',
     notSaved: '尚未保存。浏览器关闭时将自动保存登录状态。', localOnly: '仅保存在使用该环境的电脑上，Folio 不保留副本。',
     json: 'JSON', netscape: 'cookies.txt',
-    exported: (n: number, path: string) => `已导出 ${n} 个环境到 ${path}`, imported: (n: number) => `已导入 ${n} 个 Cookie`,
-    exportFailed: (name: string, why: string) => `${name}：${why}`,
+    exported: (n: number, path: string): News => ({ title: 'Cookie 已导出', detail: `${n} 个环境 · ${path}` }), imported: (n: number): News => ({ title: 'Cookie 已导入', detail: `${n} 个` }),
     inUse: '正在其他电脑上使用', away: (device: string, email: string, since: string) => `${since} 起在 ${device}（${email}）上打开。`,
     takeover: '收回', takeoverNote: '对方的浏览器将被关闭，其最近几分钟内的改动将丢失。', takeoverDo: '收回并打开'
   },
@@ -1186,7 +1186,7 @@ export const zh: Dict = {
     deleteN: (n: number) => `删除 ${n} 条 Cookie？`,
     deleteNote: '将从已保存的登录状态中移除，此操作不可撤销。',
     deleteRunning: '将从已保存的登录状态和本机正在运行的浏览器中移除，此操作不可撤销。',
-    deleted: (n: number) => `已删除 ${n} 条 Cookie`,
+    deleted: (n: number): News => ({ title: 'Cookie 已删除', detail: `${n} 条` }),
     detail: 'Cookie 详情', close: '关闭详情', value: '值', show: '显示', hide: '隐藏', copy: '复制值', copied: '已复制',
     hidden: 'Cookie 值默认隐藏，以保护敏感信息；每次查看均记入操作日志。', noValue: '当前角色无权查看 Cookie 值。', on: '已启用', off: '未启用',
     none: '暂无 Cookie', noneText: '在环境中登录网站并关闭浏览器后，Cookie 会保存在这里；也可以直接导入。', notSaved: '尚未保存', notSavedText: '浏览器关闭时将自动保存，也可从文件导入。',
@@ -1293,8 +1293,8 @@ export const zh: Dict = {
     restore: '恢复上次的标签页',
     start: '打开时', startTabs: '恢复上次的标签页', startHome: (name: string) => `打开${name}首页`, startBlank: '打开空白页',
     bulk: '浏览器设置…', on: '开启', off: '关闭',
-    searchSet: (n: number, name: string) => `已将 ${n} 个环境的搜索引擎设为${name}`,
-    tabsSet: (n: number, on: boolean) => `已为 ${n} 个环境${on ? '开启' : '关闭'}恢复标签页`
+    searchSet: (n: number, name: string): News => ({ title: `搜索引擎已设为${name}`, detail: `${n} 个环境` }),
+    tabsSet: (n: number, on: boolean): News => ({ title: `已${on ? '开启' : '关闭'}恢复标签页`, detail: `${n} 个环境` })
   },
   importer: {
     title: '导入环境', lead: '每行一个环境，首行为表头。Excel 表格请先另存为 CSV；每次最多 500 行。',
@@ -1304,7 +1304,7 @@ export const zh: Dict = {
     errs: { name: '名称为空或太长', os: '无法识别的系统', engine: '无法识别的内核', tags: '最多 10 个标签，每个不超过 24 个字', timezone: '无法识别的时区', language: '不是有效的语言代码', proxy: '代理地址无法识别', cookies: '无法读取 Cookie', search: '无法识别的搜索引擎', restoreTabs: '请填写「是」或「否」', header: '' },
     tooMany: '每次最多 500 行。', room: (free: number) => `套餐剩余 ${free} 个环境额度。`, firefox: '部分行使用 Firefox，请先下载 Firefox 内核。',
     submit: (n: number) => `导入 ${n} 个环境`, steps: { proxies: '正在添加代理…', groups: '正在创建分组…', fingerprints: (i: number, n: number) => `正在生成指纹… ${i} / ${n}`, saving: '正在保存…', cookies: (i: number, n: number) => `正在导入 Cookie… ${i} / ${n}` },
-    done: (n: number) => `已导入 ${n} 个环境`
+    done: (n: number): News => ({ title: '环境已导入', detail: `${n} 个环境` })
   },
   proxies: {
     title: '代理管理',
@@ -1322,9 +1322,9 @@ export const zh: Dict = {
     bulk: {
       unbind: '解除绑定', unbindNone: '所选代理均未绑定环境。', unbindTitle: (n: number, m: number) => `解除 ${n} 个代理与 ${m} 个环境的绑定？`,
       unbindNote: '这些环境将改为不使用代理，直到重新选择代理；运行中的环境下次启动时生效。',
-      unbound: (m: number) => `已解除 ${m} 个环境的绑定`
+      unbound: (m: number): News => ({ title: '已解除绑定', detail: `${m} 个环境` })
     },
-    deleted: (n: number) => `已删除 ${n} 个代理`, checked: (n: number) => `已检测 ${n} 个代理`, actionsX: (n: string) => `${n} 的操作`,
+    deleted: (n: number): News => ({ title: '代理已删除', detail: `${n} 个代理` }), checked: (n: number): News => ({ title: '检测完成', detail: `${n} 个代理` }), actionsX: (n: string) => `${n} 的操作`,
     detail: {
       label: '代理详情', exitIp: '出口 IP', region: '地区', latency: '当前延迟', profiles: '绑定环境', config: '连接配置', history: '最近检测记录',
       ok: (ms: number) => `连接正常 · ${ms} ms`, failed: '连接失败', passSet: '已保存', passNone: '未设置', uptime: '可用率',
@@ -1335,7 +1335,7 @@ export const zh: Dict = {
       createdOn: (when: string) => `创建于 ${when}`, checkedOn: (when: string) => `最近检测 ${when}`, authOn: '已启用', authOff: '未启用',
       runningWarn: '更新连接配置前，请先停止使用该代理的运行中环境。', viewProfile: '查看环境'
     },
-    formAdd: '添加代理', formEdit: '编辑代理', save: '保存代理', added: (n: string) => `已添加代理「${n}」`,
+    formAdd: '添加代理', formEdit: '编辑代理', save: '保存代理', added: '代理已添加',
     name: '代理名称', namePh: '例如：美国-运营-01', nameErr: '请输入代理名称。', type: '代理协议', host: '代理地址', port: '端口', notes: '备注',
     auth: '身份验证', authHint: '启用后需要填写用户名和密码进行代理认证。',
     user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
@@ -1374,13 +1374,13 @@ export const zh: Dict = {
       invalidNote: '无效记录不会导入，请修正后重新解析。',
       skip: '跳过重复代理', skipHelp: '与已保存代理或上方行完全相同的行，直接使用已有代理，不再重复添加。',
       reparse: '重新解析', submit: (n: number) => `导入 ${n} 条代理`,
-      done: (added: number, reused: number) => `已导入 ${added} 个代理${reused ? `，复用 ${reused} 个` : ''}`
+      done: (added: number, reused: number): News => ({ title: '代理已导入', detail: `新增 ${added} 个${reused ? `，复用 ${reused} 个` : ''}` })
     },
     replace: {
       title: '更换代理', lead: (name: string) => `为环境 ${name} 更换代理，请选择新的代理。`, current: '当前代理', state: '当前状态',
       pick: '选择', test: '检测所选代理', confirm: '确认更换',
       running: '环境运行中，停止后才能更换代理。', stop: '停止环境', warn: '更换代理后，请检查语言与时区配置。',
-      done: (profile: string, proxy: string) => `${profile} 已更换为 ${proxy}`
+      done: (profile: string, proxy: string): News => ({ title: '代理已更换', detail: `${profile} 已更换为 ${proxy}` })
     }
   },
   trash: {
@@ -1395,12 +1395,12 @@ export const zh: Dict = {
     typeName: (name: string) => `输入环境名称「${name}」以确认`, typeCount: (n: number) => `输入 ${n} 以确认`,
     sites: (n: number) => (n ? `${n} 个站点` : '无'), byAt: (who: string, when: string) => `${who} 删除于 ${when}`,
     confirmPurge: (n: number) => `彻底删除 ${n} 个环境？`, confirmNote: '此操作无法撤销，其指纹与设置将无法恢复。',
-    restored: (n: number) => `已恢复 ${n} 个环境`, purged: (n: number) => `已彻底删除 ${n} 个环境`
+    restored: (n: number): News => ({ title: '环境已恢复', detail: `${n} 个环境` }), purged: (n: number): News => ({ title: '已彻底删除', detail: `${n} 个环境` })
   },
   engines: {
     title: '内核管理',
     check: '检查更新', upToDate: '所有内核均为最新版本', upToDateText: '已安装的内核均为最新版本，无需更新。', updates: (n: number) => `发现 ${n} 个可更新版本`,
-    defaultKernel: '默认内核', defaultOf: (engine: string) => `${engine} · 推荐版本`, defaultSet: (v: string) => `新建环境将默认使用 ${v}`,
+    defaultKernel: '默认内核', defaultOf: (engine: string) => `${engine} · 推荐版本`, defaultSet: (v: string): News => ({ title: '默认内核已设置', detail: `新建环境将默认使用 ${v}` }),
     tabs: { all: '全部内核', installed: '已安装', updates: '可更新' },
     search: '搜索内核版本', searchPh: '搜索内核版本…', system: '平台', systems: '全部平台', filterLabels: { keyword: '关键词', system: '平台' }, tip: '切换已有环境的内核前需先停止环境。',
     families: { win: 'Windows', mac: 'macOS', linux: 'Linux' },
@@ -1408,7 +1408,7 @@ export const zh: Dict = {
     recommended: '推荐', default: '默认', installed: '已安装', notDownloaded: '未安装', download: '下载', failed: '下载失败',
     downloadingPct: (pct: number) => `下载中 ${pct}%`, everywhere: (n: number) => `全平台 ${n} 个`, actionsX: (v: string) => `${v} 的操作`,
     setDefault: '设为默认', details: '查看详情',
-    remove: '移除', removeBusy: '无法移除：有环境正在使用', removed: (v: string) => `已从本机移除 ${v}`,
+    remove: '移除', removeBusy: '无法移除：有环境正在使用', removed: (v: string): News => ({ title: '已从本机移除', detail: v }),
     retired: '已从目录下架', none: '该内核暂无适用于本机系统的版本。',
     noneDownloaded: '本机尚未下载内核', noneDownloadedText: '可在「全部内核」中下载；启动环境时也会自动下载所需版本。',
     outdated: (n: number, kernel: string) => `${n} 个环境使用旧版本 ${kernel}`, upgrade: (v: string) => `升级到 ${v}`,
@@ -1417,11 +1417,11 @@ export const zh: Dict = {
     paused: (pct: number) => `已暂停 · ${pct}%`, pause: '暂停', resume: '继续',
     disk: (size: string) => `本机内核共占用 ${size}`, cleanup: '清理未使用的版本', nothingToClean: '已下载的版本均在使用中或为推荐版本。',
     cleanupTitle: (n: number) => `清理 ${n} 个未使用的版本？`, cleanupNote: (size: string) => `可释放 ${size}，环境需要时将重新下载。`,
-    cleaned: (n: number) => `已从本机移除 ${n} 个版本`,
+    cleaned: (n: number): News => ({ title: '已清理未使用的版本', detail: `${n} 个版本` }),
     settings: '下载设置', autoDownload: '自动下载更新', autoHint: '已有环境保持当前内核版本',
     autoHelp: '新的推荐版本将在后台下载到本机；已有环境继续使用原版本，需要时可一键升级。',
     idleOnly: '只在空闲时下载',
-    upgraded: (n: number, v: string) => `已将 ${n} 个环境升级到 ${v}`,
+    upgraded: (n: number, v: string): News => ({ title: '内核已升级', detail: `${n} 个环境 · ${v}` }),
     platforms: { 'win32-x64': 'Windows', 'darwin-arm64': 'macOS · Apple 芯片', 'darwin-x64': 'macOS · Intel', 'linux-x64': 'Linux' } as Record<string, string>,
     notes: {
       title: '版本说明', version: '版本号', released: '发布日期', size: '大小', profiles: '使用环境', changes: '更新内容', none: '暂无更新说明。',
@@ -1430,12 +1430,12 @@ export const zh: Dict = {
     admin: {
       upload: '上传新版本', title: '上传内核版本', kind: '内核', version: '版本号', versionPh: '如 151.0.7900.10', platform: '系统',
       file: '安装包', choose: '选择文件…', fileHint: '内核发布的原始安装包：.zip、.tar.xz 或 .dmg，直接上传至 Folio 存储。',
-      hashing: (pct: number) => `正在校验文件… ${pct}%`, uploading: (pct: number) => `正在上传… ${pct}%`, send: '上传', done: (v: string) => `已将 ${v} 加入目录`,
-      recommend: '设为推荐', recommended: (v: string) => `已将 ${v} 设为推荐版本`, retire: '下架', unfinished: '上传未完成',
+      hashing: (pct: number) => `正在校验文件… ${pct}%`, uploading: (pct: number) => `正在上传… ${pct}%`, send: '上传', done: (v: string): News => ({ title: '已加入内核目录', detail: v }),
+      recommend: '设为推荐', recommended: (v: string): News => ({ title: '已设为推荐版本', detail: v }), retire: '下架', unfinished: '上传未完成',
       recommendTitle: (v: string) => `将 ${v} 设为推荐版本？`, recommendNote: '未设置默认内核的工作空间，新建环境将使用该版本；下方说明显示在版本说明中。', note: '更新说明（可选）',
       retireTitle: (v: string) => `下架 ${v}？`,
       retireConfirm: (n: number) => `${n ? `全平台 ${n} 个环境在用。` : ''}已下载的电脑可继续使用，其他电脑上的相关环境需改用其他版本。`,
-      retiredDone: (v: string) => `已下架 ${v}`
+      retiredDone: (v: string): News => ({ title: '版本已下架', detail: v })
     }
   },
   team: {
@@ -1452,7 +1452,7 @@ export const zh: Dict = {
     accessSub: '角色在整个工作空间内生效，分组决定成员可访问的环境范围。', saved: '权限已保存',
     viaParent: '随上级分组', noGroups: '尚未建立分组。',
     search: '搜索成员', meTag: '（我）', moreX: (e: string) => `${e} 的更多操作`,
-    copiedNew: '已复制新的邀请链接，原链接已失效。',
+    copiedNew: { title: '已复制新的邀请链接', detail: '原链接已失效' },
     roleHelp: {
       owner: '拥有工作空间的全部权限，可管理成员、分组、全部环境与设置，且不可更改。',
       admin: '可查看和管理全部环境、代理与成员，但不能更改所有者。',
@@ -1469,13 +1469,13 @@ export const zh: Dict = {
     summaryOwn: '仅可访问分配给自己的环境，操作范围由角色决定。',
     validity: '邀请有效期', days: (n: number) => `${n} 天`,
     seatsAfter: (n: number, max: number) => `邀请后预计占用 ${n} / ${max} 席位`,
-    send: '发送邀请', sent: (e: string) => `邀请已发送到 ${e}。`, notSent: '邮件发送失败，请复制链接发送给对方。',
+    send: '发送邀请', sent: (e: string): News => ({ title: '邀请已发送', detail: e }), notSent: { title: '邀请邮件发送失败', detail: '请复制链接发送给对方' },
     sentShort: '邀请已发送', notSentShort: '邮件未发出，请复制链接发送给对方',
     done: '完成',
     removeTitle: (e: string) => `移除 ${e}`, removeLead: '其名下环境将转交给指定人员；其电脑上已打开的环境将被关闭，本地数据将被删除。',
-    heir: '环境转交给', heirNeeded: '请先选择接收其环境的成员。', removeDo: '移出团队', removed: (e: string) => `已移除 ${e}`,
+    heir: '环境转交给', heirNeeded: '请先选择接收其环境的成员。', removeDo: '移出团队', removed: (e: string): News => ({ title: '成员已移出', detail: e }),
     leaveTitle: (ws: string) => `退出「${ws}」？`, leaveLead: '您在此团队的环境将转交给所有者，此后将无法访问该团队。', leaveDo: '退出',
-    removedYou: (ws: string) => `您已不在「${ws}」中，其环境已在本机关闭并删除。`,
+    removedYou: (ws: string): News => ({ title: `您已不在「${ws}」中`, detail: '其环境已在本机关闭并删除' }),
     groupAccess: '分组授权',
     invites: '收到的邀请', join: '加入', decline: '拒绝', from: (who: string, role: string) => `${who} 邀请您成为${role}`
   },
@@ -1493,7 +1493,7 @@ export const zh: Dict = {
     started: (n: number) => `开始执行，共 ${n} 项`, finished: (s: string) => `执行结束：${s}`,
     retry: (n: number) => `重试失败项（${n}）`, retryNote: '仅重试失败项，已成功项保持当前结果。',
     retryElsewhere: '该任务在其他电脑上执行，请在那台电脑上重试。', retryTheirs: '仅任务发起人可重试。',
-    cancel: '取消任务', download: '下载结果', saved: (p: string) => `已保存到 ${p}`,
+    cancel: '取消任务', download: '下载结果', saved: (p: string): News => ({ title: '结果已保存', detail: p }),
     errors: { running: '环境正在运行', gone: '环境已删除', paused: '下载已暂停', failed: '执行失败', canceled: '已取消' } as Record<string, string>
   },
   states: {
@@ -1511,7 +1511,7 @@ export const zh: Dict = {
     partial: (what: string) => `部分数据加载失败（${what}），列表信息可能不完整。`,
     lists: { profiles: '环境', trash: '回收站', groups: '分组', proxies: '代理', members: '成员', flows: '流程', tasks: '定时任务', extensions: '扩展', jobs: '任务' } as Record<string, string>, listSep: '、',
     underway: (what: string) => `${what}进行中`, resultsThere: '完成后将在任务中心显示结果。', viewTask: '查看任务',
-    partly: (what: string, ok: number, failed: number) => `${what}完成：成功 ${ok}，失败 ${failed}`, view: '查看'
+    partly: (what: string, ok: number, failed: number): News => ({ title: `${what}部分失败`, detail: `成功 ${ok}，失败 ${failed}` }), view: '查看详情'
   },
   rolesPage: {
     list: '角色列表', add: '新建角色', note: '角色决定操作能力，分组授权决定资源范围。',
@@ -1530,8 +1530,8 @@ export const zh: Dict = {
       'team.manage': ['管理成员', '可邀请、编辑或移除成员，并管理角色、分组、工作空间设置与订阅'],
       'activity.view': ['查看日志', '可查看团队操作日志']
     } as Record<string, [string, string]>,
-    reset: '恢复默认', save: '保存权限', saved: (r: string) => `已保存「${r}」的权限`,
-    delete: '删除角色', deleteTitle: (r: string) => `删除角色「${r}」？`, deleteNote: '仅可删除没有成员使用、也没有待接受邀请的角色。', deleted: (r: string) => `已删除角色「${r}」`,
+    reset: '恢复默认', save: '保存权限', saved: (r: string): News => ({ title: '权限已保存', detail: r }),
+    delete: '删除角色', deleteTitle: (r: string) => `删除角色「${r}」？`, deleteNote: '仅可删除没有成员使用、也没有待接受邀请的角色。', deleted: (r: string): News => ({ title: '角色已删除', detail: r }),
     newTitle: '新建角色', name: '角色名称', nameErr: '请填写角色名称。', from: '初始权限', fromNone: '不含任何权限', create: '创建角色'
   },
   activity: {
@@ -1541,7 +1541,7 @@ export const zh: Dict = {
     kinds: { all: '全部操作', open: '打开与关闭', profiles: '环境改动', trash: '回收站', proxies: '代理与分组', cookies: 'Cookie 与导出', team: '团队', extensions: '扩展', automation: '自动化' },
     dates: '时间范围', from: '开始日期', until: '结束日期', to: '至',
     partial: '当前角色仅显示您本人的操作，以及您可访问的环境的操作记录。',
-    export: '导出日志', exported: (path: string) => `已保存到 ${path}`, empty: '暂无记录', emptyText: '工作空间内对环境、代理、成员与设置的操作会记录在这里。', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
+    export: '导出日志', exported: (path: string): News => ({ title: '日志已导出', detail: path }), empty: '暂无记录', emptyText: '工作空间内对环境、代理、成员与设置的操作会记录在这里。', someone: '有人', recent: '最近操作', by: (who: string) => `由 ${who} 操作`,
     today: '今天', yesterday: '昨天',
     detail: {
       title: '操作详情', number: '操作编号', person: '操作人', time: '时间', type: '操作类型', object: '操作对象', device: '来源电脑', what: '操作内容',
@@ -1595,12 +1595,12 @@ export const zh: Dict = {
   transfer: {
     exportTitle: '导出全部数据', exportLead: '导出文件包含全部环境（指纹与设置）、登录状态、分组以及含密码的代理。回收站中的环境不导出。',
     passphrase: '口令', confirm: '确认口令', passHelp: '至少 10 位。文件仅能用此口令打开，口令不会被保存；遗忘口令将无法打开文件。',
-    passShort: '口令至少 10 位。', passMismatch: '两次输入的口令不一致。', export: '导出', exported: (path: string) => `已保存到 ${path}`,
+    passShort: '口令至少 10 位。', passMismatch: '两次输入的口令不一致。', export: '导出', exported: (path: string): News => ({ title: '环境已导出', detail: path }),
     importTitle: '导入数据', importLead: '将 .folio 文件导入当前团队：环境将新增并重新编号，相同的代理与同名分组将复用。',
     choose: '选择 .folio 文件…', unlock: '解锁',
     preview: (p: { workspace: string; profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `来自「${p.workspace}」：${p.profiles} 个环境（${p.signedIn} 个含登录状态）、${p.proxies} 个代理、${p.groups} 个分组${p.extensions ? `、${p.extensions} 个扩展` : ''}。`,
     room: (free: number) => `套餐剩余 ${free} 个环境额度。`, import: '导入',
-    imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) => `已导入 ${r.profiles} 个环境（${r.signedIn} 个含登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组${r.extensions ? `、${r.extensions} 个扩展` : ''}`
+    imported: (r: { profiles: number; proxies: number; groups: number; extensions: number; signedIn: number }) : News => ({ title: '环境已导入', detail: `${r.profiles} 个环境（${r.signedIn} 个含登录状态），新增 ${r.proxies} 个代理、${r.groups} 个分组${r.extensions ? `、${r.extensions} 个扩展` : ''}` })
   },
   flows: {
     title: '流程', new: '新建流程',
@@ -1608,7 +1608,7 @@ export const zh: Dict = {
     cols: { name: '流程', steps: '步骤', by: '创建人', updated: '修改时间' }, search: '搜索流程名称',
     emptyTitle: '暂无流程', empty: '流程由一系列步骤组成（打开网页、点击、输入、提取等），可在一个或多个环境中运行。',
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制后修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
-    inUse: (tasks: string) => `正被 ${tasks} 使用，无法删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string) => `已删除 ${n}`, copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
+    inUse: (tasks: string) => `正被 ${tasks} 使用，无法删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string): News => ({ title: '流程已删除', detail: n }), copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
     back: '流程', backLabel: '返回流程列表', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
     readOnly: '仅流程创建者、管理员和所有者可修改，可复制一份后修改。',
     stale: '编辑期间该流程已被他人保存。再次保存将以当前版本覆盖对方的修改。',
@@ -1677,7 +1677,7 @@ export const zh: Dict = {
     onlyOpen: '定时任务在其所属电脑上运行，需该电脑的 Folio 处于运行并已登录状态；错过的执行时间将被记录，不会自动补运行。', enableStartup: '开机自动启动 Folio',
     run: '运行', runX: (n: string) => `运行 ${n}`, stop: '停止', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     noProfilesHere: '无可运行的环境。', runningElsewhere: '任务正在运行。',
-    confirmDelete: (n: string) => `删除「${n}」及其运行记录？`, deleted: (n: string) => `已删除 ${n}`, started: (n: string) => `${n} 已在本机开始运行`,
+    confirmDelete: (n: string) => `删除「${n}」及其运行记录？`, deleted: (n: string): News => ({ title: '任务已删除', detail: n }), started: (n: string): News => ({ title: '已在本机开始运行', detail: n }),
     saved: '任务已保存', stale: '编辑期间该任务已被他人修改，请重新打开后再编辑。',
     status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断', missed: '错过', busy: '跳过' },
     progress: (done: number, all: number) => `已完成 ${done} / ${all}`, elsewhere: (where: string) => `在 ${where} 上`,
@@ -1687,7 +1687,7 @@ export const zh: Dict = {
     missedNote: (at: string, device: string) => `${at} 未运行：${device || '所属电脑'}上的 Folio 未运行或未登录，或电脑处于睡眠状态。`,
     busyNote: (at: string) => `${at} 未运行：上一轮尚未完成。`, runNow: '补运行',
     startedBy: (who: string, device: string | null, when: string) => `${who}${device ? `，在 ${device} 上` : ''}，${when}`,
-    rerun: (n: number) => `重新运行未成功的 ${n} 个环境`, export: '导出 CSV', exported: (path: string) => `已保存到 ${path}`,
+    rerun: (n: number) => `重新运行未成功的 ${n} 个环境`, export: '导出 CSV', exported: (path: string): News => ({ title: '运行记录已导出', detail: path }),
     csv: { number: '编号', profile: '环境', status: '结果', attempts: '尝试次数', problem: '问题' },
     item: { pending: '等待中', running: '运行中', ok: '成功', failed: '失败', signed_out: '已掉线', skipped: '跳过', canceled: '未运行' },
     noLog: '暂无日志。', attempt: (n: number) => `第 ${n} 次尝试`, shotsWhere: (device: string) => (device ? `截图保存在 ${device} 上。` : '截图保存在运行该任务的电脑上。'),
@@ -1740,14 +1740,14 @@ export const zh: Dict = {
     uploaded: '上传的文件', update: '新版本', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     signed: '签名已校验', signedNote: '安装到环境前，Folio 都会核对安装包的签名与校验值，任一不符即不予安装。',
     confirmDelete: (n: string, count: number) => (count ? `删除「${n}」？将从 ${count} 个环境中卸载。` : `删除「${n}」？`),
-    deleted: (n: string) => `已删除 ${n}`, added: (n: string) => `已将 ${n} 加入扩展库`, updated: (n: string) => `${n} 已更新，环境下次打开时启用新版本`,
+    deleted: (n: string): News => ({ title: '扩展已删除', detail: n }), added: (n: string): News => ({ title: '已加入扩展库', detail: n }), updated: (n: string): News => ({ title: '扩展已更新', detail: `${n} · 环境下次打开时启用新版本` }),
     addTitle: '添加扩展', updateTitle: (n: string) => `${n} 的新版本`, from: '来源', fromFile: '文件', fromStore: (k: string) => (k === 'chromium' ? 'Chrome 应用商店' : 'addons.mozilla.org'),
     chooseFile: '选择文件…', fileHintChromium: '.crx 或 .zip，顶层须包含 manifest.json。', fileHintFirefox: '.xpi 或 .zip，顶层须包含 manifest.json。',
     storeChromium: '商店链接或扩展 ID', storeFirefox: '附加组件链接（或短名称）',
     idNote: 'Folio 为扩展配置独立密钥，使其在各台电脑上的 ID 一致，扩展数据可随环境同步。因此其 ID 与商店版本不同，少数需与本机程序或网站配对的扩展可能依赖原 ID。',
     uuidNote: '每个环境为该附加组件分配不同的内部地址，网站无法借此关联不同环境。',
     addDo: '添加', updateDo: '上传', uploading: '正在上传…', fetching: '正在从商店下载…',
-    failedCheck: (profile: string, names: string[]) => `${profile} 已打开，但 ${names.join('、')} 未通过完整性校验，未安装。`
+    failedCheck: (profile: string, names: string[]): News => ({ title: '扩展未通过完整性校验', detail: `${profile} 已打开，${names.join('、')} 未安装` })
   },
   windowSync: {
     title: '窗口同步', on: '窗口同步已开启。', onBadge: '开启',

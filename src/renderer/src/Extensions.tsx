@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from '
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useFail, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
 import { Select } from './Select';
 
@@ -17,7 +17,7 @@ type Filter = 'all' | KernelKind;
 
 export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: WorkspaceData }){
   const X = d.extensions;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const manager = can(data.role, MANAGE);
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -37,7 +37,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
 
   async function remove(e: Extension){
     setConfirm(null);
-    try { await folio.api('DELETE', `/extensions/${e.id}`); toast(X.deleted(e.name)); } catch (err){ toast(errorText(d, isApiError(err) ? err.code : 'internal'), undefined, 'bad'); }
+    try { await folio.api('DELETE', `/extensions/${e.id}`); toast(X.deleted(e.name)); } catch (err){ fail(err); }
     data.refresh('extensions', 'profiles');
   }
   const toggle = (id: string) => setSel(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -163,7 +163,7 @@ function ExtRow({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, 
 // Installing extensions in profiles: the profiles of their engine, the ones that already have them ticked and fixed.
 function InstallDialog({ d, data, exts, onClose, onDone }: { d: Dict; data: WorkspaceData; exts: Extension[]; onClose(): void; onDone(): void }){
   const X = d.extensions;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const kinds = new Set(exts.map(e => e.kernel));
   const has = (pid: string) => exts.every(e => data.profiles.find(p => p.id === pid)?.extensionIds.includes(e.id));
   const profiles = data.profiles.filter(p => kinds.has(p.kernel));
@@ -179,7 +179,7 @@ function InstallDialog({ d, data, exts, onClose, onDone }: { d: Dict; data: Work
         if (ids.length) toast(d.profiles.done.extAdded(await data.batch('add-extension', ids, { extensionId: e.id }), e.name, 0));
       }
       onDone();
-    } catch (err){ toast(errorText(d, isApiError(err) ? err.code : 'internal'), undefined, 'bad'); } finally { setBusy(false); }
+    } catch (err){ fail(err); } finally { setBusy(false); }
   }
   return (
     <Modal kind="info" title={exts.length === 1 ? X.installTitle(exts[0].name) : X.installMany(exts.length)} onClose={onClose} busy={busy} foot={<>

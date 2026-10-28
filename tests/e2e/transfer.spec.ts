@@ -42,7 +42,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   await expect(ex.getByRole('alert')).toHaveText('The two passphrases differ.');
   await ex.getByLabel('Confirm passphrase').fill(PASS);
   await ex.getByRole('button', { name: 'Export' }).click();
-  await expect(winA.getByRole('status').filter({ hasText: `Saved to ${file}` })).toBeVisible();
+  await expect(winA.getByRole('status').filter({ hasText: 'Profiles exported' })).toContainText(file);
   expect(existsSync(file)).toBe(true);
   expect(readFileSync(file).includes(Buffer.from('p@ss'))).toBe(false);
   await a.close();
@@ -62,7 +62,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   await im.getByRole('button', { name: 'Unlock' }).click();
   await expect(im.getByRole('status')).toHaveText('From Larkspur Trading: 2 profiles (1 with sign-ins), 1 proxy, 1 group.');
   await im.getByRole('button', { name: 'Import' }).click();
-  await expect(winB.getByRole('status').filter({ hasText: '2 profiles imported, 1 with sign-ins; 1 new proxy, 1 new group' })).toBeVisible();
+  await expect(winB.getByRole('status').filter({ hasText: 'Profiles imported' })).toContainText('2 profiles, 1 with sign-ins; 1 new proxy, 1 new group');
   await winB.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Profiles' }).click();
   await expect(winB.locator('tr[data-id]')).toHaveCount(2);
 

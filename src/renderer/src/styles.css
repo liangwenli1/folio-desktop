@@ -735,32 +735,30 @@ fieldset.ck-conflict{border:0;margin:0;padding:0}
 .m-icon.bad{color:var(--bad-ink)}
 .m-icon.info{color:var(--info-ink)}
 .m-icon.good .i{width:34px;height:34px;padding:7px;border-radius:50%;background:var(--good);color:#fff;stroke-width:3}
-/* Toasts: white cards that float, an icon for how it went, the action on the right. */
-/* top right, under the page's own heading and buttons, so it never covers what it may ask for (Take over, Import) */
-.toasts{position:fixed;z-index:var(--z-toast);top:calc(var(--tb) + 90px);right:16px;display:grid;gap:8px;width:min(380px,calc(100% - 32px))}
-.toast{display:flex;align-items:flex-start;gap:12px;padding:12px 14px 12px 12px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop)}
-.toast > .t-ic{display:grid;place-items:center;width:26px;height:26px;flex:none;border-radius:50%;background:var(--good);color:#fff}
-.toast > .t-ic .i{width:16px;height:16px;stroke-width:3}
+/* Toasts, as the user drew them (10-28): a white card on one row, the state's icon, what happened (14/600) with what
+   to under it (12), the action in red words and ×. Top right, under the page's own heading and buttons, so it never
+   covers what it may ask for (Take over, Import). */
+.toasts{position:fixed;z-index:var(--z-toast);top:calc(var(--tb) + 90px);right:16px;display:grid;gap:8px;width:min(360px,calc(100% - 32px))}
+.toast{display:flex;align-items:center;gap:12px;padding:12px 10px 12px 16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-pop)}
+.toast > .t-ic{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--good);color:#fff}
+.toast > .t-ic .i{width:14px;height:14px;stroke-width:3}
 .toast.bad > .t-ic{background:var(--bad)}
-.t-body{display:grid;gap:6px;flex:1;min-width:0;padding-top:3px;line-height:20px;overflow-wrap:anywhere}
-/* its actions: buttons of one width side by side under the message, as wide as it */
-.t-acts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;margin-top:4px}
-.t-acts button{height:var(--h-sm);padding:0 12px;border:0;border-radius:var(--r);background:none;color:var(--action);font:600 13px var(--f-body);cursor:pointer}
-.t-acts button:hover{background:var(--accent-soft);color:var(--action-hover)}
-.n-foot button{flex:none;padding:0;border:0;background:none;color:var(--accent-ink);font-weight:600;cursor:pointer}
-.n-foot button:hover{color:var(--action-hover);text-decoration:underline;text-underline-offset:3px}
-/* something under way: a spinner, how far it has got, and the task center */
-.toast.notice{position:relative;padding-right:48px}
+.t-body{display:grid;flex:1;min-width:0;margin:0;overflow-wrap:anywhere}
+.t-body b{font-size:14px;font-weight:600;line-height:22px;color:var(--ink)}
+.t-body small{font-size:12px;line-height:18px;color:var(--ink-3)}
+.t-act{flex:none;padding:0 2px;border:0;background:none;color:var(--action);font:500 14px/22px var(--f-body);white-space:nowrap;cursor:pointer}
+.t-act:hover{color:var(--action-hover)}
+.toast .t-x{display:grid;place-items:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:var(--r);background:none;color:var(--ink-3);cursor:pointer}
+.toast .t-x:hover{background:var(--hover);color:var(--ink)}
+/* something under way: a spinner, how far it has got, and its details in the task center */
+.toast.notice{align-items:flex-start}
 .toast.notice > .t-ic{background:var(--info-soft);color:var(--info-ink)}
 .toast.notice .spin{width:14px;height:14px;border-width:2px}
 .toast .n-body{display:grid;gap:8px;flex:1;min-width:0}
-.n-t{display:flex;align-items:baseline;gap:8px;margin:0}
-.n-t small{margin-left:auto;font:500 12px var(--f-data);color:var(--ink-2);white-space:nowrap}
+.n-t{display:flex;align-items:baseline;gap:8px;margin:0;font-size:14px;line-height:22px}
+.n-t small{margin-left:auto;font:500 12px var(--f-data);color:var(--ink-3);white-space:nowrap}
 .n-foot{display:flex;align-items:center;gap:12px}
-.n-sub{flex:1;margin:0;font-size:12px;color:var(--ink-2)}
-.toast .t-x{display:grid;place-items:center;flex:none;width:28px;height:28px;margin:-2px -6px -2px 0;padding:0;border:0;border-radius:var(--r);background:none;color:var(--ink-3);cursor:pointer}
-.toast.notice .t-x{position:absolute;top:8px;right:8px;margin:0}
-.toast .t-x:hover{background:var(--hover);color:var(--ink)}
+.n-sub{flex:1;margin:0;font-size:12px;color:var(--ink-3)}
 
 /* dialogs' contents */
 .pxcheck{display:flex;gap:8px}

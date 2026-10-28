@@ -42,7 +42,7 @@ export function ApiPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Worksp
   useEffect(() => { void folio.localApi().then(s => { setState(s); setPort(String(s.port)); }); }, []);
   // Each script call shows up at once.
   useEffect(() => folio.onLocalApi(setState), []);
-  const copy = (text: string) => void navigator.clipboard.writeText(text).then(() => toast(A.copied));
+  const copy = (text: string) => void navigator.clipboard.writeText(text).then(() => toast({ title: A.copied }));
 
   async function change(c: { enabled?: boolean; port?: number }){
     // The switch moves at once; whether the server listens comes back from the main process.

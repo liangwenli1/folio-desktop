@@ -67,7 +67,7 @@ test('an extension goes into the profiles picked from its card', async () => {
   const dialog = win.getByRole('dialog', { name: 'Install Order Helper' });
   await dialog.getByRole('checkbox', { name: /Shop-1/ }).check();
   await dialog.getByRole('button', { name: 'Install in 1 profile' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Order Helper installed in 1 profile' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Extension installed' })).toContainText('Order Helper · 1 profile');
   const profiles = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; extensionIds: string[] }[];
   expect(profiles.map(p => [p.name, p.extensionIds.length])).toEqual(expect.arrayContaining([['Shop-1', 1], ['Shop-2', 0]]));
   await expect(win.locator('[data-extension="Order Helper"]')).toContainText('1 profile');
@@ -103,7 +103,7 @@ test('a waiting invitation’s link can be copied again, which replaces the old 
   await win.getByRole('tab', { name: /^Invitations/ }).click();
   await win.locator('tr[data-invitation]').getByRole('button', { name: /^More for / }).click();
   await win.getByRole('menuitem', { name: 'Copy link' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'A new invitation link was copied' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'New invitation link copied' })).toContainText('The earlier link no longer works');
   expect((await acct.api.get(`/invitations/by-token/${token}`)).status()).toBe(404);
   const copied = await app.evaluate(({ clipboard }) => clipboard.readText());
   expect(copied).toContain('/invite/?token=');
@@ -132,9 +132,9 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
 
   for (const n of ['Shop-1', 'Shop-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bing');
-  await expect(win.getByRole('status').filter({ hasText: 'Search engine set to Bing on 2 profiles' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Search engine set to Bing' })).toContainText('2 profiles');
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'On');
-  await expect(win.getByRole('status').filter({ hasText: 'Tab restoring turned on for 2 profiles' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Tab restoring turned on' })).toContainText('2 profiles');
   const profiles = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; searchEngine: string; restoreTabs: boolean }[];
   expect(profiles.map(p => [p.name, p.searchEngine, p.restoreTabs])).toEqual([['Shop-1', 'bing', true], ['Shop-2', 'bing', true]]);
   await row.getByRole('button', { name: 'Shop-2', exact: true }).click();

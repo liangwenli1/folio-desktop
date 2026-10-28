@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { MANAGE, can, folio, isApiError, type Extension, type Group, type Profile, type Workspace } from './api';
+import { MANAGE, can, folio, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ENGINES, engineName, health, type Fix, type Health } from './checks';
 import { kernelKey, type BatchAction, type BulkChange, type WorkspaceData } from './data';
 import { startJob, type JobRun } from './jobRun';
-import { errorText, launchWhy, regionName, type Dict, type Lang } from './i18n';
+import { launchWhy, regionName, type Dict, type Lang, type News } from './i18n';
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { CookieExport } from './ProfileCookies';
 import { dayLabel, time } from './Activity';
-import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, ViewSwitch, percent, useChanged, useNow, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, ViewSwitch, percent, useChanged, useFail, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select } from './Select';
@@ -128,12 +128,12 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   // How many filters are on (shown on Reset); the selection the filters hide, said in the bulk bar.
   const active = [group !== 'all', engine !== 'all', status !== 'all', !!q, !!only].filter(Boolean).length, filtered = active > 0;
 
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
   const why = (w: 'kernel_missing' | 'download_failed') => (w === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed);
   async function open(p: Profile){
     const w = await data.launch(p);
-    if (w === 'kernel_missing'){ setCur(p.id); setDetail(true); toast(d.profiles.done.failed(p.name, why(w)), undefined, 'bad'); }
-    else if (w) toast(why(w), undefined, 'bad');
+    if (w === 'kernel_missing'){ setCur(p.id); setDetail(true); toast({ title: why(w), detail: p.name, tone: 'bad' }); }
+    else if (w) toast({ title: why(w), detail: p.name, tone: 'bad' });
     // The workspace may want a profile's page to show as it starts.
     else if (ws.settings.openDetailAfterLaunch) pick(p.id);
   }
@@ -166,9 +166,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   const syncAllowed = ws.subscription.plan !== 'free';
   async function startSync(){
     const s = await folio.startWindowSync(list.filter(p => sel.has(p.id)).map(p => p.id));
-    if (s) toast(P.done.syncing(all.find(p => p.id === s.leader)?.name ?? '', s.members.length - 1)); else toast(P.done.syncFailed, undefined, 'bad');
+    if (s) toast(P.done.syncing(all.find(p => p.id === s.leader)?.name ?? '', s.members.length - 1)); else toast({ title: P.done.syncFailed, tone: 'bad' });
   }
-  async function batchAction(action: BatchAction, extra: Parameters<WorkspaceData['batch']>[2], done: (n: number) => string){
+  async function batchAction(action: BatchAction, extra: Parameters<WorkspaceData['batch']>[2], done: (n: number) => News){
     try { toast(done(await data.batch(action, ids, extra))); } catch (e){ fail(e); }
   }
   async function trash(targets: string[]){
@@ -178,7 +178,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       const n = await data.batch('trash', targets);
       setSel(new Set());
       if (targets.includes(cur ?? '')){ setCur(null); setDetail(false); }
-      toast(P.done.trashed(n), { label: d.common.undo, fn: () => { data.batch('restore', targets).catch(fail); } });
+      toast({ ...P.done.trashed(n), action: { label: d.common.undo, fn: () => { data.batch('restore', targets).catch(fail); } } });
     } catch (e){ fail(e); }
   }
 
@@ -192,9 +192,9 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
       else if (f.kind === 'follow-tz') ok = await data.patch(p, { timezoneOverride: null });
       else if (f.kind === 'follow-lang') ok = await data.patch(p, { localeOverride: null });
       else if (f.kind === 'use-engine') ok = await data.patch(p, { kernelVersion: f.version });
-      else if (f.kind === 'download'){ if (!(await data.install(p.kernel, f.version))) toast(d.launch.download_failed, undefined, 'bad'); }
+      else if (f.kind === 'download'){ if (!(await data.install(p.kernel, f.version))) toast({ title: d.launch.download_failed, detail: p.name, tone: 'bad' }); }
       else onEdit(p.id);
-      if (!ok) toast(P.done.stale, undefined, 'bad');
+      if (!ok) toast({ title: P.done.stale, tone: 'bad' });
     } catch (e){ fail(e); } finally { setBusyFix(null); }
   }
 
@@ -244,7 +244,7 @@ export function ProfilesPage({ d, lang, ws, data, group, setGroup, only, setOnly
   });
   async function move(p: Profile, groupId: string | null){
     setMoving(null);
-    try { await data.batch('move', [p.id], { groupId }); toast(P.done.moved(1, groupId ? groupName.get(groupId) ?? '' : d.groups.none)); } catch (e){ fail(e); }
+    try { await data.batch('move', [p.id], { groupId }); toast({ ...P.done.moved(1, groupId ? groupName.get(groupId) ?? '' : d.groups.none), detail: p.name }); } catch (e){ fail(e); }
   }
   const failed = data.loadFailed.has('profiles'), S = d.states;
   const empty = failed

@@ -87,7 +87,7 @@ test('a flow runs on 10 profiles 3 at a time, failures are retried, and the resu
   const out = join(mkdtempSync(join(tmpdir(), 'folio-run-')), 'run.csv');
   await saveTo(app, out);
   await results.getByRole('button', { name: 'Export CSV' }).click();
-  await expect(win.getByRole('status').filter({ hasText: `Saved to ${out}` })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Runs exported' })).toContainText(out);
   const lines = readFileSync(out, 'utf8').replace(/^﻿/, '').split('\r\n');
   expect(lines[0]).toBe('Number,Profile,Result,Tries,Problem,visit');
   expect(lines).toHaveLength(11);

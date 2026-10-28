@@ -15,14 +15,15 @@ test('proxies checked together are a job, and a retry runs the failed ones again
   await nav(win, 'Proxies');
   await win.getByRole('button', { name: 'Check all' }).click();
   // How it went: why the failed ones failed is a click away, and so is running them again.
-  const told = win.getByRole('alert').filter({ hasText: 'Check proxies: 0 done, 2 failed' });
+  const told = win.getByRole('alert').filter({ hasText: 'Check proxies: some failed' });
+  await expect(told).toContainText('0 done, 2 failed');
   await expect(told.getByRole('button', { name: 'Retry', exact: true })).toBeVisible({ timeout: 60_000 });
   // The bell keeps it too, with a dot until it is looked at.
   await win.getByRole('button', { name: 'Notifications (new)' }).click();
   await expect(win.getByRole('dialog', { name: 'Notifications' })).toContainText('Check proxies: 2 of 2 failed.');
   await win.keyboard.press('Escape');
   await expect(win.getByRole('button', { name: 'Notifications', exact: true })).toBeVisible();
-  await told.getByRole('button', { name: 'View', exact: true }).click();
+  await told.getByRole('button', { name: 'View details' }).click();
   const row = win.locator('tr[data-job="proxy.check"]');
   await expect(row).toContainText('Failed');
   await expect(row).toContainText('2 / 2');

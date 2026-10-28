@@ -27,7 +27,7 @@ test('groups nest and count what is under them, and are set up and deleted from 
 
   await win.getByRole('checkbox', { name: 'Select US-2' }).check();
   await win.getByTestId('bulk').getByRole('button', { name: 'Remove from group' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '1 profile removed from the group' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Removed from the group' })).toContainText('1 profile');
   await expect(win.locator('tr[data-id]')).toHaveCount(1);
 
   // Moved to the top level, recoloured and described.
@@ -47,7 +47,7 @@ test('groups nest and count what is under them, and are set up and deleted from 
   await expect(del).toContainText('“US” has 1 profile.');
   await choose(del.getByRole('combobox', { name: 'Move them to' }), 'Shops');
   await del.getByRole('button', { name: 'Move and delete' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '“US” deleted' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Group deleted' })).toContainText('US');
   await expect(shopsItem).toContainText('2');
 
   // A new group starts under the one picked.

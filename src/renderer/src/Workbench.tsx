@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ProfileStatus, Update } from '@shared/bridge';
-import { MANAGE, can, folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
+import { MANAGE, can, folio, type Me, type MyInvitation, type Workspace } from './api';
 import { failure, useWorkspaceData, type WorkspaceData } from './data';
 import { EnginesPage } from './Engines';
 import { GroupsPage } from './Groups';
 import { JobsPage } from './Jobs';
-import { checkWhy, day, errorText, launchWhy, roleName, type Dict, type Lang } from './i18n';
+import { checkWhy, day, launchWhy, roleName, type Dict, type Lang } from './i18n';
 import { ProfileForm } from './ProfileForm';
 import { ProfileImportDialog } from './ProfileImport';
 import { ProfilesPage, type GroupFilter } from './Profiles';
@@ -22,7 +22,7 @@ import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
 import { AccountPage, LogoutDialog, SwitchDialog } from './Account';
-import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useGuard, useNotice, useToast, type IconName } from './ui';
+import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useFail, useGuard, useNotice, useToast, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Bell, TopBar, TrailProvider, type Crumb, type Notice } from './TopBar';
 import { Flag } from './Flag';
@@ -42,7 +42,7 @@ export function Workbench(props: Props){
 }
 
 function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspace, onAccount }: Props){
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const s = ws.subscription;
   const site = `/${lang}`;
   const [page, setPage] = useState<Page>('profiles');
@@ -69,13 +69,13 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     launchError(st: ProfileStatus){
       const p = data.profiles.find(x => x.id === st.id);
       const why = launchWhy(d, failure(st));
-      toast(p ? d.profiles.done.failed(p.name, why) : why, st.error === 'kernel_missing' && p
-        ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined, 'bad');
+      toast({ title: why, detail: p?.name, tone: 'bad', action: st.error === 'kernel_missing' && p
+        ? { label: d.form.download, fn: () => void data.install(p.kernel, p.kernelVersion).then(ok => { if (ok) void folio.openProfile(p.id); }) } : undefined });
     },
     // The profile opened, but some of its extensions failed their check and were left out.
     extensionErrors(st: ProfileStatus){
       const p = data.profiles.find(x => x.id === st.id);
-      toast(d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []), undefined, 'bad');
+      toast({ ...d.extensions.failedCheck(p?.name ?? '', st.extensionErrors ?? []), tone: 'bad' });
     },
     job(id){ go('jobs'); setJobId(id); }
   });
@@ -136,7 +136,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       const icon = <Flag country={h.geo?.country ?? null} kernel={p.kernel} />;
       const main: Command = on
         ? { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.switchTo}`, icon, run: () => void folio.focusProfile(p.id) }
-        : { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.open}`, icon, run: () => void data.launch(p).then(why => { if (why) toast(why === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed, undefined, 'bad'); }) };
+        : { id: `p:${p.id}`, group: 'profiles', label: p.name, hint, keys: `Enter ${C.open}`, icon, run: () => void data.launch(p).then(why => { if (why) toast({ title: why === 'kernel_missing' ? d.launch.kernel_missing : d.launch.download_failed, detail: p.name, tone: 'bad' }); }) };
       return on ? [main, { id: `s:${p.id}`, group: 'profiles', label: C.stop(p.name), hint, icon, run: () => void folio.stopProfile(p.id) }] : [main];
     });
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
@@ -184,7 +184,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     try {
       await folio.api('POST', `/invitations/${i.id}/${accept ? 'accept' : 'decline'}`);
       if (accept) guard(() => { go('profiles'); onSwitch(i.workspaceId); }); else void loadInvites();
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); }
+    } catch (e){ fail(e); }
   }
 
   // Settings and the plan sit under the link at the foot of the rail; the person's own page under the account button.
@@ -263,7 +263,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
         <ProfileForm d={d} lang={lang} ws={ws} data={data} onClose={close} profile={editing}
           defaultGroup={dialog.kind === 'new' && dialog.group !== undefined ? dialog.group : group !== 'all' && group !== 'none' ? group : null}
-          onDone={p => { close(); if (dialog.kind === 'new') toast(d.profiles.done.created(p.name), { label: d.states.view, fn: () => showProfile(p.id) }); else toast(d.profiles.done.saved); }} />
+          onDone={p => { close(); if (dialog.kind === 'new') toast({ title: d.profiles.done.created, detail: `${p.name} · #${String(p.number).padStart(4, '0')}`, action: { label: d.states.view, fn: () => showProfile(p.id) } });
+            else toast({ title: d.profiles.done.saved, detail: p.name }); }} />
       )}
       {dialog?.kind === 'import' && <ProfileImportDialog d={d} ws={ws} data={data} onClose={close} />}
       {dialog?.kind === 'proxy' && (!dialog.id || editingProxy) && <ProxyForm d={d} wsId={ws.id} data={data} proxy={editingProxy} onClose={close} onShow={showProxy} />}
@@ -293,7 +294,7 @@ function useJobNotice(d: Dict, data: WorkspaceData){
         <div className="n-body">
           <p className="n-t"><b>{d.states.underway(d.jobs.kinds[j.kind])}</b><small>{done} / {j.total}</small></p>
           <Progress done={done} total={j.total} />
-          <div className="n-foot"><p className="n-sub">{d.states.resultsThere}</p><button type="button" onClick={() => data.showJob(j.id)}>{d.states.viewTask}</button></div>
+          <div className="n-foot"><p className="n-sub">{d.states.resultsThere}</p><button type="button" className="t-act" onClick={() => data.showJob(j.id)}>{d.states.view}</button></div>
         </div>
         <button type="button" className="t-x" aria-label={d.common.close} title={d.common.close} onClick={() => setClosed(j.id)}><Icon name="x" /></button>
       </div>

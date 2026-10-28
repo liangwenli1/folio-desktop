@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useToast, useView, type IconName } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useFail, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField } from './Select';
 
@@ -36,7 +36,7 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
   const needle = q.trim().toLowerCase();
   const tasks = data.tasks.filter(t => !needle || t.name.toLowerCase().includes(needle));
   const flowName = new Map(data.flows.map(f => [f.id, f.name]));
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
   const task = open ? data.tasks.find(t => t.id === open) : undefined;
   const scheduledHere = data.tasks.some(t => t.schedule && t.runner?.self);
   const proxies = new Map(data.proxies.map(p => [p.id, p]));
@@ -513,10 +513,10 @@ function TaskForm({ d, ws, data, task, onClose, onSaved }: { d: Dict; ws: Worksp
         ? await folio.api<Task>('PATCH', `/tasks/${task.id}`, { version: task.version, ...body })
         : await folio.api<Task>('POST', `/workspaces/${ws.id}/tasks`, body);
       data.refresh('tasks');
-      toast(d.tasks.saved);
+      toast({ title: d.tasks.saved, detail: saved.name });
       onSaved(saved.id);
     } catch (e){
-      toast(isApiError(e) && e.code === 'stale' ? d.tasks.stale : errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+      toast({ title: isApiError(e) && e.code === 'stale' ? d.tasks.stale : errorText(d, isApiError(e) ? e.code : 'internal'), tone: 'bad' });
     } finally { setSaving(false); }
   }
   const badSchedule = (sched.kind === 'once' && !sched.at) || (sched.kind === 'daily' && (!sched.days.length || !sched.time));

@@ -20,7 +20,7 @@ async function importText(win: Page, name: string, text: string, n: number){
   const dialog = win.getByRole('dialog', { name: `Import cookies into ${name}` });
   await dialog.getByRole('textbox', { name: 'Paste text' }).fill(text);
   await dialog.getByRole('button', { name: `Import ${n} ${n === 1 ? 'cookie' : 'cookies'}` }).click();
-  await expect(win.getByRole('status').filter({ hasText: `${n} ${n === 1 ? 'cookie' : 'cookies'} imported` })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Cookies imported' })).toContainText(`${n} ${n === 1 ? 'cookie' : 'cookies'}`);
 }
 
 test('cookies come in after a preview; values show on request; edited, deleted and exported; kept on one computer, none listed', async () => {
@@ -41,7 +41,7 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await expect(dialog).toContainText('2 valid · 1 invalid');
   await expect(dialog.locator('tr[data-entry="3"]')).toContainText('No value');
   await dialog.getByRole('button', { name: 'Import 2 cookies' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '2 cookies imported' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Cookies imported' })).toContainText('2 cookies');
   const rows = page.locator('tr[data-cookie]');
   await expect(rows).toHaveCount(2);
   await expect(page).toContainText('2 cookies');
@@ -81,7 +81,7 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await rows.filter({ hasText: 'pref' }).getByRole('button', { name: 'Actions for pref' }).click();
   await win.getByRole('menuitem', { name: 'Delete' }).click();
   await win.getByRole('dialog', { name: 'Delete this cookie?' }).getByRole('button', { name: 'Delete' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '1 cookie deleted' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Cookies deleted' })).toContainText('1 cookie');
   await expect(rows).toHaveCount(2);
   const values = (await (await acct.api.get(`/profiles/${p.id}/cookies/values`)).json()).cookies as { name: string; value: string; sameSite: string }[];
   expect(values.map(c => `${c.name}=${c.value}`).sort()).toEqual(['lang=fr', 'sid=abc']);
@@ -96,7 +96,7 @@ test('cookies come in after a preview; values show on request; edited, deleted a
   await expect(exporting.getByRole('button', { name: 'Export file' })).toBeDisabled();
   await exporting.getByRole('checkbox', { name: 'I have checked what is exported and what it is for' }).check();
   await exporting.getByRole('button', { name: 'Export file' }).click();
-  await expect(win.getByRole('status').filter({ hasText: `1 profile exported to ${out}` })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Cookies exported' })).toContainText(`1 profile · ${out}`);
   const exported = JSON.parse(readFileSync(out, 'utf8'));
   expect(exported.map((c: { name: string; value: string }) => `${c.name}=${c.value}`).sort()).toEqual(['lang=fr', 'sid=abc']);
 
@@ -121,7 +121,7 @@ test('a spreadsheet can bring cookies with each profile', async () => {
   await dialog.getByRole('textbox', { name: 'CSV' }).fill(`name,cookies\nWith-Cookies,"${cookies.replace(/"/g, '""')}"\nWithout,`);
   await dialog.getByRole('button', { name: 'Import 2 profiles' }).click();
   // Profiles are created first and their cookies imported after; the notice comes when both are done.
-  await expect(win.getByRole('status').filter({ hasText: '2 profiles imported' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Profiles imported' })).toContainText('2 profiles');
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
   const list = (await (await acct.api.get(`/workspaces/${acct.workspaceId}/profiles`)).json()).profiles;
   expect(list.map((p: { name: string; data: { cookies: number } | null }) => [p.name, p.data?.cookies ?? 0])).toEqual([['With-Cookies', 2], ['Without', 0]]);

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { folio, isApiError, type Permission, type Role, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { errorText, roleName, type Dict } from './i18n';
-import { Act, Cancel, Icon, Modal, useToast } from './ui';
+import { Act, Cancel, Icon, Modal, useFail, useToast } from './ui';
 import { SelectField } from './Select';
 
 type Section = 'profiles' | 'data' | 'proxies' | 'team';
@@ -20,7 +20,7 @@ const same = (a: Permission[], b: Permission[]) => a.length === b.length && a.ev
 
 export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; data: WorkspaceData; manager: boolean }){
   const P = d.rolesPage;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   const [cur, setCur] = useState(data.roles.find(r => r.key === 'member')?.id ?? '');
   const role = data.roles.find(r => r.id === cur) ?? data.roles[0];
   const [perms, setPerms] = useState<Permission[]>(role?.permissions ?? []);
@@ -40,7 +40,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
     try {
       await folio.api('PATCH', `/roles/${role.id}`, { permissions: perms, ...(role.key ? {} : { name: name.trim() }) });
       toast(P.saved(role.key ? label : name.trim()));
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); } finally { setBusy(false); }
+    } catch (e){ fail(e); } finally { setBusy(false); }
     data.refresh('members');
   }
 
@@ -101,7 +101,7 @@ export function RolesTab({ d, ws, data, manager }: { d: Dict; ws: Workspace; dat
           <Cancel />
           <Act className="btn btn-danger solid" run={() => folio.api('DELETE', `/roles/${role.id}`).then(() => {
             toast(P.deleted(role.name)); setDeleting(false); setCur(''); data.refresh('members');
-          }, e => { setDeleting(false); toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); })}>{P.delete}</Act>
+          }, e => { setDeleting(false); fail(e); })}>{P.delete}</Act>
         </>}><p>{P.deleteNote}</p></Modal>
       )}
     </div>

@@ -60,7 +60,7 @@ test('a built-in role is changed and put back, and a role of the workspace’s o
   await expect(del).not.toBeChecked();
   await del.check();
   await memberRole.getByRole('button', { name: 'Save permissions' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Member saved' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Permissions saved' })).toContainText('Member');
   const permsOf = async (key: string) => ((await (await acct.api.get(`${base}/roles`)).json()).roles as { key: string; name: string; permissions: string[] }[]).find(r => r.key === key || r.name === key)?.permissions;
   expect(await permsOf('member')).toContain('profiles.delete');
   await memberRole.getByRole('button', { name: 'Restore defaults' }).click();
@@ -78,7 +78,7 @@ test('a built-in role is changed and put back, and a role of the workspace’s o
   await expect(ops.locator('[data-permission="profiles.create"]').getByRole('checkbox')).not.toBeChecked();
   await ops.getByRole('button', { name: 'Delete role' }).click();
   await win.getByRole('dialog', { name: 'Delete the role Ops?' }).getByRole('button', { name: 'Delete role' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Ops deleted' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Role deleted' })).toContainText('Ops');
   expect(await permsOf('Ops')).toBeUndefined();
   await app.close();
 });

@@ -38,7 +38,7 @@ test('a display name, a new password and which notices to get', async () => {
   await expect(win.getByLabel('Current password')).toBeFocused();
   await win.getByLabel('Current password').fill(PASSWORD);
   await win.getByRole('button', { name: 'Save changes' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Password changed.' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Password changed' })).toContainText('Sign-ins on other computers have ended');
 
   // Notices are the person's own and stay with the account.
   await win.getByRole('button', { name: 'Settings', exact: true }).click();

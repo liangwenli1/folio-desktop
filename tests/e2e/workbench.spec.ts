@@ -38,7 +38,9 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await proxyForm.getByRole('textbox', { name: 'Name', exact: true }).fill('Local SOCKS');
   await proxyForm.getByRole('button', { name: 'Save proxy' }).click();
   await expect(proxyForm).toBeHidden();
-  await expect(win.getByRole('status').filter({ hasText: 'Local SOCKS added' }).getByRole('button', { name: 'View' })).toBeVisible();
+  const added = win.getByRole('status').filter({ hasText: 'Proxy added' });
+  await expect(added).toContainText('Local SOCKS · SOCKS5');
+  await expect(added.getByRole('button', { name: 'View details' })).toBeVisible();
 
   await nav('Profiles');
   await win.getByRole('button', { name: 'New profile' }).click();
@@ -133,7 +135,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await choose(bulk.getByRole('combobox', { name: 'More' }), 'Delete');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await expect(row(win, 'P-1')).toBeHidden();
-  await win.getByRole('status').filter({ hasText: '2 profiles moved to the Trash' }).getByRole('button', { name: 'Undo' }).click();
+  await win.getByRole('status').filter({ hasText: 'Moved to the Trash' }).filter({ hasText: '2 profiles' }).getByRole('button', { name: 'Undo' }).click();
   await expect(row(win, 'P-1')).toBeVisible();
 
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
@@ -174,7 +176,7 @@ test('proxy lists and spreadsheets import, reusing proxies that are already save
   await pi.getByRole('textbox', { name: 'Naming' }).fill('Ops-{n}');
   await pi.getByRole('button', { name: 'Import 2 proxies' }).click();
   // Lines that couldn't be read make it a partly failed job, which the task center explains.
-  await expect(win.getByRole('alert').filter({ hasText: 'Import proxies: 2 done, 2 failed' })).toBeVisible();
+  await expect(win.getByRole('alert').filter({ hasText: 'Import proxies: some failed' })).toContainText('2 done, 2 failed');
   await expect(pi).toBeHidden();
   // Proxies show as a table first, named from the pattern.
   await expect(win.locator('tr[data-id]')).toHaveCount(2);

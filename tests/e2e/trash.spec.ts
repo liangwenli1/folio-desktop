@@ -29,7 +29,7 @@ test('the Trash says how long it keeps profiles, finds them by ID, and restores 
   const panel = win.getByRole('complementary', { name: '2 selected' });
   await choose(panel.getByRole('combobox', { name: 'Restore to' }), 'EU stores');
   await panel.getByRole('button', { name: 'Restore (2)' }).click();
-  await expect(win.getByRole('status').filter({ hasText: '2 profiles restored' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Restored' })).toContainText('2 profiles');
   const list = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; groupId: string | null }[];
   expect(list.map(p => [p.name, p.groupId]).sort()).toEqual([['Shop-1', eu.id], ['Shop-3', eu.id]]);
   await expect(rows).toHaveCount(1);

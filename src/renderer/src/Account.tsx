@@ -62,7 +62,7 @@ function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; on
       await folio.api('PATCH', '/me', { displayName: name.trim(), note: note.trim() || null, locale: language });
       if (startup?.supported && onStart !== startup.enabled){ await folio.setStartup(onStart); setStartup({ ...startup, enabled: onStart }); }
       await onSaved();
-      toast(A.saved);
+      toast({ title: A.saved });
     } catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); } finally { setBusy(false); }
   }
 

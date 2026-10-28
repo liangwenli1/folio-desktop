@@ -63,7 +63,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await dialog.getByRole('button', { name: 'Chrome Web Store' }).click();
   await dialog.getByLabel('Link or extension ID').fill('https://chromewebstore.google.com/detail/shop-helper/abcdefghijklmnopabcdefghijklmnop');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Shop Helper added to the library' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Added to the library' })).toContainText('Shop Helper');
   await win.locator('header.bar').getByRole('button', { name: 'Add extension' }).click();
   dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
@@ -93,7 +93,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await backToList(win);
   await win.getByLabel('Select this page').check();
   await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Shop Helper FF · Firefox');
-  await expect(win.getByRole('status').filter({ hasText: 'Shop Helper FF installed in 1 profile; 1 skipped' })).toBeVisible();
+  await expect(win.getByRole('status').filter({ hasText: 'Extension installed' })).toContainText('Shop Helper FF · 1 profile; 1 skipped');
 
   expect(await opened(win, cr.id)).toMatchObject({ state: 'running' });
   expect(await helper(app, cr.id, stores.page)).toBe('chromium');

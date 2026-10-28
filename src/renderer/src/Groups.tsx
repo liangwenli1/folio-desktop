@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Workspace } from './ap
 import { kernelKey, type WorkspaceData } from './data';
 import { health } from './checks';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Avatar, BulkBar, Cancel, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, PanelEdge, PartialFailed, SkelRows, Switch, useChanged, useToast, type GroupColor } from './ui';
+import { Act, Avatar, BulkBar, Cancel, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, PanelEdge, PartialFailed, SkelRows, Switch, useChanged, useFail, useToast, type GroupColor } from './ui';
 import { Select, SelectField } from './Select';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
@@ -56,7 +56,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
     if (byId.has(pick)) seen.current = pick; else if (seen.current === pick) setPick('all');
   }, [pick, byId]);
   useEffect(() => { setPage(1); setSel(new Set()); }, [pick]);
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
 
   const within = (id: string) => { const ids = new Set(subtree(kids, id)); return profiles.filter(p => p.groupId && ids.has(p.groupId)); };
   const shown = pick === 'all' ? profiles : pick === 'none' ? profiles.filter(p => !p.groupId) : within(pick);
@@ -287,7 +287,7 @@ function GroupSettings({ d, ws, data, meId, group, kids, company, onClose, onDel
       if (Object.keys(body).length) await folio.api('PATCH', `/groups/${group.id}`, body);
       await saveRoles(ws.id, data, roles);
       setRoles({});
-      toast(G.saved);
+      toast({ title: G.saved, detail: name.trim() || group.name });
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
     data.refresh('groups', 'members', 'profiles');
   }

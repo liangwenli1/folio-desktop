@@ -9,7 +9,7 @@ import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, checkWhy, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { Act, BulkBar, Cancel, CopyBtn, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, PartialFailed, Switch, Tabs, ViewSwitch, useChanged, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, CopyBtn, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, PartialFailed, Switch, Tabs, ViewSwitch, useChanged, useFail, useToast, useView } from './ui';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
@@ -73,7 +73,7 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   const shownSel = rows.filter(p => sel.has(p.id)).length;
   const on = (id: string) => data.profiles.filter(p => p.proxyId === id);
   const curProxy = cur ? byId.get(cur) ?? null : null;
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
 
   // Several at once are a job (a long one shows its progress meanwhile). When some don't answer, the task center says
   // why, and the failed ones can run again.
@@ -83,10 +83,10 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   }
   function checked(job: string | null, ok: number, failed: number){
     if (!failed || !job) return toast(X.checked(ok + failed));
-    toast(d.states.partly(d.jobs.kinds['proxy.check'], ok, failed), [
+    toast({ ...d.states.partly(d.jobs.kinds['proxy.check'], ok, failed), tone: 'bad', action: [
       { label: d.states.view, fn: () => data.showJob(job) },
       { label: d.common.retry, fn: () => void data.rerun(job).then(j => checked(job, j.ok, j.failed), fail) }
-    ], 'bad');
+    ] });
   }
   async function remove(targets: string[]){
     setConfirm(null);
@@ -562,8 +562,10 @@ export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; 
         ? await folio.api<Proxy>('PATCH', `/proxies/${proxy.id}`, body)
         : await folio.api<Proxy>('POST', `/workspaces/${wsId}/proxies`, body);
       data.refresh('proxies');
-      if (proxy) toast(d.profiles.done.saved);
-      else toast(X.added(saved.name), { label: d.states.view, fn: () => onShow(saved.id) });
+      // Named as the list shows it: its name, then its protocol.
+      const what = `${saved.name} · ${saved.type.toUpperCase()}`;
+      if (proxy) toast({ title: d.profiles.done.saved, detail: what });
+      else toast({ title: X.added, detail: what, action: { label: d.states.view, fn: () => onShow(saved.id) } });
       // New and moved proxies have no check yet.
       if (!saved.lastCheck) void data.check([saved.id]);
       if (!another || proxy) return onClose();
@@ -711,7 +713,7 @@ export function ProxyImportDialog({ d, wsId, data, onClose }: { d: Dict; wsId: s
       })) }).catch(() => null);
       data.refresh('proxies');
       void data.check(r.proxies.filter(p => !p.lastCheck).map(p => p.id));
-      if (bad && job) toast(d.states.partly(d.jobs.kinds['proxy.import'], valid.length, bad), { label: d.states.view, fn: () => data.showJob(job.id) }, 'bad');
+      if (bad && job) toast({ ...d.states.partly(d.jobs.kinds['proxy.import'], valid.length, bad), tone: 'bad', action: { label: d.states.view, fn: () => data.showJob(job.id) } });
       else toast(I.done(r.added, new Set(r.proxies.map(p => p.id)).size - r.added));
       onClose();
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }

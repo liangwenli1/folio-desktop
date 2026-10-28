@@ -5,7 +5,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Invitation, type Membe
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, useChanged, useToast } from './ui';
+import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, useChanged, useFail, useToast } from './ui';
 import { Select, SelectField } from './Select';
 import { RolesTab } from './Roles';
 
@@ -24,7 +24,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const manager = can(data.role, MANAGE);
   const company = ws.subscription.plan === 'company';
   const limit = ws.subscription.entitlements.members;
-  const fail = (e: unknown) => toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad');
+  const fail = useFail();
   const close = () => setDialog(null);
   const needle = q.trim().toLowerCase();
   const people = data.members.filter(m => (!needle || `${m.displayName} ${m.email}`.toLowerCase().includes(needle)) && (roleId === 'all' || m.role.id === roleId));
@@ -39,7 +39,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     email: i.email, roleId: i.role.id, groupIds: i.groupIds, notify, days: validity(i)
   });
   async function resend(i: Invitation){
-    try { const r = await again(i, true); if (r.emailed) toast(T.sent(i.email)); else toast(T.notSent, undefined, 'bad'); } catch (e){ fail(e); }
+    try { const r = await again(i, true); if (r.emailed) toast(T.sent(i.email)); else toast({ ...T.notSent, tone: 'bad' }); } catch (e){ fail(e); }
     data.refresh('members');
   }
   // Links are stored hashed: copying one makes a new link (not emailed), and the one before stops working.
@@ -48,7 +48,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
     data.refresh('members');
   }
   async function withdraw(id: string){
-    try { await folio.api('DELETE', `/invitations/${id}`); toast(T.withdrawn); } catch (e){ fail(e); }
+    try { await folio.api('DELETE', `/invitations/${id}`); toast({ title: T.withdrawn }); } catch (e){ fail(e); }
     data.refresh('members');
   }
 
@@ -274,7 +274,7 @@ function InviteDialog({ d, ws, data, company, seats, limit, onClose }: {
             {results.map(r => (
               <li key={r.email}>
                 <span><Icon name={r.emailed ? 'check' : 'mail'} /><b>{r.email}</b><small>{r.emailed ? T.sentShort : T.notSentShort}</small></span>
-                <button className="btn btn-sm btn-secondary" type="button" onClick={() => void navigator.clipboard.writeText(r.link).then(() => toast(T.copied))}>{T.copyLink}</button>
+                <button className="btn btn-sm btn-secondary" type="button" onClick={() => void navigator.clipboard.writeText(r.link).then(() => toast({ title: T.copied }))}>{T.copyLink}</button>
               </li>
             ))}
           </ul>
@@ -329,7 +329,7 @@ function AccessDialog({ d, ws, data, company, member, onClose }: { d: Dict; ws: 
       await folio.api('PATCH', `/workspaces/${ws.id}/members/${member.userId}`, {
         ...(roleId !== member.role.id ? { roleId } : {}), ...(company && changedGroups ? { groupIds } : {})
       });
-      toast(T.saved);
+      toast({ title: T.saved, detail: member.displayName });
       data.refresh('members', 'groups');
       onClose();
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }

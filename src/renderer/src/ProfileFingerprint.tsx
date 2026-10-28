@@ -7,7 +7,7 @@ import { folio, isApiError, type Profile } from './api';
 import { ENGINES, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Icon, useToast, bytes, type IconName } from './ui';
+import { Icon, useFail, useToast, bytes, type IconName } from './ui';
 import { CanvasField, CoresField, GpuField, LangField, ScreenField, WebrtcField, ZoneField, useFingerprint } from './Fingerprint';
 import { ReportDialog, buildReport, passed, type Report } from './Checkup';
 import { dayLabel, time } from './Activity';
@@ -23,7 +23,7 @@ const IC: Record<CheckLevel, IconName> = { ok: 'check', todo: 'download', warn: 
 
 export function FingerprintTab({ d, lang, data, p, h, status, size, risks, others, busy, onFix, onDirty, onSaved }: Props){
   const T = d.fpTab, F = d.fp, D = d.detail;
-  const toast = useToast();
+  const toast = useToast(), fail = useFail();
   // The version this draft started from: a save over someone else's change is refused once, as in the edit form.
   const [base, setBase] = useState(p);
   const installed = !!data.kernels.find(k => k.kind === p.kernel && k.version === p.kernelVersion)?.installed;
@@ -44,10 +44,10 @@ export function FingerprintTab({ d, lang, data, p, h, status, size, risks, other
     setSaving(true);
     try {
       const ok = await data.patch(base, { timezoneOverride: f.timezoneOverride, localeOverride: f.localeOverride, ...(f.changed ? { fingerprint: draft } : {}) });
-      if (!ok){ setBase(p); toast(d.form.stale, undefined, 'bad'); return; }
-      toast(T.saved);
+      if (!ok){ setBase(p); toast({ title: d.form.stale, tone: 'bad' }); return; }
+      toast({ title: T.saved, detail: p.name });
       onSaved();
-    } catch (e){ toast(errorText(d, isApiError(e) ? e.code : 'internal'), undefined, 'bad'); } finally { setSaving(false); }
+    } catch (e){ fail(e); } finally { setSaving(false); }
   }
 
   // What it is saved as, with the time zone and language as they come out (following the proxy, or this computer).
@@ -131,7 +131,7 @@ function Consistency({ d, lang, p, h, size, risks, others, busy, onFix }: Pick<P
       const r = buildReport(p, facts, exitIp, exitGeo ?? h.geo, others);
       await folio.api('PUT', `/profiles/${p.id}/report`, r);
       setReport({ ...r, at: new Date().toISOString() });
-    } catch (e){ toast(errorText(d, isApiError(e) && e.code ? e.code : 'checkup_failed'), undefined, 'bad'); } finally { setChecking(false); }
+    } catch (e){ toast({ title: errorText(d, isApiError(e) && e.code ? e.code : 'checkup_failed'), tone: 'bad' }); } finally { setChecking(false); }
   }
   const geo = h.geo, px = h.line ?? h.px, kernel = ENGINES[p.kernel];
   const tz = p.timezoneOverride ?? geo?.timezone ?? null, locale = p.localeOverride ?? geo?.locale ?? null;
