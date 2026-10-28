@@ -20,7 +20,7 @@ import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from '
 import { createApiToken, loadLocalApi, localApi, onLocalApi, revokeApiToken, setLocalApi } from './local-api';
 import { fromLink } from './extensions';
 import { leftWindowSync, loadSyncOptions, onSyncLog, onSyncThumbs, onWindowSync, setLeader, setSyncOptions, startWindowSync, stopWindowSync, syncGoto, syncLog, syncOptions, watchThumbs, windowSync } from './windowsync';
-import { tile } from './tile';
+import { raise, tile } from './tile';
 import { installUpdate, onUpdate, startUpdates, update } from './update';
 
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
@@ -262,7 +262,7 @@ ipcMain.handle('folio:tileWindows', e => {
 });
 ipcMain.handle('folio:openProfile', (_e, id: string) => { void open(String(id), { tabs: true }); });
 ipcMain.handle('folio:stopProfile', (_e, id: string) => stop(String(id)));
-ipcMain.handle('folio:focusProfile', (_e, id: string) => focus(String(id)));
+ipcMain.handle('folio:focusProfile', async (_e, id: string) => { await focus(String(id)); await raise(String(id)); });
 ipcMain.handle('folio:checkup', (_e, id: string) => checkup(String(id)));
 ipcMain.handle('folio:statuses', () => statuses());
 ipcMain.handle('folio:checkProxy', (_e, id: string) => checkById(String(id)));
