@@ -234,7 +234,7 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .sel-none .linkish{margin-left:auto;font-weight:600;color:var(--accent-ink);text-decoration:none}
 .sel-none .spin{width:14px;height:14px;border-width:2px}
 
-/* login: the form on the left; on the brand panel on the right, a picture of the workbench in a window */
+/* login (G1, chosen again 10-28): the form on the left; on the brand panel on the right, three profiles as cards, still */
 .login{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%;background:var(--card)}
 .login-l{position:relative;display:grid;place-content:center;padding:32px}
 .login-form{width:min(380px,100%);display:grid;gap:14px}
@@ -254,8 +254,16 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .login-r::before{content:'';position:absolute;inset:-40px;background:radial-gradient(60% 50% at 20% 20%,#F0806A,transparent 70%),radial-gradient(60% 60% at 80% 30%,#D2445E,transparent 70%),radial-gradient(70% 60% at 50% 100%,#7C2348,transparent 70%)}
 @media (max-width:1100px){ .login{grid-template-columns:minmax(0,1fr)} .login-r{display:none} }
 
-.login-shot{position:absolute;left:5%;right:5%;top:50%;translate:0 -50%}
-.login-shot img{display:block;width:100%;height:auto;border-radius:var(--r-lg);background:#fff;box-shadow:0 0 0 1px rgba(29,28,43,.1),0 40px 80px -30px rgba(40,10,30,.55)}
+.login-cards{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:22px;padding:24px;pointer-events:none}
+.login-pc{display:flex;align-items:center;gap:12px;width:min(430px,88%);padding:14px 16px;border-radius:var(--r-lg);background:var(--card);box-shadow:0 24px 40px -18px rgba(0,0,0,.55)}
+.login-pc:nth-child(1){transform:translateX(-36px) rotate(-3deg)}
+.login-pc:nth-child(2){transform:translateX(44px) rotate(2deg)}
+.login-pc:nth-child(3){transform:translateX(-12px) rotate(-1.5deg)}
+.login-pc > span:nth-child(2){display:grid;flex:1;min-width:0}
+.login-pc b{font-size:14px;font-weight:600}
+.login-pc small{font-size:12px;color:var(--ink-2)}
+/* restoring: the spinner standing still, open at the top right (open at the side, it reads as a C) */
+.login-pc .spin{animation:none;rotate:-45deg}
 /* The window can be dragged by its top strip; on Windows its buttons sit there, over the brand panel's margin. */
 .login::before{content:'';position:fixed;top:0;left:0;right:0;height:var(--tb);-webkit-app-region:drag}
 .login-l > *,.login-r{-webkit-app-region:no-drag}
@@ -489,6 +497,7 @@ html[data-platform="win32"] .top{padding-right:150px}
 .badge.good{background:var(--good-soft);color:var(--good-ink)} .badge.warn{background:var(--warn-soft);color:var(--warn-ink)}
 .badge.bad{background:var(--bad-soft);color:var(--bad-ink)} .badge.info{background:var(--info-soft);color:var(--info-ink)}
 .badge.accent{background:var(--accent-soft);color:var(--accent-ink)}
+.badge.stop{background:var(--stop-soft);color:var(--stop-ink)}
 button.badge{border:0;cursor:pointer}
 .dot-st + .badge{margin-left:8px}
 .shield{cursor:help}

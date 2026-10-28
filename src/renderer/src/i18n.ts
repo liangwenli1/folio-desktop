@@ -37,7 +37,7 @@ export const en = {
     title: 'Log in to Folio', lead: 'Use the account you created on the Folio website.',
     email: 'Email', password: 'Password', submit: 'Log in',
     noAccount: 'No account yet?', create: 'Sign up on the website', forgot: 'Forgot password?',
-    picture: 'The Folio workbench: the list of browser profiles'
+    demo: [['US-Store-01', 'Seattle'], ['UK-Shop-01', 'London'], ['JP-Social-01', 'Tokyo']] as [string, string][]
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan and usage', help: 'Help', more: 'More' },
   top: {
@@ -969,7 +969,7 @@ export const zh: Dict = {
     title: '登录 Folio', lead: '使用在 Folio 官网注册的账号登录。',
     email: '邮箱', password: '密码', submit: '登录',
     noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？',
-    picture: 'Folio 工作台：浏览器环境列表'
+    demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][]
   },
   nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '套餐与用量', help: '帮助中心', more: '更多' },
   top: {

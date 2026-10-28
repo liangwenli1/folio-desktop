@@ -31,14 +31,17 @@ test('the plan bought on the website shows up after logging in', async () => {
   await app.close();
 });
 
-test('the sign-in page shows the workbench beside the form, in the window’s colour scheme', async () => {
+test('the sign-in page shows three profiles as cards beside the form, standing still', async () => {
   const app = await launch(dataDir());
   const win = await app.firstWindow();
-  const picture = win.getByRole('img', { name: 'The Folio workbench: the list of browser profiles' });
-  const shown = () => picture.evaluate((img: HTMLImageElement) => (img.complete && img.naturalWidth > 0 ? img.currentSrc.match(/en-(light|dark)/)?.[1] : null));
-  await expect.poll(shown).toBe('light');
-  await win.emulateMedia({ colorScheme: 'dark' });
-  await expect.poll(shown).toBe('dark');
+  const cards = win.locator('.login-pc');
+  await expect(cards).toHaveCount(3);
+  await expect(cards.nth(0)).toContainText('US-Store-01');
+  await expect(cards.nth(0)).toContainText('Running');
+  await expect(cards.nth(1)).toContainText('Restoring');
+  await expect(cards.nth(2)).toContainText('Not running');
+  // Nothing on the page moves: the restoring card's ring stands still.
+  expect(await cards.nth(1).locator('.spin').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   await app.close();
 });
 

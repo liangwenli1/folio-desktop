@@ -2,13 +2,12 @@
 // and the real engines, each picture in the light and the dark colour scheme for each language. Whole-window stills for
 // the website's pages (features, solutions, the help guides, the first screens), and four pieces of the workbench for
 // the home page's cards: a profile card, a proxy card, the group tree and the members with their roles.
-// Writes demo/stills/{lang}-{scheme}/ (the website copies it to public/shots/), and the profile list to
-// src/renderer/src/shots/, the picture beside the sign-in form.
+// Writes demo/stills/{lang}-{scheme}/ (the website copies it to public/shots/).
 //   npm run build && npx playwright test -c demo
 // Needs what the end-to-end tests need (folio-server with DEV_TOOLS and MOCK_PAYMENTS, Mailpit, the engines in
 // FOLIO_KERNELS_DIR), API_URL pointing at the server, and the demo proxies' host names (<exit>.proxy.example, see
 // world.ts) pointing at this machine. Each run gives the demo accounts a new workspace.
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { _electron as electron, expect, request, test, type ElectronApplication, type Locator, type Page } from '@playwright/test';
 import { strToU8, zipSync } from 'fflate';
@@ -17,7 +16,7 @@ import { API, ENGINE_ENV, PASSWORD, SITE, closeWindows, dataDir, lastMail, lastS
 import { ECHO, EXITS, hostOf, startExits, type ExitKey } from './world';
 
 test.setTimeout(900_000);
-const STILLS = 'demo/stills', LOGIN = 'src/renderer/src/shots', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
+const STILLS = 'demo/stills', W = 1280, H = 800, SCALE = 1.5, QUALITY = 0.8, PORT = 24100;
 
 // The workspace's owner, an admin and a member, by the names colleagues see them by.
 const PEOPLE = {
@@ -325,13 +324,11 @@ for (const lang of ['en', 'zh'] as const){
       for (let i = 0; i < out.length; i += 0x8000) s += String.fromCharCode(...out.subarray(i, i + 0x8000));
       return btoa(s);
     }, { b64: png.toString('base64'), q: QUALITY }).then(b => Buffer.from(b, 'base64'));
-    mkdirSync(LOGIN, { recursive: true });
     for (const scheme of ['light', 'dark'] as const){
       const dir = join(STILLS, `${lang}-${scheme}`);
       rmSync(dir, { recursive: true, force: true });
       mkdirSync(dir, { recursive: true });
       for (const p of stills) writeFileSync(join(dir, `${p.file}.webp`), await webp(p[scheme]));
-      copyFileSync(join(dir, 'list.webp'), join(LOGIN, `${lang}-${scheme}.webp`));
     }
     await app.close();
   });

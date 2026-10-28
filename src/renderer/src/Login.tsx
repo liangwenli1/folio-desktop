@@ -1,18 +1,22 @@
 import { useState, type FormEvent } from 'react';
 import { folio, isApiError } from './api';
 import type { Dict, Lang } from './i18n';
-import { Mark } from './ui';
+import { Icon, Mark } from './ui';
+import { Flag } from './Flag';
 
-// The profile list, in each language and colour scheme, as demo/capture.spec.ts recorded it.
-const PICTURES = import.meta.glob<string>('./shots/*.webp', { query: '?url', import: 'default', eager: true });
-
-// The form on the left; on the right the workbench, as it looks once signed in.
+// The form on the left; on the right three profiles as the workbench shows them, still (G1, the user, 10-28).
 export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lang; version: string; onLang(l: Lang): void; onDone: () => void }){
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const site = `/${lang}`;
+  const P = d.profiles, [us, uk, jp] = d.login.demo;
+  const cards = [
+    { cc: 'US', kernel: 'chromium' as const, name: us[0], where: `${us[1]} · Chromium 150`, st: <span className="badge good"><Icon name="play" />{P.st.running}<span className="sub">1:42:10</span></span> },
+    { cc: 'GB', kernel: 'firefox' as const, name: uk[0], where: `${uk[1]} · Firefox 156`, st: <span className="badge info"><span className="spin" />{P.stage.restore}<span className="sub">3 / 4</span></span> },
+    { cc: 'JP', kernel: 'chromium' as const, name: jp[0], where: `${jp[1]} · Chromium 150`, st: <span className="badge stop"><Icon name="pause" />{P.st.idle}</span> }
+  ];
 
   async function submit(ev: FormEvent){
     ev.preventDefault();
@@ -54,10 +58,15 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
         </p>
       </div>
       <div className="login-r">
-        <picture className="login-shot">
-          <source srcSet={PICTURES[`./shots/${lang}-dark.webp`]} media="(prefers-color-scheme: dark)" />
-          <img src={PICTURES[`./shots/${lang}-light.webp`]} width={1920} height={1200} alt={d.login.picture} />
-        </picture>
+        <div className="login-cards" aria-hidden="true">
+          {cards.map(c => (
+            <div key={c.name} className="login-pc">
+              <Flag country={c.cc} kernel={c.kernel} />
+              <span><b>{c.name}</b><small>{c.where}</small></span>
+              {c.st}
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   );
