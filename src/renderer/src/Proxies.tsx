@@ -237,12 +237,13 @@ function ProxyState({ d, p, busy }: { d: Dict; p: Proxy; busy: boolean }){
   const why = s === 'down' && !busy ? checkWhy(d, p.lastCheck?.error ?? null) : null;
   return <span className={`dot-st ${tone}`} title={why ?? undefined}>{text}</span>;
 }
-// How long a line that is down has been: failures in a row at the end, and when it last answered.
+// Why a line is down and for how long: the last check's reason, failures in a row at the end, and when it last
+// answered.
 function downNote(d: Dict, p: Proxy){
   let n = 0;
   for (let i = p.history.length - 1; i >= 0 && !p.history[i].ok; i--) n++;
-  const lastOk = [...p.history].reverse().find(h => h.ok);
-  return d.proxies.downNote(n, lastOk ? ago(lastOk.at, d) : null);
+  const lastOk = [...p.history].reverse().find(h => h.ok), why = checkWhy(d, p.lastCheck?.error ?? null);
+  return `${why ? `${why} · ` : ''}${d.proxies.downNote(n, lastOk ? ago(lastOk.at, d) : null)}`;
 }
 const latency = (d: Dict, p: Proxy) => (p.lastCheck?.ok ? d.profiles.ms(p.lastCheck.ms ?? 0) : '—');
 // The colour of its latency; none before its first check.
@@ -273,7 +274,8 @@ function ProxyCard(props: ProxyItem){
         <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} />
       </div>
       <p className="pxc-n"><button type="button" className="rowlink" onClick={onView}>{p.name}</button><span className="cc">{p.type.toUpperCase()}</span></p>
-      <p className="l2 mono">{[`${p.host}:${p.port}`, p.username].filter(Boolean).join(' · ')}{backup && ` · ${X.backupOf(backup)}`}</p>
+      {/* The address only: the account stays on its page (the user, 10-28, took the username for its password). */}
+      <p className="l2 mono">{p.host}:{p.port}{backup && ` · ${X.backupOf(backup)}`}</p>
       <div className="pxc-bars" title={X.history(p.history.length)}><Bars history={p.history} /></div>
       {s === 'down' && <p className="pxc-down"><Icon name="alert" />{downNote(d, p)}</p>}
       <div className="pxc-f">
@@ -524,8 +526,10 @@ export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; 
   const portErr = tried && !portOk ? X.portErr : null;
   // The first field in error takes the focus (v2 41); checking the connection needs only the address and port.
   const firstBad = (withName: boolean) => (withName && !name.trim() ? 'px-name' : !hostOk ? 'px-host' : !portOk ? 'px-port' : null);
-  // The saved password stays unless another is typed or authentication is turned off.
-  const keep = auth && !password && !!proxy?.hasPassword;
+  // The saved password stays unless another is typed or authentication is turned off. Both are taken without the
+  // spaces a paste can bring along, which a proxy would turn down.
+  const secret = password.trim();
+  const keep = auth && !secret && !!proxy?.hasPassword;
   const user = auth ? username.trim() || null : null;
   // A changed detail makes the last check's result stale.
   const change = <T,>(set: (v: T) => void) => (v: T) => { set(v); setResult(null); };
@@ -533,7 +537,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; 
   const dirty = useChanged({ name, type, host, port, auth, username, password, backupId, notes });
   // Reached another way (v2 27): its old checks no longer count, and profiles running on this computer stop first (they
   // took the old details when they started); ones running elsewhere take the new details when they start next.
-  const moved = !!proxy && (type !== proxy.type || host.trim() !== proxy.host || portN !== proxy.port || user !== proxy.username || !!password || (!auth && proxy.hasPassword));
+  const moved = !!proxy && (type !== proxy.type || host.trim() !== proxy.host || portN !== proxy.port || user !== proxy.username || !!secret || (!auth && proxy.hasPassword));
   const bound = proxy ? data.profiles.filter(x => x.proxyId === proxy.id) : [];
   const here = bound.filter(x => data.status[x.id]), there = bound.filter(x => !data.status[x.id] && elsewhere(x));
   const stopFirst = moved && here.length > 0;
@@ -543,7 +547,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; 
     const bad = firstBad(false);
     if (bad) return document.getElementById(bad)?.focus();
     setResult('checking');
-    setResult(await folio.tryProxy({ type, host: host.trim(), port: portN, username: user, password: auth ? password || null : null, ...(keep ? { passwordOf: proxy!.id } : {}) }));
+    setResult(await folio.tryProxy({ type, host: host.trim(), port: portN, username: user, password: auth ? secret || null : null, ...(keep ? { passwordOf: proxy!.id } : {}) }));
   }
 
   async function submit(e: FormEvent){
@@ -555,7 +559,7 @@ export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; 
     if (stopFirst) await Promise.all(here.map(x => folio.stopProfile(x.id)));
     const body = {
       name: name.trim(), type, host: host.trim(), port: portN, username: user, backupId: backupId || null, notes: notes.trim() || null,
-      ...(keep ? {} : { password: auth ? password || null : null })
+      ...(keep ? {} : { password: auth ? secret || null : null })
     };
     try {
       const saved = proxy
@@ -641,7 +645,8 @@ export function ProxyForm({ d, wsId, data, proxy, onClose, onShow }: { d: Dict; 
           <button type="button" className="btn btn-secondary btn-sm" disabled={result === 'checking'} onClick={() => void test()}>
             {result === 'checking' ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.test}
           </button>
-          {result && result !== 'checking' && <span className="hint">{X.lastTest(X.justNow)}</span>}
+          {/* What was checked: the details as typed when they differ from what is saved. */}
+          {result && result !== 'checking' && <span className="hint">{!proxy || moved ? X.typedTest : X.lastTest(X.justNow)}</span>}
         </div>
         {moved && !result && <p className="notice info">{X.recheck}</p>}
         {result && result !== 'checking' && <CheckCard d={d} r={result} />}

@@ -426,7 +426,7 @@ export const en = {
     name: 'Name', namePh: 'e.g., US-West-01', nameErr: 'Enter a name for the proxy.', type: 'Protocol', host: 'Host', port: 'Port', notes: 'Notes',
     auth: 'Authentication', authHint: 'When on, the proxy is reached with a username and password.',
     user: 'Username', pass: 'Password', passKeep: 'Saved. Leave empty to keep it.', reveal: 'Show', conceal: 'Hide',
-    lastTest: (when: string) => `Last checked: ${when}`, justNow: 'just now',
+    lastTest: (when: string) => `Last checked: ${when}`, justNow: 'just now', typedTest: 'Checked with the details as typed; not saved yet',
     test: 'Check connection', testOk: 'Connected', testBad: 'Can’t connect',
     // Why a check failed (the step that failed), and what to look at.
     why: {
@@ -437,7 +437,7 @@ export const en = {
     whyHttp: (status: string) => `The check address answered HTTP ${status}`,
     fix: {
       proxy_unreachable: 'Check the proxy’s address and port.', proxy_timeout: 'The proxy may be down, or this network can’t reach it.',
-      proxy_auth: 'Check the proxy’s username and password.', proxy_protocol: 'Check the type (SOCKS5 or HTTP), and whether the proxy only accepts listed IP addresses.',
+      proxy_auth: 'Check the username and password. If they work on another computer, add this computer’s public IP to the provider’s allowlist, and check the plan hasn’t expired.', proxy_protocol: 'Check the type (SOCKS5 or HTTP), and whether the proxy only accepts listed IP addresses.',
       target_refused: 'The proxy is up, but it turned down or couldn’t reach the public check address.', target_timeout: 'The proxy is up, but too slow.',
       tls: 'The secure connection to the check address through the proxy failed.', no_ip: 'The check address didn’t return an exit IP. Try again later.'
     } as Record<string, string>,
@@ -1342,7 +1342,7 @@ export const zh: Dict = {
     name: '代理名称', namePh: '例如：美国-运营-01', nameErr: '请输入代理名称。', type: '代理协议', host: '代理地址', port: '端口', notes: '备注',
     auth: '身份验证', authHint: '启用后需要填写用户名和密码进行代理认证。',
     user: '用户名', pass: '密码', passKeep: '已保存，留空则不修改。', reveal: '显示', conceal: '隐藏',
-    lastTest: (when: string) => `最近检测：${when}`, justNow: '刚刚',
+    lastTest: (when: string) => `最近检测：${when}`, justNow: '刚刚', typedTest: '按当前填写的信息检测，尚未保存',
     test: '检测连接', testOk: '连接正常', testBad: '连接失败',
     why: {
       proxy_unreachable: '无法连接代理服务器', proxy_timeout: '连接代理服务器超时', proxy_auth: '用户名或密码被拒绝', proxy_protocol: '代理未按所选协议应答',
@@ -1350,7 +1350,7 @@ export const zh: Dict = {
     } as Record<string, string>,
     whyHttp: (status: string) => `检测地址返回 HTTP ${status}`,
     fix: {
-      proxy_unreachable: '请检查代理地址与端口。', proxy_timeout: '代理可能已失效，或本机网络无法访问该地址。', proxy_auth: '请核对代理的用户名与密码。',
+      proxy_unreachable: '请检查代理地址与端口。', proxy_timeout: '代理可能已失效，或本机网络无法访问该地址。', proxy_auth: '请核对用户名与密码；若在其他电脑上可用，请在服务商后台将本机的公网 IP 加入白名单，并确认账号未到期。',
       proxy_protocol: '请确认协议类型（SOCKS5 或 HTTP），以及代理是否只允许白名单 IP 使用。', target_refused: '代理已连接，但拒绝或无法访问公共检测地址。',
       target_timeout: '代理已连接，但响应过慢。', tls: '经代理与检测地址建立加密连接失败。', no_ip: '检测地址未返回出口 IP，请稍后重试。'
     } as Record<string, string>,
