@@ -185,7 +185,10 @@ test('window sync starts from the profile list, shows who leads, changes leader 
   await expect(win2.getByRole('listbox').getByRole('option', { name: 'Sync windows' })).toHaveCount(0);
   await win2.keyboard.press('Escape');
   await win2.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /Window sync/ }).click();
-  await expect(win2.getByText('Window sync comes with the Studio and Company plans.')).toBeVisible();
+  const upsell = win2.getByRole('region', { name: 'One action, every window' });
+  await expect(upsell).toContainText('Studio · Company');
+  await expect(upsell).toContainText('Current plan: Free · upgrade to use window sync');
+  await expect(upsell.getByRole('button', { name: 'Upgrade to unlock' })).toBeVisible();
   await app2.close();
 });
 

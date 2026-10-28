@@ -863,11 +863,12 @@ export const en = {
       scroll: (px: number) => `Scrolled to ${px.toLocaleString('en-US')} px`, goto: (url: string) => `Opened ${url}`,
       tab: { open: (n: number) => `Opened tab ${n}`, close: (n: number) => `Closed tab ${n}`, switch: (n: number) => `Went to tab ${n}` }
     },
-    upgrade: 'Window sync comes with the Studio and Company plans.',
+    // The Free plan's page, as the user drew it (10-28).
     upsell: {
-      title: 'Do it once, in every window', lead: 'Pick a leader window: its clicks, typing, keys, scrolling, addresses and tabs repeat in the other windows as you work.',
-      points: ['Open the same page in every profile at once', 'Fill in the same form for many shops in one pass', 'Lay all the windows out in a grid with one click'],
-      ask: 'Ask the workspace owner or an admin to upgrade.'
+      title: 'One action, every window', lead: 'Clicks, typing and page actions in the leader window repeat in the others.',
+      features: [['Synced actions', 'Clicks, typing, keys and scrolling'], ['Synced pages', 'Addresses and tabs follow along'], ['Tiled windows', 'Laid out in one click, all in view']] as [string, string][],
+      unlock: 'Upgrade to unlock', guide: 'Read the guide', now: (plan: string) => `Current plan: ${plan} · upgrade to use window sync`,
+      ask: 'Ask the owner or an admin to upgrade', art: { leader: 'Leader', follower: 'Follower', action: 'Synced' }
     },
     tile: 'Tile windows', tiling: 'Arranging…',
     tiled: (moved: number, total: number) => (moved === total ? `Arranged ${total} windows in a grid.` : `Arranged ${moved} of ${total} windows.`),
@@ -1775,11 +1776,11 @@ export const zh: Dict = {
       scroll: (px: number) => `滚动至 ${px} 像素`, goto: (url: string) => `打开 ${url}`,
       tab: { open: (n: number) => `新建第 ${n} 个标签页`, close: (n: number) => `关闭第 ${n} 个标签页`, switch: (n: number) => `切换至第 ${n} 个标签页` }
     },
-    upgrade: '窗口同步属于工作室版和公司版。',
     upsell: {
-      title: '一次操作，多窗口同步完成', lead: '指定一个主控窗口，其中的点击、输入、按键、滚动、地址与标签页操作实时同步到其他窗口。',
-      points: ['所有环境同时打开同一页面', '一次填写，多个店铺的同一表单同步完成', '一键平铺全部窗口'],
-      ask: '请联系团队所有者或管理员升级。'
+      title: '一次操作，同步多个窗口', lead: '将主控窗口的点击、输入与页面操作，同步至其他窗口。',
+      features: [['同步操作', '点击、输入、按键与滚动'], ['同步页面', '地址与标签页同步更新'], ['窗口平铺', '一键排列，便于统一查看']] as [string, string][],
+      unlock: '升级解锁', guide: '查看使用说明', now: (plan: string) => `当前套餐：${plan} · 升级后可使用窗口同步`,
+      ask: '请联系所有者或管理员升级', art: { leader: '主控窗口', follower: '同步窗口', action: '同步操作' }
     },
     tile: '一键平铺', tiling: '正在排列…',
     tiled: (moved: number, total: number) => (moved === total ? `已将 ${total} 个窗口平铺排列。` : `已排列 ${moved}/${total} 个窗口。`),

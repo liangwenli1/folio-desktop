@@ -1431,7 +1431,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .win-bad{position:absolute;left:10px;right:10px;bottom:10px;display:flex;align-items:flex-start;gap:7px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--bad) 35%,transparent);border-radius:var(--r);background:color-mix(in srgb,var(--bad) 10%,var(--card));color:var(--bad-ink);font-size:12px;font-weight:600}
 .win-bad .i{flex:none;margin-top:2px}
 .sync-log{display:grid;gap:6px;padding:12px 16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
-.sync-log h2,.sync-pick h2,.sync-up h2{font-size:16px;line-height:24px;font-weight:600}
+.sync-log h2,.sync-pick h2{font-size:16px;line-height:24px;font-weight:600}
 .sync-log ol{display:grid;margin:0;padding:0;list-style:none}
 .sync-log li{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .sync-log time{font:12px var(--f-data);color:var(--ink-3)}
@@ -1439,7 +1439,8 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .sync-log small{display:block;font-size:12px;color:var(--bad-ink)}
 .sync-log .n{font:600 12px var(--f-data);font-variant-numeric:tabular-nums}
 .sync-log .n.bad{color:var(--bad-ink)}
-.sync-pick,.sync-up{max-width:860px;padding:24px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
+/* picking the windows: a card filling the rest of the window, like a list's */
+.sync-pick{flex:1 0 auto;align-content:start;padding:24px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
 .sync-pick ul{display:grid;margin:0;padding:0;list-style:none;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .sync-pick li{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
 .sync-pick li:first-child{border-top:0}
@@ -1448,10 +1449,48 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .sync-pick li .flag-badge{width:24px;height:24px}
 .sync-pick li .flag-badge .eng{width:15px;height:15px}
 .sync-pick li .flag-badge .eng img{width:10px;height:10px}
-.sync-up{display:grid;gap:10px;margin:0 var(--gx) 24px;justify-items:start}
-.sync-up ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
-.sync-up li{display:flex;align-items:center;gap:8px}
-.sync-up li .i{color:var(--good-ink)}
+/* The Free plan's page, as the user drew it (10-28): one card in the middle of the page with the plans that have window
+   sync, a picture of the leader and its followers, what it does in three, the way to it, the guide and the plan now. */
+.sync-free{display:grid;place-items:center;flex:1 0 auto;margin:0 var(--gx) 24px}
+.sync-up{display:grid;justify-items:center;width:min(880px,100%);padding:36px 40px 32px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);text-align:center}
+.sync-plans{padding:3px 14px;border-radius:12px;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;line-height:18px;font-weight:500}
+.sync-up h2{margin:0;font-size:28px;line-height:36px;font-weight:600;color:var(--ink)}
+.sync-lead{margin:8px 0 0;font-size:14px;line-height:22px;color:var(--ink-3)}
+.sync-feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;margin:28px 0 32px;padding:0;list-style:none}
+.sync-feats li{display:grid;justify-items:center;gap:2px;padding:0 16px}
+.sync-feats li + li{border-left:1px solid var(--line)}
+.sync-feats .i{width:18px;height:18px;margin-bottom:8px;color:var(--accent)}
+.sync-feats b{font-size:14px;line-height:22px;font-weight:500;color:var(--ink)}
+.sync-feats span{font-size:12px;line-height:18px;color:var(--ink-3)}
+.sync-up .btn-lg{min-width:160px}
+.sync-ask{margin:0;font-size:14px;line-height:22px;color:var(--ink-2)}
+.sync-guide{display:inline-flex;align-items:center;gap:4px;margin-top:16px;padding:0;border:0;background:none;font-size:13px;line-height:20px;color:var(--ink-3);cursor:pointer}
+.sync-guide:hover{color:var(--ink)}
+.sync-guide .i{width:14px;height:14px}
+.sync-now{margin:16px 0 0;font-size:12px;line-height:18px;color:var(--ink-4)}
+/* the picture: three windows on a soft glow, the leader larger and outlined in the accent, arrows going out from it */
+.sync-art{position:relative;display:flex;align-items:center;margin:28px 0 24px;isolation:isolate}
+.sync-art::before{content:'';position:absolute;z-index:-1;inset:4% -8%;border-radius:50%;background:radial-gradient(closest-side,var(--accent-soft),transparent)}
+.sa-win{width:148px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:0 1px 3px rgba(16,24,40,.06);text-align:left}
+.sa-win.lead{width:200px;border-color:color-mix(in srgb,var(--accent) 40%,var(--line));box-shadow:0 10px 28px rgba(194,58,84,.12)}
+.sa-bar{display:flex;align-items:center;gap:4px;margin:0;padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px;line-height:14px;color:var(--ink-3)}
+.sa-bar i{width:5px;height:5px;border-radius:50%;background:var(--line-2)}
+.sa-bar span{margin-left:6px}
+.sa-win.lead .sa-bar{border-bottom-color:color-mix(in srgb,var(--accent) 25%,var(--line))}
+.sa-win.lead .sa-bar i:first-child{background:var(--accent)}
+.sa-win.lead .sa-bar span{color:var(--accent-ink)}
+.sa-body{display:grid;gap:10px;padding:14px 12px}
+.sa-line{display:block;height:8px;border-radius:4px;background:var(--seg)}
+.sa-line.short{width:72%}
+.sa-win.lead .sa-line:first-child{background:var(--accent-soft)}
+.sa-foot,.sa-act{display:flex;align-items:center;justify-content:space-between;margin:2px 0 0}
+.sa-btn{display:block;width:46px;height:16px;border-radius:4px;background:var(--accent-soft)}
+.sa-foot .i{width:14px;height:14px;color:var(--accent)}
+.sa-act span{padding:2px 12px;border-radius:4px;background:var(--action);color:var(--on-accent);font-size:10px;line-height:14px}
+.sa-act .i{width:20px;height:20px;margin:-22px 6px 0 0;color:var(--accent)}
+.sa-arrow{position:relative;display:grid;place-items:center;width:20px;height:20px;margin:0 6px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:50%;background:var(--card);color:var(--accent)}
+.sa-arrow::before{content:'';position:absolute;z-index:-1;left:-7px;right:-7px;top:50%;border-top:1px solid color-mix(in srgb,var(--accent) 30%,var(--line))}
+.sa-arrow .i{width:12px;height:12px}
 
 /* Under 1024px the rail keeps only its icons: the names are in each button's tooltip, and the groups stay
    reachable through the filter bar's group picker. */

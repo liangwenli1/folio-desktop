@@ -1,7 +1,7 @@
 // Window sync: pick the profiles and the leader, then work in the leader's window while the others follow. The
 // windows show as a grid of live pictures (the leader outlined green, one with a problem red, saying what), with
 // what is repeated and how fast above them and the recent sync log below. Studio and Company; Free sees what it
-// does and how to get it.
+// does and how to get it, as the user drew that page (10-28).
 import { useEffect, useState } from 'react';
 import type { SyncAction, SyncLogEntry, SyncOptions, WindowSync } from '@shared/bridge';
 import { MANAGE, can, folio, type Profile, type Workspace } from './api';
@@ -9,7 +9,7 @@ import type { WorkspaceData } from './data';
 import type { Dict, Lang } from './i18n';
 import { Flag } from './Flag';
 import { Select } from './Select';
-import { Icon, useToast } from './ui';
+import { Icon, useToast, type IconName } from './ui';
 
 export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData }){
   const W = d.windowSync;
@@ -61,15 +61,20 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
           </>}
         </header>
         {ws.subscription.plan === 'free' ? (
-          <section className="sync-up" aria-label={W.title}>
-            <h2>{W.upsell.title}</h2>
-            <p className="hint">{W.upsell.lead}</p>
-            <ul>{W.upsell.points.map(x => <li key={x}><Icon name="check" />{x}</li>)}</ul>
-            <p className="hint">{W.upgrade}</p>
-            {can(ws.role, MANAGE)
-              ? <button type="button" className="btn btn-primary" onClick={() => folio.openSite(`/${lang}/checkout/?ws=${ws.id}`)}>{d.plan.upgrade}</button>
-              : <p className="hint">{W.upsell.ask}</p>}
-          </section>
+          <div className="sync-free">
+            <section className="sync-up" aria-labelledby="sync-up-h">
+              <span className="sync-plans">{d.plans.studio} · {d.plans.company}</span>
+              <SyncArt W={W} />
+              <h2 id="sync-up-h">{W.upsell.title}</h2>
+              <p className="sync-lead">{W.upsell.lead}</p>
+              <ul className="sync-feats">{W.upsell.features.map(([title, text], i) => <li key={title}><Icon name={FEATURES[i]} /><b>{title}</b><span>{text}</span></li>)}</ul>
+              {can(ws.role, MANAGE)
+                ? <button type="button" className="btn btn-primary btn-lg" onClick={() => folio.openSite(`/${lang}/checkout/?ws=${ws.id}`)}>{W.upsell.unlock}</button>
+                : <p className="sync-ask">{W.upsell.ask}</p>}
+              <button type="button" className="sync-guide" onClick={() => folio.openSite(`/${lang}/help/window-sync/`)}>{W.upsell.guide}<Icon name="arrowR" /></button>
+              <p className="sync-now">{W.upsell.now(d.plans[ws.subscription.plan])}</p>
+            </section>
+          </div>
         ) : s ? (
           <section className="sync-on" aria-label={W.current}>
             <div className="wbar">
@@ -109,6 +114,27 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
           </section>
         )}
       </main>
+    </div>
+  );
+}
+
+const FEATURES: IconName[] = ['pointer', 'page', 'grid'];
+
+// The Free page's picture: the leader window in the middle, what is done in it going out to a follower on either side.
+// Drawn here rather than an image, so it follows the theme and the language.
+function SyncArt({ W }: { W: Dict['windowSync'] }){
+  const win = (lead: boolean) => (
+    <div className={`sa-win${lead ? ' lead' : ''}`}>
+      <p className="sa-bar"><i /><i /><span>{lead ? W.upsell.art.leader : W.upsell.art.follower}</span></p>
+      <div className="sa-body">
+        <b className="sa-line" /><b className="sa-line short" />
+        {lead ? <p className="sa-act"><span>{W.upsell.art.action}</span><Icon name="pointer" /></p> : <p className="sa-foot"><b className="sa-btn" /><Icon name="check" /></p>}
+      </div>
+    </div>
+  );
+  return (
+    <div className="sync-art" aria-hidden="true">
+      {win(false)}<span className="sa-arrow"><Icon name="arrowL" /></span>{win(true)}<span className="sa-arrow"><Icon name="arrowR" /></span>{win(false)}
     </div>
   );
 }
