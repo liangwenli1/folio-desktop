@@ -7,7 +7,7 @@ import { launchWhy, regionName, runTime, type Dict, type Lang, type News } from 
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { CookieExport } from './ProfileCookies';
 import { dayLabel, time } from './Activity';
-import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, ViewSwitch, percent, useChanged, useFail, useNow, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, Tag, ViewSwitch, percent, useChanged, useFail, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select, groupOpts, ownerOpts } from './Select';
@@ -503,7 +503,7 @@ function Tags({ p }: ItemProps){
   if (!p.tags.length) return <span className="muted">—</span>;
   return (
     <span className="tag-cell" title={p.tags.join(', ')}>
-      {p.tags.slice(0, 2).map(t => <span key={t} className="badge">{t}</span>)}{p.tags.length > 2 && <small>+{p.tags.length - 2}</small>}
+      {p.tags.slice(0, 2).map(t => <Tag key={t} name={t} />)}{p.tags.length > 2 && <small>+{p.tags.length - 2}</small>}
     </span>
   );
 }
@@ -545,7 +545,7 @@ function Card(props: ItemProps){
         <Name {...props} />
         <input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(p.name)} />
       </div>
-      {p.tags.length > 0 && <div className="pc-tags">{p.tags.map(t => <span key={t} className="badge">{t}</span>)}</div>}
+      {p.tags.length > 0 && <div className="pc-tags">{p.tags.map(t => <Tag key={t} name={t} />)}</div>}
       {props.group && <div><GroupTag {...props} /></div>}
       <div className="pc-px"><ProxyCell {...props} /></div>
       {props.exts.length > 0 && <p className="pc-ext"><ExtStack {...props} /><span>{d.profiles.extensionsN(props.exts.length)}</span></p>}

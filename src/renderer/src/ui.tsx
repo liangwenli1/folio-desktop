@@ -52,6 +52,7 @@ const PATHS = {
   macos: 'M9 9V6.5A2.5 2.5 0 1 0 6.5 9H9m0 0v6m0 0v2.5A2.5 2.5 0 1 1 6.5 15H9m6-6V6.5A2.5 2.5 0 1 1 17.5 9H15m0 0v6m0 0v2.5a2.5 2.5 0 1 0 2.5-2.5H15M9 9h6m-6 6h6',
   linux: 'M5 4.5h14a2 2 0 0 1 2 2v11a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2zM7.5 10l3 2-3 2M12.5 15.5H16',
   star: 'M12 3.5l2.6 5.3 5.9.86-4.25 4.14 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.66l5.9-.86z',
+  tag: 'M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9zM7.5 7.5h.01',
   pause: 'M9 5v14m6-14v14',
   logout: 'M9.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3.5M16 16l4-4-4-4m4 4H9.5',
   list: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
@@ -85,6 +86,8 @@ const PATHS = {
 export type IconName = keyof typeof PATHS;
 // The design delivery's icon set (24×24, 1.75 stroke, round ends), and the icons it lacks drawn the same way.
 export const Icon = ({ name }: { name: IconName }) => <svg className="i" viewBox="0 0 24 24" aria-hidden="true"><path d={PATHS[name]} /></svg>;
+// A profile's tag: outlined, with a tag mark, so it never reads as a group's coloured block (the user, 10-28: option C).
+export const Tag = ({ name }: { name: string }) => <span className="tag"><Icon name="tag" /><span>{name}</span></span>;
 // The Folio mark: a stack of profile cards, the front one solid with a photo and a line cut out, in the stamp colour
 // (via .seal).
 export const Mark = () => (

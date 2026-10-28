@@ -510,9 +510,13 @@ button.badge{border:0;cursor:pointer}
 /* A favourite's mark beside its name; starring is in the row's ⋯ menu (the user, 10-28). */
 .starred{display:inline-grid;place-items:center;color:var(--warn-ink)}
 .starred .i{width:14px;height:14px;fill:var(--warn)}
-/* a profile's tags: two, then how many more */
+/* A profile's tag (the user, 10-28: option C): outlined and square-ish, with a tag mark, so it never reads as a
+   group's coloured block; a long one ends in an ellipsis. In the list, two, then how many more. */
+.tag{display:inline-flex;align-items:center;gap:3px;max-width:100%;height:20px;padding:0 6px;border:1px solid var(--line-2);border-radius:4px;background:var(--card);color:var(--ink-2);font-size:12px;line-height:18px;white-space:nowrap;vertical-align:middle}
+.tag > .i{width:11px;height:11px;color:var(--ink-4)}
+.tag > span{overflow:hidden;text-overflow:ellipsis}
 .tag-cell{display:inline-flex;align-items:center;gap:4px;max-width:100%}
-.tag-cell .badge{display:inline-block;max-width:88px;overflow:hidden;text-overflow:ellipsis;padding:0 10px;line-height:26px}
+.tag-cell .tag{max-width:96px}
 .tag-cell small{margin-left:0}
 .pc-tags{display:flex;flex-wrap:wrap;gap:4px}
 .icon-btn.star{width:32px;height:32px;margin:0;vertical-align:0}

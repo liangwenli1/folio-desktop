@@ -8,7 +8,7 @@ import { ActivityTable, dayLabel, said, time, useActivity, who } from './Activit
 import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
 import { launchWhy, runTime, type Dict, type Lang } from './i18n';
-import { Empty, ExtIcon, Icon, MoreMenu, Progress, Tabs, bytes, percent, type IconName } from './ui';
+import { Empty, ExtIcon, Icon, MoreMenu, Progress, Tabs, Tag, bytes, percent, type IconName } from './ui';
 import { Flag, OsLogo, SearchLogo } from './Flag';
 import { FingerprintTab } from './ProfileFingerprint';
 import { CookiesTab } from './ProfileCookies';
@@ -175,7 +175,7 @@ function Overview({ d, lang, data, p, h, group, owner, extensions, busy, entries
           <dt>{D.fields.name}</dt><dd>{p.name}</dd>
           <dt>{D.fields.number}</dt><dd className="mono">#{String(p.number).padStart(4, '0')}</dd>
           <dt>{d.form.group}</dt><dd>{group ? groupPath(data.groups, group) : d.groups.none}</dd>
-          {p.tags.length > 0 && <><dt>{d.form.tags}</dt><dd className="tags">{p.tags.map(t => <span key={t} className="badge">{t}</span>)}</dd></>}
+          {p.tags.length > 0 && <><dt>{d.form.tags}</dt><dd className="tags">{p.tags.map(t => <Tag key={t} name={t} />)}</dd></>}
           <dt>{d.form.owner}</dt><dd data-testid="assigned">{owner ?? d.profiles.unassigned}</dd>
           <dt>{D.fields.engine}</dt><dd>{ENGINES[p.kernel]} {p.kernelVersion}</dd>
           <dt>{D.fields.os}</dt><dd><OsLogo os={p.os} />{d.os[p.os]}</dd>

@@ -132,7 +132,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await edit.getByRole('checkbox', { name: 'Tags' }).check();
   await edit.getByRole('textbox', { name: 'Tags' }).fill('vip');
   await edit.getByRole('button', { name: 'Change 2 profiles' }).click();
-  await expect(row(win, 'P-2').locator('.badge')).toHaveText('vip');
+  await expect(row(win, 'P-2').locator('.tag')).toHaveText('vip');
 
   await bulkMore(win, 'Move to Trash');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
