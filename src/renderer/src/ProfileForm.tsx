@@ -1,16 +1,17 @@
-// New profile and edit profile: four sections (basics, proxy, fingerprint, how it opens) beside a rail that moves
-// between them. A new profile starts from the workspace's defaults and gets its fingerprint from the main process for
+// New profile and edit profile: five sections (basics, proxy, fingerprint, extensions, how it opens) beside a rail that
+// moves between them. A new profile starts from the workspace's defaults and gets its fingerprint from the main process for
 // the chosen engine and system; an edit keeps it unless a new one is drawn. While the profile runs here, what it was
 // started with (engine, proxy, fingerprint) waits until it is stopped, and closing with changes asks first.
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { Fragment, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { CheckResult, KernelKind, Os } from '@shared/bridge';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
-import { MANAGE, can, folio, isApiError, type Profile, type ProxyImport, type Workspace } from './api';
+import { MANAGE, can, folio, isApiError, type Extension, type Profile, type ProxyImport, type Workspace } from './api';
 import { time } from './Activity';
 import { ENGINES, latencyTone, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Cancel, Icon, Modal, Switch, bytes, percent } from './ui';
+import { Cancel, ExtIcon, Icon, Modal, Switch, bytes, percent } from './ui';
+import { ExtSource, addToLibrary, extReady, type ExtFrom } from './Extensions';
 import { OsLogo, SEARCH_LOGOS } from './Flag';
 import { Select, SelectField, type Opt } from './Select';
 import { elsewhere } from './ProfileDetail';
@@ -20,8 +21,8 @@ interface Props { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; profi
 
 const NEW_GROUP = '__new';
 const URL_OK = /^https?:\/\/\S+$/;
-type Sec = 'basic' | 'proxy' | 'fp' | 'launch';
-const SECS: Sec[] = ['basic', 'proxy', 'fp', 'launch'];
+type Sec = 'basic' | 'proxy' | 'fp' | 'ext' | 'launch';
+const SECS: Sec[] = ['basic', 'proxy', 'fp', 'ext', 'launch'];
 // A check that got through is coloured by its latency: 'ok', 'warn' (slow), 'slow' (very slow); 'bad' is a line that
 // couldn't be read; 'past' is the proxy's last check from before this form opened.
 type PxNote = { state: 'checking' | 'ok' | 'warn' | 'slow' | 'down' | 'bad' | 'past'; text: string };
@@ -29,6 +30,11 @@ const ANSWERED = { good: 'ok', warn: 'warn', bad: 'slow' } as const;
 // A proxy from the library, a new one pasted in (it joins the library), or none.
 type PxMode = 'saved' | 'custom' | 'none';
 type Win = NonNullable<Profile['windowMode']>;
+// An extension to pick: one from the library, or one just added from the form (its version comes with the library).
+type Pickable = Pick<Extension, 'id' | 'name' | 'kernel'> & Partial<Pick<Extension, 'version' | 'icon'>>;
+const NO_SOURCE: ExtFrom = { how: 'link', link: '', file: null };
+// A time zone breaks only after its slashes (America/ Los_Angeles), never inside a word.
+const zoneBreaks = (tz: string) => tz.split('/').map((part, i) => <Fragment key={i}>{i > 0 && <>/<wbr /></>}{part}</Fragment>);
 
 export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose, onDone }: Props){
   // The version this edit is based on. Live updates do not move it, so a save over someone else's change is
@@ -53,6 +59,13 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   const [notes, setNotes] = useState(profile?.notes ?? '');
   const [syncMode, setSyncMode] = useState(profile?.syncMode ?? 'cloud');
   const [extensionIds, setExtensionIds] = useState<string[]>(profile?.extensionIds ?? []);
+  // The ones it had when the form opened lead the list (it doesn't reorder as boxes are ticked).
+  const [firstIds] = useState(extensionIds);
+  const [extQ, setExtQ] = useState('');
+  const [adding, setAdding] = useState<ExtFrom>(NO_SOURCE);
+  const [added, setAdded] = useState<Pickable[]>([]);
+  const [addBusy, setAddBusy] = useState(false);
+  const [addErr, setAddErr] = useState<string | null>(null);
   const [searchEngine, setSearchEngine] = useState<SearchEngine>(profile?.searchEngine ?? 'none');
   const [restoreTabs, setRestoreTabs] = useState(profile?.restoreTabs ?? true);
   const [startUrl, setStartUrl] = useState(profile?.startUrl ?? '');
@@ -106,8 +119,22 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
     setPxNote(r.ok ? { state: ANSWERED[latencyTone(r.ms)], text: `${f.proxyOk(where(r), r.ms ?? 0)} · ${at}` } : { state: 'down', text: `${f.proxyDown} · ${at}` });
   }
 
-  // Extensions from the library made for this engine.
-  const usable = data.extensions.filter(x => x.kernel === kernel);
+  // Extensions from the library made for this engine, with the ones added here until the library has them.
+  const usable: Pickable[] = [...data.extensions, ...added.filter(x => !data.extensions.some(e => e.id === x.id))].filter(x => x.kernel === kernel);
+  const needle = extQ.trim().toLowerCase();
+  const lead = (x: Pickable) => (firstIds.includes(x.id) || added.some(a => a.id === x.id) ? 0 : 1);
+  const extList = usable.filter(x => !needle || x.name.toLowerCase().includes(needle)).sort((a, b) => lead(a) - lead(b) || a.name.localeCompare(b.name));
+  const extPicked = extensionIds.filter(id => usable.some(x => x.id === id)).length;
+  // A new one goes into the library and into this profile.
+  async function addExt(){
+    setAddBusy(true); setAddErr(null);
+    try {
+      const r = await addToLibrary(ws.id, data, kernel, adding);
+      setAdded(a => [...a, { id: r.id, name: r.name, kernel }]);
+      setExtensionIds(ids => [...ids, r.id]);
+      setAdding({ ...NO_SOURCE, how: adding.how });
+    } catch (x){ setAddErr(errorText(d, isApiError(x) ? x.code : 'internal')); } finally { setAddBusy(false); }
+  }
   const tagList = [...new Set(tags.split(/[,，]/).map(t => t.trim()).filter(Boolean))].slice(0, 10);
   const chosenPx = pxMode === 'saved' ? data.proxies.find(p => p.id === proxyId) : undefined;
   const pxGeo = chosenPx?.lastCheck?.ok ? chosenPx.lastCheck.geo : null;
@@ -208,26 +235,24 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
 
   return (
     <Modal wide title={edit ? f.editTitle : f.newTitle} sub={profile && `${profile.name} · #${String(profile.number).padStart(4, '0')}`} onClose={onClose} busy={busy} dirty={changes > 0} foot={<>
-      {edit
-        ? changes > 0 && <span className="pf-dirty"><span className="d warn" aria-hidden="true" /><b>{f.unsaved}</b>{f.changedN(changes)}</span>
-        : <span className="hint">{f.createHint}</span>}
+      {/* Where it stands, at the foot's left (the user, 10-28): stopped, or running with what must wait for it to stop. */}
+      {profile ? (
+        <span className={`pf-state${locked ? ' run' : ''}`} role="status">
+          {status ? <span className="dot-st run">{d.profiles.st.running}</span> : away ? <span className="dot-st away">{d.profiles.inUseOn(away.deviceName ?? away.email)}</span> : <span className="dot-st idle">{d.profiles.tabs.stopped}</span>}
+          <span>{locked ? f.runningNote : f.nextOpen}</span>
+          {status?.state === 'running' && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(profile.id)}><Icon name="stop" />{f.stopNow}</button>}
+        </span>
+      ) : <span className="hint">{f.createHint}</span>}
       <span className="sp" />
+      {edit && changes > 0 && <span className="pf-dirty"><span className="d warn" aria-hidden="true" /><b>{f.unsaved}</b>{f.changedN(changes)}</span>}
       <Cancel />
       <button className="btn btn-primary" type="submit" form="profile-form" aria-busy={busy || undefined} disabled={busy || fpd.fp.state !== 'ready' || (edit && !changes)}>{edit ? f.save : f.create}</button>
     </>}>
-      {profile && (
-        <div className={`pf-state${locked ? ' run' : ''}`} role="status">
-          {status ? <span className="dot-st run">{d.profiles.st.running}</span> : away ? <span className="dot-st away">{d.profiles.inUseOn(away.deviceName ?? away.email)}</span> : <span className="dot-st idle">{d.profiles.tabs.stopped}</span>}
-          <span>{locked ? f.runningNote : f.nextOpen}</span>
-          {status?.state === 'running' && <><span className="sp" /><button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(profile.id)}><Icon name="stop" />{f.stopNow}</button></>}
-        </div>
-      )}
       <form className="pf" id="profile-form" onSubmit={submit} noValidate>
         <nav className="pf-rail" aria-label={f.sectionsLabel}>
           {SECS.map((s, i) => (
             <button key={s} type="button" aria-current={at === s ? 'step' : undefined} onClick={() => goTo(s)}>
-              <span className="n">{i + 1}</span>{f.sections[s]}
-              {tried && problems.some(p => p[0] === s && p[2]) && <span className="d bad" aria-label={f.hasProblem} />}
+              <span className="n">{i + 1}{tried && problems.some(p => p[0] === s && p[2]) && <span className="d bad" aria-label={f.hasProblem} />}</span>{f.sections[s]}
             </button>
           ))}
         </nav>
@@ -321,7 +346,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 <dl>
                   <div><dt>{F.screen}</dt><dd>{facts ? facts.screen ?? F.screenHost : '…'}</dd></div>
                   <div><dt>{f.lang}</dt><dd>{followed(fpd.localeOverride, pxGeo?.locale)}</dd></div>
-                  <div><dt>{f.tz}</dt><dd>{followed(fpd.timezoneOverride, pxGeo?.timezone)}</dd></div>
+                  <div><dt>{f.tz}</dt><dd>{zoneBreaks(followed(fpd.timezoneOverride, pxGeo?.timezone))}</dd></div>
                   <div><dt>{F.cores}</dt><dd>{fpd.cores ?? '…'}</dd></div>
                 </dl>
                 {fpd.fp.state === 'loading' && <span className="spin" aria-hidden="true" />}
@@ -340,6 +365,32 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
             </>}
             {fpd.regenerated && <p className="hint">{f.regenWarn}</p>}
           </>, <button className="btn btn-sm btn-secondary" type="button" onClick={fpd.randomize} disabled={locked || fpd.fp.state === 'loading' || fpd.fp.state === 'need-firefox'}><Icon name="refresh" />{F.random}</button>)}
+
+          {/* The extensions it opens with (the user, 10-28): picked from the library, which can be searched, or added to it
+              here from an address or a file and picked at once; adding is for the owner and admins. */}
+          {sec('ext', <>
+            {usable.length > 0 && (
+              <label className="search"><Icon name="search" /><span className="sr">{f.extSearch}</span>
+                <input type="search" placeholder={f.extSearch} value={extQ} onChange={e => setExtQ(e.target.value)} autoComplete="off" /></label>
+            )}
+            {!usable.length ? <p className="hint">{f.noExtensions(ENGINES[kernel])}</p>
+              : !extList.length ? <p className="hint">{f.extNone}</p>
+              : <ul className="ext-opts" aria-label={f.sections.ext}>{extList.map(x => (
+                  <li key={x.id}><label className="check-row">
+                    <input type="checkbox" checked={extensionIds.includes(x.id)} onChange={e => setExtensionIds(ids => e.target.checked ? [...ids, x.id] : ids.filter(i => i !== x.id))} />
+                    <ExtIcon src={x.icon} /><span className="ext-n">{x.name}</span>{x.version && <span className="mono muted">{x.version}</span>}
+                  </label></li>
+                ))}</ul>}
+            {manager ? (
+              <div className="ext-add">
+                <h4>{d.extensions.addTitle}</h4>
+                <ExtSource d={d} kernel={kernel} value={adding} onChange={v => { setAdding(v); setAddErr(null); }} />
+                {addErr && <p className="err" role="alert">{addErr}</p>}
+                <div><button type="button" className="btn btn-secondary btn-sm" disabled={!extReady(adding) || addBusy} aria-busy={addBusy || undefined} onClick={() => void addExt()}>
+                  {addBusy ? (adding.how === 'link' ? d.extensions.fetching : d.extensions.uploading) : f.extAdd}</button></div>
+              </div>
+            ) : <p className="hint">{f.extAddNote}</p>}
+          </>, usable.length > 0 && <span className="hint">{f.extPicked(extPicked)}</span>)}
 
           {sec('launch', <>
             <div className="field">
@@ -369,18 +420,6 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 options={SEARCH_IDS.map(id => ({ value: id, label: d.browser.name(id), ...(id !== 'none' ? { img: SEARCH_LOGOS[id] } : {}) }))} />
               <div className="field pf-switch"><Switch label={d.browser.restore} checked={restoreTabs} onChange={setRestoreTabs} /></div>
             </div>
-            {data.extensions.length > 0 && (
-              <fieldset className="field ext-pick">
-                <legend className="label">{f.extensions}</legend>
-                {!usable.length && <p className="hint">{f.noExtensions(ENGINES[kernel])}</p>}
-                {usable.map(x => (
-                  <label key={x.id} className="check-row">
-                    <input type="checkbox" checked={extensionIds.includes(x.id)} onChange={e => setExtensionIds(ids => e.target.checked ? [...ids, x.id] : ids.filter(i => i !== x.id))} />
-                    <span>{x.name}</span><span className="mono muted">{x.version}</span>
-                  </label>
-                ))}
-              </fieldset>
-            )}
             {edit && (
               <SelectField label={f.sync} value={syncMode} onChange={v => setSyncMode(v as 'cloud' | 'local')} hint={f.syncHelp}
                 options={[{ value: 'cloud', label: f.syncCloud }, { value: 'local', label: f.syncLocal }]} />

@@ -387,9 +387,9 @@ html[data-platform="win32"] .top{padding-right:150px}
    logo 14px in the middle; each overlaps the one before by 6px with the later on top. Then how many more in a pill, or
    a short line for none. The tiles stay white in dark mode, so every logo reads on them. */
 .ext-stack{display:inline-flex;align-items:center;vertical-align:middle;isolation:isolate}
-.ext-stack .ext-ic,.ext-chip .ext-ic{position:relative;width:20px;height:20px;border:2px solid #FFFFFF;border-radius:6px;background:#FFFFFF;box-shadow:0 1px 3px rgba(16,24,40,.12);color:#98A2B3}
-.ext-stack .ext-ic img,.ext-chip .ext-ic img{width:14px;height:14px;object-fit:contain}
-.ext-stack .ext-ic .i,.ext-chip .ext-ic .i{width:14px;height:14px}
+.ext-stack .ext-ic,.ext-chip .ext-ic,.ext-opts .ext-ic{position:relative;width:20px;height:20px;border:2px solid #FFFFFF;border-radius:6px;background:#FFFFFF;box-shadow:0 1px 3px rgba(16,24,40,.12);color:#98A2B3}
+.ext-stack .ext-ic img,.ext-chip .ext-ic img,.ext-opts .ext-ic img{width:14px;height:14px;object-fit:contain}
+.ext-stack .ext-ic .i,.ext-chip .ext-ic .i,.ext-opts .ext-ic .i{width:14px;height:14px}
 .ext-stack .ext-ic + .ext-ic{margin-left:-6px}
 .ext-stack small{min-width:22px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--seg);font-size:10px;font-weight:500;line-height:18px;text-align:center;color:var(--ink-3)}
 .ext-none{display:inline-block;width:12px;height:1px;vertical-align:middle;background:var(--ink-4)}
@@ -774,16 +774,18 @@ fieldset.ck-conflict{border:0;margin:0;padding:0}
 .counted .count{position:absolute;right:10px;bottom:6px;font:12px var(--f-data);color:var(--ink-3);pointer-events:none}
 /* the profile form: a rail of its four sections beside them, scrolling on their own under a fixed head and foot */
 .m-sub{margin-top:4px;font-size:14px;line-height:22px;color:var(--ink-3)}
-.pf-state{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:12px 20px 0;padding:8px 12px;border-radius:var(--r);background:var(--panel);color:var(--ink-2);flex:none}
-.pf-state.run{background:var(--accent-soft)}
-.pf{display:grid;grid-template-columns:168px minmax(0,1fr);flex:1 1 auto;min-height:0}
-.pf-rail{display:grid;align-content:start;gap:2px;padding:14px 10px;border-right:1px solid var(--line)}
-.pf-rail button{display:flex;align-items:center;gap:10px;height:var(--h-ctl);padding:0 10px;border:0;border-radius:var(--r);background:none;color:var(--ink-2);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+/* where the profile stands, at the foot's left: its state, what that means for the changes, and Stop while it runs */
+.pf-state{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;min-width:0;color:var(--ink-2)}
+/* the rail as wide as its steps, the same room on either side of each */
+.pf{display:grid;grid-template-columns:auto minmax(0,1fr);flex:1 1 auto;min-height:0}
+.pf-rail{display:grid;align-content:start;gap:2px;padding:14px 12px;border-right:1px solid var(--line)}
+.pf-rail button{display:flex;align-items:center;gap:10px;height:var(--h-ctl);padding:0 14px;border:0;border-radius:var(--r);background:none;color:var(--ink-2);font:inherit;font-size:14px;text-align:left;cursor:pointer}
 .pf-rail button:hover{background:var(--hover)}
 .pf-rail button[aria-current]{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
-.pf-rail .n{display:grid;place-items:center;width:22px;height:22px;flex:none;border:1px solid var(--line-2);border-radius:50%;font:600 12px var(--f-data);color:var(--ink-2)}
+.pf-rail .n{position:relative;display:grid;place-items:center;width:22px;height:22px;flex:none;border:1px solid var(--line-2);border-radius:50%;font:600 12px var(--f-data);color:var(--ink-2)}
 .pf-rail button[aria-current] .n{border-color:var(--accent);background:var(--accent);color:var(--on-accent)}
-.pf-rail .d{margin-left:auto}
+/* a section with something to fix: a dot on its number's corner */
+.pf-rail .n .d{position:absolute;top:-3px;right:-3px}
 .pf-scroll{position:relative;display:grid;align-content:start;gap:14px;min-height:0;overflow-y:auto;padding:14px 20px 20px}
 .pf-sec{display:grid;gap:14px;padding:16px 18px 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card);scroll-margin-top:14px}
 .pf-sec h3{font-size:16px;line-height:24px;font-weight:600}
@@ -801,7 +803,7 @@ fieldset.ck-conflict{border:0;margin:0;padding:0}
 .fp-sum dl > div{display:grid;align-content:start;gap:2px;min-width:0;padding:0 14px;border-left:1px solid var(--line)}
 .fp-sum dl > div:first-child{padding-left:0;border-left:0}
 .fp-sum dt{font-size:12px;color:var(--ink-3)}
-.fp-sum dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.fp-sum dd{margin:0;font-weight:500;overflow-wrap:break-word}
 .fp-sum .linkish{flex:none;color:var(--accent-ink);font-weight:500;text-decoration:none}
 .fp-need{display:flex;flex:1;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 /* a field that can follow the proxy: the switch sits on its label's line */
@@ -819,10 +821,15 @@ input.followed{color:var(--ink-2);background:var(--panel)}
 .formats{margin:0;padding:8px 10px;border-radius:var(--r);background:var(--panel);font-size:12px;font-weight:400;color:var(--ink-2);line-height:1.7}
 .import-result{display:grid;gap:6px}
 .bad-lines{margin:0;padding-left:18px;max-height:140px;overflow:auto;color:var(--ink-2)}
-fieldset.ext-pick{border:0;margin:0;padding:0;display:grid;gap:6px}
-fieldset.ext-pick legend{padding:0;margin-bottom:6px}
-.ext-pick .check-row{color:var(--ink)}
-.ext-pick .mono{font-size:12px}
+/* the extension section: the library searched and ticked (the ones it had first), then adding to the library */
+.pf-sec .search{margin-left:0;width:100%}
+.ext-opts{display:grid;max-height:265px;overflow-y:auto;margin:0;padding:0;list-style:none;border:1px solid var(--line);border-radius:var(--r);background:var(--card)}
+.ext-opts li + li{border-top:1px solid var(--line)}
+.ext-opts .check-row{gap:10px;min-height:44px;padding:0 12px;color:var(--ink)}
+.ext-opts .ext-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ext-opts .mono{font-size:12px}
+.ext-add{display:grid;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+.ext-add h4{margin:0;font-size:14px;line-height:22px;font-weight:600}
 
 /* team: the seats beside the invite button, people with what the roles mean beside them, invitations waiting */
 .tm-main{gap:12px;min-width:0}

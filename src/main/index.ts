@@ -18,7 +18,7 @@ import { checkById, checkWorkspace, tryProxy } from './proxy-check';
 import { activeRuns, onRuns, onSignedOut, runTask, screenshotPath, stopRun, stopRuns, tryFlow } from './runs';
 import { hasScheduled, onScheduled, startScheduler, stopScheduler, tick } from './schedule';
 import { createApiToken, loadLocalApi, localApi, onLocalApi, revokeApiToken, setLocalApi } from './local-api';
-import { fromStore } from './extensions';
+import { fromLink } from './extensions';
 import { leftWindowSync, loadSyncOptions, onSyncLog, onSyncThumbs, onWindowSync, setLeader, setSyncOptions, startWindowSync, stopWindowSync, syncGoto, syncLog, syncOptions, watchThumbs, windowSync } from './windowsync';
 import { tile } from './tile';
 import { installUpdate, onUpdate, startUpdates, update } from './update';
@@ -286,11 +286,11 @@ ipcMain.handle('folio:stopRun', (_e, runId: string) => { stopRun(String(runId));
 ipcMain.handle('folio:activeRuns', () => activeRuns());
 ipcMain.handle('folio:showWindow', () => showWindow());
 ipcMain.handle('folio:setLabels', (_e, l: Labels) => { labels = { open: String(l.open), quit: String(l.quit), background: String(l.background) }; updateTray(); });
-// Extension packages go up as bytes, straight from the picked file or from the store.
+// Extension packages go up as bytes, straight from the picked file or from where its address leads.
 async function extensionBytes(kernel: KernelKind, from: ExtensionSource){
   if ('file' in from) return { bytes: Buffer.from(from.file), query: 'source=upload' };
-  const got = await fromStore(kernel, String(from.store));
-  return { bytes: got.bytes, query: `source=store&storeId=${encodeURIComponent(got.storeId)}` };
+  const got = await fromLink(kernel, String(from.store));
+  return { bytes: got.bytes, query: got.storeId ? `source=store&storeId=${encodeURIComponent(got.storeId)}` : 'source=upload' };
 }
 ipcMain.handle('folio:addExtension', async (_e, workspaceId: string, kernel: KernelKind, from: ExtensionSource) => {
   try {

@@ -1,8 +1,8 @@
 // The workspace's extension library: owners and admins add extensions (a file, or from the Chrome Web Store or
 // addons.mozilla.org), upload new versions and delete them; everyone sees the library and installs from it in the
 // profile form or the bulk actions.
-import { useState, type ChangeEvent, type ReactNode } from 'react';
-import type { KernelKind } from '@shared/bridge';
+import { useId, useState, type ChangeEvent, type ReactNode } from 'react';
+import type { ExtensionSource, KernelKind } from '@shared/bridge';
 import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
@@ -202,64 +202,83 @@ function InstallDialog({ d, data, exts, onClose, onDone }: { d: Dict; data: Work
   );
 }
 
-// Adding an extension, or a new version of one: from a file, or from its store.
+// Where a new extension (or a new version) comes from, here and in the profile form: its address (a store link, its
+// ID, or a .crx/.xpi/.zip to download), or a file on this computer.
+export interface ExtFrom { how: 'link' | 'file'; link: string; file: File | null }
+export const extReady = (v: ExtFrom) => (v.how === 'file' ? !!v.file : !!v.link.trim());
+export const extSource = async (v: ExtFrom): Promise<ExtensionSource> => (v.how === 'file' ? { file: new Uint8Array(await v.file!.arrayBuffer()) } : { store: v.link.trim() });
+// Into the workspace's library, which then reloads; what was added (its id and name).
+export async function addToLibrary(wsId: string, data: WorkspaceData, kernel: KernelKind, v: ExtFrom){
+  const r = await folio.addExtension(wsId, kernel, await extSource(v));
+  data.refresh('extensions');
+  return r;
+}
+
+export function ExtSource({ d, kernel, value, onChange }: { d: Dict; kernel: KernelKind; value: ExtFrom; onChange(v: ExtFrom): void }){
+  const X = d.extensions, id = useId();
+  const pick = (e: ChangeEvent<HTMLInputElement>) => onChange({ ...value, file: e.target.files?.[0] ?? null });
+  return <>
+    <div className="field"><span className="label">{X.from}</span>
+      <div className="seg" role="group" aria-label={X.from}>
+        <button type="button" aria-pressed={value.how === 'link'} onClick={() => onChange({ ...value, how: 'link' })}>{X.fromLink}</button>
+        <button type="button" aria-pressed={value.how === 'file'} onClick={() => onChange({ ...value, how: 'file' })}>{X.fromFile}</button>
+      </div>
+    </div>
+    {value.how === 'file' ? (
+      <div className="field">
+        <div className="file-row">
+          <label className="btn btn-secondary btn-sm file-btn">{X.chooseFile}<input type="file" aria-label={X.chooseFile} accept={kernel === 'chromium' ? '.crx,.zip' : '.xpi,.zip'} onChange={pick} /></label>
+          {value.file && <span className="hint mono">{value.file.name}</span>}
+        </div>
+        <p className="hint">{kernel === 'chromium' ? X.fileHintChromium : X.fileHintFirefox}</p>
+      </div>
+    ) : (
+      <div className="field">
+        <label htmlFor={id}>{kernel === 'chromium' ? X.storeChromium : X.storeFirefox}</label>
+        <input id={id} className="mono-in" value={value.link} spellCheck={false} placeholder={kernel === 'chromium' ? 'https://chromewebstore.google.com/detail/…' : 'https://addons.mozilla.org/firefox/addon/…'} onChange={e => onChange({ ...value, link: e.target.value })} />
+        <p className="hint">{kernel === 'chromium' ? X.linkHintChromium : X.linkHintFirefox}</p>
+      </div>
+    )}
+  </>;
+}
+
+// Adding an extension, or a new version of one.
 function ExtensionDialog({ d, ws, data, ext, onClose }: { d: Dict; ws: Workspace; data: WorkspaceData; ext?: Extension; onClose(): void }){
   const X = d.extensions;
   const toast = useToast();
   const [kernel, setKernel] = useState<KernelKind>(ext?.kernel ?? 'chromium');
-  const [how, setHow] = useState<'file' | 'store'>(ext?.source === 'store' ? 'store' : 'file');
-  const [file, setFile] = useState<File | null>(null);
-  const [store, setStore] = useState(ext?.source === 'store' ? ext.storeId ?? '' : '');
+  const [from, setFrom] = useState<ExtFrom>({ how: !ext || ext.source === 'store' ? 'link' : 'file', link: ext?.source === 'store' ? ext.storeId ?? '' : '', file: null });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit(){
     setBusy(true); setError(null);
     try {
-      const from = how === 'file' ? { file: new Uint8Array(await file!.arrayBuffer()) } : { store: store.trim() };
-      const r = ext ? await folio.updateExtension(ext.id, ext.kernel, from) : await folio.addExtension(ws.id, kernel, from);
-      data.refresh('extensions');
-      toast(ext ? X.updated(r.name) : X.added(r.name));
+      if (ext){
+        const r = await folio.updateExtension(ext.id, ext.kernel, await extSource(from));
+        data.refresh('extensions');
+        toast(X.updated(r.name));
+      } else toast(X.added((await addToLibrary(ws.id, data, kernel, from)).name));
       onClose();
     } catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); }
     finally { setBusy(false); }
   }
-  const pick = (e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null);
-  const ready = how === 'file' ? !!file : !!store.trim();
 
   return (
     <Modal title={ext ? X.updateTitle(ext.name) : X.addTitle} onClose={onClose} busy={busy} foot={<>
       <Cancel />
-      <button className="btn btn-primary" type="button" disabled={!ready || busy} onClick={() => void submit()}>{busy ? (how === 'store' ? X.fetching : X.uploading) : ext ? X.updateDo : X.addDo}</button>
+      <button className="btn btn-primary" type="button" disabled={!extReady(from) || busy} onClick={() => void submit()}>{busy ? (from.how === 'link' ? X.fetching : X.uploading) : ext ? X.updateDo : X.addDo}</button>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
         {!ext && (
           <div className="field"><span className="label">{X.cols.engine}</span>
             <div className="seg" role="group" aria-label={X.cols.engine}>
-              {(['chromium', 'firefox'] as const).map(k => <button key={k} type="button" aria-pressed={kernel === k} onClick={() => { setKernel(k); setFile(null); }}>{ENGINES[k]}</button>)}
+              {(['chromium', 'firefox'] as const).map(k => <button key={k} type="button" aria-pressed={kernel === k} onClick={() => { setKernel(k); setFrom(f => ({ ...f, file: null })); }}>{ENGINES[k]}</button>)}
             </div>
           </div>
         )}
-        <div className="field"><span className="label">{X.from}</span>
-          <div className="seg" role="group" aria-label={X.from}>
-            <button type="button" aria-pressed={how === 'file'} onClick={() => setHow('file')}>{X.fromFile}</button>
-            <button type="button" aria-pressed={how === 'store'} onClick={() => setHow('store')}>{X.fromStore(kernel)}</button>
-          </div>
-        </div>
-        {how === 'file' ? (
-          <div className="field">
-            <div className="file-row">
-              <label className="btn btn-secondary btn-sm file-btn">{X.chooseFile}<input type="file" aria-label={X.chooseFile} accept={kernel === 'chromium' ? '.crx,.zip' : '.xpi,.zip'} onChange={pick} /></label>
-              {file && <span className="hint mono">{file.name}</span>}
-            </div>
-            <p className="hint">{kernel === 'chromium' ? X.fileHintChromium : X.fileHintFirefox}</p>
-          </div>
-        ) : (
-          <label className="field"><span>{kernel === 'chromium' ? X.storeChromium : X.storeFirefox}</span>
-            <input className="mono-in" value={store} spellCheck={false} placeholder={kernel === 'chromium' ? 'https://chromewebstore.google.com/detail/…' : 'https://addons.mozilla.org/firefox/addon/…'} onChange={e => setStore(e.target.value)} />
-          </label>
-        )}
+        <ExtSource d={d} kernel={kernel} value={from} onChange={setFrom} />
         <p className="hint">{kernel === 'chromium' ? X.idNote : X.uuidNote}</p>
       </div>
     </Modal>

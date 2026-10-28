@@ -154,16 +154,20 @@ export async function writeExtensionData(profileDir: string, list: Extension[], 
   await saveUuids(profileDir, uuids);
 }
 
-// Chrome Web Store (by id or link) and addons.mozilla.org (by link or slug). Tests point these at a local server.
+// A package from its address: a .crx, .xpi or .zip to download as it is (an upload, from wherever it lives), the
+// Chrome Web Store (by id or link) or addons.mozilla.org (by link or slug); the stores' ones keep their id for later
+// versions. Tests point the stores at a local server.
 const CHROME_STORE = process.env.FOLIO_CHROME_STORE_URL ?? 'https://clients2.google.com/service/update2/crx?response=redirect&prodversion=150.0.0.0&acceptformat=crx2,crx3&x=id%3D{id}%26uc';
 const AMO_API = process.env.FOLIO_AMO_API ?? 'https://addons.mozilla.org/api/v5/addons/addon/';
+const DOWNLOAD = /^https?:\/\/[^\s?#]+\.(?:crx|xpi|zip)(?:[?#]\S*)?$/i;
 
-export async function fromStore(kernel: 'chromium' | 'firefox', ref: string): Promise<{ bytes: Buffer; storeId: string }> {
+export async function fromLink(kernel: 'chromium' | 'firefox', ref: string): Promise<{ bytes: Buffer; storeId: string | null }> {
   const get = async (url: string) => {
     const res = await net.fetch(url).catch(() => null);
     if (!res?.ok) throw new Error('store_failed');
     return res;
   };
+  if (DOWNLOAD.test(ref.trim())) return { bytes: Buffer.from(await (await get(ref.trim())).arrayBuffer()), storeId: null };
   if (kernel === 'chromium'){
     const id = ref.match(/\b[a-p]{32}\b/)?.[0];
     if (!id) throw new Error('store_ref');
