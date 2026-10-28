@@ -2,7 +2,7 @@
 // moves between them. A new profile starts from the workspace's defaults and gets its fingerprint from the main process for
 // the chosen engine and system; an edit keeps it unless a new one is drawn. While the profile runs here, what it was
 // started with (engine, system, proxy, fingerprint) waits until it is stopped, and closing with changes asks first.
-import { Fragment, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { CheckResult, KernelKind, Os } from '@shared/bridge';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { MANAGE, can, folio, isApiError, type Extension, type Profile, type ProxyImport, type Workspace } from './api';
@@ -10,7 +10,7 @@ import { time } from './Activity';
 import { ENGINES, latencyTone, proxyState } from './checks';
 import { kernelKey, type WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Cancel, ExtIcon, Icon, Modal, Switch, bytes, percent } from './ui';
+import { Cancel, ExtIcon, Icon, Modal, Switch, bytes, percent, useHeld } from './ui';
 import { ExtSource, addToLibrary, extReady, type ExtFrom } from './Extensions';
 import { OsLogo, SEARCH_LOGOS } from './Flag';
 import { Select, SelectField, groupOpts, ownerOpts, type Opt } from './Select';
@@ -73,8 +73,7 @@ export function ProfileForm({ d, lang, ws, meId, data, profile, defaultGroup, on
   const [width, setWidth] = useState(String(profile?.windowWidth ?? 1280));
   const [height, setHeight] = useState(String(profile?.windowHeight ?? 800));
   const [fpOpen, setFpOpen] = useState(false);
-  // Asked: why what it runs with can't change now; whether to move a saved profile to another system.
-  const [runAsk, setRunAsk] = useState(false);
+  // Asked: whether to move a saved profile to another system.
   const [osAsk, setOsAsk] = useState<Os | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
@@ -232,24 +231,19 @@ export function ProfileForm({ d, lang, ws, meId, data, profile, defaultGroup, on
   );
   const req = <span className="req" aria-hidden="true">*</span>;
   const opt = <small className="opt">{f.optional}</small>;
-  // While it runs here, what it was started with stays (option B, the user, 10-28): the controls look as always, and
-  // trying one says why, with Stop, in place of greyed fields and notes. Tab and Escape still move on.
-  const held = locked ? {
-    onMouseDownCapture: (e: MouseEvent) => e.preventDefault(),
-    onClickCapture: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); setRunAsk(true); },
-    onKeyDownCapture: (e: KeyboardEvent) => { if (!['Tab', 'Escape', 'Shift'].includes(e.key)){ e.preventDefault(); e.stopPropagation(); setRunAsk(true); } }
-  } : {};
+  // While it runs here, its engine, system, proxy and fingerprint say why they wait, with Stop.
+  const { held, ask } = useHeld(profile?.id ?? '', status?.state === 'running', locked);
   const pickOs = (o: Os) => { if (o === os) return; if (edit){ setOsAsk(o); return; } fpd.refit(kernel, o); setOs(o); };
   const F = d.fp, facts = fpd.facts;
   const followed = (own: string | null, seen: string | undefined) => own ?? seen ?? (pxMode === 'none' ? d.detail.hostTz : f.follow);
 
   return (
     <Modal wide title={edit ? f.editTitle : f.newTitle} sub={profile && `${profile.name} · #${String(profile.number).padStart(4, '0')}`} onClose={onClose} busy={busy} dirty={changes > 0} foot={<>
-      {/* Where it stands, at the foot's left (the user, 10-28): stopped, or running with what must wait for it to stop. */}
+      {/* Where it stands, at the foot's left (the user, 10-28): stopped, and when changes apply; or running, with Stop. */}
       {profile ? (
         <span className={`pf-state${locked ? ' run' : ''}`} role="status">
           {status ? <span className="dot-st run">{d.profiles.st.running}</span> : away ? <span className="dot-st away">{d.profiles.inUseOn(away.deviceName ?? away.email)}</span> : <span className="dot-st stop">{d.profiles.tabs.stopped}</span>}
-          <span>{locked ? f.runningNote : f.nextOpen}</span>
+          {!locked && <span>{f.nextOpen}</span>}
           {status?.state === 'running' && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(profile.id)}><Icon name="stop" />{f.stopNow}</button>}
         </span>
       ) : <span className="hint">{f.createHint}</span>}
@@ -441,12 +435,7 @@ export function ProfileForm({ d, lang, ws, meId, data, profile, defaultGroup, on
           </>)}
         </div>
       </form>
-      {runAsk && profile && (
-        <Modal kind="warn" title={f.runningTitle} onClose={() => setRunAsk(false)} foot={<>
-          <Cancel />
-          {status?.state === 'running' && <button type="button" className="btn btn-primary" onClick={() => { setRunAsk(false); void folio.stopProfile(profile.id); }}><Icon name="stop" />{f.stopNow}</button>}
-        </>}><p>{f.runningBody}</p></Modal>
-      )}
+      {ask}
       {osAsk && (
         <Modal kind="warn" title={f.osTitle} onClose={() => setOsAsk(null)} foot={<>
           <Cancel />

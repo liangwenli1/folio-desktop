@@ -102,74 +102,74 @@ export function useFingerprint(profile: Profile | undefined, kernel: KernelKind,
 export type FingerprintDraft = ReturnType<typeof useFingerprint>;
 
 // Each field takes the draft; `geo` is where the profile's proxy exits (null when unchecked or without one).
-interface FieldProps { d: Dict; f: FingerprintDraft; disabled?: boolean }
+interface FieldProps { d: Dict; f: FingerprintDraft }
 const screenLabel = (v: string) => v.replace('x', ' × ');
 
-export function ScreenField({ d, f, disabled }: FieldProps){
+export function ScreenField({ d, f }: FieldProps){
   const F = d.fp;
   if (f.kernel === 'chromium') return <SelectField label={F.screen} value="host" onChange={() => {}} disabled options={[{ value: 'host', label: F.screenHost }]} hint={F.screenHostHint} />;
   const screens = [...(f.screen && !SCREENS[f.os].includes(f.screen) ? [f.screen] : []), ...SCREENS[f.os]];
-  return <SelectField label={F.screen} value={f.screen} onChange={f.pickScreen} disabled={disabled}
+  return <SelectField label={F.screen} value={f.screen} onChange={f.pickScreen}
     options={[{ value: '', label: F.screenRandom }, ...screens.map(v => ({ value: v, label: screenLabel(v) }))]} />;
 }
 
 // Chromium shows a random GPU or this computer's; a Firefox identity claims one GPU it has records of.
-export function GpuField({ d, f, disabled }: FieldProps){
+export function GpuField({ d, f }: FieldProps){
   const F = d.fp;
-  if (f.kernel === 'chromium') return <SelectField label={F.webgl} value={f.webgl} disabled={disabled} onChange={v => f.setWebgl(v as 'spoof' | 'real')} options={(['spoof', 'real'] as const).map(v => ({ value: v, label: F.webglOpts[v] }))} />;
+  if (f.kernel === 'chromium') return <SelectField label={F.webgl} value={f.webgl} onChange={v => f.setWebgl(v as 'spoof' | 'real')} options={(['spoof', 'real'] as const).map(v => ({ value: v, label: F.webglOpts[v] }))} />;
   const opts = [...(f.gpu && !f.gpus.some(([v, r]) => `${v}\n${r}` === f.gpu) ? [f.gpu.split('\n') as [string, string]] : []), ...f.gpus];
-  return <SelectField label={F.webgl} value={f.gpu} onChange={f.pickGpu} disabled={disabled} searchPh={d.form.searchPh}
+  return <SelectField label={F.webgl} value={f.gpu} onChange={f.pickGpu} searchPh={d.form.searchPh}
     options={[{ value: '', label: F.webglOpts.spoof }, ...opts.map(([v, r]) => ({ value: `${v}\n${r}`, label: gpuName(r) }))]} />;
 }
 
-export function CanvasField({ d, f, disabled }: FieldProps){
+export function CanvasField({ d, f }: FieldProps){
   const F = d.fp;
   return f.kernel === 'chromium'
-    ? <SelectField label={F.canvas} value={f.canvas} disabled={disabled} onChange={v => f.setCanvas(v as 'noise' | 'real')} options={(['noise', 'real'] as const).map(v => ({ value: v, label: F.canvasOpts[v] }))} />
+    ? <SelectField label={F.canvas} value={f.canvas} onChange={v => f.setCanvas(v as 'noise' | 'real')} options={(['noise', 'real'] as const).map(v => ({ value: v, label: F.canvasOpts[v] }))} />
     : <SelectField label={F.canvas} value="engine" onChange={() => {}} disabled options={[{ value: 'engine', label: F.canvasOpts.engine }]} />;
 }
 
-export function WebrtcField({ d, f, disabled }: FieldProps){
+export function WebrtcField({ d, f }: FieldProps){
   const F = d.fp;
   return f.kernel === 'chromium'
     ? <SelectField label={F.webrtc} value="udp" onChange={() => {}} disabled options={[{ value: 'udp', label: F.webrtcOpts.udp }]} />
-    : <SelectField label={F.webrtc} value={f.webrtc} disabled={disabled} onChange={v => f.setWebrtc(v as 'replace' | 'block')} options={(['replace', 'block'] as const).map(v => ({ value: v, label: F.webrtcOpts[v] }))} />;
+    : <SelectField label={F.webrtc} value={f.webrtc} onChange={v => f.setWebrtc(v as 'replace' | 'block')} options={(['replace', 'block'] as const).map(v => ({ value: v, label: F.webrtcOpts[v] }))} />;
 }
 
-export function CoresField({ d, f, disabled }: FieldProps){
+export function CoresField({ d, f }: FieldProps){
   const shown = f.cores && !CORES.includes(f.cores) ? [f.cores, ...CORES].sort((a, b) => a - b) : CORES;
-  return <SelectField label={d.fp.cores} value={f.cores ? String(f.cores) : ''} placeholder="—" disabled={disabled || !f.facts} onChange={v => f.setCores(Number(v))}
+  return <SelectField label={d.fp.cores} value={f.cores ? String(f.cores) : ''} placeholder="—" disabled={!f.facts} onChange={v => f.setCores(Number(v))}
     options={shown.map(n => ({ value: String(n), label: String(n) }))} />;
 }
 
 // The time zone and the language: what the proxy's exit gives, or one set by hand.
-export function ZoneField({ d, f, geo, proxied, disabled }: FieldProps & { geo: Geo | null; proxied: boolean }){
+export function ZoneField({ d, f, geo, proxied }: FieldProps & { geo: Geo | null; proxied: boolean }){
   const id = useId(), F = d.form;
   const options = useMemo<Opt[]>(() => (f.tz && !ZONES.includes(f.tz) ? [f.tz] : []).concat(ZONES).map(z => ({ value: z, label: z })), [f.tz]);
   return (
     <div className="field">
       <div className="label-row">
         <span className="label" id={id}>{F.tz}</span>
-        <Switch label={F.follow} checked={f.tzFollow} disabled={disabled} onChange={on => f.followTz(on, geo?.timezone)} />
+        <Switch label={F.follow} checked={f.tzFollow} onChange={on => f.followTz(on, geo?.timezone)} />
       </div>
       {f.tzFollow
         ? <Followed aria-labelledby={id} value={geo?.timezone ?? (proxied ? F.exitUnknown : d.detail.hostTz)} />
-        : <Select labelledBy={id} value={f.tz} onChange={f.setTz} options={options} search searchPh={F.tzPh} disabled={disabled} />}
+        : <Select labelledBy={id} value={f.tz} onChange={f.setTz} options={options} search searchPh={F.tzPh} />}
     </div>
   );
 }
 
-export function LangField({ d, f, geo, proxied, disabled, error }: FieldProps & { geo: Geo | null; proxied: boolean; error: string | null }){
+export function LangField({ d, f, geo, proxied, error }: FieldProps & { geo: Geo | null; proxied: boolean; error: string | null }){
   const F = d.form;
   return (
     <div className="field">
       <div className="label-row">
         <label htmlFor="fp-lang">{F.lang}</label>
-        <Switch label={F.follow} checked={f.langFollow} disabled={disabled} onChange={on => f.followLang(on, geo?.locale)} />
+        <Switch label={F.follow} checked={f.langFollow} onChange={on => f.followLang(on, geo?.locale)} />
       </div>
       {f.langFollow
         ? <Followed id="fp-lang" value={geo?.locale ?? (proxied ? F.exitUnknown : d.detail.hostTz)} />
-        : <input id="fp-lang" placeholder={F.langPh} value={f.lang} onChange={e => f.setLang(e.target.value)} disabled={disabled} aria-invalid={!!error} spellCheck={false} />}
+        : <input id="fp-lang" placeholder={F.langPh} value={f.lang} onChange={e => f.setLang(e.target.value)} aria-invalid={!!error} spellCheck={false} />}
       {error && <p className="err">{error}</p>}
     </div>
   );

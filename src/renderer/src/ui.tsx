@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as KeyEvent, type PointerEvent as PointerDown, type ReactNode, type RefObject } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as KeyEvent, type MouseEvent as ClickEvent, type PointerEvent as PointerDown, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { folio, isApiError } from './api';
 import type { Kind, WorkspaceData } from './data';
@@ -351,6 +351,27 @@ export function Modal({ title, sub, onClose, foot, kind, wide, busy, dirty, chil
 export function Cancel({ label }: { label?: string }){
   const d = useDict(), m = useContext(ModalContext);
   return <button type="button" className="btn btn-secondary" disabled={m.locked} onClick={m.close}>{label ?? d.common.cancel}</button>;
+}
+
+// What a profile was started with stays while it runs here (option B, the user, 10-28): the controls look as always,
+// and trying one says why, with Stop, in place of greyed fields and notes. `held` goes on what holds those controls
+// (Tab and Escape still move on); `ask` is that dialog, to render beside them.
+export function useHeld(id: string, running: boolean, locked: boolean){
+  const d = useDict();
+  const [asking, setAsking] = useState(false);
+  const stopHere = (e: ClickEvent | KeyEvent) => { e.preventDefault(); e.stopPropagation(); setAsking(true); };
+  const held = locked ? {
+    onMouseDownCapture: (e: ClickEvent) => e.preventDefault(),
+    onClickCapture: stopHere,
+    onKeyDownCapture: (e: KeyEvent) => { if (!['Tab', 'Escape', 'Shift'].includes(e.key)) stopHere(e); }
+  } : {};
+  const ask = asking && (
+    <Modal kind="warn" title={d.form.runningTitle} onClose={() => setAsking(false)} foot={<>
+      <Cancel />
+      {running && <button type="button" className="btn btn-primary" onClick={() => { setAsking(false); void folio.stopProfile(id); }}><Icon name="stop" />{d.form.stopNow}</button>}
+    </>}><p>{d.form.runningBody}</p></Modal>
+  );
+  return { held, ask };
 }
 
 // Unsaved changes: keep editing, or drop them and go on.

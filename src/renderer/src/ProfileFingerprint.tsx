@@ -1,13 +1,14 @@
 // The Fingerprint tab of a profile's page: its fields (only what the engine honours), what it is saved as, whether it
 // is consistent with where the proxy exits (the checks, and the health check run in its browser), and the switches
-// applied at launch. A running profile keeps what it was started with until it is stopped.
+// applied at launch. A running profile keeps what it was started with until it is stopped: trying a field says so,
+// with Stop (option B, the user, 10-28).
 import { useEffect, useState } from 'react';
 import type { ProfileStatus } from '@shared/bridge';
 import { folio, isApiError, type Profile } from './api';
 import { ENGINES, fingerprintFacts, type Check, type CheckLevel, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
-import { Icon, useFail, useToast, bytes, type IconName } from './ui';
+import { Icon, useFail, useHeld, useToast, bytes, type IconName } from './ui';
 import { CanvasField, CoresField, GpuField, LangField, ScreenField, WebrtcField, ZoneField, useFingerprint } from './Fingerprint';
 import { ReportDialog, buildReport, passed, type Report } from './Checkup';
 import { dayLabel, time } from './Activity';
@@ -31,6 +32,7 @@ export function FingerprintTab({ d, lang, data, p, h, status, size, risks, other
   const [tried, setTried] = useState(false);
   const [saving, setSaving] = useState(false);
   const locked = !!status;
+  const { held, ask } = useHeld(p.id, status?.state === 'running', locked);
   const dirty = f.changed || f.timezoneOverride !== p.timezoneOverride || f.localeOverride !== p.localeOverride;
   useEffect(() => onDirty(dirty), [dirty]);
   const geo = h.geo, proxied = !!p.proxyId;
@@ -55,10 +57,7 @@ export function FingerprintTab({ d, lang, data, p, h, status, size, risks, other
   const follow = (own: string | null, seen: string | undefined) => own ?? seen ?? (proxied ? d.form.follow : D.hostTz);
   return (
     <div className="fpt">
-      <p className={`notice ${locked ? 'warn' : 'info'} fpt-note`} role="status">
-        <Icon name={locked ? 'stop' : 'info'} /><span>{locked ? T.locked : T.next}</span>
-        {status?.state === 'running' && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(p.id)}>{d.form.stopNow}</button>}
-      </p>
+      {!locked && <p className="notice info fpt-note" role="status"><Icon name="info" /><span>{T.next}</span></p>}
       <div className="fpt-grid">
         <section className="sec fpt-form" aria-label={F.title}>
           <h3 className="fpt-h">{T.browser}</h3>
@@ -71,15 +70,15 @@ export function FingerprintTab({ d, lang, data, p, h, status, size, risks, other
             <textarea id="fp-ua" className="mono-in" rows={2} value={ua} placeholder={T.uaLater} readOnly />
           </div>
           <h3 className="fpt-h">{T.screen}</h3>
-          <div className="row2"><ScreenField d={d} f={f} disabled={locked} /></div>
+          <div className="row2" {...held}><ScreenField d={d} f={f} /></div>
           <p className="hint">{T.screenHint}</p>
           <h3 className="fpt-h">{T.langTz}</h3>
-          <div className="row2">
-            <LangField d={d} f={f} geo={geo} proxied={proxied} disabled={locked} error={tried && f.langBad ? d.form.langErr : null} />
-            <ZoneField d={d} f={f} geo={geo} proxied={proxied} disabled={locked} />
+          <div className="row2" {...held}>
+            <LangField d={d} f={f} geo={geo} proxied={proxied} error={tried && f.langBad ? d.form.langErr : null} />
+            <ZoneField d={d} f={f} geo={geo} proxied={proxied} />
           </div>
           <h3 className="fpt-h">{T.hardware}</h3>
-          <div className="row2"><CoresField d={d} f={f} disabled={locked} /></div>
+          <div className="row2" {...held}><CoresField d={d} f={f} /></div>
           {f.fp.state === 'loading' && <p className="hint"><span className="spin" aria-hidden="true" /></p>}
           {f.fp.state === 'error' && <p className="err">{d.form.fpErr}</p>}
           {f.regenerated && <p className="hint">{d.form.regenWarn}</p>}
@@ -100,18 +99,21 @@ export function FingerprintTab({ d, lang, data, p, h, status, size, risks, other
           <Consistency d={d} lang={lang} p={p} h={h} size={size} risks={risks} others={others} busy={busy} onFix={onFix} />
           <section className="sec" aria-label={T.advanced}>
             <h3 className="fpt-h">{T.advanced}</h3>
-            <CanvasField d={d} f={f} disabled={locked} />
-            <GpuField d={d} f={f} disabled={locked} />
-            <WebrtcField d={d} f={f} disabled={locked} />
+            <div className="held" {...held}>
+              <CanvasField d={d} f={f} />
+              <GpuField d={d} f={f} />
+              <WebrtcField d={d} f={f} />
+            </div>
           </section>
         </div>
       </div>
       <div className="fpt-foot">
         {dirty && <span className="pf-dirty"><span className="d warn" aria-hidden="true" /><b>{d.form.unsaved}</b></span>}
         <span className="sp" />
-        <button type="button" className="btn btn-secondary" disabled={locked} onClick={f.defaults}>{T.defaults}</button>
-        <button type="button" className="btn btn-primary" aria-busy={saving || undefined} disabled={locked || saving || !dirty || f.fp.state !== 'ready'} onClick={() => void save()}>{T.save}</button>
+        <span className="held" {...held}><button type="button" className="btn btn-secondary" onClick={f.defaults}>{T.defaults}</button></span>
+        <button type="button" className="btn btn-primary" aria-busy={saving || undefined} disabled={saving || !dirty || f.fp.state !== 'ready'} onClick={() => void save()}>{T.save}</button>
       </div>
+      {ask}
     </div>
   );
 }

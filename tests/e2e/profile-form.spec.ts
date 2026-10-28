@@ -132,12 +132,30 @@ test('while it runs, what it was started with waits until it is stopped, and try
   await expect(form.getByRole('radio', { name: 'No proxy' })).toBeChecked();
   await form.getByRole('button', { name: 'New random fingerprint' }).click();
   await expect(ask).toBeVisible();
-  // The rest can still change, for the next time it opens.
+  await ask.getByRole('button', { name: 'Cancel' }).click();
+  // The rest can still change, for the next time it opens; the foot says it runs, with Stop, and no more.
   await expect(form.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled();
+  await expect(form.getByRole('status')).toHaveText('RunningStop profile');
+  await form.getByRole('button', { name: 'Cancel' }).click();
 
-  // Stop from there, and the engine can be picked.
+  // The profile's Fingerprint tab the same way: no note, the fields as always, and trying one says why.
+  await detail(win).getByRole('tab', { name: 'Fingerprint' }).click();
+  await expect(detail(win).getByText('Changes apply the next time the profile opens.')).toHaveCount(0);
+  const cores = detail(win).getByRole('combobox', { name: 'CPU cores' });
+  await expect(cores).toBeEnabled();
+  await cores.click();
+  await expect(win.getByRole('listbox')).toHaveCount(0);
+  // Stop from there, and the field can be picked.
   await ask.getByRole('button', { name: 'Stop profile' }).click();
-  await expect(form.getByRole('status')).toContainText('Changes apply the next time it opens', { timeout: 60_000 });
+  await expect(detail(win).getByText('Changes apply the next time the profile opens.')).toBeVisible({ timeout: 60_000 });
+  await cores.click();
+  await expect(win.getByRole('listbox')).toBeVisible();
+  await expect(ask).toHaveCount(0);
+  await win.keyboard.press('Escape');
+
+  // And in the form, the engine.
+  await detail(win).getByRole('button', { name: 'Edit profile' }).click();
+  await expect(form.getByRole('status')).toContainText('Changes apply the next time it opens');
   await form.getByRole('combobox', { name: 'Browser engine' }).click();
   await expect(win.getByRole('listbox')).toBeVisible();
   await expect(ask).toHaveCount(0);

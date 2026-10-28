@@ -363,7 +363,7 @@ export const en = {
     sync: 'Sign-ins', syncCloud: 'Save to Folio and follow the profile', syncLocal: 'Keep on the computer that uses it',
     syncHelp: 'Kept on one computer, sign-ins never leave it, and the profile opens signed out anywhere else.',
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.',
-    nextOpen: 'Changes apply the next time it opens', runningNote: 'Stop it to change its engine, system, proxy or fingerprint',
+    nextOpen: 'Changes apply the next time it opens',
     runningTitle: 'The profile is running', runningBody: 'Stop it to change its engine, system, proxy or fingerprint.', stopNow: 'Stop profile',
     osTitle: 'Change the system?', osChange: 'Change',
     osBody: (os: string) => `Its fingerprint is drawn again for ${os} (screen, graphics, fonts and more), so websites may take it for a new device.`,
@@ -372,7 +372,7 @@ export const en = {
   },
   // The Fingerprint tab of a profile's page.
   fpTab: {
-    next: 'Changes apply the next time the profile opens.', locked: 'The profile is running; stop it to change its fingerprint.',
+    next: 'Changes apply the next time the profile opens.',
     browser: 'Browser', screen: 'Screen', langTz: 'Language and time zone', hardware: 'Hardware and media',
     current: 'Saved configuration', consistency: 'Consistency', advanced: 'Advanced',
     ua: 'User-Agent', uaLater: 'Made by the engine from the system and version; run a health check to see it here.',
@@ -1284,7 +1284,7 @@ export const zh: Dict = {
     sync: '登录状态', syncCloud: '保存至 Folio，随环境同步', syncLocal: '仅保存在使用该环境的电脑上',
     syncHelp: '仅存本机时，登录状态不会离开该电脑；在其他电脑上打开时为未登录状态。',
     stale: '编辑期间该环境已被他人修改。再次保存将覆盖对方的修改，取消则保留对方的修改。',
-    nextOpen: '修改将在下次启动时生效', runningNote: '内核、系统、代理与指纹须停止环境后修改',
+    nextOpen: '修改将在下次启动时生效',
     runningTitle: '环境正在运行', runningBody: '停止环境后才能修改内核、系统、代理和指纹。', stopNow: '停止环境',
     osTitle: '更换操作系统？', osChange: '更换',
     osBody: (os: string) => `更换为 ${os} 后将按新系统重新生成指纹（屏幕、显卡、字体等），网站可能将其识别为新设备。`,
@@ -1292,7 +1292,7 @@ export const zh: Dict = {
     unsaved: '有未保存的修改', changedN: (n: number) => `已修改 ${n} 项`, createHint: '创建后可继续调整环境配置。'
   },
   fpTab: {
-    next: '修改将在下次启动环境时生效。', locked: '环境运行中，停止后才能修改指纹配置。',
+    next: '修改将在下次启动环境时生效。',
     browser: '浏览器配置', screen: '屏幕配置', langTz: '语言与时区', hardware: '硬件与媒体',
     current: '当前配置', consistency: '配置一致性', advanced: '高级配置',
     ua: 'User-Agent', uaLater: '由内核按系统与版本生成，运行体检后可在此查看。',
