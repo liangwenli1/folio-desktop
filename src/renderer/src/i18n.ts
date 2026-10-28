@@ -44,10 +44,12 @@ export const en = {
     search: 'Search profiles, proxies or members…', bell: 'Notifications', bellNew: 'Notifications (new)', none: 'No notifications',
     planEnds: (plan: string, date: string) => `${plan} ends on ${date}. Renew it to keep its limits.`, trialEnds: (date: string) => `The free trial ends on ${date}.`,
     renew: 'Renew', choosePlan: 'Choose a plan', invited: (who: string, ws: string) => `${who} invited you to the ${ws} workspace.`,
-    jobFailed: (kind: string, n: number, total: number) => `${kind}: ${n} of ${total} failed.`
+    jobFailed: (kind: string, n: number, total: number) => `${kind}: ${n} of ${total} failed.`,
+    trashKept: (n: number, manager: boolean) => `Deleted profiles stay in the Trash for ${n} days, then are deleted for good.${manager ? ' You can change this in Settings.' : ' To restore one, ask the owner or an admin.'}`,
+    openTrash: 'Open the Trash'
   },
   groups: {
-    title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name', tip: 'A role decides what someone can do; the groups they are authorized for decide which profiles.',
+    title: 'Groups', all: 'All groups', none: 'No group', add: 'New group', namePh: 'Group name',
     color: 'Color', colors: { red: 'Red', blue: 'Blue', green: 'Green', amber: 'Amber', purple: 'Purple', teal: 'Teal', gray: 'Gray' },
     tree: 'Group directory', everything: 'All profiles',
     sum: (n: number, m: number | null) => `${profilesN(n)}${m === null ? '' : ` · ${m === 1 ? '1 member' : `${m} members`}`}`,
@@ -158,7 +160,7 @@ export const en = {
     cancel: 'Cancel', save: 'Save', close: 'Close', undo: 'Undo', check: 'Check', checking: 'Checking…', edit: 'Edit', copy: 'Copy', copied: 'Copied',
     picked: { profiles: (n: number) => `${profilesN(n)} selected`, proxies: (n: number) => `${proxiesN(n)} selected`, extensions: (n: number) => `${n} ${n === 1 ? 'extension' : 'extensions'} selected`,
       cookies: (n: number) => `${n} ${n === 1 ? 'cookie' : 'cookies'} selected` }, clearSelection: 'Clear selection', selectAll: 'Select this page', select: (x: string) => `Select ${x}`,
-    never: 'Never', justNow: 'Just now', minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
+    never: 'Never', justNow: 'Just now', runDays: (days: number, h: number) => `${days} d ${h} h`, minAgo: (n: number) => `${n} min ago`, hAgo: (n: number) => `${n} h ago`, yesterday: 'Yesterday', daysAgo: (n: number) => `${n} days ago`,
     loadFailed: 'This list couldn’t be loaded', loadRetry: 'Load again', resize: 'Resize the panel',
     discardTitle: 'Discard unsaved changes?', discardNote: 'What you changed here won’t be saved.', keepEditing: 'Keep editing', discard: 'Discard changes',
     listLoading: 'Loading…', listFailed: 'Couldn’t load the list.', retry: 'Retry', noOptions: 'Nothing to choose from yet', noMatch: 'No matches',
@@ -177,12 +179,11 @@ export const en = {
     tabs: { all: 'All', running: 'Running', stopped: 'Not running', trash: 'Trash' },
     filter: { label: 'Status', all: 'All', states: 'All statuses', running: 'Running', stopped: 'Not running', issues: 'Needs attention', starred: 'Favorites', engine: 'Engine', engines: 'All engines' },
     reset: 'Reset', resetN: (n: number) => `Reset (${n})`,
-    tip: 'Click a profile’s name to see its details; pick profiles to edit, move or delete them together.',
     filterLabels: { keyword: 'Keyword', group: 'Group', engine: 'Engine', status: 'Status' },
     page: { total: (n: number) => `${n} ${n === 1 ? 'record' : 'records'}`, size: (n: number) => `${n} per page`, prev: 'Previous page', next: 'Next page', go: (p: number) => `Page ${p}` },
     star: 'Add to favorites', unstar: 'Remove from favorites', move: 'Move to group', moveTitle: (n: string) => `Move “${n}” to a group`,
     sort: 'Sort', sorts: { recent: 'Recently opened', name: 'Name A–Z', latency: 'Proxy latency' },
-    cols: { profile: 'Name / No.', group: 'Group', engine: 'Engine / system', proxy: 'Proxy / region', extensions: 'Extensions', last: 'Last used', status: 'Status', actions: 'Actions' },
+    cols: { profile: 'Name / No.', group: 'Group', tags: 'Tags', engine: 'Engine / system', proxy: 'Proxy / region', extensions: 'Extensions', last: 'Last used', status: 'Status', actions: 'Actions' },
     extensionsN: (n: number) => (n === 1 ? '1 extension' : `${n} extensions`),
     open: 'Open', stop: 'Stop', enter: 'Go to window', actionsX: (n: string) => `Actions for ${n}`, starting: 'Starting…', inUse: 'In use now',
     st: { idle: 'Not running', running: 'Running', noWindow: 'Running · window closed', proxyDown: 'Proxy down' }, checkProxy: 'Check proxy',
@@ -199,19 +200,16 @@ export const en = {
     emptyMatch: 'No profiles match', emptyFor: (q: string) => `Nothing found for “${q}”.`,
     emptyHint: (n: number) => (n === 1 ? 'Try another search, or clear the filters to see it.' : `Try another search, or clear the filters to see all ${n}.`),
     bulk: {
-      title: 'Bulk actions', open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, hidden: (n: number) => `${n} hidden by filters`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group', proxy: 'Set proxy…', assign: 'Assign to…', edit: 'Bulk edit', more: 'More',
-      tag: 'Tag', tagPh: 'Tag name', addTag: 'Add tag', removeTag: 'Remove tag', trash: 'Delete', cookies: 'Export cookies…',
-      extensions: 'Extensions…', install: 'Install', uninstall: 'Uninstall', sync: 'Sync windows', syncTwo: 'Select at least two profiles',
+      title: 'Bulk actions', open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, hidden: (n: number) => `${n} hidden by filters`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group', edit: 'Bulk edit…', more: 'More',
+      trash: 'Move to Trash', cookies: 'Export cookies…', sync: 'Sync windows',
       confirm: (n: number) => `Move ${profilesN(n)} to the Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
       trashed: (n: number): News => ({ title: 'Moved to the Trash', detail: profilesN(n) }), moved: (n: number, g: string): News => ({ title: `Moved to ${g}`, detail: profilesN(n) }),
-      tagged: (n: number, t: string): News => ({ title: `Tagged “${t}”`, detail: profilesN(n) }), untagged: (n: number, t: string): News => ({ title: `“${t}” removed`, detail: profilesN(n) }),
-      proxySet: (n: number): News => ({ title: 'Proxy changed', detail: profilesN(n) }), assigned: (n: number, who: string): News => ({ title: `Assigned to ${who}`, detail: profilesN(n) }),
+      starred: (n: number): News => ({ title: 'Added to favorites', detail: profilesN(n) }), unstarred: (n: number): News => ({ title: 'Removed from favorites', detail: profilesN(n) }),
       created: 'Profile created', saved: 'Changes saved',
       stale: 'Someone changed this profile in the meantime. Try again.',
       extAdded: (n: number, x: string, skipped: number): News => ({ title: 'Extension installed', detail: `${x} · ${profilesN(n)}${skipped ? `; ${skipped} skipped (other engine, or already there)` : ''}` }),
-      extRemoved: (n: number, x: string): News => ({ title: 'Extension uninstalled', detail: `${x} · ${profilesN(n)}` }),
       syncing: (leader: string, n: number): News => ({ title: 'Window sync started', detail: `${leader} leads · ${n === 1 ? '1 window follows' : `${n} windows follow`}` }), syncFailed: 'Window sync needs at least two open profiles.'
     }
   },
@@ -222,6 +220,10 @@ export const en = {
     proxy: 'Proxy', proxyHint: 'The selected profiles connect through this proxy.',
     engine: 'Engine version', engineHint: 'The selected profiles of this engine use this version.',
     start: 'Start page', startHint: 'The page the selected profiles open on.', startPh: 'https://',
+    tags: 'Tags', tagsHint: 'Separate tags with commas.', add: 'Add', remove: 'Remove', addTags: 'Add tags', removeTags: 'Remove tags',
+    owner: 'Assigned to', ownerHint: 'The selected profiles are assigned to this member.',
+    ext: 'Extension', extHint: 'Applies to the selected profiles of the extension’s engine.', pickExt: 'Choose an extension', install: 'Install', uninstall: 'Uninstall',
+    searchHint: 'The search engine of the address bar and new tabs.', tabsHint: 'Whether the selected profiles reopen their last tabs.',
     keep: 'No change', changes: 'What changes', none: 'Nothing chosen yet.',
     picked: (n: number) => `Selected (${n})`, running: (n: number) => (n === 1 ? '1 of them is running and stays as it is.' : `${n} of them are running and stay as they are.`),
     stoppedOnly: 'Only change profiles that are not running', stoppedOnlyHint: 'A running profile keeps its settings until it is closed.',
@@ -361,8 +363,11 @@ export const en = {
     sync: 'Sign-ins', syncCloud: 'Save to Folio and follow the profile', syncLocal: 'Keep on the computer that uses it',
     syncHelp: 'Kept on one computer, sign-ins never leave it, and the profile opens signed out anywhere else.',
     stale: 'Someone changed this profile while you were editing. Save again to replace their changes, or cancel to keep them.',
-    nextOpen: 'Changes apply the next time it opens', runningNote: 'Stop it to change its engine, proxy or fingerprint',
-    lockedNote: 'The profile is running; stop it to change this.', stopNow: 'Stop profile',
+    nextOpen: 'Changes apply the next time it opens', runningNote: 'Stop it to change its engine, system, proxy or fingerprint',
+    runningTitle: 'The profile is running', runningBody: 'Stop it to change its engine, system, proxy or fingerprint.', stopNow: 'Stop profile',
+    osTitle: 'Change the system?', osChange: 'Change',
+    osBody: (os: string) => `Its fingerprint is drawn again for ${os} (screen, graphics, fonts and more), so websites may take it for a new device.`,
+    kindFixed: (other: string) => `A saved profile can’t switch to ${other}: the two engines keep their data differently.`,
     unsaved: 'Unsaved changes', changedN: (n: number) => `${n} changed`, createHint: 'Everything here can be changed later.'
   },
   // The Fingerprint tab of a profile's page.
@@ -379,9 +384,7 @@ export const en = {
     search: 'Search engine', name: enSearch,
     restore: 'Restore last tabs',
     start: 'On opening', startTabs: 'Restores the last tabs', startHome: (name: string) => `Opens the ${name} home page`, startBlank: 'Opens a blank page',
-    bulk: 'Browser settings…', on: 'On', off: 'Off',
-    searchSet: (n: number, name: string): News => ({ title: `Search engine set to ${name}`, detail: profilesN(n) }),
-    tabsSet: (n: number, on: boolean): News => ({ title: `Tab restoring turned ${on ? 'on' : 'off'}`, detail: profilesN(n) })
+    on: 'On', off: 'Off'
   },
   importer: {
     title: 'Import profiles', lead: 'One profile per row with a header row. Save Excel sheets as CSV first; up to 500 rows at a time.',
@@ -477,7 +480,6 @@ export const en = {
     title: 'Trash', empty: 'The Trash is empty', emptyText: (n: number) => `Deleted profiles stay here for ${n} days and can be restored during that time.`,
     restore: 'Restore', restoreAll: 'Restore all', purge: 'Delete permanently', purgeAll: 'Empty Trash',
     cols: { profile: 'Profile', number: 'No.', group: 'Group', fingerprint: 'Fingerprint', signins: 'Sign-ins', deleted: 'Deleted', by: 'Deleted by', left: 'Days left' },
-    keeps: (n: number) => `Kept for ${n} days, then permanently deleted. Change it in Settings. Restored profiles go back to their own group; to restore into another, tick them and pick one in the panel.`,
     filterLabels: { keyword: 'Keyword', by: 'Deleted by', when: 'Deleted' },
     search: 'Search name or number', when: 'Deleted between', anyone: 'Anyone', days: (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`,
     picked: (n: number) => `${n} selected`, restoreTo: 'Restore to', restoreToHint: 'Unless another is picked, each goes back to its own group.', sameGroup: 'Its own group',
@@ -492,7 +494,7 @@ export const en = {
     check: 'Check for updates', upToDate: 'Every engine is up to date', upToDateText: 'The installed engines are all on their latest versions.', updates: (n: number) => `${n === 1 ? '1 update' : `${n} updates`} available`,
     defaultKernel: 'Default engine', defaultOf: (engine: string) => `${engine} · recommended`, defaultSet: (v: string): News => ({ title: 'Default engine set', detail: `New profiles now start with ${v}` }),
     tabs: { all: 'All engines', installed: 'Downloaded', updates: 'Updates' },
-    search: 'Search versions', searchPh: 'Search versions or notes', system: 'System', systems: 'All systems', filterLabels: { keyword: 'Keyword', system: 'Platform' }, tip: 'To switch existing profiles to another engine, stop them first.',
+    search: 'Search versions', searchPh: 'Search versions or notes', system: 'System', systems: 'All systems', filterLabels: { keyword: 'Keyword', system: 'Platform' },
     families: { win: 'Windows', mac: 'macOS', linux: 'Linux' },
     cols: { version: 'Engine', number: 'Version', platforms: 'Systems', size: 'Size', released: 'Released', profiles: 'Profiles', status: 'Status', actions: 'Actions' },
     recommended: 'Recommended', default: 'Default', installed: 'Downloaded', notDownloaded: 'Not downloaded', download: 'Download', failed: 'Download failed',
@@ -530,7 +532,7 @@ export const en = {
   },
   team: {
     title: 'Team',
-    invite: 'Invite people', you: 'you', remove: 'Remove from workspace', leave: 'Leave workspace',
+    invite: 'Invite people', me: (name: string) => `${name} (you)`, remove: 'Remove from workspace', leave: 'Leave workspace',
     tabs: { members: 'Members', invites: 'Invitations', roles: 'Roles' },
     cols: { person: 'Member / email', role: 'Role', scope: 'Access', status: 'Status', active: 'Last active', actions: 'Actions', invitedBy: 'Invited by', expires: 'Expires' },
     seatsOf: (used: number, limit: number | null) => (limit === null ? `${used} seats in use, no limit` : `${used} of ${limit} seats in use`),
@@ -974,10 +976,12 @@ export const zh: Dict = {
     search: '搜索环境、代理或成员…', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
     planEnds: (plan: string, date: string) => `${plan}将于 ${date} 到期，续费后可继续使用当前额度。`, trialEnds: (date: string) => `免费试用将于 ${date} 结束。`,
     renew: '续费', choosePlan: '选择套餐', invited: (who: string, ws: string) => `${who} 邀请您加入工作空间「${ws}」。`,
-    jobFailed: (kind: string, n: number, total: number) => `${kind}：${total} 项中有 ${n} 项失败。`
+    jobFailed: (kind: string, n: number, total: number) => `${kind}：${total} 项中有 ${n} 项失败。`,
+    trashKept: (n: number, manager: boolean) => `删除的环境在回收站保留 ${n} 天，到期后永久删除${manager ? '，保留天数可在设置中修改。' : '；如需恢复，请联系所有者或管理员。'}`,
+    openTrash: '查看回收站'
   },
   groups: {
-    title: '分组管理', all: '全部分组', none: '未分组', add: '新建分组', namePh: '请输入分组名称', tip: '角色决定操作能力，分组授权决定可访问的环境范围。',
+    title: '分组管理', all: '全部分组', none: '未分组', add: '新建分组', namePh: '请输入分组名称',
     color: '分组颜色', colors: { red: '红色', blue: '蓝色', green: '绿色', amber: '琥珀色', purple: '紫色', teal: '青色', gray: '灰色' },
     tree: '分组目录', everything: '全部环境',
     sum: (n: number, m: number | null) => `包含 ${n} 个环境${m === null ? '' : ` · ${m} 位成员`}`,
@@ -1083,7 +1087,7 @@ export const zh: Dict = {
   common: {
     cancel: '取消', save: '保存', close: '关闭', undo: '撤销', check: '检测', checking: '检测中…', edit: '编辑', copy: '复制', copied: '已复制',
     picked: { profiles: (n: number) => `已选择 ${n} 个环境`, proxies: (n: number) => `已选择 ${n} 个代理`, extensions: (n: number) => `已选择 ${n} 个扩展`, cookies: (n: number) => `已选择 ${n} 个 Cookie` }, clearSelection: '取消选择', selectAll: '选择当前页', select: (x: string) => `选择 ${x}`,
-    never: '从未', justNow: '刚刚', minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
+    never: '从未', justNow: '刚刚', runDays: (days: number, h: number) => `${days} 天 ${h} 小时`, minAgo: (n: number) => `${n} 分钟前`, hAgo: (n: number) => `${n} 小时前`, yesterday: '昨天', daysAgo: (n: number) => `${n} 天前`,
     loadFailed: '列表加载失败', loadRetry: '重新加载', resize: '调整面板宽度',
     discardTitle: '放弃未保存的修改？', discardNote: '关闭后，本次的修改将不会保存。', keepEditing: '继续编辑', discard: '放弃修改',
     listLoading: '加载中…', listFailed: '列表加载失败。', retry: '重试', noOptions: '暂无可选项', noMatch: '无匹配结果',
@@ -1102,12 +1106,11 @@ export const zh: Dict = {
     tabs: { all: '全部', running: '运行中', stopped: '已停止', trash: '回收站' },
     filter: { label: '状态', all: '全部', states: '全部状态', running: '运行中', stopped: '已停止', issues: '需处理', starred: '已收藏', engine: '内核', engines: '全部内核' },
     reset: '重置', resetN: (n: number) => `重置（${n}）`,
-    tip: '点击环境名称查看详情；批量修改、移动分组与删除需先选择目标环境。',
     filterLabels: { keyword: '关键词', group: '分组', engine: '内核', status: '状态' },
     page: { total: (n: number) => `共 ${n} 条记录`, size: (n: number) => `每页 ${n} 条`, prev: '上一页', next: '下一页', go: (p: number) => `第 ${p} 页` },
     star: '收藏', unstar: '取消收藏', move: '移动分组', moveTitle: (n: string) => `将「${n}」移到分组`,
     sort: '排序', sorts: { recent: '最近打开', name: '名称 A–Z', latency: '代理延迟' },
-    cols: { profile: '名称 / 编号', group: '分组', engine: '内核 / 系统', proxy: '代理 / 地区', extensions: '扩展', last: '最近使用', status: '状态', actions: '操作' },
+    cols: { profile: '名称 / 编号', group: '分组', tags: '标签', engine: '内核 / 系统', proxy: '代理 / 地区', extensions: '扩展', last: '最近使用', status: '状态', actions: '操作' },
     extensionsN: (n: number) => `${n} 个扩展`,
     open: '启动', stop: '停止', enter: '进入', actionsX: (n: string) => `${n} 的操作`, starting: '启动中…', inUse: '正在使用',
     st: { idle: '已停止', running: '运行中', noWindow: '运行中 · 窗口已关闭', proxyDown: '代理异常' }, checkProxy: '检测代理',
@@ -1124,19 +1127,16 @@ export const zh: Dict = {
     emptyMatch: '无符合条件的环境', emptyFor: (q: string) => `未找到「${q}」。`,
     emptyHint: (n: number) => `请更换关键词，或清除筛选查看全部 ${n} 个环境。`,
     bulk: {
-      title: '批量操作', open: '批量启动', stop: '停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, hidden: (n: number) => `${n} 个被筛选隐藏`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组', proxy: '设置代理…', assign: '分配给…', edit: '批量编辑', more: '更多',
-      tag: '标签', tagPh: '标签名', addTag: '添加标签', removeTag: '移除标签', trash: '删除', cookies: '导出 Cookie…',
-      extensions: '扩展…', install: '安装', uninstall: '卸载', sync: '同步窗口', syncTwo: '请至少选择两个环境',
+      title: '批量操作', open: '批量启动', stop: '停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, hidden: (n: number) => `${n} 个被筛选隐藏`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组', edit: '批量编辑…', more: '更多',
+      trash: '移至回收站', cookies: '导出 Cookie…', sync: '同步窗口',
       confirm: (n: number) => `将 ${n} 个环境移至回收站？`, confirmNote: '运行中的环境将先停止，此操作可撤销。', doTrash: '移至回收站'
     },
     done: {
       trashed: (n: number): News => ({ title: '已移至回收站', detail: `${n} 个环境` }), moved: (n: number, g: string): News => ({ title: `已移至「${g}」`, detail: `${n} 个环境` }),
-      tagged: (n: number, t: string): News => ({ title: `已添加标签「${t}」`, detail: `${n} 个环境` }), untagged: (n: number, t: string): News => ({ title: `已移除标签「${t}」`, detail: `${n} 个环境` }),
-      proxySet: (n: number): News => ({ title: '代理已更换', detail: `${n} 个环境` }), assigned: (n: number, who: string): News => ({ title: `已分配给 ${who}`, detail: `${n} 个环境` }),
+      starred: (n: number): News => ({ title: '已收藏', detail: `${n} 个环境` }), unstarred: (n: number): News => ({ title: '已取消收藏', detail: `${n} 个环境` }),
       created: '环境已创建', saved: '修改已保存',
       stale: '该环境刚被他人修改，请重试。',
       extAdded: (n: number, x: string, skipped: number): News => ({ title: '扩展已安装', detail: `${x} · ${n} 个环境${skipped ? `，跳过 ${skipped} 个（内核不符或已安装）` : ''}` }),
-      extRemoved: (n: number, x: string): News => ({ title: '扩展已卸载', detail: `${x} · ${n} 个环境` }),
       syncing: (leader: string, n: number): News => ({ title: '窗口同步已开始', detail: `${leader} 主控 · ${n} 个窗口跟随` }), syncFailed: '窗口同步需要至少两个已打开的环境。'
     }
   },
@@ -1146,6 +1146,10 @@ export const zh: Dict = {
     proxy: '代理配置', proxyHint: '将选中环境应用此代理配置。',
     engine: '浏览器内核', engineHint: '将选中环境（同类内核）改为此版本。',
     start: '启动页', startHint: '选中环境启动时打开的页面。', startPh: 'https://',
+    tags: '标签', tagsHint: '多个标签用逗号分隔。', add: '添加', remove: '移除', addTags: '添加标签', removeTags: '移除标签',
+    owner: '负责人', ownerHint: '将选中环境分配给此成员。',
+    ext: '扩展', extHint: '只作用于同类内核的环境。', pickExt: '请选择扩展', install: '安装', uninstall: '卸载',
+    searchHint: '地址栏与新标签页使用的搜索引擎。', tabsHint: '启动时是否打开上次关闭时的标签页。',
     keep: '保持不变', changes: '本次将修改', none: '尚未选择要修改的项目。',
     picked: (n: number) => `已选择的环境（${n}）`, running: (n: number) => `其中 ${n} 个环境正在运行，暂不可修改。`,
     stoppedOnly: '仅更新已停止的环境', stoppedOnlyHint: '运行中的环境在关闭前保持原设置。',
@@ -1280,8 +1284,11 @@ export const zh: Dict = {
     sync: '登录状态', syncCloud: '保存至 Folio，随环境同步', syncLocal: '仅保存在使用该环境的电脑上',
     syncHelp: '仅存本机时，登录状态不会离开该电脑；在其他电脑上打开时为未登录状态。',
     stale: '编辑期间该环境已被他人修改。再次保存将覆盖对方的修改，取消则保留对方的修改。',
-    nextOpen: '修改将在下次启动时生效', runningNote: '内核、代理与指纹须停止环境后修改',
-    lockedNote: '环境运行中，停止后才能修改此项。', stopNow: '停止环境',
+    nextOpen: '修改将在下次启动时生效', runningNote: '内核、系统、代理与指纹须停止环境后修改',
+    runningTitle: '环境正在运行', runningBody: '停止环境后才能修改内核、系统、代理和指纹。', stopNow: '停止环境',
+    osTitle: '更换操作系统？', osChange: '更换',
+    osBody: (os: string) => `更换为 ${os} 后将按新系统重新生成指纹（屏幕、显卡、字体等），网站可能将其识别为新设备。`,
+    kindFixed: (other: string) => `已创建的环境不能改用 ${other}，两种内核的数据不通用。`,
     unsaved: '有未保存的修改', changedN: (n: number) => `已修改 ${n} 项`, createHint: '创建后可继续调整环境配置。'
   },
   fpTab: {
@@ -1296,9 +1303,7 @@ export const zh: Dict = {
     search: '搜索引擎', name: zhSearch,
     restore: '恢复上次的标签页',
     start: '打开时', startTabs: '恢复上次的标签页', startHome: (name: string) => `打开${name}首页`, startBlank: '打开空白页',
-    bulk: '浏览器设置…', on: '开启', off: '关闭',
-    searchSet: (n: number, name: string): News => ({ title: `搜索引擎已设为${name}`, detail: `${n} 个环境` }),
-    tabsSet: (n: number, on: boolean): News => ({ title: `已${on ? '开启' : '关闭'}恢复标签页`, detail: `${n} 个环境` })
+    on: '开启', off: '关闭'
   },
   importer: {
     title: '导入环境', lead: '每行一个环境，首行为表头。Excel 表格请先另存为 CSV；每次最多 500 行。',
@@ -1391,7 +1396,6 @@ export const zh: Dict = {
     title: '回收站', empty: '回收站为空', emptyText: (n: number) => `删除的环境会在此保留 ${n} 天，期间可以恢复。`,
     restore: '恢复', restoreAll: '全部恢复', purge: '彻底删除', purgeAll: '清空回收站',
     cols: { profile: '环境名称', number: '环境 ID', group: '原分组', fingerprint: '指纹', signins: '登录状态', deleted: '删除时间', by: '删除人', left: '剩余保留天数' },
-    keeps: (n: number) => `记录保留 ${n} 天，到期后永久删除，可在设置中修改。恢复时默认回到原分组，勾选环境后可在右侧面板指定其他分组。`,
     filterLabels: { keyword: '关键词', by: '删除人', when: '删除时间' },
     search: '搜索环境名称或 ID', when: '删除时间', anyone: '全部删除人', days: (n: number) => `${n} 天`,
     picked: (n: number) => `已选择 ${n} 条记录`, restoreTo: '恢复目标分组', restoreToHint: '未选择时，各环境恢复到原分组。', sameGroup: '原分组',
@@ -1406,7 +1410,7 @@ export const zh: Dict = {
     check: '检查更新', upToDate: '所有内核均为最新版本', upToDateText: '已安装的内核均为最新版本，无需更新。', updates: (n: number) => `发现 ${n} 个可更新版本`,
     defaultKernel: '默认内核', defaultOf: (engine: string) => `${engine} · 推荐版本`, defaultSet: (v: string): News => ({ title: '默认内核已设置', detail: `新建环境将默认使用 ${v}` }),
     tabs: { all: '全部内核', installed: '已安装', updates: '可更新' },
-    search: '搜索内核版本', searchPh: '搜索内核版本…', system: '平台', systems: '全部平台', filterLabels: { keyword: '关键词', system: '平台' }, tip: '切换已有环境的内核前需先停止环境。',
+    search: '搜索内核版本', searchPh: '搜索内核版本…', system: '平台', systems: '全部平台', filterLabels: { keyword: '关键词', system: '平台' },
     families: { win: 'Windows', mac: 'macOS', linux: 'Linux' },
     cols: { version: '内核版本', number: '版本号', platforms: '支持平台', size: '大小', released: '发布日期', profiles: '使用环境', status: '状态', actions: '操作' },
     recommended: '推荐', default: '默认', installed: '已安装', notDownloaded: '未安装', download: '下载', failed: '下载失败',
@@ -1444,7 +1448,7 @@ export const zh: Dict = {
   },
   team: {
     title: '团队成员',
-    invite: '邀请成员', you: '我', remove: '移出团队', leave: '退出团队',
+    invite: '邀请成员', me: (name: string) => `${name}（我）`, remove: '移出团队', leave: '退出团队',
     tabs: { members: '成员', invites: '待接受邀请', roles: '角色权限' },
     cols: { person: '成员 / 邮箱', role: '角色', scope: '授权范围', status: '状态', active: '最后活跃时间', actions: '操作', invitedBy: '邀请人', expires: '有效期至' },
     seatsOf: (used: number, limit: number | null) => (limit === null ? `已用 ${used} 个席位，不限席位` : `席位 ${used} / ${limit}`),
@@ -1889,8 +1893,10 @@ export function ago(iso: string | null, d: Dict, now = Date.now()){
 }
 
 const two = (n: number) => String(n).padStart(2, '0');
-export function runTime(ms: number){
+// How long a profile has been running: 1:42:10, and past a day, its days and hours.
+export function runTime(d: Dict, ms: number){
   const s = Math.max(0, Math.floor(ms / 1000));
+  if (s >= 86400) return d.common.runDays(Math.floor(s / 86400), Math.floor((s % 86400) / 3600));
   return `${Math.floor(s / 3600)}:${two(Math.floor((s % 3600) / 60))}:${two(s % 60)}`;
 }
 export const errorText = (d: Dict, code: string) => d.errors[code] ?? d.errors.internal;

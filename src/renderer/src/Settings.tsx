@@ -8,7 +8,7 @@ import { folio, type Me, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { type Dict } from './i18n';
 import { Avatar, CopyBtn, Icon, Switch, useFail, useLeave, useToast } from './ui';
-import { SelectField, type Opt } from './Select';
+import { SelectField, groupOpts, type Opt } from './Select';
 
 type Settings = Workspace['settings'];
 type Notify = Me['user']['notify'];
@@ -116,7 +116,7 @@ export function SettingsPage({ d, ws, me, data, manager, onSaved, onExport, onIm
                 onChange={v => { const [kind, version] = v.split(':'); setSet(s => ({ ...s, defaultKernel: (kind || null) as Settings['defaultKernel'], defaultKernelVersion: version || null })); }} />
               <SelectField label={S.group} hint={S.groupHint} value={set.defaultGroupId ?? ''} disabled={ro} search onChange={v => change('defaultGroupId', v || null)}
                 loading={!data.loaded.has('groups')} failed={data.loadFailed.has('groups')} onRetry={() => data.refresh('groups')}
-                options={[{ value: '', label: S.groupNone }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />
+                options={[{ value: '', label: S.groupNone }, ...groupOpts(data.groups)]} />
               <SelectField label={S.proxy} hint={S.proxyHint} value={set.defaultProxyId ?? ''} disabled={ro} search onChange={v => change('defaultProxyId', v || null)}
                 loading={!data.loaded.has('proxies')} failed={data.loadFailed.has('proxies')} onRetry={() => data.refresh('proxies')}
                 options={[{ value: '', label: S.proxyNone }, ...data.proxies.map(p => ({ value: p.id, label: p.name, hint: p.lastCheck?.geo?.city ?? undefined }))]} />

@@ -30,8 +30,8 @@ test('profiles sharing a proxy are flagged and can be shown together; favourites
   await win.keyboard.press('Escape');
 
   // A favourite goes to the top, and has a filter of its own.
-  await row('Charlie').hover();
-  await row('Charlie').getByRole('button', { name: 'Add to favorites' }).click();
+  await row('Charlie').getByRole('button', { name: 'Actions for Charlie' }).click();
+  await win.getByRole('menuitem', { name: 'Add to favorites' }).click();
   await expect(win.locator('tr[data-id]').first()).toContainText('Charlie');
   await win.getByRole('combobox', { name: 'Status', exact: true }).click();
   await win.getByRole('listbox').getByRole('option', { name: /^Favorites/ }).click();

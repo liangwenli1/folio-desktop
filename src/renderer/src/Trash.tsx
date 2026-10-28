@@ -10,7 +10,7 @@ import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
 import { Act, BulkBar, Cancel, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useFail, useToast, useView } from './ui';
 import { Flag, OsLogo } from './Flag';
-import { Select, SelectField } from './Select';
+import { Select, SelectField, groupOpts } from './Select';
 
 const DAY = 86_400_000;
 const number = (p: Profile) => `#${String(p.number).padStart(4, '0')}`;
@@ -152,13 +152,12 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
                   <dt>{T.cols.signins}</dt><dd>{signins(d, picked[0])}</dd></>}
               </dl>
               <SelectField label={T.restoreTo} value={target} onChange={setTarget} hint={T.restoreToHint} searchPh={d.form.searchPh}
-                options={[{ value: '', label: T.sameGroup }, { value: 'none', label: d.groups.none }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />
+                options={[{ value: '', label: T.sameGroup }, { value: 'none', label: d.groups.none }, ...groupOpts(data.groups)]} />
               <Act className="btn btn-primary" run={() => restore(picked)}>{T.restoreN(picked.length)}</Act>
               <button type="button" className="btn btn-danger outline" onClick={() => setConfirm(picked)}>{T.purgeN(picked.length)}</button>
             </aside>
           )}
         </div>
-        <p className="notice page-tip"><Icon name="info" /><span>{T.keeps(keep)}</span></p>
         {confirm && <PurgeDialog d={d} targets={confirm} onClose={() => setConfirm(null)} onPurge={() => purge(confirm)} />}
       </main>
     </div>

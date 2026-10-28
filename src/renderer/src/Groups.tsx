@@ -8,7 +8,7 @@ import { kernelKey, type WorkspaceData } from './data';
 import { health } from './checks';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
 import { Act, Avatar, BulkBar, Cancel, Empty, GROUP_COLORS, Icon, ListFailed, Modal, MoreMenu, PanelEdge, PartialFailed, SkelRows, Switch, useChanged, useFail, useToast, type GroupColor } from './ui';
-import { Select, SelectField } from './Select';
+import { Select, SelectField, groupOpts } from './Select';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { stateOf } from './Profiles';
@@ -150,7 +150,7 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
             {ids.length > 0 && editor && (
               <BulkBar n={ids.length} label={d.common.picked.profiles(ids.length)} clearLabel={d.common.clearSelection} onClear={() => setSel(new Set())}>
                 <Select variant="bar" action icon="folder" label={G.move} placeholder={G.move} value="" searchPh={d.form.searchPh} onChange={v => void move(ids, v)}
-                  options={data.groups.filter(g => g.id !== group?.id).map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))} />
+                  options={groupOpts(data.groups).filter(o => o.value !== group?.id)} />
                 {pick !== 'none' && <button type="button" className="bb" onClick={() => void move(ids, null)}>{G.moveOut}</button>}
               </BulkBar>
             )}
@@ -198,7 +198,6 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
               </table>
             </div>
             {list.length > 0 && <Pager d={d} total={list.length} page={at} size={size} onPage={setPage} onSize={n => { setSize(n); setPage(1); }} />}
-            <p className="notice info"><Icon name="info" /><span>{G.tip}</span></p>
           </section>
 
           {group && manager && panel && <GroupSettings key={group.id} d={d} ws={ws} data={data} meId={meId} group={group} kids={kids} company={company}
@@ -299,7 +298,7 @@ function GroupSettings({ d, ws, data, meId, group, kids, company, onClose, onDel
       <label className="field"><span>{G.name}<span className="req" aria-hidden="true">*</span></span>
         <input value={name} maxLength={80} onChange={e => setName(e.target.value)} aria-required="true" /></label>
       <SelectField label={G.parent} value={parentId} onChange={setParentId} searchPh={d.form.searchPh}
-        options={[{ value: '', label: G.parentNone }, ...data.groups.filter(g => !below.has(g.id)).map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />
+        options={[{ value: '', label: G.parentNone }, ...groupOpts(data.groups.filter(g => !below.has(g.id)))]} />
       <Swatches d={d} value={color} onChange={setColor} />
       <label className="field"><span>{G.description}<small className="opt">{d.form.optional}</small></span>
         <textarea rows={2} value={description} maxLength={200} onChange={e => setDescription(e.target.value)} /></label>
@@ -376,7 +375,7 @@ function NewGroupDialog({ d, ws, data, meId, company, parentId: under, onClose, 
           {tried && !name.trim() && <p className="err">{G.nameErr}</p>}
         </label>
         <SelectField label={G.parent} value={parentId} onChange={setParentId} searchPh={d.form.searchPh}
-          options={[{ value: '', label: G.parentNone }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />
+          options={[{ value: '', label: G.parentNone }, ...groupOpts(data.groups)]} />
         <Swatches d={d} value={color} onChange={setColor} />
         <label className="field"><span>{G.description}<small className="opt">{d.form.optional}</small></span>
           <span className="counted"><textarea rows={3} value={description} maxLength={200} onChange={e => setDescription(e.target.value)} /><small className="count">{description.length}/200</small></span>
@@ -422,7 +421,7 @@ function DeleteGroupDialog({ d, data, group, onClose, onDone }: { d: Dict; data:
         {error && <p className="notice error" role="alert">{error}</p>}
         {n > 0 && <p className="notice warn"><Icon name="alert" /><span>{G.deleteHas(group.name, n)}</span></p>}
         {n > 0 && <SelectField label={G.moveTo} required value={moveTo} onChange={setMoveTo} searchPh={d.form.searchPh}
-          options={[{ value: '', label: G.none }, ...data.groups.filter(g => g.id !== group.id).map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const }))]} />}
+          options={[{ value: '', label: G.none }, ...groupOpts(data.groups).filter(o => o.value !== group.id)]} />}
         <p>{n ? G.deleteNote : G.deleteEmpty}{kids > 0 && ` ${G.deleteKids(kids)}`}</p>
       </div>
     </Modal>

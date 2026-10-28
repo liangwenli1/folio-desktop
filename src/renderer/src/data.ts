@@ -3,6 +3,7 @@
 // downloads come from the main process.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ActiveRun, KernelKind, KernelProgress, KernelState, ProfileStatus, WindowSync } from '@shared/bridge';
+import type { SearchEngine } from '@shared/search';
 import { GROUP_COLORS } from './ui';
 import { MANAGE, can, folio, isApiError, type Extension, type Flow, type Group, type Invitation, type Job, type JobDetail, type Member, type MyRole, type Profile, type Proxy, type Role, type Task } from './api';
 import { ENGINES } from './checks';
@@ -15,7 +16,12 @@ export type ProfilePatch = Partial<Pick<Profile, 'name' | 'groupId' | 'tags' | '
 export const kernelKey = (kind: KernelKind, version: string) => `${kind}-${version}`;
 // What a bulk edit sets (fields left out stay as they are), and whether it leaves running profiles alone. A job keeps
 // it, so a retry applies the same.
-export interface BulkChange { groupId?: string | null; proxyId?: string | null; kernel?: { kind: KernelKind; version: string }; startUrl?: string | null; stoppedOnly: boolean }
+// What bulk edit changes: each field only when given; tags and an extension are put on or taken off.
+export interface BulkChange {
+  groupId?: string | null; kernel?: { kind: KernelKind; version: string }; tags?: { how: 'add' | 'remove'; names: string[] }; ownerId?: string | null;
+  proxyId?: string | null; extension?: { how: 'add' | 'remove'; id: string }; startUrl?: string | null; searchEngine?: SearchEngine; restoreTabs?: boolean;
+  stoppedOnly: boolean;
+}
 
 export interface WorkspaceData {
   role: MyRole;
@@ -304,10 +310,14 @@ export function useWorkspaceData(wsId: string, role: MyRole, on: { workspace(): 
     let error: string | null = null;
     try {
       if (ids.length && change.groupId !== undefined) await batch('move', ids, { groupId: change.groupId });
+      if (ids.length && change.ownerId !== undefined) await batch('assign', ids, { ownerId: change.ownerId });
+      for (const tag of ids.length ? change.tags?.names ?? [] : []) await batch(change.tags!.how === 'add' ? 'tag' : 'untag', ids, { tag });
       if (ids.length && change.proxyId !== undefined) await batch('set-proxy', ids, { proxyId: change.proxyId });
       const sameKind = change.kernel ? go.filter(p => p.kernel === change.kernel!.kind).map(p => p.id) : [];
       if (change.kernel && sameKind.length) await batch('set-kernel', sameKind, { kernel: change.kernel.kind, kernelVersion: change.kernel.version });
-      if (ids.length && change.startUrl !== undefined) await batch('set-browser', ids, { startUrl: change.startUrl });
+      if (ids.length && change.extension) await batch(change.extension.how === 'add' ? 'add-extension' : 'remove-extension', ids, { extensionId: change.extension.id });
+      const browser = { startUrl: change.startUrl, searchEngine: change.searchEngine, restoreTabs: change.restoreTabs };
+      if (ids.length && Object.values(browser).some(v => v !== undefined)) await batch('set-browser', ids, browser);
     } catch (e){ error = isApiError(e) ? e.code : 'internal'; }
     for (const p of busy) await job?.report(p.id, 'running');
     for (const id of ids) await job?.report(id, error);

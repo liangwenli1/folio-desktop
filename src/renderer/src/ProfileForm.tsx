@@ -1,8 +1,8 @@
 // New profile and edit profile: five sections (basics, proxy, fingerprint, extensions, how it opens) beside a rail that
 // moves between them. A new profile starts from the workspace's defaults and gets its fingerprint from the main process for
 // the chosen engine and system; an edit keeps it unless a new one is drawn. While the profile runs here, what it was
-// started with (engine, proxy, fingerprint) waits until it is stopped, and closing with changes asks first.
-import { Fragment, useRef, useState, type FormEvent, type ReactNode } from 'react';
+// started with (engine, system, proxy, fingerprint) waits until it is stopped, and closing with changes asks first.
+import { Fragment, useRef, useState, type FormEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import type { CheckResult, KernelKind, Os } from '@shared/bridge';
 import { SEARCH_IDS, type SearchEngine } from '@shared/search';
 import { MANAGE, can, folio, isApiError, type Extension, type Profile, type ProxyImport, type Workspace } from './api';
@@ -13,11 +13,11 @@ import { errorText, type Dict, type Lang } from './i18n';
 import { Cancel, ExtIcon, Icon, Modal, Switch, bytes, percent } from './ui';
 import { ExtSource, addToLibrary, extReady, type ExtFrom } from './Extensions';
 import { OsLogo, SEARCH_LOGOS } from './Flag';
-import { Select, SelectField, type Opt } from './Select';
+import { Select, SelectField, groupOpts, ownerOpts, type Opt } from './Select';
 import { elsewhere } from './ProfileDetail';
 import { CanvasField, CoresField, GpuField, LangField, ScreenField, WebrtcField, ZoneField, useFingerprint } from './Fingerprint';
 
-interface Props { d: Dict; lang: Lang; ws: Workspace; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
+interface Props { d: Dict; lang: Lang; ws: Workspace; meId: string; data: WorkspaceData; profile?: Profile; defaultGroup: string | null; onClose(): void; onDone(p: Profile): void }
 
 const NEW_GROUP = '__new';
 const URL_OK = /^https?:\/\/\S+$/;
@@ -36,7 +36,7 @@ const NO_SOURCE: ExtFrom = { how: 'link', link: '', file: null };
 // A time zone breaks only after its slashes (America/ Los_Angeles), never inside a word.
 const zoneBreaks = (tz: string) => tz.split('/').map((part, i) => <Fragment key={i}>{i > 0 && <>/<wbr /></>}{part}</Fragment>);
 
-export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose, onDone }: Props){
+export function ProfileForm({ d, lang, ws, meId, data, profile, defaultGroup, onClose, onDone }: Props){
   // The version this edit is based on. Live updates do not move it, so a save over someone else's change is
   // refused once; after that it builds on their version and replaces it.
   const [base, setBase] = useState(profile);
@@ -52,7 +52,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   const [proxyId, setProxyId] = useState(profile?.proxyId ?? savedProxy);
   const [pxMode, setPxMode] = useState<PxMode>((profile ? profile.proxyId : data.proxies.length) ? 'saved' : 'none');
   // Whoever administers the workspace chooses who it is assigned to; a new profile goes to whoever makes it.
-  const [ownerId, setOwnerId] = useState(profile ? profile.ownerId ?? '' : '');
+  const [ownerId, setOwnerId] = useState(profile ? profile.ownerId ?? '' : meId);
   const [paste, setPaste] = useState('');
   const [pxNote, setPxNote] = useState<PxNote | null>(null);
   const [tags, setTags] = useState(profile?.tags.join(', ') ?? '');
@@ -73,6 +73,9 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   const [width, setWidth] = useState(String(profile?.windowWidth ?? 1280));
   const [height, setHeight] = useState(String(profile?.windowHeight ?? 800));
   const [fpOpen, setFpOpen] = useState(false);
+  // Asked: why what it runs with can't change now; whether to move a saved profile to another system.
+  const [runAsk, setRunAsk] = useState(false);
+  const [osAsk, setOsAsk] = useState<Os | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -204,10 +207,10 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
         timezoneOverride: fpd.timezoneOverride, localeOverride: fpd.localeOverride,
         extensionIds: extensionIds.filter(id => usable.some(x => x.id === id)), searchEngine, restoreTabs,
         startUrl: startUrl.trim() || null, windowMode, windowWidth: custom ? Number(width) : null, windowHeight: custom ? Number(height) : null,
-        ...(manager && (ownerId || profile) ? { ownerId: ownerId || null } : {})
+        ...(manager ? { ownerId: ownerId || null } : {})
       };
       if (profile && base){
-        const ok = await data.patch(base, { ...common, kernelVersion: version, syncMode, ...(fpd.changed ? { fingerprint } : {}) });
+        const ok = await data.patch(base, { ...common, kernelVersion: version, syncMode, ...(os !== profile.os ? { os } : {}), ...(fpd.changed ? { fingerprint } : {}) });
         if (!ok){ setBase(profile); setError(f.stale); return; }
         onDone(profile);
       } else {
@@ -229,7 +232,14 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
   );
   const req = <span className="req" aria-hidden="true">*</span>;
   const opt = <small className="opt">{f.optional}</small>;
-  const lockNote = locked && <p className="lock-note"><Icon name="stop" />{f.lockedNote}</p>;
+  // While it runs here, what it was started with stays (option B, the user, 10-28): the controls look as always, and
+  // trying one says why, with Stop, in place of greyed fields and notes. Tab and Escape still move on.
+  const held = locked ? {
+    onMouseDownCapture: (e: MouseEvent) => e.preventDefault(),
+    onClickCapture: (e: MouseEvent) => { e.preventDefault(); e.stopPropagation(); setRunAsk(true); },
+    onKeyDownCapture: (e: KeyboardEvent) => { if (!['Tab', 'Escape', 'Shift'].includes(e.key)){ e.preventDefault(); e.stopPropagation(); setRunAsk(true); } }
+  } : {};
+  const pickOs = (o: Os) => { if (o === os) return; if (edit){ setOsAsk(o); return; } fpd.refit(kernel, o); setOs(o); };
   const F = d.fp, facts = fpd.facts;
   const followed = (own: string | null, seen: string | undefined) => own ?? seen ?? (pxMode === 'none' ? d.detail.hostTz : f.follow);
 
@@ -238,7 +248,7 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
       {/* Where it stands, at the foot's left (the user, 10-28): stopped, or running with what must wait for it to stop. */}
       {profile ? (
         <span className={`pf-state${locked ? ' run' : ''}`} role="status">
-          {status ? <span className="dot-st run">{d.profiles.st.running}</span> : away ? <span className="dot-st away">{d.profiles.inUseOn(away.deviceName ?? away.email)}</span> : <span className="dot-st idle">{d.profiles.tabs.stopped}</span>}
+          {status ? <span className="dot-st run">{d.profiles.st.running}</span> : away ? <span className="dot-st away">{d.profiles.inUseOn(away.deviceName ?? away.email)}</span> : <span className="dot-st stop">{d.profiles.tabs.stopped}</span>}
           <span>{locked ? f.runningNote : f.nextOpen}</span>
           {status?.state === 'running' && <button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(profile.id)}><Icon name="stop" />{f.stopNow}</button>}
         </span>
@@ -269,26 +279,25 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
               <div className="field">
                 <span className="label" id="pf-group">{f.group}</span>
                 <Select labelledBy="pf-group" value={groupId} onChange={setGroupId} search searchPh={f.searchPh} loading={!data.loaded.has('groups')} failed={data.loadFailed.has('groups')} onRetry={() => data.refresh('groups')}
-                  options={[{ value: '', label: f.noGroup }, ...data.groups.map(g => ({ value: g.id, label: g.name, dot: `gc-${g.color}` as const })), { value: NEW_GROUP, label: f.newGroup }]} />
+                  options={[{ value: '', label: f.noGroup }, ...groupOpts(data.groups), { value: NEW_GROUP, label: f.newGroup }]} />
                 {groupId === NEW_GROUP && <input aria-label={f.newGroupPh} placeholder={f.newGroupPh} value={newGroup} onChange={e => setNewGroup(e.target.value)} maxLength={80} />}
               </div>
             </div>
-            <div className="row2">
+            <div className="row2" {...held}>
               <div className="field">
                 <span className="label" id="pf-engine">{f.engine}{req}</span>
-                <Select labelledBy="pf-engine" value={engine} placeholder="—" required disabled={locked} options={engineOpts}
+                <Select labelledBy="pf-engine" value={engine} placeholder="—" required options={engineOpts} note={profile ? f.kindFixed(ENGINES[profile.kernel === 'chromium' ? 'firefox' : 'chromium']) : undefined}
                   onChange={v => { const k = v.split(':')[0] as KernelKind; if (k !== kernel) fpd.refit(k, os); setEnginePick(v); }} />
               </div>
               <div className="field">
                 <span className="label" id="pf-os">{f.os}{req}</span>
                 <div className="seg fill" role="group" aria-labelledby="pf-os">
                   {(['windows', 'macos', 'linux'] as const).map(o => (
-                    <button key={o} type="button" aria-pressed={os === o} disabled={edit && os !== o} onClick={() => { fpd.refit(kernel, o); setOs(o); }}><OsLogo os={o} />{d.os[o]}</button>
+                    <button key={o} type="button" aria-pressed={os === o} onClick={() => pickOs(o)}><OsLogo os={o} />{d.os[o]}</button>
                   ))}
                 </div>
               </div>
             </div>
-            {lockNote}
             <div className="row2">
               <div className="field">
                 <label htmlFor="pf-tags">{f.tags}{opt}</label>
@@ -296,18 +305,17 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
               </div>
               {manager && (
                 <SelectField label={f.owner} value={ownerId} onChange={setOwnerId} search searchPh={f.searchPh} loading={!data.loaded.has('members')} failed={data.loadFailed.has('members')} onRetry={() => data.refresh('members')}
-                  options={[{ value: '', label: edit ? d.profiles.unassigned : d.team.you }, ...data.members.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))]} />
+                  options={ownerOpts(d, data.members, meId)} />
               )}
             </div>
           </>)}
 
-          {sec('proxy', <>
-            {lockNote}
+          {sec('proxy', <div className="held" {...held}>
             <div className="field">
               <span className="label" id="pf-pxmode">{f.proxyKind}</span>
               <div className="radios" role="radiogroup" aria-labelledby="pf-pxmode">
                 {(['saved', 'custom', 'none'] as const).filter(m => m !== 'custom' || manager).map(m => (
-                  <label key={m} className="check-row"><input type="radio" name="pf-px" checked={pxMode === m} disabled={locked} onChange={() => pickMode(m)} />{f.proxyMode[m]}</label>
+                  <label key={m} className="check-row"><input type="radio" name="pf-px" checked={pxMode === m} onChange={() => pickMode(m)} />{f.proxyMode[m]}</label>
                 ))}
               </div>
             </div>
@@ -316,10 +324,10 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 <span className="label" id="pf-px-l">{pxMode === 'saved' ? f.pickProxy : f.proxyMode.custom}{req}</span>
                 <div className="pxcheck">
                   {pxMode === 'saved'
-                    ? <Select id="pf-px" labelledBy="pf-px-l" placeholder={f.pickProxy} value={proxyId} onChange={pickProxy} options={proxyOptions} search searchPh={f.searchPh} loading={!data.loaded.has('proxies')} failed={data.loadFailed.has('proxies')} onRetry={() => data.refresh('proxies')} required disabled={locked} />
-                    : <input id="pf-px" className="mono-in" aria-labelledby="pf-px-l" placeholder={f.pastePh} value={paste} onChange={e => { setPaste(e.target.value); setPxNote(null); }} spellCheck={false} autoComplete="off" required disabled={locked} />}
-                  <button className="btn btn-secondary" type="button" onClick={check} disabled={locked || pxNote?.state === 'checking' || (pxMode === 'saved' ? !proxyId : !paste.trim())}
-                    title={!locked && (pxMode === 'saved' ? !proxyId : !paste.trim()) ? f.pickProxyFirst : undefined}>{d.proxies.test}</button>
+                    ? <Select id="pf-px" labelledBy="pf-px-l" placeholder={f.pickProxy} value={proxyId} onChange={pickProxy} options={proxyOptions} search searchPh={f.searchPh} loading={!data.loaded.has('proxies')} failed={data.loadFailed.has('proxies')} onRetry={() => data.refresh('proxies')} required />
+                    : <input id="pf-px" className="mono-in" aria-labelledby="pf-px-l" placeholder={f.pastePh} value={paste} onChange={e => { setPaste(e.target.value); setPxNote(null); }} spellCheck={false} autoComplete="off" required />}
+                  <button className="btn btn-secondary" type="button" onClick={check} disabled={pxNote?.state === 'checking' || (pxMode === 'saved' ? !proxyId : !paste.trim())}
+                    title={(pxMode === 'saved' ? !proxyId : !paste.trim()) ? f.pickProxyFirst : undefined}>{d.proxies.test}</button>
                 </div>
                 {err('pf-px') && !pxNote && <p className="err">{err('pf-px')}</p>}
                 {shownNote && (
@@ -330,10 +338,9 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 )}
               </div>
             )}
-          </>)}
+          </div>)}
 
           {sec('fp', <>
-            {lockNote}
             <div className="fp-sum" data-testid="fingerprint">
               {fpd.fp.state === 'need-firefox' ? (
                 <div className="fp-need">
@@ -354,17 +361,17 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
                 <button type="button" className="linkish" aria-expanded={fpOpen} onClick={() => setFpOpen(o => !o)}>{fpOpen ? f.fpHide : f.fpEdit}</button>
               </>}
             </div>
-            {fpOpen && <>
-              <div className="row2"><ScreenField d={d} f={fpd} disabled={locked} /><GpuField d={d} f={fpd} disabled={locked} /></div>
+            {fpOpen && <div className="held" {...held}>
+              <div className="row2"><ScreenField d={d} f={fpd} /><GpuField d={d} f={fpd} /></div>
               <div className="row2">
-                <ZoneField d={d} f={fpd} geo={pxGeo} proxied={pxMode !== 'none'} disabled={locked} />
-                <LangField d={d} f={fpd} geo={pxGeo} proxied={pxMode !== 'none'} disabled={locked} error={err('fp-lang')} />
+                <ZoneField d={d} f={fpd} geo={pxGeo} proxied={pxMode !== 'none'} />
+                <LangField d={d} f={fpd} geo={pxGeo} proxied={pxMode !== 'none'} error={err('fp-lang')} />
               </div>
-              <div className="row2"><WebrtcField d={d} f={fpd} disabled={locked} /><CanvasField d={d} f={fpd} disabled={locked} /></div>
-              <div className="row2"><CoresField d={d} f={fpd} disabled={locked} /></div>
-            </>}
+              <div className="row2"><WebrtcField d={d} f={fpd} /><CanvasField d={d} f={fpd} /></div>
+              <div className="row2"><CoresField d={d} f={fpd} /></div>
+            </div>}
             {fpd.regenerated && <p className="hint">{f.regenWarn}</p>}
-          </>, <button className="btn btn-sm btn-secondary" type="button" onClick={fpd.randomize} disabled={locked || fpd.fp.state === 'loading' || fpd.fp.state === 'need-firefox'}><Icon name="refresh" />{F.random}</button>)}
+          </>, <span className="held" {...held}><button className="btn btn-sm btn-secondary" type="button" onClick={fpd.randomize} disabled={fpd.fp.state === 'loading' || fpd.fp.state === 'need-firefox'}><Icon name="refresh" />{F.random}</button></span>)}
 
           {/* The extensions it opens with (the user, 10-28): picked from the library, which can be searched, or added to it
               here from an address or a file and picked at once; adding is for the owner and admins. */}
@@ -434,6 +441,18 @@ export function ProfileForm({ d, lang, ws, data, profile, defaultGroup, onClose,
           </>)}
         </div>
       </form>
+      {runAsk && profile && (
+        <Modal kind="warn" title={f.runningTitle} onClose={() => setRunAsk(false)} foot={<>
+          <Cancel />
+          {status?.state === 'running' && <button type="button" className="btn btn-primary" onClick={() => { setRunAsk(false); void folio.stopProfile(profile.id); }}><Icon name="stop" />{f.stopNow}</button>}
+        </>}><p>{f.runningBody}</p></Modal>
+      )}
+      {osAsk && (
+        <Modal kind="warn" title={f.osTitle} onClose={() => setOsAsk(null)} foot={<>
+          <Cancel />
+          <button type="button" className="btn btn-primary" onClick={() => { fpd.refit(kernel, osAsk); setOs(osAsk); setOsAsk(null); }}>{f.osChange}</button>
+        </>}><p>{f.osBody(d.os[osAsk])}</p></Modal>
+      )}
     </Modal>
   );
 }

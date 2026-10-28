@@ -350,7 +350,7 @@ function BoundTable({ d, data, profiles, onOpenProfile, onReplace }: { d: Dict; 
               <tr key={x.id} data-profile={x.name}>
                 <td><button type="button" className="rowlink" onClick={() => onOpenProfile(x.id)}>{x.name}</button></td>
                 <td className="mid">{g ? <span className={`gtag gc-${g.color}`}>{g.name}</span> : <span className="muted">{d.groups.none}</span>}</td>
-                <td className="mid"><span className={`dot-st ${run ? 'run' : 'idle'}`}>{run ? d.profiles.st.running : d.profiles.tabs.stopped}</span></td>
+                <td className="mid"><span className={`dot-st ${run ? 'run' : 'stop'}`}>{run ? d.profiles.st.running : d.profiles.tabs.stopped}</span></td>
                 <td className="act"><button type="button" className="btn btn-sm btn-text" onClick={() => onOpenProfile(x.id)}>{D.viewProfile}</button></td>
                 <td className="more">{onReplace && <MoreMenu label={d.profiles.actionsX(x.name)} items={[{ label: d.proxies.replace.title, onClick: () => onReplace(x) }]} />}</td>
               </tr>
@@ -826,7 +826,7 @@ export function ReplaceProxyDialog({ d, data, profile, onClose, onDone }: { d: D
         <p>{R.lead(profile.name)}</p>
         <dl className="rep-now">
           <div><dt>{R.current}</dt><dd>{current ? <span className="badge">{current.name}</span> : <span className="muted">{d.profiles.noProxy}</span>}</dd></div>
-          <div><dt>{R.state}</dt><dd>{status ? <span className="dot-st run">{d.profiles.st.running}</span> : <span className="dot-st idle">{d.profiles.tabs.stopped}</span>}</dd></div>
+          <div><dt>{R.state}</dt><dd>{status ? <span className="dot-st run">{d.profiles.st.running}</span> : <span className="dot-st stop">{d.profiles.tabs.stopped}</span>}</dd></div>
         </dl>
         {status && <p className="notice warn">{R.running}<button type="button" className="btn btn-sm btn-secondary" onClick={() => void folio.stopProfile(profile.id)}>{R.stop}</button></p>}
         <div className="filters inline">

@@ -2,7 +2,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
+import { account, bulkMore, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened } from './helpers';
 
 test.setTimeout(240_000);
 const STUDIO = { plan: 'studio', period: 'monthly' };
@@ -46,7 +46,11 @@ test('a member removed from the team loses the profile they have open, and its c
   // The owner assigns the profile to the member, who now sees and opens it.
   await nav(winO, /^Profiles/).click();
   await winO.getByRole('checkbox', { name: 'Select Shop-07' }).check();
-  await choose(winO.getByTestId('bulk').getByRole('combobox', { name: 'More' }), new RegExp(`^${member.email.split('@')[0]}`));
+  await bulkMore(winO, 'Bulk edit…');
+  const bulk = winO.getByRole('dialog', { name: 'Bulk edit profiles' });
+  await bulk.getByRole('checkbox', { name: 'Assigned to' }).check();
+  await choose(bulk.getByRole('combobox', { name: 'Assigned to' }), new RegExp(`^${member.email.split('@')[0]}`));
+  await bulk.getByRole('button', { name: 'Change 1 profile' }).click();
   await expect(winM.locator('tr[data-id]', { hasText: 'Shop-07' })).toBeVisible({ timeout: 5000 });
   expect(await opened(winM, p.id)).toMatchObject({ state: 'running' });
   const folder = join(memberData, 'profiles', memberId, p.id);
@@ -92,8 +96,8 @@ test('members work with their own profiles only, and can leave', async () => {
   await form.getByRole('button', { name: 'Create profile' }).click();
   await expect(winM.locator('tr[data-id]')).toHaveCount(1);
   await winM.getByRole('checkbox', { name: 'Select Member-1' }).check();
-  await winM.getByTestId('bulk').getByRole('combobox', { name: 'More' }).click();
-  await expect(winM.getByRole('listbox').getByRole('option', { name: 'Delete' })).toHaveCount(0);
+  await winM.getByTestId('bulk').getByRole('button', { name: 'More' }).click();
+  await expect(winM.getByRole('menuitem', { name: 'Move to Trash' })).toHaveCount(0);
   await winM.keyboard.press('Escape');
   await winM.getByRole('button', { name: 'Member-1', exact: true }).click();
   await expect(winM.getByTestId('assigned')).toHaveText(member.email.split('@')[0]);

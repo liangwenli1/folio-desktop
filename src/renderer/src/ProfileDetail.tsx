@@ -3,7 +3,7 @@
 // filters and page; the breadcrumb (or Escape) goes back to it.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { KernelProgress, ProfileStatus } from '@shared/bridge';
-import { folio, type ActivityEntry, type Extension, type Group, type Profile, type Workspace } from './api';
+import { folio, groupPath, type ActivityEntry, type Extension, type Group, type Profile, type Workspace } from './api';
 import { ActivityTable, dayLabel, said, time, useActivity, who } from './Activity';
 import { ENGINES, fingerprintFacts, latencyTone, type Fix, type Health } from './checks';
 import type { WorkspaceData } from './data';
@@ -74,7 +74,7 @@ export function ProfileDetail(props: Props){
       <button type="button" className="btn btn-secondary" onClick={() => void folio.focusProfile(p.id)}><Icon name="pointer" />{P.enter}</button>
       <button type="button" className="btn btn-primary" onClick={onStop}><Icon name="stop" />{P.stop}</button>
     </>;
-    chip = <span className="dot-st run">{status.noWindow ? P.st.noWindow : P.st.running} · {runTime(now - (status.startedAt ?? now))}</span>;
+    chip = <span className="dot-st run">{status.noWindow ? P.st.noWindow : P.st.running}{status.startedAt !== undefined && <span className="t">{runTime(d, now - status.startedAt)}</span>}</span>;
   } else if (status || downloading){
     const label = status ? busyLabel(d, status.state) : P.downloading(percent(progress!));
     primary = <button type="button" className="btn btn-secondary" disabled><span className="spin" aria-hidden="true" />{label}</button>;
@@ -86,7 +86,7 @@ export function ProfileDetail(props: Props){
     chip = <span className="dot-st away">{P.inUseOn(away.deviceName ?? away.email)}</span>;
   } else {
     primary = <button type="button" className="btn btn-primary" onClick={onOpen}><Icon name="play" />{D.openProfile}</button>;
-    chip = failed ? <span className="dot-st bad">{launchWhy(d, failed)}</span> : <span className="dot-st idle">{P.tabs.stopped}</span>;
+    chip = failed ? <span className="dot-st bad">{launchWhy(d, failed)}</span> : <span className="dot-st stop">{P.tabs.stopped}</span>;
   }
 
   useTrail([{ label: P.title, go: onBack }, { label: p.name }], `${p.id}:${p.name}`);
@@ -272,9 +272,3 @@ function Opening({ d, p, h, status, progress }: { d: Dict; p: Profile; h: Health
   );
 }
 
-// A group with the ones above it, outermost first (v2 04): "Cross-border / US sites".
-const groupPath = (groups: Group[], g: Group) => {
-  const names = [g.name];
-  for (let up = groups.find(x => x.id === g.parentId); up && names.length < 10; up = groups.find(x => x.id === up!.parentId)) names.unshift(up.name);
-  return names.join(' / ');
-};

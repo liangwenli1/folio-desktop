@@ -158,8 +158,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   }
   const loadInvites = () => folio.api<{ invitations: MyInvitation[] }>('GET', '/me/invitations').then(r => setInvites(r.invitations), () => {});
   // What the bell holds (the design's in-app notices): the plan ending soon without renewing, for whoever manages the
-  // workspace and has the reminder on; invitations to other workspaces; and batch operations of one's own, from the
-  // last week, that ended with failures.
+  // workspace and has the reminder on; invitations to other workspaces; batch operations of one's own, from the last
+  // week, that ended with failures; and, for everyone, how long the Trash keeps what is deleted (the user, 10-28: in
+  // place of the Trash page's note). It counts as new again when that changes.
   function notices(): Notice[] {
     const T = d.top, week = 7 * 86_400_000;
     const end = s.status === 'trialing' ? s.trialEndsAt : s.cancelAtPeriodEnd ? s.currentPeriodEnd : null;
@@ -176,7 +177,11 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       id: `job:${j.id}:${j.failed}`, icon: 'alertTri', tone: 'bad', text: T.jobFailed(d.jobs.kinds[j.kind], j.failed, j.total), when: day(j.finishedAt ?? j.createdAt, lang),
       actions: [{ label: d.states.viewTask, run: () => data.showJob(j.id) }]
     }));
-    return [...plan, ...asked, ...failed];
+    const kept: Notice = {
+      id: `trash:${ws.settings.trashDays}`, icon: 'trash', text: T.trashKept(ws.settings.trashDays, manager),
+      actions: manager ? [{ label: T.openTrash, run: () => go('trash') }] : []
+    };
+    return [...plan, ...asked, ...failed, kept];
   }
   useEffect(() => { void loadInvites(); }, [dialog?.kind === 'switch']);
   useDesktopNotices(d, me, data, update, manager, { proxies: () => go('proxies'), job: id => data.showJob(id) });
@@ -235,7 +240,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       </TopBar>
 
       {shown === 'profiles' && (
-        <ProfilesPage key={asked} d={d} lang={lang} ws={ws} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
+        <ProfilesPage key={asked} d={d} lang={lang} ws={ws} meId={me.user.id} data={data} group={group} setGroup={setGroup} only={only} setOnly={setOnly} openId={openId} onPalette={() => setPalette(true)}
           onNew={() => setDialog({ kind: 'new' })} onImport={() => setDialog({ kind: 'import' })}
           onEdit={id => setDialog({ kind: 'edit', id })} onTrashPage={() => go('trash')} onShowProxy={showProxy} />
       )}
@@ -261,7 +266,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
-        <ProfileForm d={d} lang={lang} ws={ws} data={data} onClose={close} profile={editing}
+        <ProfileForm d={d} lang={lang} ws={ws} meId={me.user.id} data={data} onClose={close} profile={editing}
           defaultGroup={dialog.kind === 'new' && dialog.group !== undefined ? dialog.group : group !== 'all' && group !== 'none' ? group : null}
           onDone={p => { close(); if (dialog.kind === 'new') toast({ title: d.profiles.done.created, detail: `${p.name} · #${String(p.number).padStart(4, '0')}`, action: { label: d.states.view, fn: () => showProfile(p.id) } });
             else toast({ title: d.profiles.done.saved, detail: p.name }); }} />

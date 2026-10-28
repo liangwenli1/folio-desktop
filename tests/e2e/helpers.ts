@@ -133,3 +133,8 @@ export async function choose(combo: Locator, option: string | RegExp | { index: 
   await (typeof option === 'string' ? list.getByRole('option', { name: option, exact: true }).first()
     : option instanceof RegExp ? list.getByRole('option', { name: option }).first() : list.getByRole('option').nth(option.index)).click();
 }
+// The bulk bar's More: a menu of actions only (10-28); what takes a value is in Bulk edit.
+export async function bulkMore(win: Page, item: string){
+  await win.getByTestId('bulk').getByRole('button', { name: 'More' }).click();
+  await win.getByRole('menuitem', { name: item, exact: true }).click();
+}

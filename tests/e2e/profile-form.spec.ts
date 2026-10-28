@@ -1,6 +1,8 @@
 // The profile form in five sections: a new profile starts from the workspace's defaults and keeps its start page and
 // window size; its extensions come from the library or are added to it from the form; an edit says what changed, asks
-// before throwing it away, and waits for a running profile to stop before its engine, proxy or fingerprint can change.
+// before throwing it away, and waits for a running profile to stop before its engine, system, proxy or fingerprint can
+// change, saying why when one is tried. Groups show under their parents, the person using it once among the owners,
+// and a saved profile moves to another system once that is confirmed.
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { strToU8, zipSync } from 'fflate';
@@ -105,7 +107,7 @@ test('an edit says what changed and asks before throwing it away', async () => {
   await app.close();
 });
 
-test('while it runs, what it was started with waits until it is stopped', async () => {
+test('while it runs, what it was started with waits until it is stopped, and trying it says why', async () => {
   test.skip(!hasKernels, 'browser engines are not unpacked here');
   const acct = await account();
   const base = `${API}/workspaces/${acct.workspaceId}`;
@@ -117,14 +119,82 @@ test('while it runs, what it was started with waits until it is stopped', async 
   await win.locator(`tr[data-id="${p.id}"]`).getByRole('button', { name: 'Run-1', exact: true }).click();
   await detail(win).getByRole('button', { name: 'Edit profile' }).click();
   const form = win.getByRole('dialog', { name: 'Edit profile' });
-  await expect(form.getByRole('combobox', { name: 'Browser engine' })).toBeDisabled();
-  await expect(form.getByRole('radio', { name: 'No proxy' })).toBeDisabled();
-  await expect(form.getByRole('button', { name: 'New random fingerprint' })).toBeDisabled();
+  // Nothing is greyed out (option B, 10-28): trying the engine, the proxy or the fingerprint says why, and changes nothing.
+  const ask = win.getByRole('dialog', { name: 'The profile is running' });
+  await expect(form.getByRole('combobox', { name: 'Browser engine' })).toBeEnabled();
+  await form.getByRole('combobox', { name: 'Browser engine' }).click();
+  await expect(ask).toContainText('Stop it to change its engine, system, proxy or fingerprint.');
+  await expect(win.getByRole('listbox')).toHaveCount(0);
+  await ask.getByRole('button', { name: 'Cancel' }).click();
+  await form.getByRole('radio', { name: 'Saved proxy' }).click();
+  await expect(ask).toBeVisible();
+  await ask.getByRole('button', { name: 'Cancel' }).click();
+  await expect(form.getByRole('radio', { name: 'No proxy' })).toBeChecked();
+  await form.getByRole('button', { name: 'New random fingerprint' }).click();
+  await expect(ask).toBeVisible();
   // The rest can still change, for the next time it opens.
   await expect(form.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled();
 
-  await form.getByRole('button', { name: 'Stop profile' }).click();
-  await expect(form.getByRole('combobox', { name: 'Browser engine' })).toBeEnabled({ timeout: 60_000 });
-  await expect(form.getByRole('status')).toContainText('Changes apply the next time it opens');
+  // Stop from there, and the engine can be picked.
+  await ask.getByRole('button', { name: 'Stop profile' }).click();
+  await expect(form.getByRole('status')).toContainText('Changes apply the next time it opens', { timeout: 60_000 });
+  await form.getByRole('combobox', { name: 'Browser engine' }).click();
+  await expect(win.getByRole('listbox')).toBeVisible();
+  await expect(ask).toHaveCount(0);
+  await app.close();
+});
+
+test('groups sit under their parents, the owner list has its user once, and a saved profile changes system once confirmed', async () => {
+  const acct = await account();
+  const base = `${API}/workspaces/${acct.workspaceId}`;
+  const me = (await (await acct.api.get('/me')).json()).user as { id: string; displayName: string };
+  const us = await (await acct.api.post(`${base}/groups`, { data: { name: 'US sites' } })).json();
+  await acct.api.post(`${base}/groups`, { data: { name: 'Los Angeles', parentId: us.id } });
+  await acct.api.post(`${base}/groups`, { data: { name: 'Berlin' } });
+  const p = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Sys-1') })).json();
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+
+  // A new profile: groups in their tree, a child indented under its parent and found by its path; the owner list has
+  // its user once, chosen.
+  await win.getByRole('button', { name: 'New profile' }).click();
+  const form = win.getByRole('dialog', { name: 'New profile' });
+  await form.getByRole('combobox', { name: 'Group' }).click();
+  const list = win.getByRole('listbox');
+  await expect(list.getByRole('option')).toHaveText(['No group', 'Berlin', 'US sites', 'Los Angeles', 'New group…']);
+  expect(await list.getByRole('option', { name: 'Los Angeles' }).evaluate(el => getComputedStyle(el).paddingLeft)).toBe('28px');
+  await win.locator('.sel-search input').fill('angeles');
+  await expect(list.getByRole('option')).toHaveText(['US sites / Los Angeles']);
+  await list.getByRole('option').click();
+  await expect(form.getByRole('combobox', { name: 'Group' })).toHaveText('US sites / Los Angeles');
+  const owner = form.getByRole('combobox', { name: 'Assigned to' });
+  await expect(owner).toContainText(`${me.displayName} (you)`);
+  await owner.click();
+  await expect(list.getByRole('option')).toHaveCount(2);
+  await expect(list.getByRole('option').nth(0)).toHaveText('Unassigned');
+  await expect(list.getByRole('option').nth(1)).toContainText(`${me.displayName} (you)`);
+  await win.keyboard.press('Escape');
+  await form.getByRole('button', { name: 'Cancel' }).click();
+  await win.getByRole('dialog', { name: 'Discard unsaved changes?' }).getByRole('button', { name: 'Discard changes' }).click();
+
+  // A saved profile: another system only once confirmed, with a fingerprint drawn for it.
+  await win.locator(`tr[data-id="${p.id}"]`).getByRole('button', { name: 'Sys-1', exact: true }).click();
+  await detail(win).getByRole('button', { name: 'Edit profile' }).click();
+  const edit = win.getByRole('dialog', { name: 'Edit profile' });
+  const systems = edit.getByRole('group', { name: 'Operating system' });
+  await systems.getByRole('button', { name: 'macOS' }).click();
+  const ask = win.getByRole('dialog', { name: 'Change the system?' });
+  await expect(ask).toContainText('drawn again for macOS');
+  await ask.getByRole('button', { name: 'Cancel' }).click();
+  await expect(systems.getByRole('button', { name: 'Windows' })).toHaveAttribute('aria-pressed', 'true');
+  await systems.getByRole('button', { name: 'macOS' }).click();
+  await ask.getByRole('button', { name: 'Change' }).click();
+  await expect(systems.getByRole('button', { name: 'macOS' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(edit.getByText('Sites will see a new device')).toBeVisible();
+  await edit.getByRole('button', { name: 'Save changes' }).click();
+  await expect(edit).toBeHidden();
+  const saved = (await (await acct.api.get(`${base}/profiles`)).json()).profiles.find((x: { id: string }) => x.id === p.id);
+  expect(saved.os).toBe('macos');
+  expect(saved.fingerprint).not.toEqual(p.fingerprint);
   await app.close();
 });

@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { account, API, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened, backToList, detail } from './helpers';
+import { account, API, bulkMore, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened, backToList, detail } from './helpers';
 
 test.setTimeout(300_000);
 const zip = (files: Record<string, string>) => Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)]))));
@@ -92,8 +92,13 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await expect(form).toHaveCount(0);
   await backToList(win);
   await win.getByLabel('Select this page').check();
-  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Shop Helper FF · Firefox');
-  await expect(win.getByRole('status').filter({ hasText: 'Extension installed' })).toContainText('Shop Helper FF · 1 profile; 1 skipped');
+  await bulkMore(win, 'Bulk edit…');
+  const bulk = win.getByRole('dialog', { name: 'Bulk edit profiles' });
+  await bulk.getByRole('checkbox', { name: 'Extension' }).check();
+  await choose(bulk.getByRole('combobox', { name: 'Extension' }), /^Shop Helper FF/);
+  await expect(bulk.locator('.be-lines')).toContainText('Install: Shop Helper FF');
+  await bulk.getByRole('button', { name: 'Change 2 profiles' }).click();
+  await expect(win.getByRole('status').filter({ hasText: 'Profiles changed' })).toContainText('2 profiles');
 
   expect(await opened(win, cr.id)).toMatchObject({ state: 'running' });
   expect(await helper(app, cr.id, stores.page)).toBe('chromium');

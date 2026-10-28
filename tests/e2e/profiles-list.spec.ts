@@ -1,7 +1,8 @@
 // The profiles list as the delivery spec lays it out: status tabs with counts, twenty a page, a reset for the
-// filters, and editing several profiles at once while the running ones are left alone.
+// filters, and editing several profiles at once while the running ones are left alone. Tags have a column, favourites
+// are set from the menus, and the bulk bar's More holds only actions (10-28).
 import { expect, test } from '@playwright/test';
-import { API, ENGINE_ENV, account, chromiumProfile, choose, dataDir, detail, hasKernels, launch, logIn, opened } from './helpers';
+import { API, ENGINE_ENV, account, bulkMore, chromiumProfile, choose, dataDir, detail, hasKernels, launch, logIn, opened } from './helpers';
 
 test.setTimeout(180_000);
 
@@ -52,7 +53,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
 
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bulk edit');
+  await bulkMore(win, 'Bulk edit…');
   const dialog = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await dialog.getByRole('checkbox', { name: 'Group' }).check();
   await choose(dialog.getByRole('combobox', { name: 'Group' }), 'EU stores');
@@ -85,7 +86,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   // With the box cleared, the running one is changed too.
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bulk edit');
+  await bulkMore(win, 'Bulk edit…');
   await dialog.getByRole('checkbox', { name: 'Start page' }).check();
   await dialog.getByRole('textbox').fill('https://other.example/');
   await dialog.getByRole('checkbox', { name: 'Only change profiles that are not running' }).uncheck();
@@ -93,5 +94,57 @@ test('editing several at once skips the running ones, and says so', async () => 
   await dialog.getByRole('button', { name: 'Change 2 profiles' }).click();
   await expect.poll(async () => ((await (await acct.api.get(`${base}/profiles`)).json()).profiles as { startUrl: string }[]).map(p => p.startUrl))
     .toEqual(['https://other.example/', 'https://other.example/']);
+  await app.close();
+});
+
+test('tags have a column, favourites come from the menus, and More holds only actions while Bulk edit sets the rest', async () => {
+  const acct = await account({ buy: { plan: 'studio', period: 'monthly' } });
+  const base = `${API}/workspaces/${acct.workspaceId}`;
+  const [a, b] = (await (await acct.api.post(`${base}/profiles/bulk`, { data: { profiles: [chromiumProfile('Tag-A'), chromiumProfile('Tag-B')] } })).json()).profiles;
+  expect((await acct.api.patch(`${API}/profiles/${a.id}`, { data: { version: a.version, tags: ['vip', 'us', 'q4'] } })).ok()).toBe(true);
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+  const row = (id: string) => win.locator(`tr[data-id="${id}"]`);
+
+  // Tags in a column of their own: the first two, then how many more; none is a dash.
+  await expect(row(a.id)).toBeVisible();
+  const col = (await win.getByRole('columnheader').allTextContents()).indexOf('Tags');
+  expect(col).toBeGreaterThan(0);
+  await expect(row(a.id).getByRole('cell').nth(col)).toHaveText('vipus+1');
+  await expect(row(b.id).getByRole('cell').nth(col)).toHaveText('—');
+  await expect(row(b.id).getByRole('cell').nth(col + 4)).toHaveText('Not running');
+
+  // Starring is in the row's ⋯ menu; a favourite is marked by its name and comes first.
+  await expect(row(a.id).getByRole('button', { name: 'Add to favorites' })).toHaveCount(0);
+  await row(b.id).getByRole('button', { name: 'Actions for Tag-B' }).click();
+  await win.getByRole('menuitem', { name: 'Add to favorites' }).click();
+  await expect(row(b.id).getByTitle('Favorites')).toBeVisible();
+  await expect(win.locator('tr[data-id]').first()).toHaveAttribute('data-id', b.id);
+
+  // More: actions only, among them favourites for all the picked ones.
+  for (const id of [a.id, b.id]) await row(id).getByRole('checkbox').check();
+  await win.getByTestId('bulk').getByRole('button', { name: 'More' }).click();
+  await expect(win.getByRole('menuitem')).toHaveText(['Bulk edit…', 'Sync windows', 'Add to favorites', 'Remove from favorites', 'Export cookies…', 'Move to Trash']);
+  await win.getByRole('menuitem', { name: 'Remove from favorites' }).click();
+  await expect(win.getByRole('status').filter({ hasText: 'Removed from favorites' })).toContainText('2 profiles');
+  await expect(row(b.id).getByTitle('Favorites')).toHaveCount(0);
+
+  // Bulk edit sets what the menu used to: tags, who they are assigned to, the search engine and tab restoring.
+  await bulkMore(win, 'Bulk edit…');
+  const dialog = win.getByRole('dialog', { name: 'Bulk edit profiles' });
+  await dialog.getByRole('checkbox', { name: 'Tags' }).check();
+  await dialog.getByRole('textbox', { name: 'Tags' }).fill('eu, vip');
+  await dialog.getByRole('checkbox', { name: 'Assigned to' }).check();
+  await choose(dialog.getByRole('combobox', { name: 'Assigned to' }), 'Unassigned');
+  await dialog.getByRole('checkbox', { name: 'Search engine' }).check();
+  await choose(dialog.getByRole('combobox', { name: 'Search engine' }), 'Bing');
+  await dialog.getByRole('checkbox', { name: 'Restore last tabs' }).check();
+  await dialog.getByRole('group', { name: 'Restore last tabs' }).getByRole('button', { name: 'Off' }).click();
+  await expect(dialog.locator('.be-lines')).toContainText('Add tags: eu, vip');
+  await dialog.getByRole('button', { name: 'Change 2 profiles' }).click();
+  await expect(win.getByRole('status').filter({ hasText: 'Profiles changed' })).toContainText('2 profiles');
+  const list = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { id: string; tags: string[]; ownerId: string | null; searchEngine: string; restoreTabs: boolean }[];
+  expect(list.find(p => p.id === a.id)).toMatchObject({ tags: ['vip', 'us', 'q4', 'eu'], ownerId: null, searchEngine: 'bing', restoreTabs: false });
+  expect(list.find(p => p.id === b.id)).toMatchObject({ tags: ['eu', 'vip'], ownerId: null, searchEngine: 'bing', restoreTabs: false });
   await app.close();
 });

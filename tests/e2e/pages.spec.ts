@@ -2,7 +2,7 @@
 // the engines' download settings, copying a waiting invitation's link again, and a profile's browser settings.
 import { strToU8, zipSync } from 'fflate';
 import { expect, test } from '@playwright/test';
-import { account, choose, chromiumProfile, dataDir, launch, logIn, roleId, backToList, detail } from './helpers';
+import { account, bulkMore, choose, chromiumProfile, dataDir, launch, logIn, roleId, backToList, detail } from './helpers';
 
 const STUDIO = { plan: 'studio', period: 'monthly' };
 const nav = (win: import('@playwright/test').Page, name: RegExp) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name }).click();
@@ -131,10 +131,13 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
   await backToList(win);
 
   for (const n of ['Shop-1', 'Shop-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
-  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Bing');
-  await expect(win.getByRole('status').filter({ hasText: 'Search engine set to Bing' })).toContainText('2 profiles');
-  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'On');
-  await expect(win.getByRole('status').filter({ hasText: 'Tab restoring turned on' })).toContainText('2 profiles');
+  await bulkMore(win, 'Bulk edit…');
+  const bulk = win.getByRole('dialog', { name: 'Bulk edit profiles' });
+  await bulk.getByRole('checkbox', { name: 'Search engine' }).check();
+  await choose(bulk.getByRole('combobox', { name: 'Search engine' }), 'Bing');
+  await bulk.getByRole('checkbox', { name: 'Restore last tabs' }).check();
+  await bulk.getByRole('button', { name: 'Change 2 profiles' }).click();
+  await expect(win.getByRole('status').filter({ hasText: 'Profiles changed' })).toContainText('2 profiles');
   const profiles = (await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; searchEngine: string; restoreTabs: boolean }[];
   expect(profiles.map(p => [p.name, p.searchEngine, p.restoreTabs])).toEqual([['Shop-1', 'bing', true], ['Shop-2', 'bing', true]]);
   await row.getByRole('button', { name: 'Shop-2', exact: true }).click();

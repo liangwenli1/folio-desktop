@@ -14,7 +14,11 @@ test('the Trash says how long it keeps profiles, finds them by ID, and restores 
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Trash' }).click();
-  await expect(win.getByText('Kept for 7 days, then permanently deleted.')).toBeVisible();
+  // How long it keeps them is a notification everyone has (10-28), in place of a note on the page.
+  await win.getByRole('button', { name: /^Notifications/ }).click();
+  const bell = win.getByRole('dialog', { name: 'Notifications' });
+  await expect(bell).toContainText('Deleted profiles stay in the Trash for 7 days, then are deleted for good. You can change this in Settings.');
+  await bell.getByRole('button', { name: 'Open the Trash' }).click();
   const rows = win.locator('tr[data-id]');
   await expect(rows).toHaveCount(3);
   await expect(rows.first()).toContainText('7 days');

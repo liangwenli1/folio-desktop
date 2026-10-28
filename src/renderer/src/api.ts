@@ -13,6 +13,24 @@ export type Workspace = Ok<'/workspaces/{id}', 'get'>;
 export type Subscription = Workspace['subscription'];
 export type Profile = Ok<'/workspaces/{id}/profiles', 'get'>['profiles'][number];
 export type Group = Ok<'/workspaces/{id}/groups', 'get'>['groups'][number];
+// The groups each under its parent, outermost first, with how deep each sits and its full path ("US sites / Los
+// Angeles"); one whose parent isn't visible here starts a tree of its own.
+export function groupTree(groups: Group[]){
+  const ids = new Set(groups.map(g => g.id)), kids = new Map<string | null, Group[]>();
+  for (const g of groups){ const up = g.parentId && ids.has(g.parentId) ? g.parentId : null; kids.set(up, [...(kids.get(up) ?? []), g]); }
+  const out: { group: Group; depth: number; path: string }[] = [];
+  const walk = (up: string | null, depth: number, path: string) => {
+    for (const g of kids.get(up) ?? []){ const at = path ? `${path} / ${g.name}` : g.name; out.push({ group: g, depth, path: at }); walk(g.id, depth + 1, at); }
+  };
+  walk(null, 0, '');
+  return out;
+}
+// A group with the ones above it, outermost first (v2 04): "Cross-border / US sites".
+export function groupPath(groups: Group[], g: Group){
+  const names = [g.name];
+  for (let up = groups.find(x => x.id === g.parentId); up && names.length < 10; up = groups.find(x => x.id === up!.parentId)) names.unshift(up.name);
+  return names.join(' / ');
+}
 export type Proxy = Ok<'/workspaces/{id}/proxies', 'get'>['proxies'][number];
 export type ProxyImport = Ok<'/workspaces/{id}/proxies/import', 'post'>;
 export type ImportLine = Ok<'/workspaces/{id}/proxies/import/preview', 'post'>['lines'][number];

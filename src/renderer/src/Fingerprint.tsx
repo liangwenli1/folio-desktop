@@ -3,7 +3,7 @@
 // applied at launch (Chromium's Canvas and GPU, Firefox's WebRTC), and the time zone and language, which follow the
 // proxy unless set by hand. Only what the engines were seen to honour is offered (docs/kernel-evaluation.md):
 // Chromium's screen follows this computer, and neither engine takes a device memory.
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Fingerprint, FingerprintAsk, Geo, KernelKind, Os } from '@shared/bridge';
 import { folio, type Profile } from './api';
 import { fingerprintFacts, gpuName } from './checks';
@@ -62,6 +62,9 @@ export function useFingerprint(profile: Profile | undefined, kernel: KernelKind,
   const generate = useCallback(() => draw(screen, gpu), [draw, screen, gpu]);
   useEffect(() => { if (fresh) void generate(); }, [fresh, generate]);
   const redraw = (s: string, g: string) => void draw(s, g).then(ok => { if (ok) setRegenerated(true); });
+  // A saved profile moved to another system draws its identity again for that system.
+  const drawnFor = useRef(os);
+  useEffect(() => { if (profile && os !== drawnFor.current){ drawnFor.current = os; redraw('', ''); } }, [os]);
 
   const pickScreen = (v: string) => { setScreen(v); if (profile) redraw(v, gpu); };
   const pickGpu = (v: string) => { setGpu(v); if (profile) redraw(screen, v); };

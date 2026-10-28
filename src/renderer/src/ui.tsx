@@ -148,11 +148,13 @@ export function useDismiss(open: boolean, parts: RefObject<HTMLElement | null>[]
   }, [open]);
 }
 
-// A row's further actions behind a dots button; `vertical` stands the dots up, as the design does on some pages. The
-// menu opens below the button, or above it near the window's bottom; arrow keys move through it, Escape gives the
-// focus back to the button.
+// A row's further actions behind a dots button; `vertical` stands the dots up, as the design does on some pages, and
+// `text` makes it a worded button (the bulk bar's More). The menu opens below the button, or above it near the
+// window's bottom; arrow keys move through it, Escape gives the focus back to the button.
 const MENU_W = 200;
-export function MoreMenu({ label, items, vertical }: { label: string; items: { label: string; onClick(): void; danger?: boolean; disabled?: boolean }[]; vertical?: boolean }){
+export function MoreMenu({ label, items, vertical, text, disabled }: {
+  label: string; items: { label: string; onClick(): void; danger?: boolean; disabled?: boolean }[]; vertical?: boolean; text?: string; disabled?: boolean;
+}){
   const [at, setAt] = useState<{ left: number; top?: number; bottom?: number } | null>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -162,7 +164,8 @@ export function MoreMenu({ label, items, vertical }: { label: string; items: { l
   function open(){
     const r = btn.current!.getBoundingClientRect(), h = items.length * 38 + 14;
     const up = innerHeight - r.bottom < h + 8 && r.top > h + 8;
-    setAt({ left: Math.max(8, Math.min(r.right - MENU_W, innerWidth - MENU_W - 8)), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
+    // A worded button (the bulk bar's More) has its menu under its left edge; the dots, under their right.
+    setAt({ left: Math.max(8, Math.min(text ? r.left : r.right - MENU_W, innerWidth - MENU_W - 8)), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
   }
   function key(e: KeyEvent){
     const all = [...menu.current!.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')], i = all.indexOf(document.activeElement as HTMLElement);
@@ -172,7 +175,9 @@ export function MoreMenu({ label, items, vertical }: { label: string; items: { l
   }
   return (
     <div className="d-more">
-      <button ref={btn} type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={!!at} onClick={() => (at ? close() : open())}><Icon name={vertical ? 'moreV' : 'more'} /></button>
+      {text
+        ? <button ref={btn} type="button" className="bb" disabled={disabled} aria-haspopup="menu" aria-expanded={!!at} onClick={() => (at ? close() : open())}><Icon name="more" />{text}</button>
+        : <button ref={btn} type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={!!at} onClick={() => (at ? close() : open())}><Icon name={vertical ? 'moreV' : 'more'} /></button>}
       {at && createPortal(
         <div ref={menu} className="menu pop-menu" role="menu" aria-label={label} style={{ ...at, width: MENU_W }} onKeyDown={key}>
           {items.map(i => (

@@ -252,7 +252,6 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
           </section>
           {side && <Notes d={d} r={side} admin={admin} onClose={() => setCur(null)} />}
         </div>
-        <p className="notice page-tip"><Icon name="info" /><span>{E.tip}</span></p>
       </main>
       {uploading && <UploadDialog d={d} onClose={() => setUploading(false)} onDone={reload} />}
       {recommending && <RecommendDialog d={d} k={recommending} onClose={() => setRecommending(null)} onDone={note => void recommend(recommending, note)} />}

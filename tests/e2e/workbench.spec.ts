@@ -2,7 +2,7 @@
 // bulk actions with the Trash, imports, and the one-click fixes of the consistency check.
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { startSocks5 } from '../fixtures/proxies';
-import { account, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, inBrowser, launch, logIn, startProbe, detail } from './helpers';
+import { account, bulkMore, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, inBrowser, launch, logIn, startProbe, detail } from './helpers';
 
 test.setTimeout(120_000);
 const STUDIO = { plan: 'studio', period: 'monthly' };
@@ -127,19 +127,21 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await choose(groups, 'US stores');
   await expect(win.locator('tr[data-id]')).toHaveText([/P-1/, /P-2/]);
   await choose(groups, 'All groups');
-  await choose(bulk.getByRole('combobox', { name: 'More' }), 'Tag');
-  await bulk.getByRole('textbox', { name: 'Tag name' }).fill('vip');
-  await bulk.getByRole('button', { name: 'Add tag' }).click();
+  await bulkMore(win, 'Bulk edit…');
+  const edit = win.getByRole('dialog', { name: 'Bulk edit profiles' });
+  await edit.getByRole('checkbox', { name: 'Tags' }).check();
+  await edit.getByRole('textbox', { name: 'Tags' }).fill('vip');
+  await edit.getByRole('button', { name: 'Change 2 profiles' }).click();
   await expect(row(win, 'P-2').locator('.badge')).toHaveText('vip');
 
-  await choose(bulk.getByRole('combobox', { name: 'More' }), 'Delete');
+  await bulkMore(win, 'Move to Trash');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await expect(row(win, 'P-1')).toBeHidden();
   await win.getByRole('status').filter({ hasText: 'Moved to the Trash' }).filter({ hasText: '2 profiles' }).getByRole('button', { name: 'Undo' }).click();
   await expect(row(win, 'P-1')).toBeVisible();
 
   await win.getByRole('checkbox', { name: 'Select P-1' }).check();
-  await choose(win.getByTestId('bulk').getByRole('combobox', { name: 'More' }), 'Delete');
+  await bulkMore(win, 'Move to Trash');
   await win.getByRole('dialog').getByRole('button', { name: 'Move to Trash' }).click();
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Trash' }).click();
   await expect(row(win, 'P-1').or(win.locator('tr[data-id]', { hasText: 'P-1' }))).toBeVisible();

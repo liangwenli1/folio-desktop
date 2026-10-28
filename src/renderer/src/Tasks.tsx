@@ -10,7 +10,7 @@ import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
 import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useFail, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
-import { Select, SelectField } from './Select';
+import { Select, SelectField, groupOpts } from './Select';
 
 type Counts = Run['counts'];
 const finished = (c: Counts) => c.ok + c.failed + c.signed_out + c.skipped + c.canceled;
@@ -599,7 +599,7 @@ function ProfilePicker({ d, profiles, data, value, onChange }: { d: Dict; profil
       <span className="label">{T.profiles(value.size)}</span>
       <div className="picker-bar">
         <input type="search" aria-label={T.search} placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} />
-        {data.groups.length > 0 && <Select variant="sm" label={d.form.group} value={group} onChange={setGroup} options={[{ value: '', label: d.groups.all }, ...data.groups.map(g => ({ value: g.id, label: g.name }))]} />}
+        {data.groups.length > 0 && <Select variant="sm" label={d.form.group} value={group} onChange={setGroup} options={[{ value: '', label: d.groups.all }, ...groupOpts(data.groups)]} />}
         <label className="check-row"><input type="checkbox" checked={all} disabled={!shown.length}
           onChange={() => { const n = new Set(value); shown.forEach(p => (all ? n.delete(p.id) : n.add(p.id))); onChange(n); }} />{T.all}</label>
       </div>

@@ -17,6 +17,8 @@
   --warn:#F79009; --warn-ink:#B54708; --warn-soft:#FFFAEB;
   --bad:#F04438; --bad-ink:#B42318; --bad-soft:#FEF3F2;
   --info:#2E90FA; --info-ink:#175CD3; --info-soft:#EFF8FF;
+  /* A stopped profile (the user, 10-28): orange, apart from the grey of things not started or not checked. */
+  --stop:#EF6820; --stop-ink:#B93815; --stop-soft:#FEF6EE;
   --overlay:rgba(16,24,40,.38);
   /* Cards have a border and no shadow; menus, popovers and dialogs share this one. */
   --shadow-pop:0 12px 32px rgba(16,24,40,.12);
@@ -49,6 +51,7 @@
     --warn:#FDB022; --warn-ink:#FEC84B; --warn-soft:rgba(253,176,34,.14);
     --bad:#F97066; --bad-ink:#FDA29B; --bad-soft:rgba(249,112,102,.14);
     --info:#53B1FD; --info-ink:#84CAFF; --info-soft:rgba(83,177,253,.14);
+    --stop:#F38744; --stop-ink:#F7B27A; --stop-soft:rgba(239,104,32,.16);
     --overlay:rgba(0,0,0,.55);
     --shadow-pop:0 12px 32px rgba(0,0,0,.5);
     --code-bg:#0B0F18; --code-ink:#E4E7EC;
@@ -215,11 +218,12 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .sel-pop{position:fixed;z-index:var(--z-float);display:flex;flex-direction:column;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);overflow:hidden;animation:pop var(--t-fast) ease-out}
 @keyframes pop{from{opacity:0;transform:translateY(-3px)}}
 .sel-pop [role="listbox"]{overflow-y:auto;min-height:0;outline:none}
+.sel-note{margin:4px 0 0;padding:8px 10px 4px;border-top:1px solid var(--line);font-size:12px;line-height:18px;color:var(--ink-3)}
 .sel-search{position:relative;flex:none;margin-bottom:4px}
 .sel-search .i{position:absolute;left:9px;top:9px;color:var(--ink-2)}
 .sel-search input{width:100%;height:var(--h-sm);padding:0 10px 0 31px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
 .sel-group{padding:8px 10px 3px;font-size:12px;font-weight:600;color:var(--ink-2)}
-.sel-pop [role="option"]{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);font-size:14px;cursor:pointer}
+.sel-pop [role="option"]{display:flex;align-items:center;gap:8px;padding:8px 10px 8px calc(10px + var(--depth,0) * 18px);border-radius:var(--r);font-size:14px;cursor:pointer}
 .sel-pop [role="option"][data-active="true"]{background:var(--hover)}
 .sel-pop [role="option"][aria-selected="true"]{background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
 .sel-pop [role="option"] .sel-h{margin-left:auto;padding-left:12px}
@@ -325,7 +329,7 @@ html[data-platform="win32"] .top{padding-right:150px}
 .gtag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--r);font-size:12px;font-weight:500;white-space:nowrap;
   background:color-mix(in srgb,var(--gc) 14%,transparent);color:color-mix(in srgb,var(--gc) 78%,var(--ink))}
 .move-list{display:grid;gap:2px;margin:0;padding:10px 12px 14px;list-style:none}
-.move-to{display:flex;align-items:center;width:100%;height:36px;padding:0 8px;border:0;border-radius:var(--r);background:none;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
+.move-to{display:flex;align-items:center;width:100%;height:36px;padding:0 8px 0 calc(8px + var(--depth,0) * 18px);border:0;border-radius:var(--r);background:none;font-size:14px;color:var(--ink);text-align:left;cursor:pointer}
 .move-to:hover{background:var(--hover)}
 .move-to[aria-current="true"]{font-weight:600}
 .move-to .i{margin-left:auto;color:var(--accent)}
@@ -391,7 +395,7 @@ html[data-platform="win32"] .top{padding-right:150px}
 .ext-stack .ext-ic img,.ext-chip .ext-ic img,.ext-opts .ext-ic img{width:14px;height:14px;object-fit:contain}
 .ext-stack .ext-ic .i,.ext-chip .ext-ic .i,.ext-opts .ext-ic .i{width:14px;height:14px}
 .ext-stack .ext-ic + .ext-ic{margin-left:-6px}
-.ext-stack small{min-width:22px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--seg);font-size:10px;font-weight:500;line-height:18px;text-align:center;color:var(--ink-3)}
+.ext-stack small,.tag-cell small{min-width:22px;height:18px;margin-left:6px;padding:0 5px;border-radius:9px;background:var(--seg);font-size:10px;font-weight:500;line-height:18px;text-align:center;color:var(--ink-3)}
 .ext-none{display:inline-block;width:12px;height:1px;vertical-align:middle;background:var(--ink-4)}
 .pc-ext{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;color:var(--ink-2)}
 .kvl dd.ext-chips{flex-wrap:wrap;gap:6px 14px}
@@ -427,7 +431,6 @@ html[data-platform="win32"] .top{padding-right:150px}
 .bb:disabled{color:var(--ink-4);cursor:not-allowed}
 .bb:disabled > .i{color:var(--ink-4)}
 .bb.danger,.bb.danger > .i{color:var(--bad-ink)}
-.bb-in{height:var(--h-sm);width:180px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--card)}
 
 /* tables */
 .tw{flex:1 0 240px;min-height:240px;overflow:auto;margin:0 var(--gx) 18px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
@@ -451,6 +454,11 @@ html[data-platform="win32"] .top{padding-right:150px}
 .tw th.c-sw,.tw td.c-sw{text-align:right;white-space:nowrap}
 /* a tag, a state, a count or buttons: centred under its heading */
 .tw th.mid,.tw td.mid{text-align:center}
+.tw td.mid > .l1,.tw td.mid > .os-l{justify-content:center}
+.tw td.mid .px-cell{display:inline-flex;text-align:left}
+/* The profile list (the user, 10-28): the name takes what is left; every other column is centred and as wide as the
+   next, so their centres are evenly spaced. */
+.pf-table th.mid,.pf-table th.act{width:10%}
 /* a row's further actions: a column of their own after Actions, so Actions holds one control */
 .tw th.more,.tw td.more{width:44px;padding-left:0;text-align:center}
 /* a column whose cells start with a flag: the heading starts where their text does, the flag hangs left of it */
@@ -490,8 +498,14 @@ button.badge{border:0;cursor:pointer}
 .star:hover{color:var(--warn-ink)}
 .star.on{color:var(--warn-ink)}
 .star.on .i{fill:var(--warn)}
-/* Shown on hover, and to the keyboard. */
-.tw tbody tr:not(:hover):not(:focus-within) .star:not(.on){opacity:0}
+/* A favourite's mark beside its name; starring is in the row's ⋯ menu (the user, 10-28). */
+.starred{display:inline-grid;place-items:center;color:var(--warn-ink)}
+.starred .i{width:14px;height:14px;fill:var(--warn)}
+/* a profile's tags: two, then how many more */
+.tag-cell{display:inline-flex;align-items:center;gap:4px;max-width:100%}
+.tag-cell .badge{display:inline-block;max-width:88px;overflow:hidden;text-overflow:ellipsis;padding:0 10px;line-height:26px}
+.tag-cell small{margin-left:0}
+.pc-tags{display:flex;flex-wrap:wrap;gap:4px}
 .icon-btn.star{width:32px;height:32px;margin:0;vertical-align:0}
 .risk-flag{display:inline-grid;place-items:center;margin-left:4px;color:var(--bad-ink);vertical-align:-3px}
 /* what could link profiles: one line until it is opened */
@@ -792,8 +806,8 @@ fieldset.ck-conflict{border:0;margin:0;padding:0}
 .pf .seg button:disabled{opacity:.45;cursor:default}
 .req{margin-left:3px;color:var(--bad-ink)}
 .opt{margin-left:2px;font-size:12px;font-weight:400;color:var(--ink-3)}
-.lock-note{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
-.lock-note .i{color:var(--ink-3)}
+/* what a running profile was started with: no box of its own, it only catches the attempt to change it */
+.held{display:contents}
 .pxres.past{color:var(--ink-2)}
 /* the switch lines up with the dropdown beside it, below that one's label */
 .pf-switch{align-content:start;padding-top:25px}
@@ -1512,8 +1526,8 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
   *,*::before,*::after{animation:none !important;transition:none !important}
 }
 
-/* Statuses as v2 draws them (section 6): a pill in the state's colours, with words. Stopped, not checked and the like
-   are grey; under way blue; running and connected green; partly failed amber; failed red. */
+/* Statuses as v2 draws them (section 6): a pill in the state's colours, with words. Not started, not checked and the
+   like are grey; a stopped profile orange; under way blue; running and connected green; partly failed amber; failed red. */
 .dot-st{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:3px 12px;border-radius:13px;background:var(--seg);color:var(--ink-3);font-size:12px;line-height:18px;font-weight:500;white-space:nowrap}
 /* in a table a long status (in use on someone's computer) takes a second line, so the row's actions keep theirs */
 .tw td .dot-st{white-space:normal;word-break:keep-all}
@@ -1521,6 +1535,9 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .dot-st.boot,.dot-st.away{background:var(--info-soft);color:var(--info-ink)}
 .dot-st.warn{background:var(--warn-soft);color:var(--warn-ink)}
 .dot-st.bad{background:var(--bad-soft);color:var(--bad-ink)}
+.dot-st.stop{background:var(--stop-soft);color:var(--stop-ink)}
+/* how long it has been running, after the word */
+.dot-st .t{font-family:var(--f-data);font-variant-numeric:tabular-nums}
 .px-exit{display:flex;align-items:center;gap:7px;white-space:nowrap}
 /* a profile's proxy in the list: the exit's round flag beside its country over its IP */
 .px-cell{display:flex;align-items:center;gap:10px;white-space:nowrap}
@@ -1600,6 +1617,12 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .be{gap:12px}
 .be-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
 .be-fields{display:grid;gap:14px}
+/* the single form's sections, as small headings */
+.be-h{margin:6px 0 -4px;font-size:12px;font-weight:600;color:var(--ink-3)}
+.be-h:first-child{margin-top:0}
+/* put on or taken off, then what */
+.be-pair{display:flex;align-items:center;gap:8px}
+.be-pair > :last-child{flex:1;min-width:0}
 .be-row{display:grid;grid-template-columns:140px minmax(0,1fr);gap:4px 12px;align-items:start}
 .be-row .check-row{padding-top:10px;color:var(--ink)}
 .be-row .sel[aria-disabled="true"]{background:var(--panel);cursor:default}
