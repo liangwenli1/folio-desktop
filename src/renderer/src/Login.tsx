@@ -4,7 +4,8 @@ import type { Dict, Lang } from './i18n';
 import { Icon, Mark } from './ui';
 import { Flag } from './Flag';
 
-// The form on the left; on the right three profiles as the workbench shows them, still (G1, the user, 10-28).
+// On the left three profiles as the workbench shows them, still; on the right the form (G1 with its sides swapped, the
+// user, 10-28).
 export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lang; version: string; onLang(l: Lang): void; onDone: () => void }){
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +33,18 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
 
   return (
     <main className="login">
-      <div className="login-l">
+      <div className="login-panel">
+        <div className="login-cards" aria-hidden="true">
+          {cards.map(c => (
+            <div key={c.name} className="login-pc">
+              <Flag country={c.cc} kernel={c.kernel} />
+              <span><b>{c.name}</b><small>{c.where}</small></span>
+              {c.st}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="login-main">
         <form className="login-form" onSubmit={submit} noValidate>
           <div className="login-brand"><Mark /><span className="brand-word">Folio</span></div>
           <h1>{d.login.title}</h1>
@@ -56,17 +68,6 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
           <span>Folio {version}</span><span aria-hidden="true">·</span>
           <button className="linkish" type="button" onClick={() => onLang(lang === 'zh' ? 'en' : 'zh')}>{d.user.langs[lang]}</button>
         </p>
-      </div>
-      <div className="login-r">
-        <div className="login-cards" aria-hidden="true">
-          {cards.map(c => (
-            <div key={c.name} className="login-pc">
-              <Flag country={c.cc} kernel={c.kernel} />
-              <span><b>{c.name}</b><small>{c.where}</small></span>
-              {c.st}
-            </div>
-          ))}
-        </div>
       </div>
     </main>
   );

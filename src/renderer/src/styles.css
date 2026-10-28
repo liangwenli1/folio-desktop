@@ -234,9 +234,10 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .sel-none .linkish{margin-left:auto;font-weight:600;color:var(--accent-ink);text-decoration:none}
 .sel-none .spin{width:14px;height:14px;border-width:2px}
 
-/* login (G1, chosen again 10-28): the form on the left; on the brand panel on the right, three profiles as cards, still */
+/* login (G1, chosen again 10-28, its sides swapped the same day): on the brand panel on the left, three profiles as
+   cards, still; the form on the right */
 .login{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%;background:var(--card)}
-.login-l{position:relative;display:grid;place-content:center;padding:32px}
+.login-main{position:relative;display:grid;place-content:center;padding:32px}
 .login-form{width:min(380px,100%);display:grid;gap:14px}
 .login-brand{display:flex;align-items:center;gap:9px;margin-bottom:22px}
 .login-form h1{font-size:24px;font-weight:600;line-height:32px}
@@ -250,9 +251,9 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .login-alt .linkish{color:var(--accent-ink);text-decoration:none;font-weight:600}
 .login-foot{position:absolute;left:0;right:0;bottom:22px;display:flex;justify-content:center;gap:6px;font-size:12px;color:var(--ink-3)}
 .login-foot .linkish{text-decoration:none;color:var(--ink-2)}
-.login-r{position:relative;margin:var(--tb) 16px 16px 0;border-radius:var(--r-lg);overflow:hidden;background:#2A1520}
-.login-r::before{content:'';position:absolute;inset:-40px;background:radial-gradient(60% 50% at 20% 20%,#F0806A,transparent 70%),radial-gradient(60% 60% at 80% 30%,#D2445E,transparent 70%),radial-gradient(70% 60% at 50% 100%,#7C2348,transparent 70%)}
-@media (max-width:1100px){ .login{grid-template-columns:minmax(0,1fr)} .login-r{display:none} }
+.login-panel{position:relative;margin:var(--tb) 0 16px 16px;border-radius:var(--r-lg);overflow:hidden;background:#2A1520}
+.login-panel::before{content:'';position:absolute;inset:-40px;background:radial-gradient(60% 50% at 20% 20%,#F0806A,transparent 70%),radial-gradient(60% 60% at 80% 30%,#D2445E,transparent 70%),radial-gradient(70% 60% at 50% 100%,#7C2348,transparent 70%)}
+@media (max-width:1100px){ .login{grid-template-columns:minmax(0,1fr)} .login-panel{display:none} }
 
 .login-cards{position:absolute;inset:0;display:grid;align-content:center;justify-items:center;gap:22px;padding:24px;pointer-events:none}
 .login-pc{display:flex;align-items:center;gap:12px;width:min(430px,88%);padding:14px 16px;border-radius:var(--r-lg);background:var(--card);box-shadow:0 24px 40px -18px rgba(0,0,0,.55)}
@@ -264,9 +265,10 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 .login-pc small{font-size:12px;color:var(--ink-2)}
 /* restoring: the spinner standing still, open at the top right (open at the side, it reads as a C) */
 .login-pc .spin{animation:none;rotate:-45deg}
-/* The window can be dragged by its top strip; on Windows its buttons sit there, over the brand panel's margin. */
+/* The window can be dragged by its top strip, which is also the brand panel's top margin: on macOS the traffic lights
+   sit there over the panel's side, on Windows the window's buttons over the form's. */
 .login::before{content:'';position:fixed;top:0;left:0;right:0;height:var(--tb);-webkit-app-region:drag}
-.login-l > *,.login-r{-webkit-app-region:no-drag}
+.login-main > *,.login-panel{-webkit-app-region:no-drag}
 
 /* shell: the rail on the left; on the right a strip along the top (the title bar on Windows and macOS, with the
    account at its right) above the page */
