@@ -283,8 +283,10 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 html[data-platform="darwin"] .side{padding-top:calc(var(--tb) + 2px)}
 .top{grid-column:2;grid-row:1;display:flex;align-items:center;gap:8px;min-width:0;padding:0 var(--gx);background:var(--card);border-bottom:1px solid var(--line);-webkit-app-region:drag}
 .top > :not(.sp){-webkit-app-region:no-drag}
-/* Windows draws its minimize, maximize and close buttons over the bar's right end. */
-html[data-platform="win32"] .top{padding-right:150px}
+/* Windows draws its minimize, maximize and close buttons (138 px) over the bar's right end. A thin line 12 px before
+   them and 24 px more room keep them apart from the workbench's own controls (T1, the user, 10-29). */
+html[data-platform="win32"] .top{position:relative;padding-right:174px}
+html[data-platform="win32"] .top::after{content:'';position:absolute;top:16px;right:150px;width:1px;height:24px;background:var(--line-2)}
 /* the top bar: where you are on the left; search, help and notifications on the right */
 .top-crumbs{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--ink-3)}
 .top-crumbs > .sep{flex:none;color:var(--ink-4)}
