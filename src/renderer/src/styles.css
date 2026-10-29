@@ -19,6 +19,9 @@
   --info:#2E90FA; --info-ink:#175CD3; --info-soft:#EFF8FF;
   /* A stopped profile (the user, 10-28): orange, apart from the grey of things not started or not checked. */
   --stop:#EF6820; --stop-ink:#B93815; --stop-soft:#FEF6EE;
+  /* A profile's tag (the user, 10-29): indigo, which no group or state uses, and the brand's red in the dark; the mark,
+     the text, the border. The workbench's own. */
+  --tag:#6172F3; --tag-ink:#3538CD; --tag-line:#A4BCFD;
   --overlay:rgba(16,24,40,.38);
   /* Cards have a border and no shadow; menus, popovers and dialogs share this one. */
   --shadow-pop:0 12px 32px rgba(16,24,40,.12);
@@ -52,6 +55,7 @@
     --bad:#F97066; --bad-ink:#FDA29B; --bad-soft:rgba(249,112,102,.14);
     --info:#53B1FD; --info-ink:#84CAFF; --info-soft:rgba(83,177,253,.14);
     --stop:#F38744; --stop-ink:#F7B27A; --stop-soft:rgba(239,104,32,.16);
+    --tag:#E0566F; --tag-ink:#F28DA0; --tag-line:rgba(224,86,111,.45);
     --overlay:rgba(0,0,0,.55);
     --shadow-pop:0 12px 32px rgba(0,0,0,.5);
     --code-bg:#0B0F18; --code-ink:#E4E7EC;
@@ -512,10 +516,10 @@ button.badge{border:0;cursor:pointer}
 /* A favourite's mark beside its name; starring is in the row's ⋯ menu (the user, 10-28). */
 .starred{display:inline-grid;place-items:center;color:var(--warn-ink)}
 .starred .i{width:14px;height:14px;fill:var(--warn)}
-/* A profile's tag (the user, 10-28: option C): outlined and square-ish, with a tag mark, so it never reads as a
-   group's coloured block; a long one ends in an ellipsis. In the list, two, then how many more. */
-.tag{display:inline-flex;align-items:center;gap:3px;max-width:100%;height:20px;padding:0 6px;border:1px solid var(--line-2);border-radius:4px;background:var(--card);color:var(--ink-2);font-size:12px;line-height:18px;white-space:nowrap;vertical-align:middle}
-.tag > .i{width:11px;height:11px;color:var(--ink-4)}
+/* A profile's tag (the user, 10-28: option C; 10-29: indigo, option B): outlined and square-ish, with a tag mark, so
+   it never reads as a group's coloured block; a long one ends in an ellipsis. In the list, two, then how many more. */
+.tag{display:inline-flex;align-items:center;gap:3px;max-width:100%;height:20px;padding:0 6px;border:1px solid var(--tag-line);border-radius:4px;background:var(--card);color:var(--tag-ink);font-size:12px;font-weight:500;line-height:18px;white-space:nowrap;vertical-align:middle}
+.tag > .i{width:11px;height:11px;color:var(--tag)}
 .tag > span{overflow:hidden;text-overflow:ellipsis}
 .tag-cell{display:inline-flex;align-items:center;gap:4px;max-width:100%}
 .tag-cell .tag{max-width:96px}
