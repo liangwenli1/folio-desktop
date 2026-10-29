@@ -5,7 +5,7 @@ import { MANAGE, can, folio, isApiError, type Group, type Invitation, type Membe
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { day, errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, useChanged, useFail, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, useChanged, useFail, useToast } from './ui';
 import { Select, SelectField } from './Select';
 import { RolesTab } from './Roles';
 
@@ -68,12 +68,10 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
         {tab === 'members' && (
             <section className="list-card" aria-label={T.tabs.members}>
               <div className="filters">
-                <Flt label={T.filterLabels.keyword} grow>
-                  <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
-                    <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-                </Flt>
-                <Flt label={T.filterLabels.role}><span className="grp-pick"><Select label={T.role} value={roleId} onChange={setRoleId}
-                  options={[{ value: 'all', label: T.allRoles }, ...data.roles.map(r => ({ value: r.id, label: roleName(d, r) }))]} /></span></Flt>
+                <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+                  <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+                <span className="grp-pick"><Select label={T.role} value={roleId} onChange={setRoleId}
+                  options={[{ value: 'all', label: T.allRoles }, ...data.roles.map(r => ({ value: r.id, label: roleName(d, r) }))]} /></span>
                 <button type="button" className="btn btn-secondary flt-reset" disabled={!q && roleId === 'all'} onClick={() => { setQ(''); setRoleId('all'); }}>{d.profiles.reset}</button>
               </div>
               {data.loaded.has('members') && <PartialFailed d={d} data={data} kinds={['groups']} />}

@@ -7,7 +7,7 @@ import { folio, type Job, type JobDetail, type JobKind } from './api';
 import type { WorkspaceData } from './data';
 import { dayLabel, time } from './Activity';
 import { checkWhy, errorText, launchWhy, type Dict, type Lang } from './i18n';
-import { Empty, Flt, Icon, ListFailed, PanelEdge, SkelRows, Switch, Tabs, useFail, useToast } from './ui';
+import { Empty, Icon, ListFailed, PanelEdge, SkelRows, Switch, Tabs, useFail, useToast } from './ui';
 import { Select } from './Select';
 
 type Tab = 'all' | 'running' | 'done' | 'partial' | 'canceled';
@@ -66,10 +66,10 @@ export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang;
         <div className={`side-wrap${picked ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={J.title}>
             <div className="filters">
-              <Flt label={J.kind}><span className="grp-pick"><Select label={J.kind} value={kind} onChange={v => setKind(v as 'all' | JobKind)}
-                options={[{ value: 'all', label: J.kinds.all }, ...KINDS.map(k => ({ value: k, label: J.kinds[k] }))]} /></span></Flt>
-              <Flt label={J.range}><span className="grp-pick"><Select label={J.range} value={range} onChange={v => setRange(v as Range)}
-                options={(['day', 'week', 'month', 'all'] as const).map(r => ({ value: r, label: J.ranges[r] }))} /></span></Flt>
+              <span className="grp-pick"><Select label={J.kind} value={kind} onChange={v => setKind(v as 'all' | JobKind)}
+                options={[{ value: 'all', label: J.kinds.all }, ...KINDS.map(k => ({ value: k, label: J.kinds[k] }))]} /></span>
+              <span className="grp-pick"><Select label={J.range} value={range} onChange={v => setRange(v as Range)}
+                options={(['day', 'week', 'month', 'all'] as const).map(r => ({ value: r, label: J.ranges[r] }))} /></span>
               <button type="button" className="btn btn-secondary flt-reset" disabled={kind === 'all' && range === 'week'} onClick={() => { setKind('all'); setRange('week'); }}>{d.profiles.reset}</button>
             </div>
             <div className="tw jb-t">

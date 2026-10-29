@@ -9,7 +9,7 @@ import { SLOW_MS, VERY_SLOW_MS, latencyTone, proxyState } from './checks';
 import type { WorkspaceData } from './data';
 import { ago, checkWhy, errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
-import { Act, BulkBar, Cancel, CopyBtn, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, PartialFailed, Switch, Tabs, ViewSwitch, useChanged, useFail, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, CopyBtn, Empty, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, PartialFailed, Switch, Tabs, ViewSwitch, useChanged, useFail, useToast, useView } from './ui';
 import { Flag } from './Flag';
 import { Pager } from './Pager';
 import { Select, SelectField } from './Select';
@@ -150,18 +150,16 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
         <div className={`side-wrap${curProxy ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={X.title}>
             <div className="filters">
-              <Flt label={X.filterLabels.keyword} grow>
-                <label className="search">
-                  <Icon name="search" /><span className="sr">{X.search}</span>
-                  <input type="search" placeholder={X.searchPh} value={q} onChange={e => { setQ(e.target.value); reset(); }} autoComplete="off" />
-                </label>
-              </Flt>
-              <Flt label={X.filterLabels.type}><span className="grp-pick"><Select label={X.filter.type} value={type} onChange={v => { setType(v as 'all' | ProxyType); reset(); }}
-                options={[{ value: 'all', label: X.filter.types }, ...TYPES.map(t => ({ value: t, label: t.toUpperCase() }))]} /></span></Flt>
-              <Flt label={X.filterLabels.region}><span className="grp-pick"><Select label={X.filter.region} value={region} onChange={v => { setRegion(v); reset(); }}
-                options={[{ value: 'all', label: X.filter.regions }, ...regions.map(([c, n]) => ({ value: c, label: n }))]} /></span></Flt>
-              <Flt label={X.filterLabels.status}><span className="grp-pick"><Select label={X.filter.state} value={status} onChange={v => { setStatus(v as Status); reset(); }}
-                options={STATUSES.map(s => ({ value: s, label: s === 'all' ? X.filter.states : X.states[s], ...(s === 'all' ? {} : { count: count(s) }) }))} /></span></Flt>
+              <label className="search">
+                <Icon name="search" /><span className="sr">{X.search}</span>
+                <input type="search" placeholder={X.searchPh} value={q} onChange={e => { setQ(e.target.value); reset(); }} autoComplete="off" />
+              </label>
+              <span className="grp-pick"><Select label={X.filter.type} value={type} onChange={v => { setType(v as 'all' | ProxyType); reset(); }}
+                options={[{ value: 'all', label: X.filter.types }, ...TYPES.map(t => ({ value: t, label: t.toUpperCase() }))]} /></span>
+              <span className="grp-pick"><Select label={X.filter.region} value={region} onChange={v => { setRegion(v); reset(); }}
+                options={[{ value: 'all', label: X.filter.regions }, ...regions.map(([c, n]) => ({ value: c, label: n }))]} /></span>
+              <span className="grp-pick"><Select label={X.filter.state} value={status} onChange={v => { setStatus(v as Status); reset(); }}
+                options={STATUSES.map(s => ({ value: s, label: s === 'all' ? X.filter.states : X.states[s], ...(s === 'all' ? {} : { count: count(s) }) }))} /></span>
               <button type="button" className="btn btn-secondary flt-reset" disabled={!filtered} onClick={() => { setQ(''); setType('all'); setRegion('all'); setStatus('all'); reset(); }}>{d.profiles.reset}</button>
               <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
             </div>

@@ -7,7 +7,7 @@ import { MANAGE, can, folio, isApiError, type Extension, type Workspace } from '
 import type { WorkspaceData } from './data';
 import { ago, errorText, type Dict } from './i18n';
 import { ENGINES } from './checks';
-import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useFail, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Icon, ListFailed, Loading, Modal, MoreMenu, ViewSwitch, useFail, useToast, useView } from './ui';
 import { EngineLogo, Flag } from './Flag';
 import { Select } from './Select';
 
@@ -60,12 +60,10 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
         </header>
         <section className="list-card" aria-label={X.title}>
         <div className="filters">
-          <Flt label={d.profiles.filterLabels.keyword} grow>
-            <label className="search"><Icon name="search" /><span className="sr">{X.search}</span>
-              <input type="search" placeholder={X.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-          </Flt>
-          <Flt label={X.cols.engine}><span className="grp-pick"><Select label={X.cols.engine} value={filter} onChange={v => setFilter(v as Filter)}
-            options={(['all', 'chromium', 'firefox'] as const).map(f => ({ value: f, label: f === 'all' ? d.profiles.filter.engines : ENGINES[f], count: counts[f] }))} /></span></Flt>
+          <label className="search"><Icon name="search" /><span className="sr">{X.search}</span>
+            <input type="search" placeholder={X.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+          <span className="grp-pick"><Select label={X.cols.engine} value={filter} onChange={v => setFilter(v as Filter)}
+            options={(['all', 'chromium', 'firefox'] as const).map(f => ({ value: f, label: f === 'all' ? d.profiles.filter.engines : ENGINES[f], count: counts[f] }))} /></span>
           <button type="button" className="btn btn-secondary flt-reset" disabled={!needle && filter === 'all'} onClick={() => { setQ(''); setFilter('all'); }}>{d.profiles.reset}</button>
           <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
         </div>

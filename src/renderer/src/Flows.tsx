@@ -6,7 +6,7 @@ import type { FlowEvent, FlowLog, FlowResult, Step } from '@shared/bridge';
 import { folio, isApiError, type Flow, type Profile } from './api';
 import type { WorkspaceData } from './data';
 import { ago, type Dict } from './i18n';
-import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, useFail, useLeave, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, SkelRows, useFail, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
 
 type StepType = Step['type'];
@@ -116,10 +116,8 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
         </header>
         <section className="list-card" aria-label={F.title}>
         <div className="filters">
-          <Flt label={d.profiles.filterLabels.keyword} grow>
-            <label className="search"><Icon name="search" /><span className="sr">{F.search}</span>
-              <input type="search" placeholder={F.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-          </Flt>
+          <label className="search"><Icon name="search" /><span className="sr">{F.search}</span>
+            <input type="search" placeholder={F.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
           <button type="button" className="btn btn-secondary flt-reset" disabled={!needle} onClick={() => setQ('')}>{d.profiles.reset}</button>
         </div>
         <div className="tw">

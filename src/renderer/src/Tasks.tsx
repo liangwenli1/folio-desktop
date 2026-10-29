@@ -8,7 +8,7 @@ import { readVariables, toCsv } from './csv';
 import type { WorkspaceData } from './data';
 import { flowError } from './Flows';
 import { ago, errorText, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Empty, Flt, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useFail, useToast, useView, type IconName } from './ui';
+import { Act, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useFail, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField, groupOpts } from './Select';
 
@@ -94,10 +94,8 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
         {view === 'calendar' ? <TaskCalendar d={d} lang={lang} tasks={data.tasks} onOpen={setOpen} /> : <>
           <section className="list-card" aria-label={T.title}>
           <div className="filters">
-            <Flt label={d.profiles.filterLabels.keyword} grow>
-              <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
-                <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-            </Flt>
+            <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+              <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
             <button type="button" className="btn btn-secondary flt-reset" disabled={!needle} onClick={() => setQ('')}>{d.profiles.reset}</button>
           </div>
           <div className="tw flow">

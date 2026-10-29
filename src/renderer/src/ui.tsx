@@ -570,10 +570,6 @@ export function BulkBar({ n, all, label, clearLabel, onClear, children, end }: {
   );
 }
 
-// A filter with its name above it (v2's filter area: keyword, the kinds of thing, state, date; Reset at the end).
-export const Flt = ({ label, grow, children }: { label: string; grow?: boolean; children: ReactNode }) => (
-  <div className={`flt${grow ? ' grow' : ''}`}><span className="flt-l" aria-hidden="true">{label}</span>{children}</div>
-);
 
 export const bytes = (n: number) => (n < 1024 ** 2 ? `${Math.max(1, Math.round(n / 1024))} KB` : n < 1024 ** 3 ? `${Math.round(n / 1024 ** 2)} MB` : `${(n / 1024 ** 3).toFixed(1)} GB`);
 

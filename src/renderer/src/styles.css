@@ -387,10 +387,6 @@ html[data-platform="win32"] .top{padding-right:150px}
 /* the profile list: rows or cards */
 /* The filter area (v2): each filter named above it, Reset at the end. */
 .filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;padding:20px var(--gx) 16px;flex:none}
-.flt{display:grid;gap:8px;min-width:0}
-.flt-l{font-size:14px;line-height:22px;font-weight:500;color:var(--ink-body)}
-.flt.grow{flex:1 1 260px;max-width:360px}
-.flt .grp-pick{display:block}
 .flt-reset{margin-left:auto}
 .views{display:inline-flex;gap:2px;padding:4px;border-radius:var(--r-card);background:var(--seg)}
 .views button{display:grid;place-items:center;width:32px;height:var(--h-sm);border:0;border-radius:var(--r);background:transparent;color:var(--ink-3);cursor:pointer}

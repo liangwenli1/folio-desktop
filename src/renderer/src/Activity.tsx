@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { can, folio, isApiError, type ActivityEntry, type Workspace } from './api';
 import type { WorkspaceData } from './data';
 import { day, fieldName, type Dict, type Lang } from './i18n';
-import { Empty, Flt, Icon, LoadFailed, PanelEdge, SkelRows, useFail, useToast } from './ui';
+import { Empty, Icon, LoadFailed, PanelEdge, SkelRows, useFail, useToast } from './ui';
 import { Select } from './Select';
 import { Pager } from './Pager';
 
@@ -93,22 +93,18 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
           <section className="side-main list-card" aria-label={A.title}>
             {/* Keyword, person, kind of action, dates, then Reset (v2 spec 5). */}
             <div className="filters">
-              <Flt label={A.filterLabels.keyword} grow>
-                <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
-                  <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
-              </Flt>
-              <Flt label={A.filterLabels.person}><span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} search searchPh={d.form.searchPh}
-                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span></Flt>
-              <Flt label={A.filterLabels.kind}><span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
-                options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span></Flt>
-              <Flt label={A.filterLabels.dates}>
-                <span className="lg-dates" role="group" aria-label={A.dates}>
-                  <Icon name="calendar" />
-                  <input type="date" aria-label={A.from} value={from} max={to || undefined} onChange={e => pick(() => setFrom(e.target.value))} />
-                  <span aria-hidden="true">{A.to}</span>
-                  <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
-                </span>
-              </Flt>
+              <label className="search"><Icon name="search" /><span className="sr">{A.search}</span>
+                <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
+              <span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} search searchPh={d.form.searchPh}
+                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span>
+              <span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
+                options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span>
+              <span className="lg-dates" role="group" aria-label={A.dates}>
+                <Icon name="calendar" />
+                <input type="date" aria-label={A.from} value={from} max={to || undefined} onChange={e => pick(() => setFrom(e.target.value))} />
+                <span aria-hidden="true">{A.to}</span>
+                <input type="date" aria-label={A.until} value={to} min={from || undefined} onChange={e => pick(() => setTo(e.target.value))} />
+              </span>
               <button type="button" className="btn btn-secondary flt-reset" disabled={!filtered} onClick={reset}>{d.profiles.reset}</button>
             </div>
             <ActivityTable d={d} lang={lang} entries={entries} failed={failed} admin={data.admin} onRetry={() => void reload()} onClear={filtered ? reset : undefined}

@@ -10,7 +10,7 @@ import { ENGINES } from './checks';
 import { errorText, type Dict } from './i18n';
 import { Select, SelectField, type Opt } from './Select';
 import { EngineLogo } from './Flag';
-import { Act, Cancel, Empty, Flt, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useFail, useToast } from './ui';
+import { Act, Cancel, Empty, Icon, Modal, MoreMenu, PanelEdge, Progress, SkelRows, Switch, Tabs, bytes, percent, useFail, useToast } from './ui';
 
 const KINDS: KernelKind[] = ['chromium', 'firefox'];
 const PLATFORMS = ['win32-x64', 'darwin-arm64', 'darwin-x64', 'linux-x64'];
@@ -200,12 +200,10 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
         <div className={`side-wrap${side ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={E.title}>
             <div className="filters">
-              <Flt label={E.filterLabels.keyword} grow>
-                <label className="search"><Icon name="search" /><span className="sr">{E.search}</span>
-                  <input type="search" placeholder={E.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-              </Flt>
-              <Flt label={E.filterLabels.system}><span className="grp-pick"><Select label={E.system} value={system} onChange={v => setSystem(v as 'all' | Family)}
-                options={[{ value: 'all', label: E.systems }, ...FAMILIES.map(f => ({ value: f, label: E.families[f] }))]} /></span></Flt>
+              <label className="search"><Icon name="search" /><span className="sr">{E.search}</span>
+                <input type="search" placeholder={E.searchPh} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+              <span className="grp-pick"><Select label={E.system} value={system} onChange={v => setSystem(v as 'all' | Family)}
+                options={[{ value: 'all', label: E.systems }, ...FAMILIES.map(f => ({ value: f, label: E.families[f] }))]} /></span>
               <button type="button" className="btn btn-secondary flt-reset" disabled={!needle && system === 'all'} onClick={() => { setQ(''); setSystem('all'); }}>{d.profiles.reset}</button>
             </div>
             <div className="tw en-t">

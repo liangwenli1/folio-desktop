@@ -7,7 +7,7 @@ import { launchWhy, regionName, runTime, type Dict, type Lang, type News } from 
 import { ProfileDetail, busyLabel, elsewhere } from './ProfileDetail';
 import { CookieExport } from './ProfileCookies';
 import { dayLabel, time } from './Activity';
-import { Act, BulkBar, Cancel, Empty, ExtIcon, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, Tag, ViewSwitch, percent, useChanged, useFail, useNow, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, ExtIcon, Icon, ListFailed, Loading, Modal, MoreMenu, PartialFailed, SkelRows, Tabs, Tag, ViewSwitch, percent, useChanged, useFail, useNow, useToast, useView } from './ui';
 import { Pager } from './Pager';
 import { ReplaceProxyDialog } from './Proxies';
 import { Select, groupOpts, ownerOpts } from './Select';
@@ -305,19 +305,17 @@ export function ProfilesPage({ d, lang, ws, meId, data, group, setGroup, only, s
         <section className="list-card" aria-label={P.title}>
         {/* The filter area (v2 01, spec 5): keyword, group, engine, status, then Reset. */}
         <div className="filters">
-          <Flt label={P.filterLabels.keyword} grow>
-            <label className="search">
-              <Icon name="search" /><span className="sr">{P.search}</span>
-              <input type="search" placeholder={P.searchPh} value={q} onChange={e => { setQ(e.target.value); setPage(1); }} autoComplete="off" />
-              <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
-            </label>
-          </Flt>
-          <Flt label={P.filterLabels.group}><span className="grp-pick"><Select label={d.groups.title} value={group} search loading={!data.loaded.has('groups')} failed={data.loadFailed.has('groups')} onRetry={() => data.refresh('groups')} onChange={v => { setGroup(v as GroupFilter); setPage(1); }}
-            options={[{ value: 'all', label: d.groups.all }, ...groupOpts(data.groups), { value: 'none', label: d.groups.none }]} /></span></Flt>
-          <Flt label={P.filterLabels.engine}><span className="grp-pick"><Select label={P.filter.engine} value={engine} onChange={v => { setEngine(v as Engine); setPage(1); }}
-            options={[{ value: 'all', label: P.filter.engines }, ...engines.map(e => { const [k, v] = e.split(':'); return { value: e, label: `${ENGINES[k as Profile['kernel']]} ${v}` }; })]} /></span></Flt>
-          <Flt label={P.filterLabels.status}><span className="grp-pick"><Select label={P.filter.label} value={status === 'issues' || status === 'starred' ? status : 'all'} onChange={v => { setStatus(v as Status); setPage(1); }}
-            options={(['all', 'issues', 'starred'] as const).map(x => ({ value: x, label: x === 'all' ? P.filter.states : P.filter[x], ...(x === 'all' ? {} : { count: counts[x] }) }))} /></span></Flt>
+          <label className="search">
+            <Icon name="search" /><span className="sr">{P.search}</span>
+            <input type="search" placeholder={P.searchPh} value={q} onChange={e => { setQ(e.target.value); setPage(1); }} autoComplete="off" />
+            <button type="button" className="kbd-btn" title={P.palette} aria-label={P.palette} onClick={onPalette}><kbd>{mod} K</kbd></button>
+          </label>
+          <span className="grp-pick"><Select label={d.groups.title} value={group} search loading={!data.loaded.has('groups')} failed={data.loadFailed.has('groups')} onRetry={() => data.refresh('groups')} onChange={v => { setGroup(v as GroupFilter); setPage(1); }}
+            options={[{ value: 'all', label: d.groups.all }, ...groupOpts(data.groups), { value: 'none', label: d.groups.none }]} /></span>
+          <span className="grp-pick"><Select label={P.filter.engine} value={engine} onChange={v => { setEngine(v as Engine); setPage(1); }}
+            options={[{ value: 'all', label: P.filter.engines }, ...engines.map(e => { const [k, v] = e.split(':'); return { value: e, label: `${ENGINES[k as Profile['kernel']]} ${v}` }; })]} /></span>
+          <span className="grp-pick"><Select label={P.filter.label} value={status === 'issues' || status === 'starred' ? status : 'all'} onChange={v => { setStatus(v as Status); setPage(1); }}
+            options={(['all', 'issues', 'starred'] as const).map(x => ({ value: x, label: x === 'all' ? P.filter.states : P.filter[x], ...(x === 'all' ? {} : { count: counts[x] }) }))} /></span>
           {only && <button type="button" className="chip" onClick={() => setOnly(null)}>{d.risks.clear} <span aria-hidden="true">×</span></button>}
           <button type="button" className="btn btn-secondary flt-reset" disabled={!filtered} onClick={reset}>{filtered ? P.resetN(active) : P.reset}</button>
         </div>
