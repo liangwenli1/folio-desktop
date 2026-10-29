@@ -8,7 +8,7 @@ import type { WorkspaceData } from './data';
 import { errorText, type Dict, type Lang } from './i18n';
 import { dayLabel, time } from './Activity';
 import { engineName } from './checks';
-import { Act, BulkBar, Cancel, Empty, Flt, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useFail, useToast, useView } from './ui';
+import { Act, BulkBar, Cancel, Empty, Icon, ListFailed, Loading, Modal, MoreMenu, PanelEdge, ViewSwitch, useFail, useToast, useView } from './ui';
 import { Flag, OsLogo } from './Flag';
 import { Select, SelectField, groupOpts } from './Select';
 
@@ -85,20 +85,16 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
         <div className={`side-wrap${picked.length ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={T.title}>
             <div className="filters">
-              <Flt label={T.filterLabels.keyword} grow>
-                <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
-                  <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
-              </Flt>
-              <Flt label={T.filterLabels.by}><span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy} search
-                options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: person.get(id) ?? d.activity.someone }))]} /></span></Flt>
-              <Flt label={T.filterLabels.when}>
-                <span className="lg-dates" role="group" aria-label={T.when}>
-                  <Icon name="calendar" />
-                  <input type="date" aria-label={d.activity.from} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} />
-                  <span aria-hidden="true">{d.activity.to}</span>
-                  <input type="date" aria-label={d.activity.until} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} />
-                </span>
-              </Flt>
+              <label className="search"><Icon name="search" /><span className="sr">{T.search}</span>
+                <input type="search" placeholder={T.search} value={q} onChange={e => setQ(e.target.value)} autoComplete="off" /></label>
+              <span className="grp-pick"><Select label={T.cols.by} value={by} onChange={setBy} search
+                options={[{ value: 'all', label: T.anyone }, ...deleters.map(id => ({ value: id, label: person.get(id) ?? d.activity.someone }))]} /></span>
+              <span className="lg-dates" role="group" aria-label={T.when}>
+                <Icon name="calendar" />
+                <input type="date" aria-label={d.activity.from} value={from} max={to || undefined} onChange={e => setFrom(e.target.value)} />
+                <span aria-hidden="true">{d.activity.to}</span>
+                <input type="date" aria-label={d.activity.until} value={to} min={from || undefined} onChange={e => setTo(e.target.value)} />
+              </span>
               <button type="button" className="btn btn-secondary flt-reset" disabled={!filtered} onClick={clear}>{d.profiles.reset}</button>
               <ViewSwitch label={d.profiles.views.label} value={view} onChange={setView} options={[['table', 'list', d.profiles.views.list], ['cards', 'grid', d.profiles.views.cards]]} />
             </div>
