@@ -22,7 +22,7 @@ import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
 import { AccountPage, LogoutDialog, SwitchDialog } from './Account';
-import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useFail, useGuard, useNotice, useToast, type IconName } from './ui';
+import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useFail, useGuard, useMedia, useNotice, useToast, useView, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Bell, TopBar, TrailProvider, type Crumb, type Notice } from './TopBar';
 import { Flag } from './Flag';
@@ -98,6 +98,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [palette, setPalette] = useState(false);
   // A record's page puts itself after the page's name in the top bar.
   const [trail, setTrail] = useState<Crumb[] | null>(null);
+  // The rail folds to its icons from the button beside the name and opens again from the mark (the user, 10-29), kept
+  // on this computer; a window under 1024 wide always folds it.
+  const [rail, setRail] = useView<'open' | 'folded'>('rail', 'open');
+  const narrow = useMedia('(max-width: 1023px)');
   // What the main process knew at start never replaces news that arrived meanwhile.
   useEffect(() => { void folio.update().then(u => setUpdate(cur => cur ?? u)); applyInspector(); return folio.onUpdate(setUpdate); }, []);
   // What the main process shows itself follows the workbench's language.
@@ -199,9 +203,15 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
 
   return (
     <TrailProvider value={setTrail}>
-    <div className="app">
+    <div className={`app${rail === 'folded' || narrow ? ' mini' : ''}`}>
       <aside className="side" aria-label={d.ws.current}>
-        <div className="brand"><Mark /><span className="brand-word">Folio</span></div>
+        <div className="brand">
+          {rail === 'folded' && !narrow
+            ? <button type="button" className="brand-mark" aria-label={d.nav.unfold} title={d.nav.unfold} onClick={() => setRail('open')}><Mark /></button>
+            : <Mark />}
+          <span className="brand-word">Folio</span>
+          <button type="button" className="icon-btn bare brand-fold" aria-label={d.nav.fold} title={d.nav.fold} onClick={() => setRail('folded')}><Icon name="fold" /></button>
+        </div>
         <button className="ws" type="button" onClick={() => setDialog({ kind: 'switch' })} title={d.ws.switch}>
           <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
           {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}

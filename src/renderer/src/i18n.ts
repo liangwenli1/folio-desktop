@@ -39,7 +39,7 @@ export const en = {
     noAccount: 'No account yet?', create: 'Sign up on the website', forgot: 'Forgot password?',
     demo: [['US-Store-01', 'Seattle'], ['UK-Shop-01', 'London'], ['JP-Social-01', 'Tokyo']] as [string, string][]
   },
-  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan and usage', help: 'Help', more: 'More' },
+  nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan and usage', help: 'Help', fold: 'Collapse menu', unfold: 'Expand menu', more: 'More' },
   top: {
     search: 'Search profiles, proxies or members…', toDark: 'Switch to dark', toLight: 'Switch to light', bell: 'Notifications', bellNew: 'Notifications (new)', none: 'No notifications',
     planEnds: (plan: string, date: string) => `${plan} ends on ${date}. Renew it to keep its limits.`, trialEnds: (date: string) => `The free trial ends on ${date}.`,
@@ -968,7 +968,7 @@ export const zh: Dict = {
     noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？',
     demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][]
   },
-  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '平台设置', billing: '套餐与用量', help: '帮助中心', more: '更多' },
+  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '平台设置', billing: '套餐与用量', help: '帮助中心', fold: '收起菜单', unfold: '展开菜单', more: '更多' },
   top: {
     search: '搜索环境、代理或成员…', toDark: '切换到深色', toLight: '切换到浅色', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
     planEnds: (plan: string, date: string) => `${plan}将于 ${date} 到期，续费后可继续使用当前额度。`, trialEnds: (date: string) => `免费试用将于 ${date} 结束。`,

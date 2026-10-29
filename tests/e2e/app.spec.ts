@@ -108,6 +108,30 @@ test('the button at the top right switches light and dark at a click, and this c
   await app.close();
 });
 
+test('the menu folds to its icons from the button beside the name, opens from the mark, and this computer keeps it', async () => {
+  const { email } = await account();
+  const dir = dataDir();
+  let app = await launch(dir);
+  let win = await logIn(app, email);
+  const label = () => win.getByRole('navigation', { name: 'Main' }).getByText('Profiles', { exact: true });
+  await expect(label()).toBeVisible();
+  await win.getByRole('button', { name: 'Collapse menu' }).click();
+  await expect(label()).toBeHidden();
+  // Each icon still says what it is, and still goes there.
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Account' }).click();
+  await expect(win.getByRole('heading', { name: 'Account' })).toBeVisible();
+  await app.close();
+
+  app = await launch(dir);
+  win = await app.firstWindow();
+  await expect(win.getByRole('button', { name: 'Expand menu' })).toBeVisible();
+  await expect(label()).toBeHidden();
+  await win.getByRole('button', { name: 'Expand menu' }).click();
+  await expect(label()).toBeVisible();
+  await expect(win.getByRole('button', { name: 'Collapse menu' })).toBeVisible();
+  await app.close();
+});
+
 test('Chinese accounts get the Chinese workbench, and upgrading opens the site checkout', async () => {
   const { email, workspaceId } = await account({ locale: 'zh' });
   const app = await launch(dataDir());

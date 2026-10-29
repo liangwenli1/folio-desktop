@@ -309,6 +309,9 @@ html[data-platform="win32"] .top{padding-right:150px}
 .bell-none{padding:24px 16px;text-align:center;color:var(--ink-2)}
 .brand{display:flex;align-items:center;gap:10px;height:40px;padding:0 8px;flex:none}
 .brand .seal{width:32px;height:32px}
+.brand-fold{margin-left:auto}
+.brand-mark{display:grid;place-items:center;padding:4px;margin:-4px;border:0;border-radius:var(--r);background:none;cursor:pointer}
+.brand-mark:hover{background:var(--hover)}
 .ws{display:flex;align-items:center;gap:8px;width:100%;height:var(--h-ctl);margin-top:24px;padding:0 10px 0 12px;flex:none;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
 .ws:hover{border-color:var(--line-2);background:var(--seg)}
 .ws > span:first-child{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1}
@@ -1507,17 +1510,16 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .sa-arrow::before{content:'';position:absolute;z-index:-1;left:-7px;right:-7px;top:50%;border-top:1px solid color-mix(in srgb,var(--accent) 30%,var(--line))}
 .sa-arrow .i{width:12px;height:12px}
 
-/* Under 1024px the rail keeps only its icons: the names are in each button's tooltip, and the groups stay
-   reachable through the filter bar's group picker. */
-@media (max-width:1023px){
-  .app{grid-template-columns:64px minmax(0,1fr)}
-  .side{padding:16px 10px 12px}
-  .brand{justify-content:center;padding:0}
-  /* The workspace and the plan are on the switch dialog, from the account's page too. */
-  .brand-word,.nav-l,.cnt,.update,.ws{display:none}
-  .nav{margin:24px -4px 0;padding:0 4px 8px}
-  .nav-i{justify-content:center;gap:0;padding:0}
-}
+/* The rail with only its icons: folded by the button beside the name (the mark opens it again), and always under
+   1024px (the workbench sets .mini for both). The names are in each button's tooltip, and the groups stay reachable
+   through the filter bar's group picker. */
+.app.mini{grid-template-columns:64px minmax(0,1fr)}
+.app.mini .side{padding-inline:10px;padding-bottom:12px}
+.app.mini .brand{justify-content:center;padding:0}
+/* The workspace and the plan are on the switch dialog, from the account's page too. */
+.app.mini :is(.brand-word,.brand-fold,.nav-l,.cnt,.update,.ws){display:none}
+.app.mini .nav{margin:24px -4px 0;padding:0 4px 8px}
+.app.mini .nav-i{justify-content:center;gap:0;padding:0}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none !important;transition:none !important}
