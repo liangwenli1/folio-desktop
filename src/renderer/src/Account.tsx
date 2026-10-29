@@ -39,27 +39,22 @@ export function AccountPage({ d, lang, version, me, onSaved, onSwitch, onLogout 
 function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; onSaved(): Promise<void> }){
   const A = d.account;
   const toast = useToast();
-  const [name, setName] = useState(me.user.displayName);
   const [note, setNote] = useState(me.user.note ?? '');
   const [language, setLanguage] = useState<Lang>(lang);
   // Opening at startup belongs to this computer, and only Windows and macOS have it.
   const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
   const [onStart, setOnStart] = useState(false);
   useEffect(() => { void folio.startup().then(s => { setStartup(s); setOnStart(s.enabled); }); }, []);
-  const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dirty = name !== me.user.displayName || note !== (me.user.note ?? '') || language !== lang || (!!startup && onStart !== startup.enabled);
+  const dirty = note !== (me.user.note ?? '') || language !== lang || (!!startup && onStart !== startup.enabled);
   useLeave(dirty);
-  const nameErr = tried && !name.trim() ? A.nameErr : null;
 
   async function save(e: FormEvent){
     e.preventDefault();
-    setTried(true);
-    if (!name.trim()){ document.getElementById('ac-name')?.focus(); return; }
     setBusy(true); setError(null);
     try {
-      await folio.api('PATCH', '/me', { displayName: name.trim(), note: note.trim() || null, locale: language });
+      await folio.api('PATCH', '/me', { note: note.trim() || null, locale: language });
       if (startup?.supported && onStart !== startup.enabled){ await folio.setStartup(onStart); setStartup({ ...startup, enabled: onStart }); }
       await onSaved();
       toast({ title: A.saved });
@@ -70,11 +65,6 @@ function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; on
     <form className="sec duo-body" onSubmit={e => void save(e)} noValidate aria-labelledby="ac-h">
       <h3 id="ac-h">{A.info}</h3>
       {error && <p className="notice error" role="alert">{error}</p>}
-      <div className="field">
-        <label htmlFor="ac-name">{A.displayName}<span className="req" aria-hidden="true">*</span></label>
-        <input id="ac-name" value={name} maxLength={40} required onChange={e => setName(e.target.value)} aria-invalid={!!nameErr} aria-describedby={nameErr ? 'ac-name-err' : 'ac-name-hint'} />
-        {nameErr ? <p className="err" id="ac-name-err">{nameErr}</p> : <p className="hint" id="ac-name-hint">{A.displayNameHint}</p>}
-      </div>
       <div className="field">
         <label htmlFor="ac-email">{A.email}</label>
         <input id="ac-email" value={me.user.email} disabled />

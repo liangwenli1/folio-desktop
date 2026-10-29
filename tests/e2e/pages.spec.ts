@@ -16,8 +16,8 @@ test('the Trash shows who deleted each profile, picks several on cards, and rest
   const win = await logIn(app, acct.email);
   await nav(win, /^Trash/);
   const row = win.locator('tr[data-id]', { hasText: 'Old-1' });
-  // By the name colleagues see.
-  await expect(row).toContainText(acct.email.split('@')[0]);
+  // By their email.
+  await expect(row).toContainText(acct.email);
   await expect(row.getByRole('button', { name: 'Restore' })).toBeVisible();
 
   await win.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Cards' }).click();

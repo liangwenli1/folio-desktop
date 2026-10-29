@@ -165,8 +165,7 @@ test('while it runs, what it was started with waits until it is stopped, and try
 test('groups sit under their parents, the owner list has its user once, and a saved profile changes system once confirmed', async () => {
   const acct = await account();
   const base = `${API}/workspaces/${acct.workspaceId}`;
-  const me = (await (await acct.api.get('/me')).json()).user as { id: string; displayName: string };
-  const us = await (await acct.api.post(`${base}/groups`, { data: { name: 'US sites' } })).json();
+    const us = await (await acct.api.post(`${base}/groups`, { data: { name: 'US sites' } })).json();
   await acct.api.post(`${base}/groups`, { data: { name: 'Los Angeles', parentId: us.id } });
   await acct.api.post(`${base}/groups`, { data: { name: 'Berlin' } });
   const p = await (await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Sys-1') })).json();
@@ -186,11 +185,11 @@ test('groups sit under their parents, the owner list has its user once, and a sa
   await list.getByRole('option').click();
   await expect(form.getByRole('combobox', { name: 'Group' })).toHaveText('US sites / Los Angeles');
   const owner = form.getByRole('combobox', { name: 'Assigned to' });
-  await expect(owner).toContainText(`${me.displayName} (you)`);
+  await expect(owner).toContainText(`${acct.email} (you)`);
   await owner.click();
   await expect(list.getByRole('option')).toHaveCount(2);
   await expect(list.getByRole('option').nth(0)).toHaveText('Unassigned');
-  await expect(list.getByRole('option').nth(1)).toContainText(`${me.displayName} (you)`);
+  await expect(list.getByRole('option').nth(1)).toContainText(`${acct.email} (you)`);
   await win.keyboard.press('Escape');
   await form.getByRole('button', { name: 'Cancel' }).click();
   await win.getByRole('dialog', { name: 'Discard unsaved changes?' }).getByRole('button', { name: 'Discard changes' }).click();

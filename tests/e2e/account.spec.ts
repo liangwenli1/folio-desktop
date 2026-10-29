@@ -14,18 +14,14 @@ test('a display name, a new password and which notices to get', async () => {
   await expect(win.getByRole('heading', { name: 'Profile' })).toBeVisible();
   await expect(win.getByLabel('Email')).toHaveValue(acct.email);
   await expect(win.getByLabel('Email')).toBeDisabled();
-  const name = win.getByRole('textbox', { name: 'Display name' });
-  await name.fill('');
-  await win.getByRole('button', { name: 'Save changes' }).click();
-  await expect(win.getByText('Enter a name.')).toBeVisible();
-  await expect(name).toBeFocused();
-  await name.fill('Lin Xiao');
+  // No display name to set (the user, 10-29): people are their email everywhere.
+  await expect(win.getByRole('textbox', { name: 'Display name' })).toHaveCount(0);
+  await win.locator('#ac-note').fill('Storefront');
   await win.getByRole('button', { name: 'Save changes' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Profile saved' })).toBeVisible();
-  // The sidebar names the account by its email; colleagues see the name: the team lists it.
   await expect(win.locator('.me')).toContainText(acct.email);
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Team' }).click();
-  await expect(win.getByText('Lin Xiao').first()).toBeVisible();
+  await expect(win.locator(`tr[data-member="${acct.email}"]`)).toContainText(`${acct.email} (you)`);
 
   // A new password needs the current one; then it is the one to log in with.
   await win.click('.me');

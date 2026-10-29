@@ -12,8 +12,8 @@ type Kind = 'all' | keyof Dict['activity']['kinds'];
 
 // What an entry says, without who did it.
 export const said = (d: Dict, e: ActivityEntry) => d.activity.actions[e.action](e.profile ? `${e.profile.name} #${String(e.profile.number).padStart(4, '0')}` : '', e.detail);
-// Who did it: a person by the name colleagues see, or Folio itself (emptying the Trash of what it kept long enough).
-export const who = (d: Dict, e: ActivityEntry) => e.actorName ?? e.actor ?? (e.detail.expired ? 'Folio' : d.activity.someone);
+// Who did it: a person by their email, or Folio itself (emptying the Trash of what it kept long enough).
+export const who = (d: Dict, e: ActivityEntry) => e.actor ?? (e.detail.expired ? 'Folio' : d.activity.someone);
 // One entry as a sentence, starting with who did it.
 export const describe = (d: Dict, e: ActivityEntry) => `${who(d, e)} ${said(d, e)}`;
 // What it was done to: the profile, or the thing the details name.
@@ -98,7 +98,7 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
                   <input type="search" placeholder={A.search} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" /></label>
               </Flt>
               <Flt label={A.filterLabels.person}><span className="grp-pick"><Select label={A.person} value={person} onChange={v => pick(() => setPerson(v))} search searchPh={d.form.searchPh}
-                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))]} /></span></Flt>
+                options={[{ value: '', label: A.everyone }, ...data.members.map(m => ({ value: m.userId, label: m.email }))]} /></span></Flt>
               <Flt label={A.filterLabels.kind}><span className="grp-pick"><Select label={A.kind} value={kind} onChange={v => pick(() => setKind(v as Kind))}
                 options={(Object.keys(A.kinds) as Kind[]).map(k => ({ value: k, label: A.kinds[k as keyof typeof A.kinds] }))} /></span></Flt>
               <Flt label={A.filterLabels.dates}>
@@ -212,7 +212,7 @@ function valueOf(d: Dict, data: WorkspaceData, field: string, v: unknown): strin
   if (v === null || v === undefined || v === '') return '—';
   if (field === 'groupId' || field === 'parentId') return data.groups.find(g => g.id === v)?.name ?? '—';
   if (field === 'proxyId' || field === 'backupId') return data.proxies.find(p => p.id === v)?.name ?? '—';
-  if (field === 'ownerId') return data.members.find(m => m.userId === v)?.displayName ?? '—';
+  if (field === 'ownerId') return data.members.find(m => m.userId === v)?.email ?? '—';
   if (field === 'windowMode') return d.form.windowModes[v as keyof typeof d.form.windowModes] ?? String(v);
   if (field === 'extensionIds' && Array.isArray(v)) return v.map(id => data.extensions.find(x => x.id === id)?.name ?? '—').join(', ') || d.activity.detail.empty;
   if (typeof v === 'boolean') return v ? d.activity.detail.on : d.activity.detail.off;

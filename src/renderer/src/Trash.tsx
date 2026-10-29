@@ -38,7 +38,7 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
   const picked = all.filter(p => sel.has(p.id));
   const filtered = !!(needle || from || to || by !== 'all');
   const groupName = new Map(data.groups.map(g => [g.id, g.name]));
-  const person = new Map(data.members.map(m => [m.userId, m.displayName]));
+  const person = new Map(data.members.map(m => [m.userId, m.email]));
   const country = (p: Profile) => data.proxies.find(x => x.id === p.proxyId)?.lastCheck?.geo?.country ?? null;
   const manager = can(ws.role, MANAGE);
   const left = (p: Profile) => Math.max(0, keep - Math.floor((Date.now() - Date.parse(p.deletedAt ?? new Date().toISOString())) / DAY));

@@ -126,8 +126,8 @@ export const en = {
   account: {
     title: 'Profile',
     menu: { profile: 'Profile', password: 'Change password', switch: 'Switch workspace', logout: 'Log out' },
-    info: 'Account', displayName: 'Display name', displayNameHint: 'How colleagues see you: in the team, the log and as an owner.', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
-    emailNote: 'Your email is how you log in; change it on the website’s account page.', nameErr: 'Enter a name.', saved: 'Profile saved',
+    info: 'Account', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
+    emailNote: 'Your email is how you log in; change it on the website’s account page.', saved: 'Profile saved',
     password: { current: 'Current password', next: 'New password', confirm: 'Confirm new password', rule: '8 to 64 characters.', currentErr: 'Enter your current password.', short: 'Use 8 to 64 characters.', mismatch: 'The two new passwords don’t match.', done: { title: 'Password changed', detail: 'Sign-ins on other computers have ended' } },
     switchDlg: { title: 'Switch workspace', field: 'Workspace', note: 'Switching changes what you see; nothing moves between workspaces. Save changes before you switch.', invites: 'Invitations', go: 'Switch' },
     logoutDlg: {
@@ -1054,8 +1054,8 @@ export const zh: Dict = {
   account: {
     title: '个人资料',
     menu: { profile: '个人资料', password: '修改密码', switch: '切换工作空间', logout: '退出登录' },
-    info: '账号信息', displayName: '显示名称', displayNameHint: '团队成员、操作日志与负责人处显示该名称。', email: '账号邮箱', note: '备注', notePh: '例如：店铺运营',
-    emailNote: '邮箱用于登录，如需修改请前往官网账户页。', nameErr: '请输入显示名称。', saved: '个人资料已保存',
+    info: '账号信息', email: '账号邮箱', note: '备注', notePh: '例如：店铺运营',
+    emailNote: '邮箱用于登录，如需修改请前往官网账户页。', saved: '个人资料已保存',
     password: { current: '当前密码', next: '新密码', confirm: '确认新密码', rule: '8–64 个字符。', currentErr: '请输入当前密码。', short: '密码需为 8–64 个字符。', mismatch: '两次输入的新密码不一致。', done: { title: '密码已修改', detail: '其他设备上的登录已退出' } },
     switchDlg: { title: '切换工作空间', field: '工作空间', note: '切换仅改变当前查看的资源，不会迁移环境。未保存的修改请在切换前处理。', invites: '待接受的邀请', go: '切换' },
     logoutDlg: {

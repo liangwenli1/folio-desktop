@@ -82,7 +82,7 @@ export function ProfilesPage({ d, lang, ws, meId, data, group, setGroup, only, s
   const manager = can(data.role, MANAGE), canDelete = can(data.role, 'profiles.delete'), canExport = can(data.role, 'cookies.export');
   // Moving a profile to another proxy is editing it and binding the proxy.
   const canBind = can(data.role, 'profiles.edit') && can(data.role, 'proxies.bind');
-  const person = useMemo(() => new Map(data.members.map(m => [m.userId, m.displayName])), [data.members]);
+  const person = useMemo(() => new Map(data.members.map(m => [m.userId, m.email])), [data.members]);
   const groupLabel = (p: Profile) => (p.groupId ? groupName.get(p.groupId) ?? d.groups.none : d.groups.none);
   const issue = (p: Profile) => healthOf.get(p.id)!.level !== 'ok' || risky(p.id);
   const counts: Record<Status, number> = {

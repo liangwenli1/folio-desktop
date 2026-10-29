@@ -51,7 +51,7 @@ export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang;
   const count = (t: Tab) => inRange.filter(j => t === 'all' || j.status === t).length;
   const picked = jobs.find(j => j.id === cur) ?? null;
   // Who started each, by the name colleagues see.
-  const names = new Map(data.members.map(m => [m.userId, m.displayName]));
+  const names = new Map(data.members.map(m => [m.userId, m.email]));
   const starter = (j: Job) => (j.startedById === meId ? J.me : (j.startedById && names.get(j.startedById)) || j.startedBy || '—');
 
   return (

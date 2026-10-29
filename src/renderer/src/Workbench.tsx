@@ -142,7 +142,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     const act = (id: string, label: string, icon: IconName, run: () => void, keys?: string): Command => ({ id, group: 'actions', label, icon: <Icon name={icon} />, run, keys });
     // A proxy opens its details (on the proxies page, for whoever may see it); a member, the team page.
     const lines: Command[] = manager ? data.proxies.map(px => ({ id: `px:${px.id}`, group: 'proxies', label: px.name, hint: `${px.host}:${px.port}`, icon: <Icon name="proxies" />, run: () => showProxy(px.id) })) : [];
-    const people: Command[] = data.members.map(m => ({ id: `m:${m.userId}`, group: 'members', label: m.displayName, hint: `${m.email} · ${roleName(d, m.role)}`, icon: <Icon name="team" />, run: () => go('team') }));
+    const people: Command[] = data.members.map(m => ({ id: `m:${m.userId}`, group: 'members', label: m.email, hint: roleName(d, m.role), icon: <Icon name="team" />, run: () => go('team') }));
     return [
       ...profiles, ...lines, ...people,
       ...(creates ? [act('new', C.newProfile, 'plus', () => { go('profiles'); setDialog({ kind: 'new' }); }, `${mod} N`)] : []),
@@ -228,7 +228,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
             <Icon name="settings" /><span className="nav-l">{d.nav.settings}</span>
           </button>
           <button className={`me${shown === 'me' ? ' active' : ''}`} type="button" aria-current={shown === 'me' ? 'page' : undefined} aria-label={d.account.title} title={d.account.title} onClick={() => go('me')}>
-            <span className="av" aria-hidden="true">{[...me.user.displayName][0]?.toUpperCase()}</span>
+            <span className="av" aria-hidden="true">{[...me.user.email][0]?.toUpperCase()}</span>
             <span className="me-who">{me.user.email}</span>
             {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
           </button>

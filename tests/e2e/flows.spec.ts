@@ -79,8 +79,8 @@ test('a flow is built step by step, saved for the team, and read-only for member
   await expect(win2.getByTestId('ws-name')).toHaveText('Larkspur Trading');
   await nav(win2, 'Flows').click();
   const row = win2.locator('tr[data-flow="Morning check"]');
-  // Who made it, by the name colleagues see.
-  await expect(row).toContainText(owner.email.split('@')[0]);
+  // Who made it, by their email.
+  await expect(row).toContainText(owner.email);
   await row.getByRole('button', { name: 'View' }).click();
   await expect(win2.getByText('Only whoever created this flow')).toBeVisible();
   await expect(panel(win2).getByLabel('Address')).toBeDisabled();

@@ -21,7 +21,7 @@ test('someone’s access is edited from their row, and several people are invite
   await expect(win.getByTestId('seats')).toContainText('2 seats in use, no limit');
   const row = win.locator(`tr[data-member="${member.email}"]`);
   await row.getByRole('button', { name: 'Edit access' }).click();
-  const access = win.getByRole('dialog', { name: `Access for ${member.email.split('@')[0]}` });
+  const access = win.getByRole('dialog', { name: `Access for ${member.email}` });
   await choose(access.getByRole('combobox', { name: 'Role' }), 'Viewer');
   await access.getByRole('checkbox', { name: 'Ads' }).check();
   await access.getByRole('button', { name: 'Save' }).click();

@@ -8,8 +8,8 @@ test('the activity log says who did what, and each profile shows its recent entr
   await acct.api.post(`${base}/profiles`, { data: chromiumProfile('Shop-07') });
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
-  // People go by the name colleagues see.
-  const name = acct.email.split('@')[0];
+  // People go by their email (the user, 10-29).
+  const name = acct.email;
 
   await win.getByRole('button', { name: 'Shop-07', exact: true }).click();
   const detail = page(win);

@@ -27,7 +27,7 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   const fail = useFail();
   const close = () => setDialog(null);
   const needle = q.trim().toLowerCase();
-  const people = data.members.filter(m => (!needle || `${m.displayName} ${m.email}`.toLowerCase().includes(needle)) && (roleId === 'all' || m.role.id === roleId));
+  const people = data.members.filter(m => (!needle || m.email.toLowerCase().includes(needle)) && (roleId === 'all' || m.role.id === roleId));
   const invites = manager ? data.invitations.filter(i => !needle || i.email.toLowerCase().includes(needle)) : [];
   // Seats go to the people in the workspace and the invitations still open.
   const seats = data.members.length + data.invitations.length;
@@ -97,14 +97,14 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
                       const me = m.userId === meId, editable = manager && m.role.key !== 'owner' && !me;
                       return (
                         <tr key={m.userId} data-member={m.email}>
-                          <td><span className="l1"><b>{m.displayName}{me && <span className="muted"> {T.meTag}</span>}</b></span><span className="l2">{m.email}</span></td>
+                          <td><span className="l1"><b>{m.email}{me && <span className="muted"> {T.meTag}</span>}</b></span></td>
                           <td>{roleName(d, m.role)}</td>
                           <td className="tm-scope">{scope(m.role, m.groupIds)}</td>
                           <td className="mid"><span className="dot-st run">{T.joined}</span></td>
                           <td className="nowrap mid">{m.lastActiveAt ? `${dayLabel(m.lastActiveAt, d, lang)} ${time(m.lastActiveAt, lang)}` : '—'}</td>
                           <td className="act">{m.role.key === 'owner' ? <span className="muted">{T.protectedTag}</span>
                             : editable && <button type="button" className="btn btn-sm btn-text accent" aria-label={T.editAccess} onClick={() => setDialog({ kind: 'access', member: m })}>{T.access}</button>}</td>
-                          <td className="more">{editable && <MoreMenu label={T.moreX(m.displayName)} items={[{ label: T.remove, onClick: () => setDialog({ kind: 'remove', member: m }), danger: true }]} />}</td>
+                          <td className="more">{editable && <MoreMenu label={T.moreX(m.email)} items={[{ label: T.remove, onClick: () => setDialog({ kind: 'remove', member: m }), danger: true }]} />}</td>
                         </tr>
                       );
                     })}
@@ -329,13 +329,13 @@ function AccessDialog({ d, ws, data, company, member, onClose }: { d: Dict; ws: 
       await folio.api('PATCH', `/workspaces/${ws.id}/members/${member.userId}`, {
         ...(roleId !== member.role.id ? { roleId } : {}), ...(company && changedGroups ? { groupIds } : {})
       });
-      toast({ title: T.saved, detail: member.displayName });
+      toast({ title: T.saved, detail: member.email });
       data.refresh('members', 'groups');
       onClose();
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); } finally { setBusy(false); }
   }
   return (
-    <Modal title={T.accessTitle(member.displayName)} sub={T.accessSub} onClose={onClose} busy={busy} foot={<>
+    <Modal title={T.accessTitle(member.email)} sub={T.accessSub} onClose={onClose} busy={busy} foot={<>
       <Cancel />
       <button className="btn btn-primary" type="button" aria-busy={busy || undefined} disabled={busy || (roleId === member.role.id && !changedGroups)} onClick={() => void save()}>{d.common.save}</button>
     </>}>
@@ -368,14 +368,14 @@ function RemoveDialog({ d, ws, data, member, meId, onClose }: { d: Dict; ws: Wor
     } catch (e){ setError(errorText(d, isApiError(e) ? e.code : 'internal')); }
   }
   return (
-    <Modal title={T.removeTitle(member.displayName)} onClose={onClose} foot={<>
+    <Modal title={T.removeTitle(member.email)} onClose={onClose} foot={<>
       <Cancel />
       <Act className="btn btn-danger solid" disabled={!heir} title={heir ? undefined : T.heirNeeded} run={() => remove()}>{T.removeDo}</Act>
     </>}>
       <div className="m-body">
         {error && <p className="notice error" role="alert">{error}</p>}
         <p>{T.removeLead}</p>
-        <SelectField label={T.heir} value={heir} onChange={setHeir} options={others.map(m => ({ value: m.userId, label: m.displayName, hint: m.email }))} searchPh={d.form.searchPh} />
+        <SelectField label={T.heir} value={heir} onChange={setHeir} options={others.map(m => ({ value: m.userId, label: m.email }))} searchPh={d.form.searchPh} />
       </div>
     </Modal>
   );

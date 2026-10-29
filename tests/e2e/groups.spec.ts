@@ -79,8 +79,8 @@ test('on the Company plan a group says who reaches it, and a role set there is t
   await groupsPage(win);
   await win.getByRole('tree', { name: 'Group directory' }).getByRole('button', { name: /^Ads/ }).click();
   const settings = win.getByRole('complementary', { name: 'Group settings' });
-  // People go by the name colleagues see (the email shows beside it).
-  const name = member.email.split('@')[0];
+  // People go by their email (the user, 10-29).
+  const name = member.email;
   await choose(settings.getByRole('combobox', { name: 'Add member' }), new RegExp(`^${name}`));
   await choose(settings.getByRole('combobox', { name: `Role of ${name}` }), 'Viewer');
   await expect(settings).toContainText('A role applies across the workspace');

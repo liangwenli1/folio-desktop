@@ -19,10 +19,10 @@ export interface Opt { value: string; label: string; hint?: string; count?: numb
 // The workspace's groups as options, each under its parent (the user, 10-28: the hierarchy was invisible).
 export const groupOpts = (groups: Group[]): Opt[] => groupTree(groups).map(({ group: g, depth, path }) => ({ value: g.id, label: g.name, dot: `gc-${g.color}`, depth, path }));
 // Who profiles can be assigned to: nobody, or a member, the person using the app marked as such (the user, 10-28: "me"
-// and their own name were the same person twice).
+// and their own name were the same person twice). People are their email everywhere (10-29: no names).
 export const ownerOpts = (d: Dict, members: Member[], meId: string): Opt[] => [
   { value: '', label: d.profiles.unassigned },
-  ...members.map(m => ({ value: m.userId, label: m.userId === meId ? d.team.me(m.displayName) : m.displayName, hint: m.email }))
+  ...members.map(m => ({ value: m.userId, label: m.userId === meId ? d.team.me(m.email) : m.email }))
 ];
 interface Props {
   value: string; options: Opt[]; onChange(value: string): void;

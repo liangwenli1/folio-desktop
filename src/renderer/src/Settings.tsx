@@ -98,7 +98,7 @@ export function SettingsPage({ d, ws, me, data, manager, onSaved, onExport, onIm
               </div>
               <div className="field">
                 <span className="label">{S.owner}</span>
-                <span className="set-owner">{owner && <Avatar text={owner.displayName} />}<b>{owner?.displayName ?? '—'}</b>{owner && <small>{owner.email}</small>}</span>
+                <span className="set-owner">{owner && <Avatar text={owner.email} />}<b>{owner?.email ?? '—'}</b></span>
                 <span className="hint">{S.ownerHint}</span>
               </div>
               <SelectField label={S.trashDays} value={String(set.trashDays)} disabled={ro} hint={S.trashDaysHint}

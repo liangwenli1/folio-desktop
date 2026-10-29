@@ -1587,7 +1587,6 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .copy-in input{padding-right:44px !important;background:var(--head) !important}
 .copy-in .copy-btn{position:absolute;right:4px;top:0;bottom:0;margin:auto 0}
 .set-owner{display:flex;align-items:center;gap:10px;min-height:var(--h-ctl)}
-.set-owner small{color:var(--ink-3);font-size:12px}
 .notice.warn{background:var(--warn-soft);color:var(--warn-ink)}
 .sw-invites{display:grid;gap:8px}
 .sw-invites h4{margin:0;font-size:14px;font-weight:600}

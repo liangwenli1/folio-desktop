@@ -81,7 +81,7 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   const [q, setQ] = useState('');
   const needle = q.trim().toLowerCase();
   const flows = data.flows.filter(f => !needle || f.name.toLowerCase().includes(needle));
-  const person = new Map(data.members.map(m => [m.userId, m.displayName]));
+  const person = new Map(data.members.map(m => [m.userId, m.email]));
   const fail = useFail();
   // The tasks a flow is used by, by name; such a flow can't be deleted.
   const users = (id: string) => data.tasks.filter(t => t.flowId === id).map(t => t.name).join(', ');
