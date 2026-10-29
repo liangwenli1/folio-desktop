@@ -67,7 +67,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
   await dialog.getByRole('group', { name: 'From' }).getByRole('button', { name: 'File' }).click();
-  await dialog.getByLabel('Choose a file…').setInputFiles({ name: 'helper.xpi', mimeType: 'application/x-xpinstall', buffer: firefox('1.0') });
+  await dialog.getByLabel('Choose a file').setInputFiles({ name: 'helper.xpi', mimeType: 'application/x-xpinstall', buffer: firefox('1.0') });
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(win.locator('[data-extension="Shop Helper FF"]')).toContainText('1.0');
   // A new version from addons.mozilla.org keeps the add-on's identity.

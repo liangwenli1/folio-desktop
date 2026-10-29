@@ -63,7 +63,7 @@ test('an extension goes into the profiles picked from its card', async () => {
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await nav(win, /^Extensions/);
-  await win.locator('[data-extension="Order Helper"]').getByRole('button', { name: 'Install in profiles…' }).click();
+  await win.locator('[data-extension="Order Helper"]').getByRole('button', { name: 'Install in profiles' }).click();
   const dialog = win.getByRole('dialog', { name: 'Install Order Helper' });
   await dialog.getByRole('checkbox', { name: /Shop-1/ }).check();
   await dialog.getByRole('button', { name: 'Install in 1 profile' }).click();

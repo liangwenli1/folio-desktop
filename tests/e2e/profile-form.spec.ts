@@ -36,7 +36,7 @@ test('the extension section searches the library and adds to it from a download 
   await expect(sec).toContainText('2 selected');
   // From a file on this computer.
   await sec.getByRole('group', { name: 'From' }).getByRole('button', { name: 'File' }).click();
-  await sec.getByLabel('Choose a file…').setInputFiles({ name: 'tabs.zip', mimeType: 'application/zip', buffer: pkg('Tab Saver', '0.9') });
+  await sec.getByLabel('Choose a file').setInputFiles({ name: 'tabs.zip', mimeType: 'application/zip', buffer: pkg('Tab Saver', '0.9') });
   await sec.getByRole('button', { name: 'Add to the library' }).click();
   await expect(sec.getByLabel('Tab Saver')).toBeChecked();
   await form.getByRole('button', { name: 'Create profile' }).click();
@@ -178,7 +178,7 @@ test('groups sit under their parents, the owner list has its user once, and a sa
   const form = win.getByRole('dialog', { name: 'New profile' });
   await form.getByRole('combobox', { name: 'Group' }).click();
   const list = win.getByRole('listbox');
-  await expect(list.getByRole('option')).toHaveText(['No group', 'Berlin', 'US sites', 'Los Angeles', 'New group…']);
+  await expect(list.getByRole('option')).toHaveText(['No group', 'Berlin', 'US sites', 'Los Angeles', 'New group']);
   expect(await list.getByRole('option', { name: 'Los Angeles' }).evaluate(el => getComputedStyle(el).paddingLeft)).toBe('28px');
   await win.locator('.sel-search input').fill('angeles');
   await expect(list.getByRole('option')).toHaveText(['US sites / Los Angeles']);

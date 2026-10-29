@@ -34,7 +34,7 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   const winA = await logIn(a, from.email);
   await expect(winA.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await dialogs(a, file);
-  await menu(winA, 'Export all data…');
+  await menu(winA, 'Export all data');
   const ex = winA.getByRole('dialog', { name: 'Export all data' });
   await ex.getByLabel('Passphrase', { exact: true }).fill(PASS);
   await ex.getByLabel('Confirm passphrase').fill('something else entirely');
@@ -52,9 +52,9 @@ test('a workspace goes out to a .folio file and comes back in elsewhere, sign-in
   const winB = await logIn(b, to.email);
   await expect(winB.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await dialogs(b, file);
-  await menu(winB, 'Import data…');
+  await menu(winB, 'Import data');
   const im = winB.getByRole('dialog', { name: 'Import data' });
-  await im.getByRole('button', { name: 'Choose a .folio file…' }).click();
+  await im.getByRole('button', { name: 'Choose a .folio file' }).click();
   await im.getByLabel('Passphrase').fill('not the right one!');
   await im.getByRole('button', { name: 'Unlock' }).click();
   await expect(im.getByRole('alert')).toHaveText('That passphrase doesn’t open this file.');

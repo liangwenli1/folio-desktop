@@ -45,7 +45,7 @@ test('a platform admin uploads a version, makes it recommended, profiles move to
     await engines(win).click();
     await win.getByRole('button', { name: 'Upload a version' }).click();
     const dialog = win.getByRole('dialog', { name: 'Upload an engine version' });
-    await dialog.getByRole('button', { name: 'Choose a file…' }).click();
+    await dialog.getByRole('button', { name: 'Choose a file' }).click();
     // Engine, system and version come from the file name.
     await expect(dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Chromium' })).toHaveAttribute('aria-pressed', 'true');
     await expect(dialog.getByLabel('System')).toHaveText(/Linux/);
