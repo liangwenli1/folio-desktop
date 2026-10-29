@@ -200,8 +200,8 @@ export const en = {
     emptyMatch: 'No profiles match', emptyFor: (q: string) => `Nothing found for “${q}”.`,
     emptyHint: (n: number) => (n === 1 ? 'Try another search, or clear the filters to see it.' : `Try another search, or clear the filters to see all ${n}.`),
     bulk: {
-      title: 'Bulk actions', open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, hidden: (n: number) => `${n} hidden by filters`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group', edit: 'Bulk edit…', more: 'More',
-      trash: 'Move to Trash', cookies: 'Export cookies…', sync: 'Sync windows',
+      title: 'Bulk actions', open: 'Open', stop: 'Stop', openSkip: (n: number) => `${n} already running or in use elsewhere will be skipped`, hidden: (n: number) => `${n} hidden by filters`, stopSkip: (n: number) => `${n} not running on this computer will be skipped`, move: 'Move to group', edit: 'Bulk edit', more: 'More',
+      trash: 'Move to Trash', cookies: 'Export cookies', sync: 'Sync windows',
       confirm: (n: number) => `Move ${profilesN(n)} to the Trash?`, confirmNote: 'Running ones are stopped first. You can undo this.', doTrash: 'Move to Trash'
     },
     done: {
@@ -1127,8 +1127,8 @@ export const zh: Dict = {
     emptyMatch: '无符合条件的环境', emptyFor: (q: string) => `未找到「${q}」。`,
     emptyHint: (n: number) => `请更换关键词，或清除筛选查看全部 ${n} 个环境。`,
     bulk: {
-      title: '批量操作', open: '批量启动', stop: '停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, hidden: (n: number) => `${n} 个被筛选隐藏`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组', edit: '批量编辑…', more: '更多',
-      trash: '移至回收站', cookies: '导出 Cookie…', sync: '同步窗口',
+      title: '批量操作', open: '批量启动', stop: '停止', openSkip: (n: number) => `已运行或在其他电脑使用的 ${n} 个将跳过`, hidden: (n: number) => `${n} 个被筛选隐藏`, stopSkip: (n: number) => `未在本机运行的 ${n} 个将跳过`, move: '移动分组', edit: '批量编辑', more: '更多',
+      trash: '移至回收站', cookies: '导出 Cookie', sync: '同步窗口',
       confirm: (n: number) => `将 ${n} 个环境移至回收站？`, confirmNote: '运行中的环境将先停止，此操作可撤销。', doTrash: '移至回收站'
     },
     done: {

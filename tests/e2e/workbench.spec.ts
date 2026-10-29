@@ -127,7 +127,7 @@ test('bulk actions, undoing a move to the Trash, and restoring only within the p
   await choose(groups, 'US stores');
   await expect(win.locator('tr[data-id]')).toHaveText([/P-1/, /P-2/]);
   await choose(groups, 'All groups');
-  await bulkMore(win, 'Bulk edit…');
+  await bulkMore(win, 'Bulk edit');
   const edit = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await edit.getByRole('checkbox', { name: 'Tags' }).check();
   await edit.getByRole('textbox', { name: 'Tags' }).fill('vip');

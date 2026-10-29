@@ -131,7 +131,7 @@ test('a profile’s search engine and tab setting: chosen when it is made, shown
   await backToList(win);
 
   for (const n of ['Shop-1', 'Shop-2']) await win.getByRole('checkbox', { name: `Select ${n}` }).check();
-  await bulkMore(win, 'Bulk edit…');
+  await bulkMore(win, 'Bulk edit');
   const bulk = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await bulk.getByRole('checkbox', { name: 'Search engine' }).check();
   await choose(bulk.getByRole('combobox', { name: 'Search engine' }), 'Bing');

@@ -53,7 +53,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
 
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await bulkMore(win, 'Bulk edit…');
+  await bulkMore(win, 'Bulk edit');
   const dialog = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await dialog.getByRole('checkbox', { name: 'Group' }).check();
   await choose(dialog.getByRole('combobox', { name: 'Group' }), 'EU stores');
@@ -86,7 +86,7 @@ test('editing several at once skips the running ones, and says so', async () => 
   // With the box cleared, the running one is changed too.
   expect(await opened(win, a.id)).toMatchObject({ state: 'running' });
   for (const id of [a.id, b.id]) await win.locator(`tr[data-id="${id}"]`).getByRole('checkbox').check();
-  await bulkMore(win, 'Bulk edit…');
+  await bulkMore(win, 'Bulk edit');
   await dialog.getByRole('checkbox', { name: 'Start page' }).check();
   await dialog.getByRole('textbox').fill('https://other.example/');
   await dialog.getByRole('checkbox', { name: 'Only change profiles that are not running' }).uncheck();
@@ -124,13 +124,13 @@ test('tags have a column, favourites come from the menus, and More holds only ac
   // More: actions only, among them favourites for all the picked ones.
   for (const id of [a.id, b.id]) await row(id).getByRole('checkbox').check();
   await win.getByTestId('bulk').getByRole('button', { name: 'More' }).click();
-  await expect(win.getByRole('menuitem')).toHaveText(['Bulk edit…', 'Sync windows', 'Add to favorites', 'Remove from favorites', 'Export cookies…', 'Move to Trash']);
+  await expect(win.getByRole('menuitem')).toHaveText(['Bulk edit', 'Sync windows', 'Add to favorites', 'Remove from favorites', 'Export cookies', 'Move to Trash']);
   await win.getByRole('menuitem', { name: 'Remove from favorites' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Removed from favorites' })).toContainText('2 profiles');
   await expect(row(b.id).getByTitle('Favorites')).toHaveCount(0);
 
   // Bulk edit sets what the menu used to: tags, who they are assigned to, the search engine and tab restoring.
-  await bulkMore(win, 'Bulk edit…');
+  await bulkMore(win, 'Bulk edit');
   const dialog = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await dialog.getByRole('checkbox', { name: 'Tags' }).check();
   await dialog.getByRole('textbox', { name: 'Tags' }).fill('eu, vip');

@@ -46,7 +46,7 @@ test('a member removed from the team loses the profile they have open, and its c
   // The owner assigns the profile to the member, who now sees and opens it.
   await nav(winO, /^Profiles/).click();
   await winO.getByRole('checkbox', { name: 'Select Shop-07' }).check();
-  await bulkMore(winO, 'Bulk edit…');
+  await bulkMore(winO, 'Bulk edit');
   const bulk = winO.getByRole('dialog', { name: 'Bulk edit profiles' });
   await bulk.getByRole('checkbox', { name: 'Assigned to' }).check();
   await choose(bulk.getByRole('combobox', { name: 'Assigned to' }), new RegExp(`^${member.email.split('@')[0]}`));

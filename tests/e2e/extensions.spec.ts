@@ -92,7 +92,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await expect(form).toHaveCount(0);
   await backToList(win);
   await win.getByLabel('Select this page').check();
-  await bulkMore(win, 'Bulk edit…');
+  await bulkMore(win, 'Bulk edit');
   const bulk = win.getByRole('dialog', { name: 'Bulk edit profiles' });
   await bulk.getByRole('checkbox', { name: 'Extension' }).check();
   await choose(bulk.getByRole('combobox', { name: 'Extension' }), /^Shop Helper FF/);
