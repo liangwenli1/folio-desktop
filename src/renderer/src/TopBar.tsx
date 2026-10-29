@@ -1,7 +1,9 @@
 // The bar along the top of every page (v2's white 56 px bar): where you are on the left, as "workspace / page" (and
-// on a record's own page that record), and on the right the search (the command palette), help and notifications. Its empty space still drags the window: on Windows and macOS it is the title bar.
+// on a record's own page that record), and on the right the search (the command palette), light or dark, help and
+// notifications. Its empty space still drags the window: on Windows and macOS it is the title bar.
 import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { folio } from './api';
 import type { Dict } from './i18n';
 import { mod } from './CommandPalette';
 import { Icon, useDismiss, type IconName } from './ui';
@@ -31,10 +33,24 @@ export function TopBar({ d, workspace, page, trail, onSearch, onHelp, children }
       </nav>
       <span className="sp" />
       <button type="button" className="top-search" onClick={onSearch}><Icon name="search" /><span>{d.top.search}</span><kbd>{mod} K</kbd></button>
+      <ThemeButton d={d} />
       <button type="button" className="icon-btn bare" aria-label={d.nav.help} title={d.nav.help} onClick={onHelp}><Icon name="help" /></button>
       {children}
     </header>
   );
+}
+
+// Light or dark at a click, nothing to save (the user, 10-29); the icon is the theme it switches to.
+const DARK = '(prefers-color-scheme: dark)';
+function ThemeButton({ d }: { d: Dict }){
+  const [dark, setDark] = useState(() => matchMedia(DARK).matches);
+  useEffect(() => {
+    const m = matchMedia(DARK), on = () => setDark(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  const label = dark ? d.top.toLight : d.top.toDark;
+  return <button type="button" className="icon-btn bare" aria-label={label} title={label} onClick={() => void folio.setTheme(!dark)}><Icon name={dark ? 'sun' : 'moon'} /></button>;
 }
 
 // Something that needs the person's attention: the plan ending, an invitation, a batch that partly failed. `id`

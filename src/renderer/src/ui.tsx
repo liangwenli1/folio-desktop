@@ -80,6 +80,8 @@ const PATHS = {
   cookie: 'M21 12.5A9 9 0 1 1 11.5 3a3 3 0 0 0 3.5 3.5 3 3 0 0 0 3.5 3.5 3 3 0 0 0 2.5 2.5zM8.5 9.5h.01M8.5 15h.01M13.5 14h.01M15 18h.01',
   minus: 'M6 12h12',
   bell: 'M12 3v2M6 11a6 6 0 0 1 12 0v5l2 2.5H4L6 16zM9.75 20.5a2.25 2.25 0 0 0 4.5 0',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  sun: 'M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4',
   // The mark inside a solid circle (a figure that failed, a toast that went wrong): taller than the outline icon's.
   bang: 'M12 5v9M12 18.5h.01'
 };

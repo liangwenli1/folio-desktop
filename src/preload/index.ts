@@ -56,6 +56,7 @@ const bridge: FolioBridge = {
   installUpdate: () => ipcRenderer.invoke('folio:installUpdate'),
   startup: () => ipcRenderer.invoke('folio:startup'),
   setStartup: on => ipcRenderer.invoke('folio:setStartup', on),
+  setTheme: dark => ipcRenderer.invoke('folio:setTheme', dark),
   setLabels: labels => ipcRenderer.invoke('folio:setLabels', labels),
   startWindowSync: (ids, leader) => ipcRenderer.invoke('folio:startWindowSync', ids, leader),
   stopWindowSync: () => ipcRenderer.invoke('folio:stopWindowSync'),

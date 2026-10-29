@@ -79,6 +79,27 @@ test('the session survives a restart and ends on log out', async () => {
   await app.close();
 });
 
+test('the button at the top right switches light and dark at a click, and this computer keeps it', async () => {
+  const { email } = await account();
+  const dir = dataDir();
+  let app = await launch(dir);
+  let win = await logIn(app, email);
+  const dark = () => win.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches);
+  expect(await dark()).toBe(false);
+  await win.getByRole('button', { name: 'Switch to dark' }).click();
+  await expect.poll(dark).toBe(true);
+  await expect(win.getByRole('button', { name: 'Switch to light' })).toBeVisible();
+  await app.close();
+
+  app = await launch(dir);
+  win = await app.firstWindow();
+  await expect(win.getByRole('button', { name: 'Switch to light' })).toBeVisible();
+  expect(await dark()).toBe(true);
+  await win.getByRole('button', { name: 'Switch to light' }).click();
+  await expect.poll(dark).toBe(false);
+  await app.close();
+});
+
 test('Chinese accounts get the Chinese workbench, and upgrading opens the site checkout', async () => {
   const { email, workspaceId } = await account({ locale: 'zh' });
   const app = await launch(dataDir());

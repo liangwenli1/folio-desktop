@@ -149,6 +149,8 @@ export interface FolioBridge {
   // Starting Folio, minimized, when the computer starts (Windows and macOS only), so schedules run on time.
   startup(): Promise<{ supported: boolean; enabled: boolean }>;
   setStartup(on: boolean): Promise<void>;
+  // Light or dark from now on, on this computer; the pages see it as prefers-color-scheme.
+  setTheme(dark: boolean): Promise<void>;
   setLabels(labels: Labels): Promise<void>;
   // Window sync: the first profile leads (they open first if they aren't open), and the others follow.
   startWindowSync(ids: string[], leader?: string): Promise<WindowSync | null>;
