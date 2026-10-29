@@ -67,7 +67,6 @@ export function ProfileDetail(props: Props){
 
   const away = elsewhere(p);
   const downloading = progress && !progress.finished && !progress.error;
-  const number = `#${String(p.number).padStart(4, '0')}`;
   let primary: ReactNode, chip: ReactNode;
   if (status?.state === 'running'){
     primary = <>
@@ -93,20 +92,13 @@ export function ProfileDetail(props: Props){
   return (
     <div className="page">
       <main className="main pd" aria-label={D.profile}>
-        <header className="pd-head">
-          <div className="pd-t">
-            <div className="pd-n">
-              <h1 data-testid="detail-name">{p.name}</h1>{chip}
-              {h.level !== 'ok' && <button type="button" className={`badge ${h.level}`} onClick={() => show('fingerprint')}>{D.verdict[h.level]}</button>}
-              <button type="button" className={`icon-btn bare star${p.starred ? ' on' : ''}`} aria-pressed={p.starred} aria-label={p.starred ? P.unstar : P.star} title={p.starred ? P.unstar : P.star} onClick={onStar}><Icon name="star" /></button>
-            </div>
-            <p className="pd-sub"><span className="mono">{number}</span>{group && <><span className="sep" aria-hidden="true" /><span className={`gtag gc-${group.color}`}>{group.name}</span></>}</p>
-          </div>
+        <div className="bar">
+          <Tabs label={D.profile} value={tab} tabs={TABS} name={t => D.tabs[t]} onChange={show} />
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={onEdit}><Icon name="edit" />{D.editProfile}</button>
           {primary}
-          {canTrash && <MoreMenu label={D.more} items={[{ label: D.trash, onClick: onTrash, danger: true }]} />}
-        </header>
+          <MoreMenu label={D.more} items={[{ label: p.starred ? P.unstar : P.star, onClick: onStar }, ...(canTrash ? [{ label: D.trash, onClick: onTrash, danger: true }] : [])]} />
+        </div>
         {away && (
           <div className="away-note" data-testid="away">
             <p>{D.away(away.deviceName ?? '—', away.email, new Date(away.since).toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' }))}</p>
@@ -121,9 +113,8 @@ export function ProfileDetail(props: Props){
         )}
         {(status || downloading) && status?.state !== 'running' && status?.state !== 'saving' && <Opening d={d} p={p} h={h} status={status} progress={downloading ? progress : undefined} />}
 
-        <Tabs className="page-tabs" label={D.profile} value={tab} tabs={TABS} name={t => D.tabs[t]} onChange={show} />
         <div className="pd-body">
-          {tab === 'overview' && <Overview {...props} entries={recent.entries} onTab={show} onShowProxy={onShowProxy} />}
+          {tab === 'overview' && <Overview {...props} state={chip} entries={recent.entries} onTab={show} onShowProxy={onShowProxy} />}
           {seen.has('fingerprint') && (
             <div hidden={tab !== 'fingerprint'}>
               <FingerprintTab key={`${fpVersion.current}:${fpRound}`} d={d} lang={lang} data={data} p={p} h={h} status={status} size={props.size}
@@ -142,7 +133,8 @@ export function ProfileDetail(props: Props){
   );
 }
 
-// The overview: its basics, its proxy, a summary of its fingerprint, the data it keeps, and what was done lately.
+// The overview: its basics (led by whether it runs and how its fingerprint checks, which the page's head used to say),
+// its proxy, a summary of its fingerprint, the data it keeps, and what was done lately.
 // Its last launch here failed: what that means, the reason on request, and trying again.
 function LaunchFailed({ d, p, why, onOpen }: { d: Dict; p: Profile; why: string; onOpen(): void }){
   const S = d.states;
@@ -155,7 +147,7 @@ function LaunchFailed({ d, p, why, onOpen }: { d: Dict; p: Profile; why: string;
   );
 }
 
-function Overview({ d, lang, data, p, h, group, owner, extensions, busy, entries, failed, status, onOpen, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { entries: ActivityEntry[] | null; onTab(t: Tab): void }){
+function Overview({ d, lang, data, p, h, group, owner, extensions, busy, state, entries, failed, status, onOpen, onEdit, onFix, onTab, onShowProxy, onReplaceProxy }: Props & { state: ReactNode; entries: ActivityEntry[] | null; onTab(t: Tab): void }){
   const D = d.detail, F = d.fp;
   const geo = h.geo, px = h.line ?? h.px, facts = fingerprintFacts(p.fingerprint);
   const when = (iso: string) => `${dayLabel(iso, d, lang)} ${time(iso, lang)}`;
@@ -172,6 +164,8 @@ function Overview({ d, lang, data, p, h, group, owner, extensions, busy, entries
       <section className="sec" aria-label={D.basics}>
         {head(D.basics, [D.edit, onEdit], 'edit')}
         <dl className="kvl">
+          <dt>{D.fields.run}</dt><dd>{state}</dd>
+          <dt>{D.fields.check}</dt><dd><button type="button" className={`badge ${h.level === 'ok' ? 'good' : h.level}`} onClick={() => onTab('fingerprint')}>{D.verdict[h.level]}</button></dd>
           <dt>{D.fields.name}</dt><dd>{p.name}</dd>
           <dt>{D.fields.number}</dt><dd className="mono">#{String(p.number).padStart(4, '0')}</dd>
           <dt>{d.form.group}</dt><dd>{group ? groupPath(data.groups, group) : d.groups.none}</dd>

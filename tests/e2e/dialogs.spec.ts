@@ -10,9 +10,9 @@ test('a dialog takes the focus, keeps it, gives it back, and asks before droppin
   const app = await launch(dataDir());
   const win = await logIn(app, acct.email);
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Proxies' }).click();
-  await expect(win.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Proxies');
+  await expect(win.getByTestId('page-title')).toHaveText('Proxies');
 
-  const add = win.locator('header.bar').getByRole('button', { name: 'Add proxy' });
+  const add = win.locator('.main > .bar').getByRole('button', { name: 'Add proxy' });
   await add.click();
   const dialog = win.getByRole('dialog', { name: 'Add proxy' });
   await expect(dialog.getByLabel('Name')).toBeFocused();

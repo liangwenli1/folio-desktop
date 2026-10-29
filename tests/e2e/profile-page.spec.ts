@@ -1,7 +1,7 @@
 // A profile's own page: its Fingerprint tab saves what it changes, the way back finds the list as it was left, and the
 // workspace can have it show as soon as a profile starts.
 import { expect, test } from '@playwright/test';
-import { API, ENGINE_ENV, account, backToList, choose, chromiumProfile, dataDir, detail, hasKernels, launch, logIn } from './helpers';
+import { API, ENGINE_ENV, account, back, choose, chromiumProfile, dataDir, detail, hasKernels, launch, logIn } from './helpers';
 
 test.setTimeout(180_000);
 
@@ -15,7 +15,7 @@ test('the fingerprint tab saves its changes, and the list comes back on the page
   const name = (await win.locator('tr[data-id] .rowlink').first().textContent())!;
   await win.getByRole('button', { name, exact: true }).click();
   const page = detail(win);
-  await expect(page.getByTestId('detail-name')).toHaveText(name);
+  await expect(win.getByTestId('page-title')).toHaveText(name);
 
   await page.getByRole('tab', { name: 'Fingerprint' }).click();
   const save = page.getByRole('button', { name: 'Save fingerprint' });
@@ -34,7 +34,7 @@ test('the fingerprint tab saves its changes, and the list comes back on the page
   const p = ((await (await acct.api.get(`${base}/profiles`)).json()).profiles as { name: string; localeOverride: string | null; fingerprint: { hardwareConcurrency: number } }[]).find(x => x.name === name)!;
   expect(p).toMatchObject({ localeOverride: 'de-DE', fingerprint: { hardwareConcurrency: 12 } });
 
-  await backToList(win);
+  await back(win);
   await expect(win.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
   await expect(win.locator('tr[data-id]')).toHaveCount(2);
   await app.close();
@@ -49,8 +49,8 @@ test('with the workspace set to, starting a profile from the list opens its page
   const app = await launch(dataDir(), ENGINE_ENV);
   const win = await logIn(app, acct.email);
   await win.locator(`tr[data-id="${p.id}"]`).getByRole('button', { name: 'Open', exact: true }).click();
-  await expect(detail(win).getByTestId('detail-name')).toHaveText('Opens-Page');
-  await expect(detail(win).locator('.pd-head .dot-st.run')).toBeVisible({ timeout: 90_000 });
+  await expect(win.getByTestId('page-title')).toHaveText('Opens-Page');
+  await expect(detail(win).locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
   await detail(win).getByRole('button', { name: 'Stop', exact: true }).click();
   await expect(detail(win).getByRole('button', { name: 'Open profile' })).toBeVisible({ timeout: 60_000 });
   await app.close();

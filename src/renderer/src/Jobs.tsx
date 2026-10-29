@@ -57,12 +57,11 @@ export function JobsPage({ d, lang, meId, data, openId }: { d: Dict; lang: Lang;
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{J.title}</h1></div>
+        <div className="bar">
+          <Tabs label={J.title} value={tab} tabs={['all', 'running', 'done', 'partial', 'canceled']} name={t => J.tabs[t]} count={t => t === 'running' && count(t) > 0 && count(t)} onChange={setTab} />
           <span className="sp" />
           <div className="jb-live"><Icon name="refresh" /><Switch label={J.live} checked={live} onChange={on => { setLive(on); if (!on) setHeld(data.jobs); }} /></div>
-        </header>
-        <Tabs className="page-tabs" label={J.title} value={tab} tabs={['all', 'running', 'done', 'partial', 'canceled']} name={t => J.tabs[t]} count={t => t === 'running' && count(t) > 0 && count(t)} onChange={setTab} />
+        </div>
         <div className={`side-wrap${picked ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={J.title}>
             <div className="filters">

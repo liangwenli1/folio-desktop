@@ -53,11 +53,10 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{X.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({})}><Icon name="plus" />{X.add}</button>}
-        </header>
+        </div>
         <section className="list-card" aria-label={X.title}>
         <div className="filters">
           <label className="search"><Icon name="search" /><span className="sr">{X.search}</span>

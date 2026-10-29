@@ -75,12 +75,11 @@ export function TrashPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: Work
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           <button className="btn btn-secondary" type="button" disabled={!all.length} onClick={() => void restore(all)}><Icon name="refresh" />{T.restoreAll}</button>
           <button className="btn btn-danger outline" type="button" disabled={!all.length} onClick={() => setConfirm(all)}><Icon name="trash" />{T.purgeAll}</button>
-        </header>
+        </div>
 
         <div className={`side-wrap${picked.length ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={T.title}>

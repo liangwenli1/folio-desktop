@@ -62,7 +62,9 @@ test('a first profile behind a SOCKS5 proxy with a password, set up and opened f
   await expect(detail(win).getByTestId('verdict')).toHaveText('All consistent');
 
   await detail(win).getByRole('button', { name: 'Open profile' }).click();
-  await expect(detail(win).locator('.pd-head .dot-st.run')).toBeVisible({ timeout: 90_000 });
+  // Its state leads Basics, on the overview (6.29).
+  await detail(win).getByRole('tab', { name: 'Overview' }).click();
+  await expect(detail(win).locator('.dot-st.run')).toBeVisible({ timeout: 90_000 });
   const seen = await inBrowser(app, id, probe.url);
   expect(seen).toMatchObject({ tz: 'America/Los_Angeles', lang: 'en-US', webdriver: false, rtc: [] });
   expect(socks.seen.some(d => d.endsWith(`:${probe.port}`))).toBe(true);
@@ -89,7 +91,7 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   await formA.getByLabel('Tags').fill('vip');
   await formA.getByRole('button', { name: 'Save changes' }).click();
   // B has the profile's page open behind its form: the page follows.
-  await expect(detail(winB).getByTestId('detail-name')).toHaveText('Shared-01 renamed', { timeout: 5000 });
+  await expect(winB.getByTestId('page-title')).toHaveText('Shared-01 renamed', { timeout: 5000 });
   await expect(detail(winB).getByRole('region', { name: 'Basics' })).toContainText('vip');
 
   // B's save would undo A's rename without knowing: it is refused once, then replaces it on purpose.
@@ -98,7 +100,7 @@ test('an edit on one computer shows up on the other within seconds', async () =>
   await expect(formB.getByRole('alert')).toContainText('Someone changed this profile while you were editing');
   await formB.getByRole('button', { name: 'Save changes' }).click();
   await expect(formB).toBeHidden();
-  await expect(detail(winA).getByTestId('detail-name')).toHaveText('Shared-01', { timeout: 5000 });
+  await expect(winA.getByTestId('page-title')).toHaveText('Shared-01', { timeout: 5000 });
 
   await winB.keyboard.press('Escape');
   await winB.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Groups' }).click();
@@ -245,7 +247,7 @@ test('a proxy’s details show its checks and the profiles on it, which open in 
   await page.getByRole('tab', { name: /^Profiles/ }).click();
   await page.getByRole('button', { name: 'On-US', exact: true }).click();
   // The profile list shows only the profiles on that line, with the one picked open.
-  await expect(detail(win).getByTestId('detail-name')).toHaveText('On-US');
+  await expect(win.getByTestId('page-title')).toHaveText('On-US');
   await win.keyboard.press('Escape');
   await expect(win.locator('tr[data-id]')).toHaveText([/On-US/]);
   await win.getByRole('button', { name: 'Show all profiles' }).click();

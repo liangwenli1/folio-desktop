@@ -11,6 +11,7 @@ import { ago, errorText, type Dict, type Lang } from './i18n';
 import { Act, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, SkelRows, Switch, ViewSwitch, useChanged, useFail, useToast, useView, type IconName } from './ui';
 import { Flag } from './Flag';
 import { Select, SelectField, groupOpts } from './Select';
+import { useTrail } from './TopBar';
 
 type Counts = Run['counts'];
 const finished = (c: Counts) => c.ok + c.failed + c.signed_out + c.skipped + c.canceled;
@@ -79,12 +80,11 @@ export function TasksPage({ d, lang, ws, data, focus }: { d: Dict; lang: Lang; w
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           <ViewSwitch label={T.views.label} value={view} onChange={setView} options={[['list', 'list', T.views.list], ['calendar', 'calendar', T.views.calendar]]} />
           <button className="btn btn-primary" type="button" disabled={!data.flows.length} title={data.flows.length ? undefined : T.needFlow} onClick={() => setForm({})}><Icon name="plus" />{T.new}</button>
-        </header>
+        </div>
         {scheduledHere && (
           <div className="task-note">
             <Icon name="tasks" /><p>{T.onlyOpen}</p>
@@ -323,6 +323,7 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
 }){
   const T = d.tasks;
   const toast = useToast();
+  useTrail([{ label: T.title, go: onBack }, { label: task.name }], `${task.id}:${task.name}`);
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [sel, setSel] = useState<string | null>(focusRun);
   const [detail, setDetail] = useState<{ run: Run; items: RunItem[] } | null>(null);
@@ -358,17 +359,14 @@ function TaskDetail({ d, lang, ws, data, task, flowName, focusRun, onBack, onEdi
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <button type="button" className="btn btn-text btn-sm task-back" aria-label={T.backLabel} onClick={onBack}><Icon name="back" />{T.back}</button>
-          <span className="vsep" aria-hidden="true" />
-          <div className="ttl"><h1>{task.name}</h1>
-            <p className="sub">{T.about(flowName, task.profileIds.length, task.concurrency, task.retries)}{task.schedule ? ` · ${describe(d, lang, task.schedule)}` : ''}</p></div>
+        <div className="bar">
+          <p className="bar-note">{T.about(flowName, task.profileIds.length, task.concurrency, task.retries)}{task.schedule ? ` · ${describe(d, lang, task.schedule)}` : ''}</p>
           <span className="sp" />
           {task.canEdit && <button type="button" className="btn btn-secondary" onClick={onEdit}>{d.common.edit}</button>}
           {here
             ? <button type="button" className="btn btn-secondary" onClick={() => void folio.stopRun(here.runId)}>{T.stop}</button>
             : <button type="button" className="btn btn-primary" disabled={!idle} title={idle ? undefined : !task.profileIds.length ? T.noProfilesHere : T.runningElsewhere} onClick={() => void run()}><Icon name="play" />{T.run}</button>}
-        </header>
+        </div>
         <div className="task-detail">
           <section className="runs" aria-label={T.runs}>
             <h2 className="sec-t">{T.runs}</h2>

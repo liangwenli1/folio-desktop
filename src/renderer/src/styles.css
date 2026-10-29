@@ -288,11 +288,15 @@ html[data-platform="darwin"] .side{padding-top:calc(var(--tb) + 2px)}
 html[data-platform="win32"] .top{position:relative;padding-right:174px}
 html[data-platform="win32"] .top::after{content:'';position:absolute;top:16px;right:150px;width:1px;height:24px;background:var(--line-2)}
 /* the top bar: where you are on the left; search, help and notifications on the right */
-.top-crumbs{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;color:var(--ink-3)}
-.top-crumbs > .sep{flex:none;color:var(--ink-4)}
-.top-crumbs button{padding:0;border:0;background:none;font:inherit;color:var(--ink-2);cursor:pointer}
-.top-crumbs button:hover{color:var(--accent-ink)}
-.top-crumbs [aria-current]{color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The page's name as its title (H2, the user, 10-29); on a record's page a back button and the list's name before it. */
+.top-title{display:flex;align-items:center;gap:10px;min-width:0;font-size:16px;line-height:24px;color:var(--ink-3)}
+.top-title h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:600;color:var(--ink)}
+.top-title > .sep{flex:none;color:var(--ink-4)}
+.top-up{flex:none;padding:0;border:0;background:none;font:inherit;font-weight:500;color:var(--ink-3);cursor:pointer}
+.top-up:hover{color:var(--accent-ink)}
+.top-back{display:grid;place-items:center;flex:none;width:32px;height:32px;padding:0;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-2);cursor:pointer}
+.top-back:hover{background:var(--hover);color:var(--ink)}
+.top-back .i{width:18px;height:18px}
 .top-search{display:inline-flex;align-items:center;gap:8px;width:min(300px,30vw);height:var(--h-sm);padding:0 6px 0 10px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--panel);color:var(--ink-3);text-align:left;cursor:pointer}
 .top-search:hover{border-color:var(--ink-3)}
 .top-search > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -355,11 +359,13 @@ html[data-platform="win32"] .top::after{content:'';position:absolute;top:16px;ri
 /* pages */
 .page{display:flex;min-width:0;min-height:0;height:100%}
 /* A page scrolls as a whole when the window is short; its table keeps enough height to use. */
-.main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;overflow-y:auto}
-.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:32px var(--gx) 24px;flex:none}
-.ttl{display:grid;gap:6px;min-width:0}
-.ttl h1{font-weight:600;font-size:24px;line-height:32px}
-.ttl .sub{font-size:14px;line-height:22px;color:var(--ink-3)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;padding-top:20px;overflow-y:auto}
+/* A page's first row: its tabs on the left, its buttons on the right, the two lined up with the cards' edges below
+   (the name is the top bar's). What comes straight after keeps only the row's own gap. */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:0 var(--gx) 16px;flex:none}
+.main > .bar + *{margin-top:0}
+.main > .bar + .pd-body{padding-top:0}
+.bar-note{min-width:0;font-size:14px;line-height:22px;color:var(--ink-3)}
 .search{position:relative;margin-left:auto;width:min(340px,100%)}
 .search input{width:100%;height:var(--h-ctl);padding:0 12px 0 36px;border:1px solid var(--line-2);border-radius:var(--r);background:var(--card)}
 .search .i{position:absolute;left:12px;top:12px;color:var(--ink-3)}
@@ -488,11 +494,6 @@ button.badge{border:0;cursor:pointer}
 .dot-st + .badge{margin-left:8px}
 .shield{cursor:help}
 .prof-cell{display:flex;align-items:center;gap:10px}
-.star{display:inline-grid;place-items:center;width:32px;height:32px;margin:-5px -4px;border:0;border-radius:var(--r);background:none;color:var(--line-2);cursor:pointer}
-.star .i{width:16px;height:16px}
-.star:hover{color:var(--warn-ink)}
-.star.on{color:var(--warn-ink)}
-.star.on .i{fill:var(--warn)}
 /* A favourite's mark beside its name; starring is in the row's ⋯ menu (the user, 10-28). */
 .starred{display:inline-grid;place-items:center;color:var(--warn-ink)}
 .starred .i{width:14px;height:14px;fill:var(--warn)}
@@ -505,7 +506,6 @@ button.badge{border:0;cursor:pointer}
 .tag-cell .tag{max-width:96px}
 .tag-cell small{margin-left:0}
 .pc-tags{display:flex;flex-wrap:wrap;gap:4px}
-.icon-btn.star{width:32px;height:32px;margin:0;vertical-align:0}
 .risk-flag{display:inline-grid;place-items:center;margin-left:4px;color:var(--bad-ink);vertical-align:-3px}
 /* what could link profiles: one line until it is opened */
 .risk-bar{display:grid;gap:8px;margin:12px var(--gx) 0;padding:8px 10px 8px 14px;border-radius:var(--r-card);background:var(--warn-soft);flex:none}
@@ -556,13 +556,15 @@ tr.empty b{color:var(--ink)}
 
 .d-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .d-more{position:relative}
-.tabs{display:flex;align-items:center;gap:24px;border-bottom:1px solid var(--line);flex:none}
-.tab-list{display:flex;gap:24px;align-self:stretch}
-.tabs button{display:inline-flex;align-items:center;gap:6px;padding:10px 0;border:0;background:none;font-size:14px;font-weight:500;color:var(--ink-3);cursor:pointer}
-.tabs button:hover{color:var(--ink-body)}
-/* The tab shown: its name and underline in the brand colour (delivery spec 8). */
-.tabs [role="tab"][aria-selected="true"]{color:var(--accent-ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent-ink)}
-.tabs button small{font:inherit;color:inherit}
+/* Tabs (S1, the user, 10-29): one grey track, the tab shown raised in white as in the app's other segmented choices; a
+   count in the label's own size and line. */
+.tabs{display:inline-flex;align-items:center;align-self:flex-start;justify-self:start;gap:2px;max-width:100%;padding:4px;border-radius:var(--r-card);background:var(--seg);flex:none}
+.tab-list{display:flex;gap:2px}
+.tabs button{display:inline-flex;align-items:center;gap:8px;height:var(--h-sm);padding:0 14px;border:0;border-radius:var(--r);background:none;font-size:14px;font-weight:500;color:var(--ink-2);white-space:nowrap;cursor:pointer}
+.tabs button:hover{color:var(--ink)}
+.tabs [role="tab"][aria-selected="true"]{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(29,28,43,.12)}
+.tabs button small{font:inherit;font-weight:500;font-variant-numeric:tabular-nums;color:var(--ink-3)}
+.tabs [role="tab"][aria-selected="true"] small{color:var(--accent-ink)}
 .sec{display:grid;gap:16px;padding:20px 24px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--card)}
 .sec h3{font-size:16px;line-height:24px;font-weight:600;color:var(--ink)}
 .sec-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -594,13 +596,6 @@ tr.empty b{color:var(--ink)}
 .bound li + li{border-top:1px solid var(--line)}
 
 /* a profile's page: header, tabs, then the tab's cards (the trail to it is in the top bar) */
-.pd-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:24px var(--gx) 16px;flex:none}
-.pd-t{display:grid;gap:4px;min-width:0}
-.pd-n{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
-.pd-n h1{font:600 24px/32px var(--f-body);overflow-wrap:anywhere}
-.pd-n .star{width:32px;height:32px}
-.pd-sub{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-2)}
-.pd-sub .sep{width:1px;height:12px;background:var(--line-2)}
 .pd > .away-note,.pd > .opening{margin:0 var(--gx) 14px;flex:none}
 .pd > .tabs{margin:0 var(--gx)}
 .pd-body{display:grid;gap:16px;align-content:start;padding:16px var(--gx) 24px}
@@ -977,7 +972,6 @@ input.followed{color:var(--ink-2);background:var(--panel)}
 .flow-types .stype .i{width:16px;height:16px}
 .flow-main{overflow:hidden}
 .flow-bar{flex-wrap:nowrap}
-.flow-bar .btn-text{padding:0 8px;color:var(--ink-2)}
 .vsep{width:1px;height:22px;flex:none;background:var(--line)}
 .flow-name{flex:0 1 auto;min-width:0}
 .flow-name input{field-sizing:content;min-width:160px;max-width:min(560px,100%);height:var(--h-ctl);padding:0 10px;border:1px solid transparent;border-radius:var(--r);background:transparent;font-weight:600;font-size:24px}
@@ -1123,7 +1117,6 @@ input.followed{color:var(--ink-2);background:var(--panel)}
 .cal-none{text-align:center}
 @media (max-width:1180px){ .cal{grid-template-columns:minmax(0,1fr)} }
 /* a task's runs and their results */
-.task-back{padding:0 8px;color:var(--ink-2)}
 .picker-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .picker-bar input[type="search"]{flex:1 1 160px;width:auto !important;height:var(--h-sm) !important}
 .picker-bar .sel{max-width:200px}
@@ -1638,9 +1631,6 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 @media (max-width:1180px){ .bill-now{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .bill-remind{grid-column:1 / -1;padding-left:0;border-left:0} }
 
 /* the profiles page: status tabs with their counts, starting a row, the pager, editing several at once */
-.page-tabs{margin:0 var(--gx) 2px;flex:none}
-.page-tabs button small{margin-left:6px;font:600 12px var(--f-data);color:var(--ink-3)}
-.page-tabs button[aria-selected="true"] small{color:var(--accent-ink)}
 /* the search gives way first, so a row of filters stays on one line */
 .filters .search{margin-left:0;flex:1 1 220px;width:auto;max-width:360px}
 .prof .l2{margin-top:2px}

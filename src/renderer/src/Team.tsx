@@ -56,14 +56,12 @@ export function TeamPage({ d, lang, ws, meId, data, onLeft }: Props){
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{T.title}</h1></div>
+        <div className="bar">
+          <Tabs label={T.title} value={tab} tabs={tabs} name={t => T.tabs[t]} count={t => (t === 'members' ? data.members.length : t === 'invites' ? data.invitations.length : null)} onChange={setTab} />
           <span className="sp" />
           {self && self.role.key !== 'owner' && <button className="btn btn-secondary" type="button" onClick={() => setDialog({ kind: 'leave' })}>{T.leave}</button>}
           {manager && <button className="btn btn-primary" type="button" onClick={() => setDialog({ kind: 'invite' })}><Icon name="plus" />{T.invite}</button>}
-        </header>
-
-        <Tabs className="page-tabs" label={T.title} value={tab} tabs={tabs} name={t => T.tabs[t]} count={t => (t === 'members' ? data.members.length : t === 'invites' ? data.invitations.length : null)} onChange={setTab} />
+        </div>
 
         {tab === 'members' && (
             <section className="list-card" aria-label={T.tabs.members}>

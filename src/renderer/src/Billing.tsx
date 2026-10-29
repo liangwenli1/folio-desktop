@@ -72,10 +72,7 @@ export function BillingPage({ d, lang, ws, data, manager, used }: {
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{B.title}</h1></div>
-        </header>
-        <Tabs className="page-tabs" label={B.title} value={tab} tabs={['plan', 'usage', 'payments']} name={t => B.tabs[t]} onChange={setTab} />
+        <div className="bar"><Tabs label={B.title} value={tab} tabs={['plan', 'usage', 'payments']} name={t => B.tabs[t]} onChange={setTab} /></div>
 
         {tab === 'plan' && (
           <div className="bill">

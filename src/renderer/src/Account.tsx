@@ -20,7 +20,6 @@ export function AccountPage({ d, lang, me, ws, invites, start, onSaved, onSwitch
   return (
     <div className="page">
       <main className="main">
-        <header className="bar"><div className="ttl"><h1>{A.title}</h1></div></header>
         <div className="duo">
           <nav className="sec duo-nav" aria-label={A.title}>
             {(['profile', 'password', 'workspaces'] as const).map(x => (

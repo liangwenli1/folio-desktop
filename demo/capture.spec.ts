@@ -199,7 +199,7 @@ for (const lang of ['en', 'zh'] as const){
     const row = (name: string) => win.locator('tr[data-id]', { hasText: name });
     const page = win.getByRole('main', { name: d.detail.profile, exact: true });
     // The way back from a profile's page is in the top bar.
-    const back = () => win.getByRole('navigation', { name: d.detail.crumbs }).getByRole('button', { name: d.profiles.title }).click();
+    const back = () => win.locator('.top').getByRole('button', { name: d.top.back }).click();
 
     // A picture of this moment, light and dark (after their colour transitions): the whole window, or the part `clip`
     // gives (in the window's coordinates).

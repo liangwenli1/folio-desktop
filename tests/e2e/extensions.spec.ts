@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { account, API, bulkMore, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened, backToList, detail } from './helpers';
+import { account, API, bulkMore, choose, chromiumProfile, dataDir, ENGINE_ENV, hasKernels, lastStatus, launch, logIn, opened, back, detail } from './helpers';
 
 test.setTimeout(300_000);
 const zip = (files: Record<string, string>) => Buffer.from(zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)]))));
@@ -58,12 +58,12 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   // Chromium from the Chrome Web Store, Firefox from a file.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Extensions' }).click();
   // The header's button (an empty library offers the same one).
-  await win.locator('header.bar').getByRole('button', { name: 'Add extension' }).click();
+  await win.locator('.main > .bar').getByRole('button', { name: 'Add extension' }).click();
   let dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByLabel('Store link, extension ID or download link').fill('https://chromewebstore.google.com/detail/shop-helper/abcdefghijklmnopabcdefghijklmnop');
   await dialog.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Added to the library' })).toContainText('Shop Helper');
-  await win.locator('header.bar').getByRole('button', { name: 'Add extension' }).click();
+  await win.locator('.main > .bar').getByRole('button', { name: 'Add extension' }).click();
   dialog = win.getByRole('dialog', { name: 'Add extension' });
   await dialog.getByRole('group', { name: 'Engine' }).getByRole('button', { name: 'Firefox' }).click();
   await dialog.getByRole('group', { name: 'From' }).getByRole('button', { name: 'File' }).click();
@@ -90,7 +90,7 @@ test('extensions from a store or a file reach the profiles of their engine, and 
   await form.getByRole('region', { name: 'Extensions' }).getByLabel('Shop Helper').check();
   await form.getByRole('button', { name: 'Save changes' }).click();
   await expect(form).toHaveCount(0);
-  await backToList(win);
+  await back(win);
   await win.getByLabel('Select this page').check();
   await bulkMore(win, 'Bulk edit');
   const bulk = win.getByRole('dialog', { name: 'Bulk edit profiles' });

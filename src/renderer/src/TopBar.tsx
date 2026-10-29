@@ -1,6 +1,7 @@
-// The bar along the top of every page (v2's white 56 px bar): where you are on the left, the page (and on a record's
-// own page that record), and on the right the search (the command palette), light or dark, help, notifications and
-// the workspace. Its empty space still drags the window: on Windows and macOS it is the title bar.
+// The bar along the top of every page (v2's white 56 px bar). On the left the page's name, its title (H2, the user,
+// 10-29: pages have no big title of their own); on a record's page a back button, the list (also back) and the record.
+// On the right the search (the command palette), light or dark, help, notifications and the workspace. Its empty space
+// still drags the window: on Windows and macOS it is the title bar.
 import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { folio, type Me, type Workspace } from './api';
@@ -12,7 +13,8 @@ import { Avatar, Icon, menuKeys, useDismiss, useMedia, type IconName } from './u
 export interface Crumb { label: string; go?(): void }
 const TrailContext = createContext<(trail: Crumb[] | null) => void>(() => {});
 export const TrailProvider = TrailContext.Provider;
-// A page showing one record (a profile, a proxy) puts it after the page's name: [the list, to go back to; the record].
+// A page showing one record (a profile, a proxy, a task, a flow) puts it after the page's name: [the list, to go back
+// to; the record].
 export function useTrail(trail: Crumb[], key: string){
   const set = useContext(TrailContext);
   useEffect(() => { set(trail); return () => set(null); }, [key]);
@@ -20,16 +22,19 @@ export function useTrail(trail: Crumb[], key: string){
 
 export function TopBar({ d, page, trail, onSearch, onHelp, children }: { d: Dict; page: string; trail: Crumb[] | null; onSearch(): void; onHelp(): void; children: ReactNode }){
   const steps = trail ?? [{ label: page }];
+  const up = steps.at(-2)?.go;
   return (
     <header className="top">
-      <nav className="top-crumbs" aria-label={d.detail.crumbs}>
-        {steps.map((c, i) => (
+      <div className="top-title">
+        {up && <button type="button" className="top-back" aria-label={d.top.back} title={d.top.back} onClick={up}><Icon name="back" /></button>}
+        {steps.slice(0, -1).map((c, i) => (
           <Fragment key={i}>
-            {i > 0 && <span className="sep" aria-hidden="true">/</span>}
-            {c.go ? <button type="button" onClick={c.go}>{c.label}</button> : <span aria-current={i === steps.length - 1 ? 'page' : undefined}>{c.label}</span>}
+            <button type="button" className="top-up" onClick={c.go}>{c.label}</button>
+            <span className="sep" aria-hidden="true">/</span>
           </Fragment>
         ))}
-      </nav>
+        <h1 data-testid="page-title">{steps.at(-1)!.label}</h1>
+      </div>
       <span className="sp" />
       <button type="button" className="top-search" onClick={onSearch}><Icon name="search" /><span>{d.top.search}</span><kbd>{mod} K</kbd></button>
       <ThemeButton d={d} />

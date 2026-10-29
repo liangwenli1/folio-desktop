@@ -102,11 +102,10 @@ await page.goto('https://example.com');`
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{A.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={() => folio.openSite(`/${lang}/help/api/`)}><Icon name="api" />{A.reference}</button>
-        </header>
+        </div>
         {state && <div className="api-page">
           <section className="sec" aria-labelledby="api-server">
             <div className="api-head">

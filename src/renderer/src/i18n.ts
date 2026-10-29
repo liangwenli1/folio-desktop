@@ -41,7 +41,7 @@ export const en = {
   },
   nav: { profiles: 'Profiles', proxies: 'Proxies', extensions: 'Extensions', flows: 'Flows', sync: 'Window sync', tasks: 'Scheduled tasks', api: 'API & scripts', team: 'Team', activity: 'Activity log', jobs: 'Task center', trash: 'Trash', engines: 'Engines', groups: 'Groups', settings: 'Settings', billing: 'Plan and usage', help: 'Help', fold: 'Collapse menu', unfold: 'Expand menu', more: 'More' },
   top: {
-    search: 'Search profiles, proxies or members…', toDark: 'Switch to dark', toLight: 'Switch to light', bell: 'Notifications', bellNew: 'Notifications (new)', none: 'No notifications',
+    search: 'Search profiles, proxies or members…', back: 'Back', toDark: 'Switch to dark', toLight: 'Switch to light', bell: 'Notifications', bellNew: 'Notifications (new)', none: 'No notifications',
     planEnds: (plan: string, date: string) => `${plan} ends on ${date}. Renew it to keep its limits.`, trialEnds: (date: string) => `The free trial ends on ${date}.`,
     renew: 'Renew', choosePlan: 'Choose a plan', invited: (who: string, ws: string) => `${who} invited you to the ${ws} workspace.`,
     jobFailed: (kind: string, n: number, total: number) => `${kind}: ${n} of ${total} failed.`,
@@ -237,7 +237,7 @@ export const en = {
     save_failed: 'The browser closed, but its sign-ins couldn’t be saved to Folio. They are still on this computer.'
   } as Record<string, string>,
   detail: {
-    profile: 'Profile', crumbs: 'Breadcrumb', basics: 'Basics', proxyCard: 'Proxy connection', dataCard: 'Profile data', manage: 'Manage',
+    profile: 'Profile', basics: 'Basics', proxyCard: 'Proxy connection', dataCard: 'Profile data', manage: 'Manage',
     viewAll: 'View all', lastOpened: 'Last opened', synced: 'Last saved', answered: (ms: number) => `Responding · ${ms} ms`,
     openProfile: 'Open profile', edit: 'Edit', editProfile: 'Edit profile', trash: 'Move to Trash', viewProxy: 'View proxy',
     notChecked: 'Exit not checked yet', noExit: 'Proxy not responding', direct: 'Direct connection',
@@ -245,7 +245,7 @@ export const en = {
     verdict: { ok: 'All consistent', warn: 'Needs attention', bad: 'Can’t open' },
     fields: {
       name: 'Name', number: 'Number', lang: 'Language', tz: 'Time zone', os: 'OS', engine: 'Engine', window: 'Window size',
-      proxyName: 'Proxy', proxyType: 'Protocol and address', ip: 'Exit IP', state: 'Status', checked: 'Last checked'
+      proxyName: 'Proxy', proxyType: 'Protocol and address', ip: 'Exit IP', state: 'Status', checked: 'Last checked', run: 'State', check: 'Fingerprint check'
     },
     hostTz: 'This computer’s',
     checksTitle: 'Consistency check', notes: 'Notes', status: { ok: 'Passed', todo: 'To do', warn: 'Warning', bad: 'Problem' },
@@ -419,7 +419,7 @@ export const en = {
       none: 'No profile uses it.', noHistory: 'Not checked yet.',
       created: 'Added', lastChecked: 'Last checked', failure: 'Why it failed', viewAll: 'View all', manage: 'Manage', details: 'View details',
       tabs: { overview: 'Overview', bound: 'Profiles', checks: 'Checks' },
-      createdOn: (when: string) => `Added ${when}`, checkedOn: (when: string) => `last checked ${when}`, authOn: 'On', authOff: 'Off',
+      state: 'Status', authOn: 'On', authOff: 'Off',
       runningWarn: 'Stop the running profiles that use this proxy before changing how it connects.', viewProfile: 'View profile'
     },
     formAdd: 'Add proxy', formEdit: 'Edit proxy', save: 'Save proxy', added: 'Proxy added',
@@ -696,7 +696,7 @@ export const en = {
     emptyTitle: 'No flows yet', empty: 'A flow is a list of steps (open a page, click, type, extract…) that runs on one profile or many.',
     you: 'You', view: 'View', duplicate: 'Duplicate', duplicateToEdit: 'Duplicate to edit', delete: 'Delete', deleteX: (n: string) => `Delete ${n}`,
     inUse: (tasks: string) => `Used by ${tasks}; it can’t be deleted.`, confirmDelete: (n: string) => `Delete “${n}”?`, deleted: (n: string): News => ({ title: 'Flow deleted', detail: n }), copyName: (n: string) => `${n} (copy)`, untitled: 'New flow',
-    back: 'Flows', backLabel: 'Back to flows', name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
+    name: 'Flow name', nameNeeded: 'Give the flow a name.', save: 'Save', saving: 'Saving…', saved: 'Flow saved',
     readOnly: 'Only whoever created this flow, admins and the owner can change it. Duplicate it to make your own version.',
     stale: 'Someone saved this flow while you were editing. Save again to replace their version with yours.',
     issues: (n: number) => (n === 1 ? '1 step needs filling in before saving.' : `${n} steps need filling in before saving.`),
@@ -770,7 +770,7 @@ export const en = {
     status: { running: 'Running', done: 'Finished', stopped: 'Stopped', interrupted: 'Interrupted', missed: 'Missed', busy: 'Skipped' },
     progress: (done: number, all: number) => `${done} of ${all} done`, elsewhere: (where: string) => `on ${where}`,
     counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} done`, c.signed_out && `${c.signed_out} signed out`, c.failed && `${c.failed} failed`, c.skipped && `${c.skipped} skipped`, c.canceled && `${c.canceled} not run`].filter(Boolean).join(' · ') || 'Nothing ran',
-    back: 'Tasks', backLabel: 'Back to tasks', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
+    about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${profilesN(n)} · ${conc} at a time · ${retries === 0 ? 'no retries' : retries === 1 ? '1 retry' : `${retries} retries`}`,
     runs: 'Runs', noRuns: 'No runs yet.', triggers: { manual: 'Manual', rerun: 'Rerun', schedule: 'Scheduled' }, result: 'Run results',
     missedNote: (at: string, device: string) => `Nothing ran at ${at}: Folio wasn’t open and logged in on ${device || 'its computer'}, or the computer was asleep.`,
     busyNote: (at: string) => `Nothing ran at ${at}: the run before was still going.`, runNow: 'Run it now',
@@ -968,7 +968,7 @@ export const zh: Dict = {
   },
   nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '平台设置', billing: '套餐与用量', help: '帮助中心', fold: '收起菜单', unfold: '展开菜单', more: '更多' },
   top: {
-    search: '搜索环境、代理或成员…', toDark: '切换到深色', toLight: '切换到浅色', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
+    search: '搜索环境、代理或成员…', back: '返回', toDark: '切换到深色', toLight: '切换到浅色', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
     planEnds: (plan: string, date: string) => `${plan}将于 ${date} 到期，续费后可继续使用当前额度。`, trialEnds: (date: string) => `免费试用将于 ${date} 结束。`,
     renew: '续费', choosePlan: '选择套餐', invited: (who: string, ws: string) => `${who} 邀请您加入工作空间「${ws}」。`,
     jobFailed: (kind: string, n: number, total: number) => `${kind}：${total} 项中有 ${n} 项失败。`,
@@ -1158,7 +1158,7 @@ export const zh: Dict = {
     save_failed: '浏览器已关闭，但登录状态未能保存至 Folio，已保留在本机。'
   } as Record<string, string>,
   detail: {
-    profile: '环境详情', crumbs: '当前位置', basics: '基础信息', proxyCard: '代理信息', dataCard: '环境数据', manage: '管理',
+    profile: '环境详情', basics: '基础信息', proxyCard: '代理信息', dataCard: '环境数据', manage: '管理',
     viewAll: '查看全部', lastOpened: '最近使用', synced: '最近同步', answered: (ms: number) => `连接正常 · ${ms} ms`,
     openProfile: '启动环境', edit: '编辑', editProfile: '编辑环境', trash: '移至回收站', viewProxy: '查看代理详情',
     notChecked: '尚未检测出口', noExit: '代理无响应', direct: '直连',
@@ -1166,7 +1166,7 @@ export const zh: Dict = {
     verdict: { ok: '全部一致', warn: '需要处理', bad: '无法打开' },
     fields: {
       name: '环境名称', number: '环境编号', lang: '语言', tz: '时区', os: '操作系统', engine: '使用内核', window: '启动窗口',
-      proxyName: '代理名称', proxyType: '类型与地址', ip: '出口 IP', state: '连接状态', checked: '上次检测'
+      proxyName: '代理名称', proxyType: '类型与地址', ip: '出口 IP', state: '连接状态', checked: '上次检测', run: '运行状态', check: '指纹检测'
     },
     hostTz: '跟随本机',
     checksTitle: '一致性检查', notes: '备注', status: { ok: '通过', todo: '待处理', warn: '警告', bad: '问题' },
@@ -1333,7 +1333,7 @@ export const zh: Dict = {
       none: '暂无环境使用此代理。', noHistory: '尚未检测。',
       created: '创建时间', lastChecked: '最后检测', failure: '失败原因', viewAll: '查看全部', manage: '管理', details: '查看详情',
       tabs: { overview: '概览', bound: '绑定环境', checks: '检测记录' },
-      createdOn: (when: string) => `创建于 ${when}`, checkedOn: (when: string) => `最近检测 ${when}`, authOn: '已启用', authOff: '未启用',
+      state: '状态', authOn: '已启用', authOff: '未启用',
       runningWarn: '更新连接配置前，请先停止使用该代理的运行中环境。', viewProfile: '查看环境'
     },
     formAdd: '添加代理', formEdit: '编辑代理', save: '保存代理', added: '代理已添加',
@@ -1607,7 +1607,7 @@ export const zh: Dict = {
     emptyTitle: '暂无流程', empty: '流程由一系列步骤组成（打开网页、点击、输入、提取等），可在一个或多个环境中运行。',
     you: '我', view: '查看', duplicate: '复制', duplicateToEdit: '复制后修改', delete: '删除', deleteX: (n: string) => `删除 ${n}`,
     inUse: (tasks: string) => `正被 ${tasks} 使用，无法删除。`, confirmDelete: (n: string) => `删除「${n}」？`, deleted: (n: string): News => ({ title: '流程已删除', detail: n }), copyName: (n: string) => `${n}（副本）`, untitled: '新流程',
-    back: '流程', backLabel: '返回流程列表', name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
+    name: '流程名称', nameNeeded: '请填写流程名称。', save: '保存', saving: '正在保存…', saved: '流程已保存',
     readOnly: '仅流程创建者、管理员和所有者可修改，可复制一份后修改。',
     stale: '编辑期间该流程已被他人保存。再次保存将以当前版本覆盖对方的修改。',
     issues: (n: number) => `尚有 ${n} 个步骤未填写完整，完成后方可保存。`,
@@ -1680,7 +1680,7 @@ export const zh: Dict = {
     status: { running: '运行中', done: '已完成', stopped: '已停止', interrupted: '已中断', missed: '错过', busy: '跳过' },
     progress: (done: number, all: number) => `已完成 ${done} / ${all}`, elsewhere: (where: string) => `在 ${where} 上`,
     counts: (c: { ok: number; failed: number; signed_out: number; skipped: number; canceled: number }) => [c.ok && `${c.ok} 个成功`, c.signed_out && `${c.signed_out} 个掉线`, c.failed && `${c.failed} 个失败`, c.skipped && `${c.skipped} 个跳过`, c.canceled && `${c.canceled} 个未运行`].filter(Boolean).join(' · ') || '均未运行',
-    back: '任务', backLabel: '返回任务列表', about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
+    about: (flow: string, n: number, conc: number, retries: number) => `${flow} · ${n} 个环境 · 同时 ${conc} 个 · ${retries === 0 ? '不重试' : `失败重试 ${retries} 次`}`,
     runs: '运行记录', noRuns: '暂无运行记录。', triggers: { manual: '手动', rerun: '重新运行', schedule: '定时' }, result: '运行结果',
     missedNote: (at: string, device: string) => `${at} 未运行：${device || '所属电脑'}上的 Folio 未运行或未登录，或电脑处于睡眠状态。`,
     busyNote: (at: string) => `${at} 未运行：上一轮尚未完成。`, runNow: '补运行',

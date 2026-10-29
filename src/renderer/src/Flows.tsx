@@ -8,6 +8,7 @@ import type { WorkspaceData } from './data';
 import { ago, type Dict } from './i18n';
 import { Act, Cancel, Empty, Icon, ListFailed, Modal, MoreMenu, SkelRows, useFail, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
+import { useTrail } from './TopBar';
 
 type StepType = Step['type'];
 type Test = Extract<Step, { type: 'if' }>['test'];
@@ -108,12 +109,11 @@ export function FlowsPage({ d, wsId, meId, data }: { d: Dict; wsId: string; meId
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{F.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           <button className="btn btn-secondary" type="button" onClick={() => setOpen({ id: null, template: true })}>{F.template}</button>
           <button className="btn btn-primary" type="button" onClick={() => setOpen({ id: null })}><Icon name="plus" />{F.new}</button>
-        </header>
+        </div>
         <section className="list-card" aria-label={F.title}>
         <div className="filters">
           <label className="search"><Icon name="search" /><span className="sr">{F.search}</span>
@@ -197,6 +197,7 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
   const dirty = !flow || edit.name !== base?.name || JSON.stringify(edit.steps) !== JSON.stringify(base?.steps);
   // Leaving with changes not saved, by the back button or the rail, asks first.
   const leave = useLeave(dirty && !readOnly);
+  useTrail([{ label: F.title, go: () => leave(onClose) }, { label: edit.name.trim() || F.untitled }], edit.name);
   const issues = countIssues(edit.steps);
   const steps = (fn: (s: Step[]) => Step[]) => setEdit(x => ({ ...x, steps: fn(x.steps) }));
 
@@ -239,8 +240,6 @@ function FlowEditor({ d, wsId, data, flow, template, onClose, onCreated, onDupli
     <div className="page">
       <main className="main flow-main">
         <header className="bar flow-bar">
-          <button type="button" className="btn btn-text btn-sm" aria-label={F.backLabel} onClick={() => leave(onClose)}><Icon name="back" />{F.back}</button>
-          <span className="vsep" aria-hidden="true" />
           <label className="flow-name">
             <span className="sr">{F.name}</span>
             <input value={edit.name} maxLength={80} readOnly={readOnly} aria-label={F.name} aria-invalid={!edit.name.trim()} onChange={e => setEdit(x => ({ ...x, name: e.target.value }))} />

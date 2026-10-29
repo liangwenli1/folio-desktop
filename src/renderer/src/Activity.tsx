@@ -83,11 +83,10 @@ export function ActivityPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws: W
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{A.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           {canExport && <button className="btn btn-secondary" type="button" onClick={() => void exportCsv()}><Icon name="upload" />{A.export}</button>}
-        </header>
+        </div>
         {!whole && <p className="hint page-note">{A.partial}</p>}
         <div className={`side-wrap${cur ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={A.title}>

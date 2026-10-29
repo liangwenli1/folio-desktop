@@ -269,15 +269,13 @@ export function ProfilesPage({ d, lang, ws, meId, data, group, setGroup, only, s
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{P.title}</h1></div>
+        <div className="bar">
+          <Tabs label={P.filter.label} value={status} tabs={['all', 'running', 'stopped']} name={t => P.tabs[t as Shown]} count={t => counts[t as Shown]}
+            onChange={t => { setStatus(t); setPage(1); }} after={manager && <button type="button" className="tab-link" onClick={onTrashPage}>{P.tabs.trash}</button>} />
           <span className="sp" />
           {manager && <button className="btn btn-secondary" type="button" onClick={onImport}><Icon name="upload" />{P.import}</button>}
           {can(data.role, 'profiles.create') && <button className="btn btn-primary" type="button" onClick={onNew}><Icon name="plus" />{P.new}</button>}
-        </header>
-
-        <Tabs className="page-tabs" label={P.filter.label} value={status} tabs={['all', 'running', 'stopped']} name={t => P.tabs[t as Shown]} count={t => counts[t as Shown]}
-          onChange={t => { setStatus(t); setPage(1); }} after={manager && <button type="button" className="tab-link" onClick={onTrashPage}>{P.tabs.trash}</button>} />
+        </div>
 
         {shown.length > 0 && (
           <section className={`risk-bar${shown.some(r => r.level === 'bad') ? ' bad' : ''}`} aria-label={d.risks.title(shown.length)} data-testid="risks">

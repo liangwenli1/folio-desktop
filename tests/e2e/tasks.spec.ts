@@ -6,7 +6,7 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, choose, chromiumProfile, dataDir, hasKernels, launch, logIn, roleId } from './helpers';
+import { ENGINE_ENV, account, back, choose, chromiumProfile, dataDir, hasKernels, launch, logIn, roleId } from './helpers';
 
 test.setTimeout(420_000);
 const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
@@ -156,7 +156,7 @@ test('the week calendar places a daily task on its days, and the page remembers 
   // Weekdays come picked; keep Monday and Wednesday.
   for (const day of ['Tue', 'Thu', 'Fri']) await form.getByRole('group', { name: 'Days' }).getByRole('button', { name: day }).click();
   await form.getByRole('button', { name: 'Create task' }).click();
-  await win.getByRole('button', { name: 'Back to tasks' }).click();
+  await back(win);
 
   await win.getByRole('group', { name: 'View' }).getByRole('button', { name: 'Calendar' }).click();
   const events = win.locator('.cal-ev[data-task="Twice a week"]');

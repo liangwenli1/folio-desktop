@@ -169,14 +169,14 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{E.title}</h1></div>
+        <div className="bar">
+          <Tabs label={E.title} value={tab} tabs={['all', 'installed', 'updates']} name={t => E.tabs[t]} count={t => t === 'updates' && updates.size > 0 && updates.size} onChange={setTab} />
           <span className="sp" />
           {admin && <button type="button" className="btn btn-secondary" onClick={() => setUploading(true)}><Icon name="upload" />{E.admin.upload}</button>}
           <button type="button" className="btn btn-primary" disabled={checking} onClick={() => void checkUpdates()}>
             {checking ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{E.check}
           </button>
-        </header>
+        </div>
         <section className="en-strip" aria-label={E.settings}>
           <label className="en-def"><span className="label">{E.defaultKernel}</span>
             <Select label={E.defaultKernel} value={defValue} disabled={!manager} onChange={v => void makeDefault(v)} options={defOpts} />
@@ -195,8 +195,6 @@ export function EnginesPage({ d, ws, data, admin, manager, onShowProfiles }: {
             <button type="button" className="btn btn-sm btn-primary" disabled={!o.idle.length} onClick={() => void upgrade(o.kind, o.rec, o.idle.map(p => p.id))}>{E.upgrade(o.rec)}</button>
           </div>
         ))}
-
-        <Tabs className="page-tabs" label={E.title} value={tab} tabs={['all', 'installed', 'updates']} name={t => E.tabs[t]} count={t => t === 'updates' && updates.size > 0 && updates.size} onChange={setTab} />
         <div className={`side-wrap${side ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={E.title}>
             <div className="filters">

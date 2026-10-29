@@ -115,11 +115,10 @@ export function GroupsPage({ d, lang, ws, meId, data, onOpenProfile, onNewProfil
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{G.title}</h1></div>
+        <div className="bar">
           <span className="sp" />
           {manager && <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}><Icon name="plus" />{G.add}</button>}
-        </header>
+        </div>
         <div className={`gp${group && manager && panel ? ' with-panel' : ''}`}>
           <section className="sec gp-tree" aria-label={G.tree}>
             <div className="sec-row"><h3>{G.tree}</h3></div>

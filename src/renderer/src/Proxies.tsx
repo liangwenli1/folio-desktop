@@ -135,17 +135,15 @@ export function ProxiesPage({ d, lang, data, openId, onAdd, onEdit, onImport, on
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          {/* What the lines are doing, in a line under the title (v2 07). */}
-          <div className="ttl"><h1>{X.title}</h1></div>
+        <div className="bar">
+          <Tabs label={X.title} value="all" tabs={['all']} name={() => X.allTab} count={() => data.proxies.length} onChange={() => {}}
+            after={<button type="button" className="tab-link" onClick={onImport}>{X.importTab}</button>} />
           <span className="sp" />
           <button className="btn btn-secondary" type="button" disabled={!data.proxies.length || data.checking.size > 0} title={data.checking.size ? d.common.checking : undefined} onClick={() => void check(data.proxies.map(p => p.id))}>
             {data.checking.size ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.checkAll}
           </button>
           <button className="btn btn-primary" type="button" onClick={onAdd}><Icon name="plus" />{X.add}</button>
-        </header>
-        <Tabs className="page-tabs" label={X.title} value="all" tabs={['all']} name={() => X.allTab} count={() => data.proxies.length} onChange={() => {}}
-          after={<button type="button" className="tab-link" onClick={onImport}>{X.importTab}</button>} />
+        </div>
 
         <div className={`side-wrap${curProxy ? ' with-panel' : ''}`}>
           <section className="side-main list-card" aria-label={X.title}>
@@ -410,18 +408,13 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
   return (
     <div className="page">
       <main className="main pd" aria-label={D.label}>
-        <header className="pd-head">
-          <div className="pd-t">
-            <div className="pd-n"><h1 data-testid="proxy-name">{p.name}</h1><ProxyState d={d} p={p} busy={busy} /><span className="cc">{p.type.toUpperCase()}</span></div>
-            <p className="pd-sub"><span>{D.createdOn(when(p.createdAt))}</span>{p.lastCheck && <><span className="sep" aria-hidden="true" /><span>{D.checkedOn(when(p.lastCheck.checkedAt))}</span></>}
-              {p.lastCheck && !p.lastCheck.ok && <><span className="sep" aria-hidden="true" /><span className="bad-t">{checkWhy(d, p.lastCheck.error) ?? X.states.down}</span></>}</p>
-          </div>
+        <div className="bar">
+          <Tabs label={D.label} value={tab} tabs={['overview', 'bound', 'checks']} name={t => D.tabs[t]} count={t => t === 'bound' && profiles.length} onChange={setTab} />
           <span className="sp" />
           <button type="button" className="btn btn-secondary" onClick={onEdit}><Icon name="edit" />{X.formEdit}</button>
           <button type="button" className="btn btn-primary" disabled={busy} onClick={onCheck}>{busy ? <span className="spin" aria-hidden="true" /> : <Icon name="refresh" />}{X.test}</button>
           <MoreMenu vertical label={X.actionsX(p.name)} items={[{ label: X.bulkDelete, onClick: onDelete, danger: true }]} />
-        </header>
-        <Tabs className="page-tabs" label={D.label} value={tab} tabs={['overview', 'bound', 'checks']} name={t => D.tabs[t]} count={t => t === 'bound' && profiles.length} onChange={setTab} />
+        </div>
         <div className="pd-body">
           {tab === 'overview' && <>
             <dl className="dstats">
@@ -442,6 +435,8 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
                 <section className="sec" aria-label={D.config}>
                   <h3>{D.config}</h3>
                   <dl className="kvl two">
+                    <dt>{D.state}</dt><dd><ProxyState d={d} p={p} busy={busy} />{p.lastCheck && !p.lastCheck.ok && <span className="bad-t">{checkWhy(d, p.lastCheck.error) ?? X.states.down}</span>}</dd>
+                    <dt>{D.lastChecked}</dt><dd>{p.lastCheck ? when(p.lastCheck.checkedAt) : '—'}</dd>
                     <dt>{X.name}</dt><dd>{p.name}</dd>
                     <dt>{X.type}</dt><dd className="mono">{p.type.toUpperCase()}</dd>
                     <dt>{X.host}</dt><dd className="mono">{p.host}<CopyBtn text={p.host} label={d.common.copy} done={d.common.copied} /></dd>
@@ -451,6 +446,7 @@ function ProxyPage(props: ProxyItem & { lang: Lang; data: WorkspaceData; tab: Ta
                     {p.username !== null || p.hasPassword ? <><dt>{X.pass}</dt><dd>{p.hasPassword ? D.passSet : D.passNone}</dd></> : null}
                     <dt>{X.backup}</dt><dd>{backup ?? X.backupNone}</dd>
                     <dt>{D.uptime}</dt><dd>{up === null ? '—' : D.uptimeOf(up, p.history.length)}</dd>
+                    <dt>{D.created}</dt><dd>{when(p.createdAt)}</dd>
                     {p.notes && <><dt>{X.notes}</dt><dd className="notes wide">{p.notes}</dd></>}
                   </dl>
                 </section>

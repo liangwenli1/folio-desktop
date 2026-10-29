@@ -52,14 +52,13 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
   return (
     <div className="page">
       <main className="main">
-        <header className="bar">
-          <div className="ttl"><h1>{W.title}</h1></div>
-          {s && ws.subscription.plan !== 'free' && <>
+        {s && ws.subscription.plan !== 'free' && (
+          <div className="bar">
             <span className="sp" />
             <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => void tile()}><Icon name="grid" />{busy ? W.tiling : W.tile}</button>
             <button type="button" className="btn btn-primary" onClick={() => { setTiled(null); void folio.stopWindowSync(); }}><Icon name="stop" />{W.stop}</button>
-          </>}
-        </header>
+          </div>
+        )}
         {ws.subscription.plan === 'free' ? (
           <div className="sync-free">
             <section className="sync-up" aria-labelledby="sync-up-h">

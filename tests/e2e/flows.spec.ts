@@ -2,7 +2,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type Page } from '@playwright/test';
-import { ENGINE_ENV, account, chromiumProfile, dataDir, hasKernels, launch, logIn, roleId } from './helpers';
+import { ENGINE_ENV, account, back, chromiumProfile, dataDir, hasKernels, launch, logIn, roleId } from './helpers';
 
 test.setTimeout(180_000);
 const nav = (win: Page, name: string) => win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name });
@@ -65,7 +65,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
     { type: 'wait', until: 'time', seconds: 2, maxSeconds: null, selector: null },
     { type: 'if', test: { kind: 'exists', selector: 'text=Welcome' }, then: [{ type: 'extract', selector: '.balance', attribute: null, variable: 'balance' }], else: [] }
   ]);
-  await win.getByRole('button', { name: 'Back to flows' }).click();
+  await back(win);
   await expect(win.locator('tr[data-flow="Morning check"]')).toContainText('4');
 
   // A member sees it but can't change it; duplicating gives them their own copy to edit.
@@ -90,7 +90,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
   await expect(panel(win2).getByLabel('Address')).toBeEnabled();
 
   // A change made elsewhere shows up in the list without reloading.
-  await win2.getByRole('button', { name: 'Back to flows' }).click();
+  await back(win2);
   await owner.api.patch(`/flows/${flow.id}`, { data: { version: 0, name: 'Evening check' } });
   await expect(win2.locator('tr[data-flow="Evening check"]')).toBeVisible();
   await app2.close();
