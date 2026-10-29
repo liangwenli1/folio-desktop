@@ -39,10 +39,13 @@ export function TopBar({ d, page, trail, onSearch, onHelp, children }: { d: Dict
   );
 }
 
-// The workspace at the top right (the user, 10-29: its initial on a coloured square, no plan beside it). Its list opens
-// under it and a click switches: each workspace with its plan, the current one ticked; invitations waiting (asked for
-// again each time it opens) lead to Account's My workspaces, where they are answered.
-export function WorkspaceMenu({ d, me, ws, invites, onOpen, onSwitch, onInvites }: { d: Dict; me: Me; ws: Workspace; invites: number; onOpen(): void; onSwitch(id: string): void; onInvites(): void }){
+// The workspace at the top right (the user, 10-29: its initial on a coloured square, no plan beside it), and under it the
+// person's menu (M1, the user, 10-29): the login email at the top; the workspaces, each with its plan, the current one
+// ticked, a click switches; a new one; invitations waiting (asked for again each time it opens), which lead to
+// Account's My workspaces, where they are answered; then Account and Log out.
+export function WorkspaceMenu({ d, me, ws, invites, onOpen, onSwitch, onNew, onInvites, onAccount, onLogout }: {
+  d: Dict; me: Me; ws: Workspace; invites: number; onOpen(): void; onSwitch(id: string): void; onNew(): void; onInvites(): void; onAccount(): void; onLogout(): void;
+}){
   const [at, setAt] = useState<{ top: number; right: number } | null>(null);
   const btn = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null);
   const close = (focus = false) => { setAt(null); if (focus) btn.current?.focus(); };
@@ -51,13 +54,15 @@ export function WorkspaceMenu({ d, me, ws, invites, onOpen, onSwitch, onInvites 
   const open = () => { const r = btn.current!.getBoundingClientRect(); setAt({ top: r.bottom + 6, right: innerWidth - r.right }); onOpen(); };
   return (
     <>
-      <button ref={btn} type="button" className="ws-top" aria-haspopup="menu" aria-expanded={!!at} title={d.ws.switch} onClick={() => (at ? close() : open())}>
+      <button ref={btn} type="button" className="ws-top" aria-haspopup="menu" aria-expanded={!!at} title={d.ws.menu} onClick={() => (at ? close() : open())}>
         <Avatar text={ws.name} /><span className="ws-top-n" data-testid="ws-name">{ws.name}</span>
         {invites > 0 && <span className="dot" aria-label={d.team.invites} />}
         <Icon name="chev" />
       </button>
       {at && createPortal(
-        <div ref={menu} className="menu pop-menu ws-pop" role="menu" aria-label={d.ws.switch} style={at} onKeyDown={e => menuKeys(menu.current!, e, close)}>
+        <div ref={menu} className="menu pop-menu ws-pop" role="menu" aria-label={d.ws.menu} style={at} onKeyDown={e => menuKeys(menu.current!, e, close)}>
+          <p className="ws-me"><Avatar text={me.user.email} /><b>{me.user.email}</b></p>
+          <div role="separator" className="ws-pop-sep" />
           <p className="ws-pop-h">{d.ws.switch}</p>
           {me.workspaces.map(w => (
             <button key={w.id} type="button" role="menuitemradio" aria-checked={w.id === ws.id} tabIndex={-1} className="menu-item ws-row" onClick={() => { close(); if (w.id !== ws.id) onSwitch(w.id); }}>
@@ -65,12 +70,16 @@ export function WorkspaceMenu({ d, me, ws, invites, onOpen, onSwitch, onInvites 
               {w.id === ws.id ? <Icon name="check" /> : <span className="i" aria-hidden="true" />}
             </button>
           ))}
+          <button type="button" role="menuitem" tabIndex={-1} className="menu-item ws-act ws-new" onClick={() => { close(); onNew(); }}><Icon name="plus" />{d.ws.create}</button>
           {invites > 0 && <>
             <div role="separator" className="ws-pop-sep" />
             <button type="button" role="menuitem" tabIndex={-1} className="menu-item ws-inv" onClick={() => { close(); onInvites(); }}>
               {d.ws.invites}<span className="ws-inv-n">{invites}</span><span className="ws-inv-go">{d.ws.view}</span>
             </button>
           </>}
+          <div role="separator" className="ws-pop-sep" />
+          <button type="button" role="menuitem" tabIndex={-1} className="menu-item ws-act" onClick={() => { close(); onAccount(); }}><Icon name="user" />{d.account.title}</button>
+          <button type="button" role="menuitem" tabIndex={-1} className="menu-item ws-act" onClick={() => { close(); onLogout(); }}><Icon name="logout" />{d.account.menu.logout}</button>
         </div>, document.body)}
     </>
   );

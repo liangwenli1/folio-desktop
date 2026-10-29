@@ -10,9 +10,9 @@ import { SelectField } from './Select';
 
 export type AccountPart = 'profile' | 'password' | 'workspaces';
 
-export function AccountPage({ d, lang, me, ws, invites, start, onSaved, onSwitch, onAnswer, onLogout }: {
+export function AccountPage({ d, lang, me, ws, invites, start, onSaved, onSwitch, onNew, onAnswer, onLogout }: {
   d: Dict; lang: Lang; me: Me; ws: Workspace; invites: MyInvitation[]; start: AccountPart;
-  onSaved(): Promise<void>; onSwitch(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void; onLogout(): void;
+  onSaved(): Promise<void>; onSwitch(id: string): void; onNew(): void; onAnswer(i: MyInvitation, accept: boolean): void; onLogout(): void;
 }){
   const A = d.account;
   const [part, setPart] = useState<AccountPart>(start);
@@ -30,17 +30,17 @@ export function AccountPage({ d, lang, me, ws, invites, start, onSaved, onSwitch
           </nav>
           {part === 'profile' && <ProfileCard d={d} lang={lang} me={me} onSaved={onSaved} />}
           {part === 'password' && <PasswordCard d={d} />}
-          {part === 'workspaces' && <WorkspacesCard d={d} me={me} ws={ws} invites={invites} onSwitch={onSwitch} onAnswer={onAnswer} />}
+          {part === 'workspaces' && <WorkspacesCard d={d} me={me} ws={ws} invites={invites} onSwitch={onSwitch} onNew={onNew} onAnswer={onAnswer} />}
         </div>
       </main>
     </div>
   );
 }
 
-// The person's workspaces, each with its plan and their role there, the current one marked and any other a click away;
-// then the invitations waiting, to join or decline.
-function WorkspacesCard({ d, me, ws, invites, onSwitch, onAnswer }: {
-  d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onSwitch(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void;
+// The person's workspaces, each with its plan and their role there, the current one marked and any other a click away,
+// and a new one last; then the invitations waiting, to join or decline.
+function WorkspacesCard({ d, me, ws, invites, onSwitch, onNew, onAnswer }: {
+  d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onSwitch(id: string): void; onNew(): void; onAnswer(i: MyInvitation, accept: boolean): void;
 }){
   const A = d.account;
   return (
@@ -55,6 +55,7 @@ function WorkspacesCard({ d, me, ws, invites, onSwitch, onAnswer }: {
               : <button type="button" className="btn btn-sm btn-secondary" onClick={() => onSwitch(w.id)}>{A.switchTo}</button>}
           </li>
         ))}
+        <li><button type="button" className="ws-list-new" onClick={onNew}><span className="ws-list-plus"><Icon name="plus" /></span>{d.ws.create}</button></li>
       </ul>
       {invites.length > 0 && (
         <section className="sw-invites" aria-label={A.invites}>
@@ -164,6 +165,38 @@ function PasswordCard({ d }: { d: Dict }){
       {field('again', P.confirm)}
       <div className="duo-act"><button className="btn btn-primary" type="submit" disabled={busy} aria-busy={busy || undefined}>{d.account.save}</button></div>
     </form>
+  );
+}
+
+// A new workspace (the user, 10-29): only its name. It starts on Free with its own plan; made, Folio switches to it.
+export function NewWorkspaceDialog({ d, onMade, onClose }: { d: Dict; onMade(id: string): void; onClose(): void }){
+  const W = d.ws;
+  const [name, setName] = useState('');
+  const [tried, setTried] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const missing = tried && !name.trim();
+  async function make(){
+    setTried(true); setError(null);
+    if (!name.trim()){ document.getElementById('ws-new-name')?.focus(); return; }
+    try { onMade((await folio.api<{ id: string }>('POST', '/workspaces', { name: name.trim() })).id); }
+    catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); }
+  }
+  return (
+    <Modal title={W.create} onClose={onClose} dirty={!!name.trim()} foot={<>
+      <span className="sp" />
+      <Cancel />
+      <Act className="btn btn-primary" run={make}>{W.make}</Act>
+    </>}>
+      <form className="m-body" onSubmit={e => { e.preventDefault(); void make(); }} noValidate>
+        {error && <p className="notice error" role="alert">{error}</p>}
+        <div className="field">
+          <label htmlFor="ws-new-name">{W.name}<span className="req" aria-hidden="true">*</span></label>
+          <input id="ws-new-name" value={name} maxLength={80} autoFocus required onChange={e => setName(e.target.value)} aria-invalid={missing} aria-describedby={missing ? 'ws-new-err' : undefined} />
+          {missing && <p className="err" id="ws-new-err">{W.nameErr}</p>}
+        </div>
+        <p className="notice"><Icon name="info" /><span>{W.newNote}</span></p>
+      </form>
+    </Modal>
   );
 }
 

@@ -76,7 +76,10 @@ export const en = {
   plans: { free: 'Free', studio: 'Studio', company: 'Company' },
   periods: { monthly: 'monthly', yearly: 'yearly' },
   roles: { owner: 'Owner', admin: 'Admin', member: 'Member', viewer: 'Viewer' },
-  ws: { switch: 'Switch workspace', current: 'Current workspace', invites: 'Invitations waiting', view: 'View' },
+  ws: {
+    menu: 'Workspace and account', switch: 'Switch workspace', current: 'Current workspace', invites: 'Invitations waiting', view: 'View',
+    create: 'New workspace', make: 'Create', name: 'Name', nameErr: 'Enter a name.', newNote: 'A new workspace starts on Free; each workspace has its own plan.'
+  },
   plan: {
     usage: (used: number, limit: number) => `${used} of ${limit} profiles`,
     renews: (date: string, period: string) => `Renews ${date} · ${period}`,
@@ -1000,7 +1003,10 @@ export const zh: Dict = {
   plans: { free: '体验版', studio: '工作室版', company: '公司版' },
   periods: { monthly: '月付', yearly: '年付' },
   roles: { owner: '所有者', admin: '管理员', member: '成员', viewer: '仅查看' },
-  ws: { switch: '切换工作空间', current: '当前工作空间', invites: '待接受的邀请', view: '查看' },
+  ws: {
+    menu: '工作空间与账号', switch: '切换工作空间', current: '当前工作空间', invites: '待接受的邀请', view: '查看',
+    create: '新建工作空间', make: '创建', name: '名称', nameErr: '请输入名称。', newNote: '新工作空间从体验版开始，套餐按工作空间单独购买。'
+  },
   plan: {
     usage: (used: number, limit: number) => `已用 ${used} / ${limit} 个环境`,
     renews: (date: string, period: string) => `${date} 续费 · ${period}`,

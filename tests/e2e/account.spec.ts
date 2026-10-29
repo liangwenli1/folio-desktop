@@ -57,3 +57,41 @@ test('a display name, a new password and which notices to get', async () => {
   await expect(win.getByRole('combobox', { name: 'Batch task with failures' })).toContainText('On');
   await app.close();
 });
+
+// The menu at the top right (M1, the user, 10-29): the login email, the workspaces with a new one, Account and Log out.
+test('the menu at the top right makes a workspace, which starts on Free, opens Account and logs out', async () => {
+  const acct = await account();
+  const app = await launch(dataDir());
+  const win = await logIn(app, acct.email);
+  const menu = win.getByRole('menu', { name: 'Workspace and account' });
+
+  await win.getByTestId('ws-name').click();
+  await expect(menu.locator('.ws-me b')).toHaveText(acct.email);
+  await menu.getByRole('menuitem', { name: 'New workspace' }).click();
+  const dialog = win.getByRole('dialog', { name: 'New workspace' });
+  await dialog.getByRole('button', { name: 'Create' }).click();
+  await expect(dialog.getByText('Enter a name.')).toBeVisible();
+  await dialog.getByRole('textbox', { name: 'Name' }).fill('EU stores');
+  await dialog.getByRole('button', { name: 'Create' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(win.getByTestId('ws-name')).toHaveText('EU stores');
+  await win.getByTestId('ws-name').click();
+  await expect(menu.getByRole('menuitemradio', { name: /EU stores/ })).toHaveAttribute('aria-checked', 'true');
+  await expect(menu.getByRole('menuitemradio', { name: /EU stores/ })).toContainText('Free');
+
+  // Account opens on its details; My workspaces lists both, with a row to make another.
+  await menu.getByRole('menuitem', { name: 'Account' }).click();
+  await expect(win.getByRole('textbox', { name: 'Email' })).toHaveValue(acct.email);
+  await win.getByRole('navigation', { name: 'Account' }).getByRole('button', { name: 'My workspaces' }).click();
+  await expect(win.locator('li[data-workspace="EU stores"]')).toContainText('Current');
+  await win.locator('.ws-list-new').click();
+  await expect(win.getByRole('dialog', { name: 'New workspace' })).toBeVisible();
+  await win.getByRole('dialog', { name: 'New workspace' }).getByRole('button', { name: 'Cancel' }).click();
+
+  // Logging out from the menu asks first, as from Account.
+  await win.getByTestId('ws-name').click();
+  await menu.getByRole('menuitem', { name: 'Log out' }).click();
+  await win.getByRole('dialog', { name: 'Log out' }).getByRole('button', { name: 'Log out' }).click();
+  await expect(win.locator('#email')).toBeVisible();
+  await app.close();
+});

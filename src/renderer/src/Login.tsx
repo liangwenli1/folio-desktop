@@ -46,8 +46,7 @@ export function Login({ d, lang, version, onLang, onDone }: { d: Dict; lang: Lan
       </div>
       <div className="login-main">
         <form className="login-form" onSubmit={submit} noValidate>
-          <div className="login-brand"><Mark /><span className="brand-word">Folio</span></div>
-          <h1>{d.login.title}</h1>
+          <h1><Mark />{d.login.title}</h1>
           <p className="lead">{d.login.lead}</p>
           {error && <p className="notice error" role="alert">{error}</p>}
           <label className="field">

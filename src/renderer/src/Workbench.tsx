@@ -21,7 +21,7 @@ import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
-import { AccountPage, LogoutDialog, type AccountPart } from './Account';
+import { AccountPage, LogoutDialog, NewWorkspaceDialog, type AccountPart } from './Account';
 import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useFail, useGuard, useMedia, useNotice, useToast, useView, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
 import { Bell, TopBar, TrailProvider, WorkspaceMenu, type Crumb, type Notice } from './TopBar';
@@ -35,7 +35,7 @@ interface Props {
 
 type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'jobs' | 'trash' | 'settings' | 'billing' | 'me';
 // A new profile can start in a group picked on the Groups page.
-type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | { kind: 'logout' } | null;
+type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | { kind: 'logout' } | { kind: 'new-ws' } | null;
 
 export function Workbench(props: Props){
   return <Toasts><LeaveGuard><Shell {...props} /></LeaveGuard></Toasts>;
@@ -236,7 +236,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       <TopBar d={d} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
         <Bell d={d} wsId={ws.id} notices={notices()} />
         <WorkspaceMenu d={d} me={me} ws={ws} invites={invites.length} onOpen={() => void loadInvites()} onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })}
-          onInvites={() => go('me', () => setAccountPart('workspaces'))} />
+          onNew={() => setDialog({ kind: 'new-ws' })} onInvites={() => go('me', () => setAccountPart('workspaces'))}
+          onAccount={() => go('me', () => setAccountPart('profile'))} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />
       </TopBar>
 
       {shown === 'profiles' && (
@@ -262,7 +263,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'settings' && <SettingsPage d={d} ws={ws} me={me} data={data} manager={manager} version={version} onSaved={onAccount}
         onExport={() => setDialog({ kind: 'export-all' })} onImport={() => setDialog({ kind: 'import-all' })} onBilling={() => go('billing')} />}
       {shown === 'me' && <AccountPage key={`${asked}:${accountPart}`} d={d} lang={lang} me={me} ws={ws} invites={invites} start={accountPart} onSaved={onAccount}
-        onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })} onAnswer={(i, ok) => void answer(i, ok)} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />}
+        onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })} onNew={() => setDialog({ kind: 'new-ws' })} onAnswer={(i, ok) => void answer(i, ok)} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />}
       {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
@@ -277,6 +278,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {dialog?.kind === 'export-all' && <ExportDialog d={d} ws={ws} onClose={close} />}
       {palette && <CommandPalette d={d} commands={commands()} onClose={() => setPalette(false)} />}
       {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
+      {dialog?.kind === 'new-ws' && <NewWorkspaceDialog d={d} onClose={close} onMade={id => { close(); go('profiles'); onSwitch(id); }} />}
       {dialog?.kind === 'logout' && <LogoutDialog d={d} profiles={runningHere} runs={data.active.length} sync={!!data.sync} onClose={close} onLogout={onLogout} />}
     </div>
     </TrailProvider>
