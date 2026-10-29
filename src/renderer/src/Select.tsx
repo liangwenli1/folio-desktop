@@ -30,7 +30,7 @@ interface Props {
   variant?: 'field' | 'sm' | 'bar'; action?: boolean; icon?: IconName; search?: boolean; searchPh?: string; empty?: string;
   loading?: boolean; failed?: boolean; onRetry?(): void; note?: string;
 }
-type Place = { left: number; width: number; maxHeight: number; top?: number; bottom?: number };
+type Place = { left: number; minWidth: number; maxWidth: number; maxHeight: number; top?: number; bottom?: number };
 // Consecutive options of the same group, with where they start in the list.
 const runs = (opts: Opt[]) => opts.reduce<{ group?: string; from: number; opts: Opt[] }[]>((out, o, i) => {
   const last = out.at(-1);
@@ -61,8 +61,10 @@ export function Select({ value, options, onChange, id, label, labelledBy, placeh
     // Never up into the window's top strip (--tb), where clicks drag the window.
     const tb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--tb')) || 0;
     const r = btn.current!.getBoundingClientRect(), below = innerHeight - r.bottom - 8, above = r.top - 8 - tb;
-    const up = below < 240 && above > below, width = Math.max(r.width, variant === 'bar' ? 220 : 0);
-    setPlace({ left: Math.max(8, Math.min(r.left, innerWidth - width - 8)), width, maxHeight: Math.min(340, up ? above : below), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
+    // At least as wide as the field, and wider for a long option up to 360, so a name is never squeezed out beside its
+    // email (the user, 10-29).
+    const up = below < 240 && above > below, width = Math.max(r.width, variant === 'bar' ? 220 : 0), left = Math.max(8, Math.min(r.left, innerWidth - width - 8));
+    setPlace({ left, minWidth: width, maxWidth: Math.max(width, Math.min(360, innerWidth - left - 8)), maxHeight: Math.min(340, up ? above : below), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
     setActive(Math.max(0, options.findIndex(o => o.value === value)));
     setOpen(true);
   }
