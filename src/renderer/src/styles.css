@@ -349,19 +349,6 @@ html[data-platform="win32"] .top{padding-right:150px}
 .move-to .i{margin-left:auto;color:var(--accent)}
 .update{flex:none;display:grid;justify-items:start;gap:6px;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);font-size:14px}
 .update .muted{font-size:12px}
-/* The foot of the rail (v2): Settings as a link, then the account as a button showing its email, Profile as its
-   tooltip (the user, 10-29: the name was only the part before the @); a long email ends in an ellipsis. */
-.side-foot{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;flex:none;padding-top:12px}
-.side-set{display:flex;align-items:center;justify-content:center;gap:8px;height:var(--h-ctl);border:0;border-radius:var(--r);background:transparent;color:var(--accent-ink);font-size:14px;font-weight:500;cursor:pointer}
-.side-set:hover,.side-set.active{background:var(--accent-soft)}
-.side-set > .i{display:none}
-.me{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:var(--h-ctl);padding:0 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);font-size:14px;font-weight:500;cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
-.me:hover{border-color:var(--line-2);background:var(--seg)}
-.me.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
-.me > .av{display:none}
-.me-who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.me .dot,.ws .dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--accent)}
-.av{display:inline-grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:600}
 .menu{position:absolute;z-index:var(--z-menu);left:0;right:0;top:calc(100% + 6px);margin:0;padding:6px;list-style:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);display:grid;gap:2px}
 .menu.up{top:auto;bottom:calc(100% + 6px)}
 .menu-item{display:grid;width:100%;text-align:left;padding:8px 10px;border:0;border-radius:var(--r);background:transparent;font-size:14px;cursor:pointer}
@@ -1527,13 +1514,9 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
   .side{padding:16px 10px 12px}
   .brand{justify-content:center;padding:0}
   /* The workspace and the plan are on the switch dialog, from the account's page too. */
-  .brand-word,.nav-l,.cnt,.update,.ws,.me-who,.me .dot{display:none}
+  .brand-word,.nav-l,.cnt,.update,.ws{display:none}
   .nav{margin:24px -4px 0;padding:0 4px 8px}
   .nav-i{justify-content:center;gap:0;padding:0}
-  .side-set > .i{display:block;width:20px;height:20px}
-  .side-set{color:var(--ink-3)}
-  .me{padding:0;border-color:transparent;background:transparent}
-  .me > .av{display:inline-grid}
 }
 
 @media (prefers-reduced-motion: reduce){

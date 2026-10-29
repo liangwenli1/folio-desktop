@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { folio } from './api';
 import type { Dict } from './i18n';
 import { mod } from './CommandPalette';
-import { Icon, useDismiss, type IconName } from './ui';
+import { Icon, useDismiss, useMedia, type IconName } from './ui';
 
 // A step of the trail: a name, and where it goes when there is somewhere to go back to.
 export interface Crumb { label: string; go?(): void }
@@ -40,17 +40,12 @@ export function TopBar({ d, workspace, page, trail, onSearch, onHelp, children }
   );
 }
 
-// Light or dark at a click, nothing to save (the user, 10-29); the icon is the theme it switches to.
-const DARK = '(prefers-color-scheme: dark)';
+// Light or dark at a click, nothing to save (the user, 10-29); the icon is the theme it switches to. Platform settings
+// also offer the system's.
 function ThemeButton({ d }: { d: Dict }){
-  const [dark, setDark] = useState(() => matchMedia(DARK).matches);
-  useEffect(() => {
-    const m = matchMedia(DARK), on = () => setDark(m.matches);
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, []);
+  const dark = useMedia('(prefers-color-scheme: dark)');
   const label = dark ? d.top.toLight : d.top.toDark;
-  return <button type="button" className="icon-btn bare" aria-label={label} title={label} onClick={() => void folio.setTheme(!dark)}><Icon name={dark ? 'sun' : 'moon'} /></button>;
+  return <button type="button" className="icon-btn bare" aria-label={label} title={label} onClick={() => void folio.setTheme(dark ? 'light' : 'dark')}><Icon name={dark ? 'sun' : 'moon'} /></button>;
 }
 
 // Something that needs the person's attention: the plan ending, an invitation, a batch that partly failed. `id`

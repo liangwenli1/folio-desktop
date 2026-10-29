@@ -1,17 +1,17 @@
-// The person's own page (design v2 32–35), from the account button at the foot of the sidebar: their name, note and
-// language, and (on Windows and macOS) opening Folio at startup; a new password; and the ways out, switching workspace
-// and logging out, which open dialogs. A menu card on the left, the chosen part in a card on the right, saved from the
-// card's own button.
-import { useEffect, useState, type FormEvent } from 'react';
+// Account (design v2 32–35; in the menu below the Trash since the user's 10-29): the login email, a note and the
+// language; a new password; and the person's workspaces and logging out, which open dialogs. A menu card on the left,
+// the chosen part in a card on the right, saved from the card's own button. Opening Folio at startup belongs to this
+// computer and sits in Platform settings.
+import { useState, type FormEvent } from 'react';
 import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Icon, Modal, Switch, useGuard, useLeave, useToast } from './ui';
+import { Act, Cancel, Icon, Modal, useGuard, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
 
 type Part = 'profile' | 'password';
 
-export function AccountPage({ d, lang, version, me, onSaved, onSwitch, onLogout }: {
-  d: Dict; lang: Lang; version: string; me: Me; onSaved(): Promise<void>; onSwitch(): void; onLogout(): void;
+export function AccountPage({ d, lang, me, onSaved, onSwitch, onLogout }: {
+  d: Dict; lang: Lang; me: Me; onSaved(): Promise<void>; onSwitch(): void; onLogout(): void;
 }){
   const A = d.account;
   const [part, setPart] = useState<Part>('profile');
@@ -27,7 +27,6 @@ export function AccountPage({ d, lang, version, me, onSaved, onSwitch, onLogout 
             ))}
             <button type="button" className="duo-i" onClick={onSwitch}>{A.menu.switch}</button>
             <button type="button" className="duo-i" onClick={onLogout}>{A.menu.logout}</button>
-            <p className="duo-foot">{A.version(version)}</p>
           </nav>
           {part === 'profile' ? <ProfileCard d={d} lang={lang} me={me} onSaved={onSaved} /> : <PasswordCard d={d} />}
         </div>
@@ -41,13 +40,9 @@ function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; on
   const toast = useToast();
   const [note, setNote] = useState(me.user.note ?? '');
   const [language, setLanguage] = useState<Lang>(lang);
-  // Opening at startup belongs to this computer, and only Windows and macOS have it.
-  const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
-  const [onStart, setOnStart] = useState(false);
-  useEffect(() => { void folio.startup().then(s => { setStartup(s); setOnStart(s.enabled); }); }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dirty = note !== (me.user.note ?? '') || language !== lang || (!!startup && onStart !== startup.enabled);
+  const dirty = note !== (me.user.note ?? '') || language !== lang;
   useLeave(dirty);
 
   async function save(e: FormEvent){
@@ -55,7 +50,6 @@ function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; on
     setBusy(true); setError(null);
     try {
       await folio.api('PATCH', '/me', { note: note.trim() || null, locale: language });
-      if (startup?.supported && onStart !== startup.enabled){ await folio.setStartup(onStart); setStartup({ ...startup, enabled: onStart }); }
       await onSaved();
       toast({ title: A.saved });
     } catch (err){ setError(errorText(d, isApiError(err) ? err.code : 'internal')); } finally { setBusy(false); }
@@ -74,12 +68,6 @@ function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; on
         <input id="ac-note" value={note} maxLength={200} placeholder={A.notePh} onChange={e => setNote(e.target.value)} />
       </div>
       <SelectField label={d.user.language} value={language} onChange={v => setLanguage(v as Lang)} options={(['zh', 'en'] as const).map(l => ({ value: l, label: d.user.langs[l] }))} />
-      {startup?.supported && (
-        <div className="set-row">
-          <Switch label={d.user.startup} checked={onStart} onChange={setOnStart} />
-          <p className="hint">{d.user.startupHint}</p>
-        </div>
-      )}
       <p className="notice"><Icon name="info" /><span>{A.emailNote} <button className="linkish" type="button" onClick={() => folio.openSite(`/${lang}/account/`)}>{d.user.manage}</button></span></p>
       <div className="duo-act"><button className="btn btn-primary" type="submit" disabled={busy || !dirty} aria-busy={busy || undefined}>{A.save}</button></div>
     </form>

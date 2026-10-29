@@ -68,8 +68,8 @@ test('the session survives a restart and ends on log out', async () => {
   win = await app.firstWindow();
   await expect(win.getByRole('navigation', { name: 'Main' })).toBeVisible();
   // The account button opens the person's page; logging out from there asks first (design v2 34).
-  await win.click('.me');
-  await win.getByRole('navigation', { name: 'Profile' }).getByRole('button', { name: 'Log out' }).click();
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Account' }).click();
+  await win.getByRole('navigation', { name: 'Account' }).getByRole('button', { name: 'Log out' }).click();
   await win.getByRole('dialog', { name: 'Log out' }).getByRole('button', { name: 'Log out' }).click();
   await expect(win.locator('#email')).toBeVisible();
   await app.close();
@@ -95,8 +95,16 @@ test('the button at the top right switches light and dark at a click, and this c
   win = await app.firstWindow();
   await expect(win.getByRole('button', { name: 'Switch to light' })).toBeVisible();
   expect(await dark()).toBe(true);
-  await win.getByRole('button', { name: 'Switch to light' }).click();
+  // Platform settings show the same choice, and offer the system's.
+  await win.getByRole('button', { name: 'Settings', exact: true }).click();
+  await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'This computer' }).click();
+  const theme = win.getByRole('group', { name: 'Theme' });
+  await expect(theme.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
+  await theme.getByRole('button', { name: 'System' }).click();
   await expect.poll(dark).toBe(false);
+  await expect(win.getByRole('button', { name: 'Switch to dark' })).toBeVisible();
+  await win.getByRole('button', { name: 'Switch to dark' }).click();
+  await expect(theme.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
   await app.close();
 });
 
@@ -109,8 +117,8 @@ test('Chinese accounts get the Chinese workbench, and upgrading opens the site c
     shell.openExternal = async (url: string) => { opened.push(url); };
   });
   const win = await logIn(app, email);
-  await win.getByRole('button', { name: '设置', exact: true }).click();
-  await win.getByRole('navigation', { name: '设置' }).getByRole('button', { name: '套餐与用量' }).click();
+  await win.getByRole('button', { name: '平台设置', exact: true }).click();
+  await win.getByRole('navigation', { name: '平台设置' }).getByRole('button', { name: '套餐与用量' }).click();
   await expect(win.getByTestId('plan-name')).toHaveText('体验版');
   await win.getByRole('tab', { name: '用量' }).click();
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 5');

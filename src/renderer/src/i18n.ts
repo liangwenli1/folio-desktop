@@ -101,7 +101,8 @@ export const en = {
   // The Settings page: what the workspace is, what new profiles start with, and how opening one behaves.
   settings: {
     title: 'Settings',
-    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notifications', data: 'Data', billing: 'Plan and usage' },
+    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notifications', data: 'Data', billing: 'Plan and usage', local: 'This computer' },
+    local: 'This computer', localLead: 'These only affect this computer and apply at once.', theme: 'Theme', themes: { system: 'System', light: 'Light', dark: 'Dark' }, version: 'Version',
     basics: 'Basics', basicsLead: 'The workspace\u2019s name, its ID and who owns it.',
     name: 'Workspace name', id: 'Workspace ID', idHint: 'The ID identifies this workspace and never changes.',
     owner: 'Owner', ownerHint: 'The person who created the workspace.',
@@ -124,10 +125,10 @@ export const en = {
   },
   // The person's own page (v2 32–35): their name and note, password, workspaces, logging out.
   account: {
-    title: 'Profile',
-    menu: { profile: 'Profile', password: 'Change password', switch: 'Switch workspace', logout: 'Log out' },
-    info: 'Account', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
-    emailNote: 'Your email is how you log in; change it on the website’s account page.', saved: 'Profile saved',
+    title: 'Account',
+    menu: { profile: 'Details', password: 'Change password', switch: 'My workspaces', logout: 'Log out' },
+    info: 'Details', email: 'Email', note: 'Note', notePh: 'For example: storefront operations',
+    emailNote: 'Your email is how you log in; change it on the website’s account page.', saved: 'Details saved',
     password: { current: 'Current password', next: 'New password', confirm: 'Confirm new password', rule: '8 to 64 characters.', currentErr: 'Enter your current password.', short: 'Use 8 to 64 characters.', mismatch: 'The two new passwords don’t match.', done: { title: 'Password changed', detail: 'Sign-ins on other computers have ended' } },
     switchDlg: { title: 'Switch workspace', field: 'Workspace', note: 'Switching changes what you see; nothing moves between workspaces. Save changes before you switch.', invites: 'Invitations', go: 'Switch' },
     logoutDlg: {
@@ -967,7 +968,7 @@ export const zh: Dict = {
     noAccount: '还没有账号？', create: '前往官网注册', forgot: '忘记密码？',
     demo: [['US-Store-01', '西雅图'], ['UK-Shop-01', '伦敦'], ['JP-Social-01', '东京']] as [string, string][]
   },
-  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '设置', billing: '套餐与用量', help: '帮助中心', more: '更多' },
+  nav: { profiles: '环境管理', proxies: '代理管理', extensions: '扩展管理', flows: '流程', sync: '窗口同步', tasks: '定时任务', api: 'API 与脚本', team: '团队成员', activity: '操作日志', jobs: '任务中心', trash: '回收站', engines: '内核管理', groups: '分组管理', settings: '平台设置', billing: '套餐与用量', help: '帮助中心', more: '更多' },
   top: {
     search: '搜索环境、代理或成员…', toDark: '切换到深色', toLight: '切换到浅色', bell: '通知', bellNew: '通知（有新消息）', none: '暂无通知',
     planEnds: (plan: string, date: string) => `${plan}将于 ${date} 到期，续费后可继续使用当前额度。`, trialEnds: (date: string) => `免费试用将于 ${date} 结束。`,
@@ -1026,8 +1027,9 @@ export const zh: Dict = {
     open: '查看', none: '暂无账单记录', noneHint: '未来的账单记录将显示在这里，便于您随时查看。'
   },
   settings: {
-    title: '设置',
-    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置', data: '数据', billing: '套餐与用量' },
+    title: '平台设置',
+    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置', data: '数据', billing: '套餐与用量', local: '本机' },
+    local: '本机', localLead: '只影响这台电脑，修改后立即生效。', theme: '主题', themes: { system: '跟随系统', light: '浅色', dark: '深色' }, version: '版本',
     basics: '基础信息', basicsLead: '管理工作空间的名称、标识和所有者信息。',
     name: '工作空间名称', id: '工作空间 ID', idHint: '工作空间 ID 用于标识该工作空间，创建后不可修改。',
     owner: '所有者', ownerHint: '工作空间的创建者。',
@@ -1049,10 +1051,10 @@ export const zh: Dict = {
     saved: '设置已保存', save: '保存修改'
   },
   account: {
-    title: '个人资料',
-    menu: { profile: '个人资料', password: '修改密码', switch: '切换工作空间', logout: '退出登录' },
+    title: '账号管理',
+    menu: { profile: '账号信息', password: '修改密码', switch: '我的工作空间', logout: '退出登录' },
     info: '账号信息', email: '账号邮箱', note: '备注', notePh: '例如：店铺运营',
-    emailNote: '邮箱用于登录，如需修改请前往官网账户页。', saved: '个人资料已保存',
+    emailNote: '邮箱用于登录，如需修改请前往官网账户页。', saved: '账号信息已保存',
     password: { current: '当前密码', next: '新密码', confirm: '确认新密码', rule: '8–64 个字符。', currentErr: '请输入当前密码。', short: '密码需为 8–64 个字符。', mismatch: '两次输入的新密码不一致。', done: { title: '密码已修改', detail: '其他设备上的登录已退出' } },
     switchDlg: { title: '切换工作空间', field: '工作空间', note: '切换仅改变当前查看的资源，不会迁移环境。未保存的修改请在切换前处理。', invites: '待接受的邀请', go: '切换' },
     logoutDlg: {

@@ -81,6 +81,7 @@ const PATHS = {
   minus: 'M6 12h12',
   bell: 'M12 3v2M6 11a6 6 0 0 1 12 0v5l2 2.5H4L6 16zM9.75 20.5a2.25 2.25 0 0 0 4.5 0',
   moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  user: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
   sun: 'M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4',
   // The mark inside a solid circle (a figure that failed, a toast that went wrong): taller than the outline icon's.
   bang: 'M12 5v9M12 18.5h.01'
@@ -224,6 +225,17 @@ export function useNow(on: boolean){
     return () => clearInterval(t);
   }, [on]);
   return now;
+}
+
+// Whether a media query holds, kept up to date: light or dark in use, a narrow window.
+export function useMedia(query: string){
+  const [on, setOn] = useState(() => matchMedia(query).matches);
+  useEffect(() => {
+    const m = matchMedia(query), change = () => setOn(m.matches);
+    m.addEventListener('change', change);
+    return () => m.removeEventListener('change', change);
+  }, [query]);
+  return on;
 }
 
 // What happened and to what (News), as the user drew it (10-28); `bad` for something that went wrong. One action, or

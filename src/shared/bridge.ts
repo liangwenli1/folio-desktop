@@ -11,6 +11,7 @@ export interface AppInfo { locale: string; version: string; siteUrl: string; pla
 
 export type KernelKind = 'chromium' | 'firefox';
 export type Os = 'windows' | 'macos' | 'linux';
+export type Theme = 'system' | 'light' | 'dark';
 // Chromium's `canvas` and `webgl` 'real' show this computer's own values instead of the seed's; Firefox's `webrtc` 'block'
 // turns WebRTC off instead of showing the proxy's exit IP. Left out, they are the defaults.
 export type Fingerprint =
@@ -149,8 +150,9 @@ export interface FolioBridge {
   // Starting Folio, minimized, when the computer starts (Windows and macOS only), so schedules run on time.
   startup(): Promise<{ supported: boolean; enabled: boolean }>;
   setStartup(on: boolean): Promise<void>;
-  // Light or dark from now on, on this computer; the pages see it as prefers-color-scheme.
-  setTheme(dark: boolean): Promise<void>;
+  // Light, dark or the system's from now on, on this computer; the pages see it as prefers-color-scheme.
+  theme(): Promise<Theme>;
+  setTheme(theme: Theme): Promise<void>;
   setLabels(labels: Labels): Promise<void>;
   // Window sync: the first profile leads (they open first if they aren't open), and the others follow.
   startWindowSync(ids: string[], leader?: string): Promise<WindowSync | null>;

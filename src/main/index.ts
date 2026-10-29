@@ -313,15 +313,17 @@ ipcMain.handle('folio:startup', () => ({ supported: startupSupported, enabled: s
 ipcMain.handle('folio:setStartup', (_e, on: boolean) => {
   if (startupSupported) app.setLoginItemSettings({ openAtLogin: !!on, args: ['--hidden'] });
 });
-// Light or dark as last picked with the button at the top right, kept on this computer; the system's until then (the
-// user, 10-29). The pages follow it through prefers-color-scheme, the Windows title bar through nativeTheme's event.
+// Light, dark or the system's, as last picked with the button at the top right or in Platform settings, kept on this
+// computer (the user, 10-29). The pages follow it through prefers-color-scheme, the Windows title bar through
+// nativeTheme's event.
 const themeFile = () => join(app.getPath('userData'), 'theme.json');
 async function loadTheme(){
   const source = await readFile(themeFile(), 'utf8').then(t => (JSON.parse(t) as { source?: unknown }).source).catch(() => null);
   if (source === 'light' || source === 'dark') nativeTheme.themeSource = source;
 }
-ipcMain.handle('folio:setTheme', async (_e, dark: boolean) => {
-  nativeTheme.themeSource = dark ? 'dark' : 'light';
+ipcMain.handle('folio:theme', () => nativeTheme.themeSource);
+ipcMain.handle('folio:setTheme', async (_e, source: string) => {
+  nativeTheme.themeSource = source === 'light' || source === 'dark' ? source : 'system';
   await writeFile(themeFile(), JSON.stringify({ source: nativeTheme.themeSource }));
 });
 

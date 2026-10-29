@@ -118,13 +118,14 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [creates]);
-  // The order the delivery spec gives, then the pages it does not draw, then the Trash.
+  // The order the delivery spec gives, then the pages it does not draw, then the Trash; then the account and Platform
+  // settings (the user, 10-29), the plan under those.
   const pages: [Page, IconName, string, boolean][] = [
     ['profiles', 'profiles', d.nav.profiles, true], ['proxies', 'proxies', d.nav.proxies, manager], ['engines', 'engines', d.nav.engines, true], ['groups', 'folder', d.nav.groups, true],
     ['team', 'team', d.nav.team, true], ['activity', 'activity', d.nav.activity, true], ['jobs', 'jobs', d.nav.jobs, true], ['tasks', 'tasks', d.nav.tasks, true],
     ['extensions', 'extensions', d.nav.extensions, true], ['sync', 'sync', d.nav.sync, true], ['flows', 'flows', d.nav.flows, true],
     ['api', 'api', d.nav.api, true], ['trash', 'trash', d.nav.trash, manager],
-    ['settings', 'settings', d.nav.settings, true], ['billing', 'billing', d.nav.billing, manager]
+    ['me', 'user', d.account.title, true], ['settings', 'settings', d.nav.settings, true], ['billing', 'billing', d.nav.billing, manager]
   ];
   function commands(): Command[] {
     const C = d.palette, P = d.profiles;
@@ -192,8 +193,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     } catch (e){ fail(e); }
   }
 
-  // Settings and the plan sit under the link at the foot of the rail; the person's own page under the account button.
-  const nav = pages.filter(([p, , , ok]) => ok && p !== 'settings' && p !== 'billing');
+  // The plan is reached from Platform settings, which stays lit while it shows.
+  const nav = pages.filter(([p, , , ok]) => ok && p !== 'billing');
   const runningHere = Object.values(data.status).filter(x => x.state !== 'stopped' && x.state !== 'error').length;
 
   return (
@@ -209,7 +210,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
 
         <nav className="nav" aria-label="Main">
           {nav.map(([p, icon, label]) => (
-            <NavItem key={p} icon={icon} label={label} active={shown === p} badge={p === 'sync' && data.sync ? d.windowSync.onBadge : undefined} onClick={() => go(p)} />
+            <NavItem key={p} icon={icon} label={label} active={shown === p || (p === 'settings' && shown === 'billing')} badge={p === 'sync' && data.sync ? d.windowSync.onBadge : undefined} onClick={() => go(p)} />
           ))}
         </nav>
 
@@ -222,20 +223,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
             </> : <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
           </section>
         )}
-
-        <div className="side-foot">
-          <button className={`side-set${shown === 'settings' || shown === 'billing' ? ' active' : ''}`} type="button" aria-current={shown === 'settings' ? 'page' : undefined} title={d.nav.settings} onClick={() => go('settings')}>
-            <Icon name="settings" /><span className="nav-l">{d.nav.settings}</span>
-          </button>
-          <button className={`me${shown === 'me' ? ' active' : ''}`} type="button" aria-current={shown === 'me' ? 'page' : undefined} aria-label={d.account.title} title={d.account.title} onClick={() => go('me')}>
-            <span className="av" aria-hidden="true">{[...me.user.email][0]?.toUpperCase()}</span>
-            <span className="me-who">{me.user.email}</span>
-            {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
-          </button>
-        </div>
       </aside>
 
-      <TopBar d={d} workspace={ws.name} page={shown === 'me' ? d.account.title : pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
+      <TopBar d={d} workspace={ws.name} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
         <Bell d={d} wsId={ws.id} notices={notices()} />
       </TopBar>
 
@@ -259,9 +249,9 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'jobs' && <JobsPage key={jobId ?? ''} d={d} lang={lang} meId={me.user.id} data={data} openId={jobId} />}
       {shown === 'activity' && <ActivityPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
-      {shown === 'settings' && <SettingsPage d={d} ws={ws} me={me} data={data} manager={manager} onSaved={onAccount}
+      {shown === 'settings' && <SettingsPage d={d} ws={ws} me={me} data={data} manager={manager} version={version} onSaved={onAccount}
         onExport={() => setDialog({ kind: 'export-all' })} onImport={() => setDialog({ kind: 'import-all' })} onBilling={() => go('billing')} />}
-      {shown === 'me' && <AccountPage d={d} lang={lang} version={version} me={me} onSaved={onAccount}
+      {shown === 'me' && <AccountPage d={d} lang={lang} me={me} onSaved={onAccount}
         onSwitch={() => setDialog({ kind: 'switch' })} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />}
       {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 

@@ -10,22 +10,21 @@ test('a display name, a new password and which notices to get', async () => {
   let app = await launch(dir);
   let win = await logIn(app, acct.email);
 
-  await win.click('.me');
-  await expect(win.getByRole('heading', { name: 'Profile' })).toBeVisible();
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Account' }).click();
+  await expect(win.getByRole('heading', { name: 'Account' })).toBeVisible();
   await expect(win.getByLabel('Email')).toHaveValue(acct.email);
   await expect(win.getByLabel('Email')).toBeDisabled();
   // No display name to set (the user, 10-29): people are their email everywhere.
   await expect(win.getByRole('textbox', { name: 'Display name' })).toHaveCount(0);
   await win.locator('#ac-note').fill('Storefront');
   await win.getByRole('button', { name: 'Save changes' }).click();
-  await expect(win.getByRole('status').filter({ hasText: 'Profile saved' })).toBeVisible();
-  await expect(win.locator('.me')).toContainText(acct.email);
+  await expect(win.getByRole('status').filter({ hasText: 'Details saved' })).toBeVisible();
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Team' }).click();
   await expect(win.locator(`tr[data-member="${acct.email}"]`)).toContainText(`${acct.email} (you)`);
 
   // A new password needs the current one; then it is the one to log in with.
-  await win.click('.me');
-  await win.getByRole('navigation', { name: 'Profile' }).getByRole('button', { name: 'Change password' }).click();
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Account' }).click();
+  await win.getByRole('navigation', { name: 'Account' }).getByRole('button', { name: 'Change password' }).click();
   await win.getByLabel('Current password').fill('not the password');
   await win.getByLabel(/^New password/).fill('a brand new password');
   await win.getByLabel('Confirm new password').fill('a brand new password');
@@ -45,8 +44,8 @@ test('a display name, a new password and which notices to get', async () => {
   await expect(win.getByRole('status').filter({ hasText: 'Settings saved' })).toBeVisible();
 
   // Logging out asks first, then the new password logs in.
-  await win.click('.me');
-  await win.getByRole('navigation', { name: 'Profile' }).getByRole('button', { name: 'Log out' }).click();
+  await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Account' }).click();
+  await win.getByRole('navigation', { name: 'Account' }).getByRole('button', { name: 'Log out' }).click();
   await win.getByRole('dialog', { name: 'Log out' }).getByRole('button', { name: 'Log out' }).click();
   await expect(win.locator('#email')).toBeVisible();
   await app.close();
