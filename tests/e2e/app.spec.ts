@@ -18,12 +18,10 @@ test('the plan bought on the website shows up after logging in', async () => {
   await win.getByRole('tab', { name: 'Usage' }).click();
   await expect(win.getByTestId('plan-usage')).toHaveText('0 / 100');
 
-  // The workspace button opens the switch dialog (v2 35).
-  await win.click('.ws');
-  const sw = win.getByRole('dialog', { name: 'Switch workspace' });
-  await sw.getByRole('combobox', { name: 'Workspace' }).click();
-  await win.getByRole('option', { name: /EU stores/ }).click();
-  await sw.getByRole('button', { name: 'Switch' }).click();
+  // The workspace at the top right lists the person's workspaces with their plans; a click switches (the user, 10-29).
+  await win.getByTestId('ws-name').click();
+  await expect(win.getByRole('menuitemradio', { name: /EU stores/ })).toContainText('Free');
+  await win.getByRole('menuitemradio', { name: /EU stores/ }).click();
   await expect(win.getByTestId('ws-name')).toHaveText('EU stores');
   await plan();
   await win.getByRole('tab', { name: 'Usage' }).click();
@@ -97,7 +95,7 @@ test('the button at the top right switches light and dark at a click, and this c
   expect(await dark()).toBe(true);
   // Platform settings show the same choice, and offer the system's.
   await win.getByRole('button', { name: 'Settings', exact: true }).click();
-  await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'This computer' }).click();
+  await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'Theme' }).click();
   const theme = win.getByRole('group', { name: 'Theme' });
   await expect(theme.getByRole('button', { name: 'Dark' })).toHaveAttribute('aria-pressed', 'true');
   await theme.getByRole('button', { name: 'System' }).click();

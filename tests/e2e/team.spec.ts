@@ -23,6 +23,7 @@ async function invite(owner: Page, email: string, role: 'Member' | 'Admin' = 'Me
 // The invited person accepts from the workspace menu of their own workbench.
 async function accept(member: Page, workspace: string){
   await member.getByTestId('ws-name').click();
+  await member.getByRole('menuitem', { name: /Invitations waiting/ }).click();
   await member.locator(`[data-invite="${workspace}"]`).getByRole('button', { name: 'Join' }).click();
   await expect(member.getByTestId('ws-name')).toHaveText(workspace);
 }

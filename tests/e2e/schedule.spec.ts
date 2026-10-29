@@ -52,10 +52,10 @@ test('a daily task runs on time on its computer; times missed while Folio was cl
   await form.getByRole('button', { name: 'Create task' }).click();
   await expect(win.getByRole('heading', { name: 'Daily look' })).toBeVisible();
   await expect(win.locator('.ttl .sub')).toContainText(`Every day ${hhmm}`);
-  // Startup at login is a Windows and macOS setting, in Platform settings' This computer; this Linux machine doesn't offer it.
+  // Startup at login is a Windows and macOS setting, in Platform settings; this Linux machine doesn't offer it.
   await win.getByRole('button', { name: 'Settings', exact: true }).click();
-  await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'This computer' }).click();
-  await expect(win.getByRole('heading', { name: 'This computer' })).toBeVisible();
+  await win.getByRole('navigation', { name: 'Settings' }).getByRole('button', { name: 'Theme' }).click();
+  await expect(win.getByRole('group', { name: 'Theme' })).toBeVisible();
   await expect(win.getByRole('switch', { name: 'Open Folio at startup' })).toHaveCount(0);
   await app.close();
 

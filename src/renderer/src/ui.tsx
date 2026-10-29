@@ -155,6 +155,15 @@ export function useDismiss(open: boolean, parts: RefObject<HTMLElement | null>[]
   }, [open]);
 }
 
+// A menu's keys: the arrows, Home and End move through its items; Escape closes it and gives the focus back to its
+// button, Tab only closes it.
+export function menuKeys(menu: HTMLElement, e: KeyEvent, close: (focus: boolean) => void){
+  const all = [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)')], i = all.indexOf(document.activeElement as HTMLElement);
+  if (e.key === 'Escape' || e.key === 'Tab'){ e.stopPropagation(); if (e.key === 'Escape') e.preventDefault(); close(e.key === 'Escape'); }
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); all[(i + (e.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length]?.focus(); }
+  else if (e.key === 'Home' || e.key === 'End'){ e.preventDefault(); (e.key === 'Home' ? all[0] : all.at(-1))?.focus(); }
+}
+
 // A row's further actions behind a dots button; `vertical` stands the dots up, as the design does on some pages, and
 // `text` makes it a worded button (the bulk bar's More). The menu, as wide as its longest item (the user, 10-29),
 // opens below the button, or above it near the window's bottom; arrow keys move through it, Escape gives the focus
@@ -174,19 +183,13 @@ export function MoreMenu({ label, items, vertical, text, disabled }: {
     // A worded button (the bulk bar's More) has its menu under its left edge; the dots, under their right.
     setAt({ ...(text ? { left: r.left } : { right: innerWidth - r.right }), ...(up ? { bottom: innerHeight - r.top + 4 } : { top: r.bottom + 4 }) });
   }
-  function key(e: KeyEvent){
-    const all = [...menu.current!.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')], i = all.indexOf(document.activeElement as HTMLElement);
-    if (e.key === 'Escape' || e.key === 'Tab'){ e.stopPropagation(); if (e.key === 'Escape') e.preventDefault(); close(e.key === 'Escape'); }
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); all[(i + (e.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length]?.focus(); }
-    else if (e.key === 'Home' || e.key === 'End'){ e.preventDefault(); (e.key === 'Home' ? all[0] : all.at(-1))?.focus(); }
-  }
   return (
     <div className="d-more">
       {text
         ? <button ref={btn} type="button" className="bb" disabled={disabled} aria-haspopup="menu" aria-expanded={!!at} onClick={() => (at ? close() : open())}><Icon name="more" />{text}</button>
         : <button ref={btn} type="button" className="icon-btn bare" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={!!at} onClick={() => (at ? close() : open())}><Icon name={vertical ? 'moreV' : 'more'} /></button>}
       {at && createPortal(
-        <div ref={menu} className="menu pop-menu" role="menu" aria-label={label} style={at} onKeyDown={key}>
+        <div ref={menu} className="menu pop-menu" role="menu" aria-label={label} style={at} onKeyDown={e => menuKeys(menu.current!, e, close)}>
           {items.map(i => (
             <button key={i.label} className={`menu-item${i.danger ? ' danger' : ''}`} type="button" role="menuitem" tabIndex={-1} disabled={i.disabled} onClick={() => { close(); i.onClick(); }}>{i.label}</button>
           ))}

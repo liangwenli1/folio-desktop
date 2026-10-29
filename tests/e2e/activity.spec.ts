@@ -64,6 +64,7 @@ test('a role is told what it may not see: no profiles at all, and only its own p
   const app = await launch(dataDir());
   const win = await logIn(app, member.email);
   await win.getByTestId('ws-name').click();
+  await win.getByRole('menuitem', { name: /Invitations waiting/ }).click();
   await win.locator('[data-invite="Larkspur Trading"]').getByRole('button', { name: 'Join' }).click();
   await expect(win.getByTestId('ws-name')).toHaveText('Larkspur Trading');
 

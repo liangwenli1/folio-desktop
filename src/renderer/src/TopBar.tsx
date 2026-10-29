@@ -1,12 +1,12 @@
-// The bar along the top of every page (v2's white 56 px bar): where you are on the left, as "workspace / page" (and
-// on a record's own page that record), and on the right the search (the command palette), light or dark, help and
-// notifications. Its empty space still drags the window: on Windows and macOS it is the title bar.
+// The bar along the top of every page (v2's white 56 px bar): where you are on the left, the page (and on a record's
+// own page that record), and on the right the search (the command palette), light or dark, help, notifications and
+// the workspace. Its empty space still drags the window: on Windows and macOS it is the title bar.
 import { createContext, Fragment, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { folio } from './api';
+import { folio, type Me, type Workspace } from './api';
 import type { Dict } from './i18n';
 import { mod } from './CommandPalette';
-import { Icon, useDismiss, useMedia, type IconName } from './ui';
+import { Avatar, Icon, menuKeys, useDismiss, useMedia, type IconName } from './ui';
 
 // A step of the trail: a name, and where it goes when there is somewhere to go back to.
 export interface Crumb { label: string; go?(): void }
@@ -18,15 +18,14 @@ export function useTrail(trail: Crumb[], key: string){
   useEffect(() => { set(trail); return () => set(null); }, [key]);
 }
 
-export function TopBar({ d, workspace, page, trail, onSearch, onHelp, children }: { d: Dict; workspace: string; page: string; trail: Crumb[] | null; onSearch(): void; onHelp(): void; children: ReactNode }){
+export function TopBar({ d, page, trail, onSearch, onHelp, children }: { d: Dict; page: string; trail: Crumb[] | null; onSearch(): void; onHelp(): void; children: ReactNode }){
   const steps = trail ?? [{ label: page }];
   return (
     <header className="top">
       <nav className="top-crumbs" aria-label={d.detail.crumbs}>
-        <span>{workspace}</span>
         {steps.map((c, i) => (
           <Fragment key={i}>
-            <span className="sep" aria-hidden="true">/</span>
+            {i > 0 && <span className="sep" aria-hidden="true">/</span>}
             {c.go ? <button type="button" onClick={c.go}>{c.label}</button> : <span aria-current={i === steps.length - 1 ? 'page' : undefined}>{c.label}</span>}
           </Fragment>
         ))}
@@ -37,6 +36,43 @@ export function TopBar({ d, workspace, page, trail, onSearch, onHelp, children }
       <button type="button" className="icon-btn bare" aria-label={d.nav.help} title={d.nav.help} onClick={onHelp}><Icon name="help" /></button>
       {children}
     </header>
+  );
+}
+
+// The workspace at the top right (the user, 10-29: its initial on a coloured square, no plan beside it). Its list opens
+// under it and a click switches: each workspace with its plan, the current one ticked; invitations waiting (asked for
+// again each time it opens) lead to Account's My workspaces, where they are answered.
+export function WorkspaceMenu({ d, me, ws, invites, onOpen, onSwitch, onInvites }: { d: Dict; me: Me; ws: Workspace; invites: number; onOpen(): void; onSwitch(id: string): void; onInvites(): void }){
+  const [at, setAt] = useState<{ top: number; right: number } | null>(null);
+  const btn = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null);
+  const close = (focus = false) => { setAt(null); if (focus) btn.current?.focus(); };
+  useDismiss(!!at, [btn, menu], () => close());
+  useEffect(() => { if (at) menu.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus(); }, [at]);
+  const open = () => { const r = btn.current!.getBoundingClientRect(); setAt({ top: r.bottom + 6, right: innerWidth - r.right }); onOpen(); };
+  return (
+    <>
+      <button ref={btn} type="button" className="ws-top" aria-haspopup="menu" aria-expanded={!!at} title={d.ws.switch} onClick={() => (at ? close() : open())}>
+        <Avatar text={ws.name} /><span className="ws-top-n" data-testid="ws-name">{ws.name}</span>
+        {invites > 0 && <span className="dot" aria-label={d.team.invites} />}
+        <Icon name="chev" />
+      </button>
+      {at && createPortal(
+        <div ref={menu} className="menu pop-menu ws-pop" role="menu" aria-label={d.ws.switch} style={at} onKeyDown={e => menuKeys(menu.current!, e, close)}>
+          <p className="ws-pop-h">{d.ws.switch}</p>
+          {me.workspaces.map(w => (
+            <button key={w.id} type="button" role="menuitemradio" aria-checked={w.id === ws.id} tabIndex={-1} className="menu-item ws-row" onClick={() => { close(); if (w.id !== ws.id) onSwitch(w.id); }}>
+              <Avatar text={w.name} /><span className="ws-row-n">{w.name}</span><small>{d.plans[w.plan]}</small>
+              {w.id === ws.id ? <Icon name="check" /> : <span className="i" aria-hidden="true" />}
+            </button>
+          ))}
+          {invites > 0 && <>
+            <div role="separator" className="ws-pop-sep" />
+            <button type="button" role="menuitem" tabIndex={-1} className="menu-item ws-inv" onClick={() => { close(); onInvites(); }}>
+              {d.ws.invites}<span className="ws-inv-n">{invites}</span><span className="ws-inv-go">{d.ws.view}</span>
+            </button>
+          </>}
+        </div>, document.body)}
+    </>
   );
 }
 

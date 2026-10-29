@@ -21,10 +21,10 @@ import { ExportDialog, ImportDialog } from './Transfer';
 import { TrashPage } from './Trash';
 import { SettingsPage } from './Settings';
 import { BillingPage } from './Billing';
-import { AccountPage, LogoutDialog, SwitchDialog } from './Account';
+import { AccountPage, LogoutDialog, type AccountPart } from './Account';
 import { Icon, LeaveGuard, Mark, Progress, Toasts, applyInspector, useFail, useGuard, useMedia, useNotice, useToast, useView, type IconName } from './ui';
 import { CommandPalette, mod, type Command } from './CommandPalette';
-import { Bell, TopBar, TrailProvider, type Crumb, type Notice } from './TopBar';
+import { Bell, TopBar, TrailProvider, WorkspaceMenu, type Crumb, type Notice } from './TopBar';
 import { Flag } from './Flag';
 import { health } from './checks';
 
@@ -35,7 +35,7 @@ interface Props {
 
 type Page = 'profiles' | 'proxies' | 'extensions' | 'team' | 'sync' | 'flows' | 'tasks' | 'api' | 'engines' | 'groups' | 'activity' | 'jobs' | 'trash' | 'settings' | 'billing' | 'me';
 // A new profile can start in a group picked on the Groups page.
-type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | { kind: 'switch' } | { kind: 'logout' } | null;
+type Dialog = { kind: 'new'; group?: string | null } | { kind: 'edit'; id: string } | { kind: 'import' } | { kind: 'proxy'; id?: string } | { kind: 'proxy-import' } | { kind: 'export-all' } | { kind: 'import-all' } | { kind: 'logout' } | null;
 
 export function Workbench(props: Props){
   return <Toasts><LeaveGuard><Shell {...props} /></LeaveGuard></Toasts>;
@@ -87,11 +87,13 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const close = () => setDialog(null);
   // Going to another page (or workspace) asks first when the page has changes not saved yet.
   const guard = useGuard();
-  const go = (p: Page) => guard(() => { if (p === page) setAsked(n => n + 1); setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); });
+  const go = (p: Page, then?: () => void) => guard(() => { if (p === page) setAsked(n => n + 1); setPage(p); setGroup('all'); setOnly(null); setOpenId(null); setProxyId(null); setJobId(null); then?.(); });
+  // The part of Account to open on: its details from the menu, My workspaces from the workspace menu's invitations.
+  const [accountPart, setAccountPart] = useState<AccountPart>('profile');
   // Proxies, the Trash and billing are for whoever administers the workspace.
   const shown: Page = !manager && (page === 'proxies' || page === 'trash' || page === 'billing') ? 'profiles' : page;
 
-  // Invitations to this account from other workspaces, in the switch dialog and the bell.
+  // Invitations to this account from other workspaces, in the workspace menu, Account's My workspaces and the bell.
   const [invites, setInvites] = useState<MyInvitation[]>([]);
   const [focus, setFocus] = useState<Focus | null>(null);
   const [update, setUpdate] = useState<Update | null>(null);
@@ -188,7 +190,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     };
     return [...plan, ...asked, ...failed, kept];
   }
-  useEffect(() => { void loadInvites(); }, [dialog?.kind === 'switch']);
+  // Asked again whenever Account shows, where they are answered.
+  useEffect(() => { void loadInvites(); }, [shown === 'me']);
   useDesktopNotices(d, me, data, update, manager, { proxies: () => go('proxies'), job: id => data.showJob(id) });
   async function answer(i: MyInvitation, accept: boolean){
     try {
@@ -212,15 +215,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           <span className="brand-word">Folio</span>
           <button type="button" className="icon-btn bare brand-fold" aria-label={d.nav.fold} title={d.nav.fold} onClick={() => setRail('folded')}><Icon name="fold" /></button>
         </div>
-        <button className="ws" type="button" onClick={() => setDialog({ kind: 'switch' })} title={d.ws.switch}>
-          <span><b data-testid="ws-name">{ws.name}</b><small data-testid="ws-plan">{d.plans[s.plan]}</small></span>
-          {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
-          <Icon name="chev" />
-        </button>
 
         <nav className="nav" aria-label="Main">
           {nav.map(([p, icon, label]) => (
-            <NavItem key={p} icon={icon} label={label} active={shown === p || (p === 'settings' && shown === 'billing')} badge={p === 'sync' && data.sync ? d.windowSync.onBadge : undefined} onClick={() => go(p)} />
+            <NavItem key={p} icon={icon} label={label} active={shown === p || (p === 'settings' && shown === 'billing')} badge={p === 'sync' && data.sync ? d.windowSync.onBadge : undefined} onClick={() => go(p, p === 'me' ? () => setAccountPart('profile') : undefined)} />
           ))}
         </nav>
 
@@ -235,8 +233,10 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
         )}
       </aside>
 
-      <TopBar d={d} workspace={ws.name} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
+      <TopBar d={d} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>
         <Bell d={d} wsId={ws.id} notices={notices()} />
+        <WorkspaceMenu d={d} me={me} ws={ws} invites={invites.length} onOpen={() => void loadInvites()} onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })}
+          onInvites={() => go('me', () => setAccountPart('workspaces'))} />
       </TopBar>
 
       {shown === 'profiles' && (
@@ -261,8 +261,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {shown === 'trash' && <TrashPage d={d} lang={lang} ws={ws} data={data} />}
       {shown === 'settings' && <SettingsPage d={d} ws={ws} me={me} data={data} manager={manager} version={version} onSaved={onAccount}
         onExport={() => setDialog({ kind: 'export-all' })} onImport={() => setDialog({ kind: 'import-all' })} onBilling={() => go('billing')} />}
-      {shown === 'me' && <AccountPage d={d} lang={lang} me={me} onSaved={onAccount}
-        onSwitch={() => setDialog({ kind: 'switch' })} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />}
+      {shown === 'me' && <AccountPage key={`${asked}:${accountPart}`} d={d} lang={lang} me={me} ws={ws} invites={invites} start={accountPart} onSaved={onAccount}
+        onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })} onAnswer={(i, ok) => void answer(i, ok)} onLogout={() => guard(() => setDialog({ kind: 'logout' }))} />}
       {shown === 'billing' && <BillingPage d={d} lang={lang} ws={ws} data={data} manager={manager} used={used} />}
 
       {(dialog?.kind === 'new' || (dialog?.kind === 'edit' && editing)) && (
@@ -277,8 +277,6 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
       {dialog?.kind === 'export-all' && <ExportDialog d={d} ws={ws} onClose={close} />}
       {palette && <CommandPalette d={d} commands={commands()} onClose={() => setPalette(false)} />}
       {dialog?.kind === 'import-all' && <ImportDialog d={d} ws={ws} data={data} onClose={close} />}
-      {dialog?.kind === 'switch' && <SwitchDialog d={d} me={me} ws={ws} invites={invites} onClose={close} onAnswer={(i, ok) => void answer(i, ok)}
-        onSwitch={id => guard(() => { go('profiles'); onSwitch(id); })} />}
       {dialog?.kind === 'logout' && <LogoutDialog d={d} profiles={runningHere} runs={data.active.length} sync={!!data.sync} onClose={close} onLogout={onLogout} />}
     </div>
     </TrailProvider>

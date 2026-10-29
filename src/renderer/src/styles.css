@@ -312,13 +312,6 @@ html[data-platform="win32"] .top{padding-right:150px}
 .brand-fold{margin-left:auto}
 .brand-mark{display:grid;place-items:center;padding:4px;margin:-4px;border:0;border-radius:var(--r);background:none;cursor:pointer}
 .brand-mark:hover{background:var(--hover)}
-.ws{display:flex;align-items:center;gap:8px;width:100%;height:var(--h-ctl);margin-top:24px;padding:0 10px 0 12px;flex:none;text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--ink-body);cursor:pointer;transition:border-color var(--t-fast) ease,background-color var(--t-fast) ease}
-.ws:hover{border-color:var(--line-2);background:var(--seg)}
-.ws > span:first-child{display:flex;align-items:baseline;gap:6px;min-width:0;flex:1}
-.ws b{min-width:0;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ws small{flex:none;font-size:12px;color:var(--ink-3)}
-.ws .i{color:var(--ink-3)}
-.ws .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none}
 .nav{display:grid;align-content:start;gap:8px;flex:1 1 auto;min-height:0;margin:28px -8px 0;padding:0 8px 8px;overflow-y:auto}
 /* The rail scrolls when the window is short, without a scrollbar of its own. */
 .nav{scrollbar-width:none}
@@ -1516,8 +1509,7 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .app.mini{grid-template-columns:64px minmax(0,1fr)}
 .app.mini .side{padding-inline:10px;padding-bottom:12px}
 .app.mini .brand{justify-content:center;padding:0}
-/* The workspace and the plan are on the switch dialog, from the account's page too. */
-.app.mini :is(.brand-word,.brand-fold,.nav-l,.cnt,.update,.ws){display:none}
+.app.mini :is(.brand-word,.brand-fold,.nav-l,.cnt,.update){display:none}
 .app.mini .nav{margin:24px -4px 0;padding:0 4px 8px}
 .app.mini .nav-i{justify-content:center;gap:0;padding:0}
 
@@ -1569,6 +1561,34 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .copy-in .copy-btn{position:absolute;right:4px;top:0;bottom:0;margin:auto 0}
 .set-owner{display:flex;align-items:center;gap:10px;min-height:var(--h-ctl)}
 .notice.warn{background:var(--warn-soft);color:var(--warn-ink)}
+/* The workspace at the top right (the user, 10-29): its initial on a coloured square, its name and the arrow; its list
+   opens under it, each workspace with its plan, the current one ticked. */
+.ws-top{display:inline-flex;align-items:center;gap:8px;height:36px;max-width:240px;margin-left:4px;padding:0 8px 0 5px;border:0;border-radius:var(--r);background:none;color:var(--ink);font-size:14px;font-weight:500;cursor:pointer}
+.ws-top:hover,.ws-top[aria-expanded="true"]{background:var(--hover)}
+.ws-top .pav,.ws-row .pav,.ws-list .pav{border-radius:7px}
+.ws-top .pav{width:26px;height:26px}
+.ws-top-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-top > .i{width:14px;height:14px;color:var(--ink-3)}
+.ws-top .dot{width:8px;height:8px;flex:none;border-radius:50%;background:var(--accent)}
+.ws-pop{width:300px}
+.ws-pop-h{margin:0;padding:8px 10px 6px;font-size:12px;color:var(--ink-3)}
+.ws-row{display:flex;align-items:center;gap:10px;min-height:44px}
+.ws-row .pav{width:24px;height:24px}
+.ws-row-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-row small{flex:none;font-size:12px;color:var(--ink-3)}
+.ws-row > .i{flex:none;color:var(--accent-ink)}
+.ws-row[aria-checked="true"]{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.ws-pop-sep{height:1px;margin:4px;background:var(--line)}
+.ws-inv{display:flex;align-items:center;gap:6px;color:var(--ink-2)}
+.ws-inv-n{padding:0 7px;border-radius:99px;background:var(--accent);color:var(--on-accent);font-size:12px;line-height:18px}
+.ws-inv-go{margin-left:auto;font-size:13px;color:var(--accent-ink)}
+.ws-list{display:grid;margin:0;padding:0;list-style:none}
+.ws-list li{display:flex;align-items:center;gap:12px;min-height:60px;border-bottom:1px solid var(--line)}
+.ws-list li:last-child{border-bottom:0}
+.ws-list .pav{width:32px;height:32px;font-size:13px}
+.ws-list-n{display:grid;flex:1;min-width:0}
+.ws-list-n b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-list-n small{font-size:12px;color:var(--ink-3)}
 .sw-invites{display:grid;gap:8px}
 .sw-invites h4{margin:0;font-size:14px;font-weight:600}
 .sw-invites ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}

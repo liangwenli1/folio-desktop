@@ -52,6 +52,7 @@ test('the workspace keeps what new profiles start with, and only a manager may c
   const theirs = await launch(dataDir());
   const win2 = await logIn(theirs, member.email);
   await win2.getByTestId('ws-name').click();
+  await win2.getByRole('menuitem', { name: /Invitations waiting/ }).click();
   await win2.locator('[data-invite="Larkspur Trading"]').getByRole('button', { name: 'Join' }).click();
   await expect(win2.getByTestId('ws-name')).toHaveText('Larkspur Trading');
   await win2.getByRole('button', { name: 'Settings', exact: true }).click();

@@ -75,6 +75,7 @@ test('a flow is built step by step, saved for the team, and read-only for member
   const app2 = await launch(dataDir());
   const win2 = await logIn(app2, member.email);
   await win2.getByTestId('ws-name').click();
+  await win2.getByRole('menuitem', { name: /Invitations waiting/ }).click();
   await win2.locator('[data-invite="Larkspur Trading"]').getByRole('button', { name: 'Join' }).click();
   await expect(win2.getByTestId('ws-name')).toHaveText('Larkspur Trading');
   await nav(win2, 'Flows').click();

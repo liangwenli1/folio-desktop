@@ -1,20 +1,21 @@
 // Account (design v2 32–35; in the menu below the Trash since the user's 10-29): the login email, a note and the
-// language; a new password; and the person's workspaces and logging out, which open dialogs. A menu card on the left,
-// the chosen part in a card on the right, saved from the card's own button. Opening Folio at startup belongs to this
-// computer and sits in Platform settings.
+// language; a new password; the person's workspaces and the invitations waiting (a part of its own since 10-29, in
+// place of the switch dialog); logging out, which asks first. A menu card on the left, the chosen part in a card on the
+// right, saved from the card's own button. Opening Folio at startup belongs to this computer, in Platform settings.
 import { useState, type FormEvent } from 'react';
 import { folio, isApiError, type Me, type MyInvitation, type Workspace } from './api';
 import { errorText, roleName, type Dict, type Lang } from './i18n';
-import { Act, Cancel, Icon, Modal, useGuard, useLeave, useToast } from './ui';
+import { Act, Avatar, Cancel, Icon, Modal, useGuard, useLeave, useToast } from './ui';
 import { SelectField } from './Select';
 
-type Part = 'profile' | 'password';
+export type AccountPart = 'profile' | 'password' | 'workspaces';
 
-export function AccountPage({ d, lang, me, onSaved, onSwitch, onLogout }: {
-  d: Dict; lang: Lang; me: Me; onSaved(): Promise<void>; onSwitch(): void; onLogout(): void;
+export function AccountPage({ d, lang, me, ws, invites, start, onSaved, onSwitch, onAnswer, onLogout }: {
+  d: Dict; lang: Lang; me: Me; ws: Workspace; invites: MyInvitation[]; start: AccountPart;
+  onSaved(): Promise<void>; onSwitch(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void; onLogout(): void;
 }){
   const A = d.account;
-  const [part, setPart] = useState<Part>('profile');
+  const [part, setPart] = useState<AccountPart>(start);
   const guard = useGuard();
   return (
     <div className="page">
@@ -22,16 +23,54 @@ export function AccountPage({ d, lang, me, onSaved, onSwitch, onLogout }: {
         <header className="bar"><div className="ttl"><h1>{A.title}</h1></div></header>
         <div className="duo">
           <nav className="sec duo-nav" aria-label={A.title}>
-            {(['profile', 'password'] as const).map(x => (
+            {(['profile', 'password', 'workspaces'] as const).map(x => (
               <button key={x} type="button" className={`duo-i${part === x ? ' on' : ''}`} aria-current={part === x ? 'true' : undefined} onClick={() => guard(() => setPart(x))}>{A.menu[x]}</button>
             ))}
-            <button type="button" className="duo-i" onClick={onSwitch}>{A.menu.switch}</button>
             <button type="button" className="duo-i" onClick={onLogout}>{A.menu.logout}</button>
           </nav>
-          {part === 'profile' ? <ProfileCard d={d} lang={lang} me={me} onSaved={onSaved} /> : <PasswordCard d={d} />}
+          {part === 'profile' && <ProfileCard d={d} lang={lang} me={me} onSaved={onSaved} />}
+          {part === 'password' && <PasswordCard d={d} />}
+          {part === 'workspaces' && <WorkspacesCard d={d} me={me} ws={ws} invites={invites} onSwitch={onSwitch} onAnswer={onAnswer} />}
         </div>
       </main>
     </div>
+  );
+}
+
+// The person's workspaces, each with its plan and their role there, the current one marked and any other a click away;
+// then the invitations waiting, to join or decline.
+function WorkspacesCard({ d, me, ws, invites, onSwitch, onAnswer }: {
+  d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onSwitch(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void;
+}){
+  const A = d.account;
+  return (
+    <section className="sec duo-body" aria-label={A.menu.workspaces}>
+      <ul className="ws-list">
+        {me.workspaces.map(w => (
+          <li key={w.id} data-workspace={w.name}>
+            <Avatar text={w.name} />
+            <span className="ws-list-n"><b>{w.name}</b><small>{d.plans[w.plan]} · {roleName(d, w.role)}</small></span>
+            {w.id === ws.id
+              ? <span className="dot-st run">{A.current}</span>
+              : <button type="button" className="btn btn-sm btn-secondary" onClick={() => onSwitch(w.id)}>{A.switchTo}</button>}
+          </li>
+        ))}
+      </ul>
+      {invites.length > 0 && (
+        <section className="sw-invites" aria-label={A.invites}>
+          <h4>{A.invites}</h4>
+          <ul>
+            {invites.map(i => (
+              <li key={i.id} data-invite={i.workspaceName}>
+                <span><b>{i.workspaceName}</b><small>{d.team.from(i.inviter ?? 'Folio', roleName(d, i.role))}</small></span>
+                <button type="button" className="btn btn-sm btn-primary" onClick={() => onAnswer(i, true)}>{d.team.join}</button>
+                <button type="button" className="btn btn-sm btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </section>
   );
 }
 
@@ -56,8 +95,7 @@ function ProfileCard({ d, lang, me, onSaved }: { d: Dict; lang: Lang; me: Me; on
   }
 
   return (
-    <form className="sec duo-body" onSubmit={e => void save(e)} noValidate aria-labelledby="ac-h">
-      <h3 id="ac-h">{A.info}</h3>
+    <form className="sec duo-body" onSubmit={e => void save(e)} noValidate aria-label={A.menu.profile}>
       {error && <p className="notice error" role="alert">{error}</p>}
       <div className="field">
         <label htmlFor="ac-email">{A.email}</label>
@@ -119,49 +157,13 @@ function PasswordCard({ d }: { d: Dict }){
     </div>
   );
   return (
-    <form className="sec duo-body" onSubmit={e => void save(e)} noValidate aria-labelledby="pw-h">
-      <h3 id="pw-h">{d.account.menu.password}</h3>
+    <form className="sec duo-body" onSubmit={e => void save(e)} noValidate aria-label={d.account.menu.password}>
       {error && <p className="notice error" role="alert">{error}</p>}
       {field('current', P.current)}
       {field('next', P.next, P.rule)}
       {field('again', P.confirm)}
       <div className="duo-act"><button className="btn btn-primary" type="submit" disabled={busy} aria-busy={busy || undefined}>{d.account.save}</button></div>
     </form>
-  );
-}
-
-// Which workspace to work in (v2 35), and invitations to others, joined or declined from here.
-export function SwitchDialog({ d, me, ws, invites, onSwitch, onAnswer, onClose }: {
-  d: Dict; me: Me; ws: Workspace; invites: MyInvitation[]; onSwitch(id: string): void; onAnswer(i: MyInvitation, accept: boolean): void; onClose(): void;
-}){
-  const S = d.account.switchDlg;
-  const [pick, setPick] = useState(ws.id);
-  return (
-    <Modal title={S.title} onClose={onClose} foot={<>
-      <span className="sp" />
-      <Cancel />
-      <button className="btn btn-primary" type="button" disabled={pick === ws.id} onClick={() => { onClose(); onSwitch(pick); }}>{S.go}</button>
-    </>}>
-      <div className="m-body">
-        <SelectField label={S.field} required value={pick} onChange={setPick}
-          options={me.workspaces.map(w => ({ value: w.id, label: w.name, hint: `${d.plans[w.plan]} · ${roleName(d, w.role)}` }))} />
-        <p className="notice"><Icon name="info" /><span>{S.note}</span></p>
-        {invites.length > 0 && (
-          <section className="sw-invites" aria-label={S.invites}>
-            <h4>{S.invites}</h4>
-            <ul>
-              {invites.map(i => (
-                <li key={i.id} data-invite={i.workspaceName}>
-                  <span><b>{i.workspaceName}</b><small>{d.team.from(i.inviter ?? 'Folio', roleName(d, i.role))}</small></span>
-                  <button type="button" className="btn btn-sm btn-primary" onClick={() => { onClose(); onAnswer(i, true); }}>{d.team.join}</button>
-                  <button type="button" className="btn btn-sm btn-text" onClick={() => onAnswer(i, false)}>{d.team.decline}</button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
-    </Modal>
   );
 }
 

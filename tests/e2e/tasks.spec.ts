@@ -101,6 +101,7 @@ test('a flow runs on 10 profiles 3 at a time, failures are retried, and the resu
   const app2 = await launch(dataDir());
   const win2 = await logIn(app2, admin.email);
   await win2.getByTestId('ws-name').click();
+  await win2.getByRole('menuitem', { name: /Invitations waiting/ }).click();
   await win2.locator('[data-invite="Larkspur Trading"]').getByRole('button', { name: 'Join' }).click();
   await nav(win2, 'Scheduled tasks').click();
   await expect(win2.locator('tr[data-task="Daily visit"]')).toContainText('Finished10 done');

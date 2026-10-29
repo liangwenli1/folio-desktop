@@ -83,8 +83,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
           </nav>
 
           {part === 'workspace' && (
-            <section className="sec duo-body" aria-labelledby="set-h">
-              <div><h3 id="set-h">{S.basics}</h3><p className="hint">{S.basicsLead}</p></div>
+            <section className="sec duo-body" aria-label={S.tabs.workspace}>
               {ro && <p className="notice"><Icon name="lock" /><span>{S.readOnly}</span></p>}
               <div className="field">
                 <label htmlFor="set-name">{S.name}</label>
@@ -110,8 +109,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
           )}
 
           {part === 'defaults' && (
-            <section className="sec duo-body" aria-labelledby="set-h">
-              <div><h3 id="set-h">{S.defaults}</h3><p className="hint">{S.defaultsLead}</p></div>
+            <section className="sec duo-body" aria-label={S.tabs.defaults}>
               {ro && <p className="notice"><Icon name="lock" /><span>{S.readOnly}</span></p>}
               <p className="notice info"><Icon name="info" /><span>{S.defaultsNote}</span></p>
               <SelectField label={S.engine} hint={S.engineHint} value={engine} disabled={ro} search options={engines} loading={!data.loaded.has('kernels')}
@@ -127,8 +125,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
           )}
 
           {part === 'opening' && (
-            <section className="sec duo-body" aria-labelledby="set-h">
-              <div><h3 id="set-h">{S.opening}</h3><p className="hint">{S.openingLead}</p></div>
+            <section className="sec duo-body" aria-label={S.tabs.opening}>
               {ro && <p className="notice"><Icon name="lock" /><span>{S.readOnly}</span></p>}
               <div className="set-row">
                 <Switch label={S.openDetail} checked={set.openDetailAfterLaunch} disabled={ro} onChange={v => change('openDetailAfterLaunch', v)} />
@@ -143,8 +140,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
           )}
 
           {part === 'notices' && (
-            <section className="sec duo-body" aria-labelledby="set-h">
-              <div><h3 id="set-h">{S.notices}</h3><p className="hint">{S.noticesLead}</p></div>
+            <section className="sec duo-body" aria-label={S.tabs.notices}>
               {(Object.keys(S.notifyItems) as (keyof Notify)[]).map(k => (
                 <SelectField key={k} label={S.notifyItems[k]} value={notify[k] ? 'on' : 'off'} options={onOff} onChange={v => setNotify(n => ({ ...n, [k]: v === 'on' }))} />
               ))}
@@ -157,8 +153,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
           )}
 
           {part === 'data' && (
-            <section className="sec duo-body" aria-labelledby="set-h">
-              <div><h3 id="set-h">{S.data}</h3><p className="hint">{S.dataLead}</p></div>
+            <section className="sec duo-body" aria-label={S.tabs.data}>
               <div className="duo-btns">
                 <button type="button" className="btn btn-secondary" onClick={onExport}><Icon name="upload" />{d.user.exportAll}</button>
                 <button type="button" className="btn btn-secondary" onClick={onImport}><Icon name="download" />{d.user.importAll}</button>
@@ -185,8 +180,7 @@ function LocalPart({ d, version }: { d: Dict; version: string }){
   useEffect(() => { void folio.startup().then(setStartup); }, []);
   const pick = (t: Theme) => { setTheme(t); void folio.setTheme(t); };
   return (
-    <section className="sec duo-body" aria-labelledby="set-h">
-      <div><h3 id="set-h">{S.local}</h3><p className="hint">{S.localLead}</p></div>
+    <section className="sec duo-body" aria-label={S.tabs.local}>
       <div className="field">
         <span className="label" id="set-theme">{S.theme}</span>
         <div className="seg" role="group" aria-labelledby="set-theme">
