@@ -101,8 +101,8 @@ export const en = {
   // The Settings page: what the workspace is, what new profiles start with, and how opening one behaves.
   settings: {
     title: 'Settings',
-    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notifications', data: 'Data', billing: 'Plan and usage', local: 'Theme' },
-    theme: 'Theme', themes: { system: 'System', light: 'Light', dark: 'Dark' }, version: 'Version',
+    tabs: { workspace: 'Workspace', defaults: 'Profile defaults', opening: 'Opening', notices: 'Notifications', data: 'Data', billing: 'Plan and usage', theme: 'Theme' },
+    theme: 'Theme', themes: { system: 'System', light: 'Light', dark: 'Dark' },
     name: 'Workspace name', id: 'Workspace ID', idHint: 'The ID identifies this workspace and never changes.',
     owner: 'Owner', ownerHint: 'The person who created the workspace.',
     defaultsNote: 'These apply only to profiles created from now on; existing ones keep their settings.',
@@ -1023,8 +1023,8 @@ export const zh: Dict = {
   },
   settings: {
     title: '平台设置',
-    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置', data: '数据', billing: '套餐与用量', local: '主题' },
-    theme: '主题', themes: { system: '跟随系统', light: '浅色', dark: '深色' }, version: '版本',
+    tabs: { workspace: '工作空间', defaults: '环境默认值', opening: '启动偏好', notices: '通知设置', data: '数据', billing: '套餐与用量', theme: '主题' },
+    theme: '主题', themes: { system: '跟随系统', light: '浅色', dark: '深色' },
     name: '工作空间名称', id: '工作空间 ID', idHint: '工作空间 ID 用于标识该工作空间，创建后不可修改。',
     owner: '所有者', ownerHint: '工作空间的创建者。',
     defaultsNote: '环境默认值仅应用于后续创建的环境，不会影响已有的环境。',

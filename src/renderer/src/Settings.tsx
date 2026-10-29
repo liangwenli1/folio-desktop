@@ -2,8 +2,9 @@
 // on the right with its own Save. The workspace's parts (its basics, what new profiles start with, how opening
 // behaves, the plan reminder) are changed by whoever manages members and read by everyone else; the notifications are
 // each person's own, and follow their account. The plan and Data (exporting or importing the whole workspace) are for
-// managers. This computer's part (light or dark, opening at startup, the version) takes effect at once. Changes stay
-// while moving between parts and are saved together; leaving with some unsaved asks first.
+// managers. The theme, and opening Folio when this computer starts (with the opening settings), take effect at once;
+// the version is at the menu's foot. Changes stay while moving between parts and are saved together; leaving with some
+// unsaved asks first.
 import { useEffect, useState } from 'react';
 import type { Theme } from '@shared/bridge';
 import { folio, type Me, type Workspace } from './api';
@@ -14,7 +15,7 @@ import { SelectField, groupOpts, type Opt } from './Select';
 
 type Settings = Workspace['settings'];
 type Notify = Me['user']['notify'];
-type Part = 'workspace' | 'defaults' | 'opening' | 'notices' | 'data' | 'local';
+type Part = 'workspace' | 'defaults' | 'opening' | 'notices' | 'data' | 'theme';
 const KINDS = [['chromium', 'Chromium'], ['firefox', 'Firefox']] as const;
 
 export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExport, onImport, onBilling }: {
@@ -35,7 +36,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
   const owner = data.members.find(m => m.role.key === 'owner');
   const change = <K extends keyof Settings>(k: K, v: Settings[K]) => setSet(s => ({ ...s, [k]: v }));
   // The plan is a page of its own; its entry opens it.
-  const parts: (Part | 'billing')[] = [...(manager ? ['workspace', 'defaults', 'opening', 'notices', 'billing', 'data'] as const : ['workspace', 'defaults', 'opening', 'notices'] as const), 'local'];
+  const parts: (Part | 'billing')[] = [...(manager ? ['workspace', 'defaults', 'opening', 'notices', 'billing', 'data'] as const : ['workspace', 'defaults', 'opening', 'notices'] as const), 'theme'];
 
   // The default engine in one dropdown: none (the recommended one), an engine at its recommended version, or a version.
   const engine = set.defaultKernel ? `${set.defaultKernel}:${set.defaultKernelVersion ?? ''}` : '';
@@ -80,6 +81,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
             {parts.map(x => x === 'billing'
               ? <button key={x} type="button" className="duo-i" onClick={onBilling}>{S.tabs.billing}</button>
               : <button key={x} type="button" className={`duo-i${part === x ? ' on' : ''}`} aria-current={part === x ? 'true' : undefined} onClick={() => setPart(x)}>{S.tabs[x]}</button>)}
+            <p className="duo-foot">{d.account.version(version)}</p>
           </nav>
 
           {part === 'workspace' && (
@@ -126,6 +128,7 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
 
           {part === 'opening' && (
             <section className="sec duo-body" aria-label={S.tabs.opening}>
+              <StartupSwitch d={d} />
               {ro && <p className="notice"><Icon name="lock" /><span>{S.readOnly}</span></p>}
               <div className="set-row">
                 <Switch label={S.openDetail} checked={set.openDetailAfterLaunch} disabled={ro} onChange={v => change('openDetailAfterLaunch', v)} />
@@ -161,42 +164,43 @@ export function SettingsPage({ d, ws, me, data, manager, version, onSaved, onExp
             </section>
           )}
 
-          {part === 'local' && <LocalPart d={d} version={version} />}
+          {part === 'theme' && <ThemePart d={d} />}
         </div>
       </main>
     </div>
   );
 }
 
-// This computer's own, each taking effect at once with nothing to save: light, dark or the system's (the button at the
-// top right switches between light and dark), opening Folio when the computer starts (Windows and macOS), the version.
-function LocalPart({ d, version }: { d: Dict; version: string }){
+// Light, dark or the system's, at once with nothing to save (the button at the top right switches between light and dark).
+function ThemePart({ d }: { d: Dict }){
   const S = d.settings;
   const [theme, setTheme] = useState<Theme | null>(null);
   // Read again whenever the theme in use changes, the top right's button included.
   const dark = useMedia('(prefers-color-scheme: dark)');
   useEffect(() => { void folio.theme().then(setTheme); }, [dark]);
-  const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
-  useEffect(() => { void folio.startup().then(setStartup); }, []);
   const pick = (t: Theme) => { setTheme(t); void folio.setTheme(t); };
   return (
-    <section className="sec duo-body" aria-label={S.tabs.local}>
+    <section className="sec duo-body" aria-label={S.tabs.theme}>
       <div className="field">
         <span className="label" id="set-theme">{S.theme}</span>
         <div className="seg" role="group" aria-labelledby="set-theme">
           {(['system', 'light', 'dark'] as const).map(t => <button key={t} type="button" aria-pressed={theme === t} onClick={() => pick(t)}>{S.themes[t]}</button>)}
         </div>
       </div>
-      {startup?.supported && (
-        <div className="set-row">
-          <Switch label={d.user.startup} checked={startup.enabled} onChange={on => { setStartup({ ...startup, enabled: on }); void folio.setStartup(on); }} />
-          <p className="hint">{d.user.startupHint}</p>
-        </div>
-      )}
-      <div className="field">
-        <span className="label">{S.version}</span>
-        <span>{d.account.version(version)}</span>
-      </div>
     </section>
+  );
+}
+
+// Opening Folio when this computer starts (Windows and macOS only): this computer's own, at once with nothing to save,
+// above the workspace's opening settings.
+function StartupSwitch({ d }: { d: Dict }){
+  const [startup, setStartup] = useState<{ supported: boolean; enabled: boolean } | null>(null);
+  useEffect(() => { void folio.startup().then(setStartup); }, []);
+  if (!startup?.supported) return null;
+  return (
+    <div className="set-row">
+      <Switch label={d.user.startup} checked={startup.enabled} onChange={on => { setStartup({ ...startup, enabled: on }); void folio.setStartup(on); }} />
+      <p className="hint">{d.user.startupHint}</p>
+    </div>
   );
 }

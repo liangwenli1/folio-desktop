@@ -82,7 +82,6 @@ const PATHS = {
   bell: 'M12 3v2M6 11a6 6 0 0 1 12 0v5l2 2.5H4L6 16zM9.75 20.5a2.25 2.25 0 0 0 4.5 0',
   moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
   user: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1',
-  fold: 'M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9.5 4v16M16 9.5 13.5 12l2.5 2.5',
   sun: 'M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4',
   // The mark inside a solid circle (a figure that failed, a toast that went wrong): taller than the outline icon's.
   bang: 'M12 5v9M12 18.5h.01'

@@ -100,10 +100,12 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
   const [palette, setPalette] = useState(false);
   // A record's page puts itself after the page's name in the top bar.
   const [trail, setTrail] = useState<Crumb[] | null>(null);
-  // The rail folds to its icons from the button beside the name and opens again from the mark (the user, 10-29), kept
-  // on this computer; a window under 1024 wide always folds it.
+  // The rail folds to its icons and opens again from the round button on its edge or from the mark (the user, 10-29),
+  // kept on this computer; a window under 1024 wide always folds it, and then neither opens it.
   const [rail, setRail] = useView<'open' | 'folded'>('rail', 'open');
   const narrow = useMedia('(max-width: 1023px)');
+  const turn = rail === 'folded' ? d.nav.unfold : d.nav.fold;
+  const toggleRail = () => setRail(rail === 'folded' ? 'open' : 'folded');
   // What the main process knew at start never replaces news that arrived meanwhile.
   useEffect(() => { void folio.update().then(u => setUpdate(cur => cur ?? u)); applyInspector(); return folio.onUpdate(setUpdate); }, []);
   // What the main process shows itself follows the workbench's language.
@@ -209,11 +211,8 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
     <div className={`app${rail === 'folded' || narrow ? ' mini' : ''}`}>
       <aside className="side" aria-label={d.ws.current}>
         <div className="brand">
-          {rail === 'folded' && !narrow
-            ? <button type="button" className="brand-mark" aria-label={d.nav.unfold} title={d.nav.unfold} onClick={() => setRail('open')}><Mark /></button>
-            : <Mark />}
+          {narrow ? <Mark /> : <button type="button" className="brand-mark" aria-label={turn} title={turn} onClick={toggleRail}><Mark /></button>}
           <span className="brand-word">Folio</span>
-          <button type="button" className="icon-btn bare brand-fold" aria-label={d.nav.fold} title={d.nav.fold} onClick={() => setRail('folded')}><Icon name="fold" /></button>
         </div>
 
         <nav className="nav" aria-label="Main">
@@ -231,6 +230,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
             </> : <button className="btn btn-sm btn-secondary" type="button" onClick={() => folio.openSite(`${site}/download/`)}>{d.update.download}</button>}
           </section>
         )}
+        {!narrow && <button type="button" className="rail-edge" aria-label={turn} title={turn} onClick={toggleRail}><Icon name={rail === 'folded' ? 'chevR' : 'back'} /></button>}
       </aside>
 
       <TopBar d={d} page={pages.find(([x]) => x === shown)?.[2] ?? ''} trail={trail} onSearch={() => setPalette(true)} onHelp={() => folio.openSite(`${site}/help/`)}>

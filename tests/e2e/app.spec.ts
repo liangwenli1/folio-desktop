@@ -106,15 +106,18 @@ test('the button at the top right switches light and dark at a click, and this c
   await app.close();
 });
 
-test('the menu folds to its icons from the button beside the name, opens from the mark, and this computer keeps it', async () => {
+test('the menu folds to its icons from the round button on its edge or from the mark, and this computer keeps it', async () => {
   const { email } = await account();
   const dir = dataDir();
   let app = await launch(dir);
   let win = await logIn(app, email);
   const label = () => win.getByRole('navigation', { name: 'Main' }).getByText('Profiles', { exact: true });
+  const edge = () => win.locator('.rail-edge');
   await expect(label()).toBeVisible();
-  await win.getByRole('button', { name: 'Collapse menu' }).click();
+  await expect(edge()).toHaveAttribute('aria-label', 'Collapse menu');
+  await edge().click();
   await expect(label()).toBeHidden();
+  await expect(edge()).toHaveAttribute('aria-label', 'Expand menu');
   // Each icon still says what it is, and still goes there.
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Account' }).click();
   await expect(win.getByRole('heading', { name: 'Account' })).toBeVisible();
@@ -122,11 +125,15 @@ test('the menu folds to its icons from the button beside the name, opens from th
 
   app = await launch(dir);
   win = await app.firstWindow();
-  await expect(win.getByRole('button', { name: 'Expand menu' })).toBeVisible();
+  await expect(edge()).toHaveAttribute('aria-label', 'Expand menu');
   await expect(label()).toBeHidden();
-  await win.getByRole('button', { name: 'Expand menu' }).click();
+  // The mark opens it and folds it again, as the edge's button does.
+  await win.locator('.brand-mark').click();
   await expect(label()).toBeVisible();
-  await expect(win.getByRole('button', { name: 'Collapse menu' })).toBeVisible();
+  await win.locator('.brand-mark').click();
+  await expect(label()).toBeHidden();
+  await edge().click();
+  await expect(label()).toBeVisible();
   await app.close();
 });
 

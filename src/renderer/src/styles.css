@@ -276,10 +276,10 @@ fieldset.choices{border:0;margin:0;padding:0;display:grid;gap:8px}
 
 /* shell: the rail on the left; on the right a strip along the top (the title bar on Windows and macOS, with the
    account at its right) above the page */
-.app{display:grid;grid-template-columns:208px minmax(0,1fr);grid-template-rows:var(--tb) minmax(0,1fr);height:100%}
+.app{display:grid;grid-template-columns:208px minmax(0,1fr);grid-template-rows:var(--tb) minmax(0,1fr);height:100%;transition:grid-template-columns var(--t) ease}
 .app > :not(.side):not(.top){grid-column:2;grid-row:2}
 /* The account panel opens out of the rail, so the rail may not clip it; the group list scrolls on its own. */
-.side{grid-row:1/-1;display:flex;flex-direction:column;min-height:0;background:var(--side);border-right:1px solid var(--line);padding:20px 16px 16px}
+.side{position:relative;grid-row:1/-1;display:flex;flex-direction:column;min-height:0;background:var(--side);border-right:1px solid var(--line);padding:20px 16px 16px;transition:padding var(--t) ease}
 html[data-platform="darwin"] .side{padding-top:calc(var(--tb) + 2px)}
 .top{grid-column:2;grid-row:1;display:flex;align-items:center;gap:8px;min-width:0;padding:0 var(--gx);background:var(--card);border-bottom:1px solid var(--line);-webkit-app-region:drag}
 .top > :not(.sp){-webkit-app-region:no-drag}
@@ -307,9 +307,8 @@ html[data-platform="win32"] .top{padding-right:150px}
 .bell-pop li small{font-size:12px;color:var(--ink-3)}
 .bell-acts{display:flex;gap:8px}
 .bell-none{padding:24px 16px;text-align:center;color:var(--ink-2)}
-.brand{display:flex;align-items:center;gap:10px;height:40px;padding:0 8px;flex:none}
+.brand{display:flex;align-items:center;gap:10px;height:40px;padding:0 8px;flex:none;overflow:hidden;transition:padding var(--t) ease}
 .brand .seal{width:32px;height:32px}
-.brand-fold{margin-left:auto}
 .brand-mark{display:grid;place-items:center;padding:4px;margin:-4px;border:0;border-radius:var(--r);background:none;cursor:pointer}
 .brand-mark:hover{background:var(--hover)}
 .nav{display:grid;align-content:start;gap:8px;flex:1 1 auto;min-height:0;margin:28px -8px 0;padding:0 8px 8px;overflow-y:auto}
@@ -317,7 +316,7 @@ html[data-platform="win32"] .top{padding-right:150px}
 .nav{scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 /* A section: its icon (20px, no box) and name; the one shown is tinted, with a bar on its left edge. */
-.nav-i{position:relative;display:flex;align-items:center;gap:12px;width:100%;height:40px;flex:none;padding:0 16px;border:0;border-radius:var(--r);background:transparent;color:var(--ink-2);text-align:left;font-size:14px;font-weight:500;cursor:pointer}
+.nav-i{position:relative;display:flex;align-items:center;gap:12px;width:100%;height:40px;flex:none;padding:0 16px;overflow:hidden;transition:padding var(--t) ease,background-color var(--t-fast) ease;border:0;border-radius:var(--r);background:transparent;color:var(--ink-2);text-align:left;font-size:14px;font-weight:500;cursor:pointer}
 .nav-i > .i{width:20px;height:20px;color:var(--ink-3)}
 .nav-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* The sidebar is white, so its hover is the grey of a segment (--hover would barely show on it). */
@@ -1503,15 +1502,21 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .sa-arrow::before{content:'';position:absolute;z-index:-1;left:-7px;right:-7px;top:50%;border-top:1px solid color-mix(in srgb,var(--accent) 30%,var(--line))}
 .sa-arrow .i{width:12px;height:12px}
 
-/* The rail with only its icons: folded by the button beside the name (the mark opens it again), and always under
-   1024px (the workbench sets .mini for both). The names are in each button's tooltip, and the groups stay reachable
-   through the filter bar's group picker. */
+/* The rail with only its icons: folded from the round button on its edge or the mark, and always under 1024px (the
+   workbench sets .mini for both). The names are in each button's tooltip, and the groups stay reachable through the
+   filter bar's group picker. Folding takes 0.18s (the user, 10-29): the names fade at once while the rail narrows, and
+   come back once it has widened again; the icons move only a few pixels, to the middle of the narrow rail. */
+.nav-l,.brand-word,.cnt{transition:opacity var(--t-fast) ease var(--t-fast)}
 .app.mini{grid-template-columns:64px minmax(0,1fr)}
 .app.mini .side{padding-inline:10px;padding-bottom:12px}
-.app.mini .brand{justify-content:center;padding:0}
-.app.mini :is(.brand-word,.brand-fold,.nav-l,.cnt,.update){display:none}
-.app.mini .nav{margin:24px -4px 0;padding:0 4px 8px}
-.app.mini .nav-i{justify-content:center;gap:0;padding:0}
+.app.mini .brand{padding:0 6px}
+.app.mini :is(.brand-word,.nav-l,.cnt){opacity:0;transition-delay:0s}
+.app.mini .update{display:none}
+.app.mini .nav-i{padding:0 12px}
+/* The fold button (the user, 10-29: P2): round, riding the rail's right edge at its middle, folded or not. */
+.rail-edge{position:absolute;top:50%;right:-13px;z-index:5;display:grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--card);color:var(--ink-2);box-shadow:0 2px 6px rgba(16,24,40,.12);transform:translateY(-50%);cursor:pointer}
+.rail-edge:hover{border-color:var(--line-2);color:var(--ink)}
+.rail-edge .i{width:14px;height:14px}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none !important;transition:none !important}
