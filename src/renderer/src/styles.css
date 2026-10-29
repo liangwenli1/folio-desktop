@@ -475,8 +475,10 @@ html[data-platform="win32"] .top{padding-right:150px}
 .pf-table th.mid,.pf-table th.act{width:10%}
 /* a row's further actions: a column of their own after Actions, so Actions holds one control */
 .tw th.more,.tw td.more{width:44px;padding-left:0;text-align:center}
-/* a column whose cells start with a flag: the heading starts where their text does, the flag hangs left of it */
+/* a column whose cells start with a flag: the heading starts where their text does, the flag hangs left of it; the
+   same for an extension's icon */
 .tw th.ic{padding-left:37px}
+.tw th.ic-ext{padding-left:54px}
 .hang{padding-left:25px}
 .tw .num{text-align:right}
 .tw td.num{font-family:var(--f-data);font-variant-numeric:tabular-nums}

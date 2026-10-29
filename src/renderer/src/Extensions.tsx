@@ -93,7 +93,7 @@ export function ExtensionsPage({ d, ws, data }: { d: Dict; ws: Workspace; data: 
                 <thead>
                   <tr>
                     <th className="cb" scope="col"><input type="checkbox" aria-label={d.common.selectAll} checked={list.every(e => sel.has(e.id))} onChange={() => setSel(list.every(e => sel.has(e.id)) ? new Set() : new Set(list.map(e => e.id)))} /></th>
-                    <th scope="col">{X.cols.name}</th><th className="mid" scope="col">{X.cols.version}</th><th scope="col">{X.cols.engine}</th><th className="mid" scope="col">{X.cols.signature}</th>
+                    <th className="ic-ext" scope="col">{X.cols.name}</th><th className="mid" scope="col">{X.cols.version}</th><th scope="col">{X.cols.engine}</th><th className="mid" scope="col">{X.cols.signature}</th>
                     <th scope="col">{X.cols.profiles}</th><th className="mid" scope="col">{X.cols.updated}</th><th className="act" scope="col">{d.profiles.cols.actions}</th><th className="more" scope="col"><span className="sr">{d.detail.more}</span></th>
                   </tr>
                 </thead>
