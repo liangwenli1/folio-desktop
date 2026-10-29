@@ -71,7 +71,7 @@ export function WindowSyncPage({ d, lang, ws, data }: { d: Dict; lang: Lang; ws:
               {can(ws.role, MANAGE)
                 ? <button type="button" className="btn btn-primary btn-lg" onClick={() => folio.openSite(`/${lang}/checkout/?ws=${ws.id}`)}>{W.upsell.unlock}</button>
                 : <p className="sync-ask">{W.upsell.ask}</p>}
-              <button type="button" className="sync-guide" onClick={() => folio.openSite(`/${lang}/help/window-sync/`)}>{W.upsell.guide}<Icon name="arrowR" /></button>
+              <button type="button" className="sync-guide" onClick={() => folio.openSite(`/${lang}/help/window-sync/`)}>{W.upsell.guide}</button>
               <p className="sync-now">{W.upsell.now(d.plans[ws.subscription.plan])}</p>
             </section>
           </div>

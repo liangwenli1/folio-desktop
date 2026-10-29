@@ -1497,9 +1497,8 @@ html[lang="zh"] .report-stamp .s-main{letter-spacing:0}
 .sync-feats span{font-size:12px;line-height:18px;color:var(--ink-3)}
 .sync-up .btn-lg{min-width:160px}
 .sync-ask{margin:0;font-size:14px;line-height:22px;color:var(--ink-2)}
-.sync-guide{display:inline-flex;align-items:center;gap:4px;margin-top:16px;padding:0;border:0;background:none;font-size:13px;line-height:20px;color:var(--ink-3);cursor:pointer}
+.sync-guide{margin-top:16px;padding:0;border:0;background:none;font-size:13px;line-height:20px;color:var(--ink-3);cursor:pointer}
 .sync-guide:hover{color:var(--ink)}
-.sync-guide .i{width:14px;height:14px}
 .sync-now{margin:16px 0 0;font-size:12px;line-height:18px;color:var(--ink-4)}
 /* the picture: three windows on a soft glow, the leader larger and outlined in the accent, arrows going out from it */
 .sync-art{position:relative;display:flex;align-items:center;margin:28px 0 24px;isolation:isolate}
