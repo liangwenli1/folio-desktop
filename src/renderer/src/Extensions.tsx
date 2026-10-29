@@ -148,7 +148,7 @@ function ExtRow({ d, e, manager, checked, users, onToggle, onInstall, onUpdate, 
   return (
     <tr data-extension={e.name} className={checked ? 'on' : undefined}>
       <td className="cb"><input type="checkbox" checked={checked} onChange={onToggle} aria-label={d.common.select(e.name)} /></td>
-      <td><span className="l1"><b>{e.name}</b></span><span className="l2 mono">{source(d, e)}</span></td>
+      <td><span className="prof-cell"><ExtIcon src={e.icon} /><span><span className="l1"><b>{e.name}</b></span><span className="l2 mono">{source(d, e)}</span></span></span></td>
       <td className="mono mid">{e.version}</td>
       <td><span className="l1"><EngineLogo kernel={e.kernel} />{ENGINES[e.kernel]}</span></td>
       <td className="mid"><Shield d={d} /></td>
