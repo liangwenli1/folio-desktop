@@ -229,7 +229,7 @@ function Shell({ d, lang, version, me, ws, onSwitch, onLang, onLogout, onWorkspa
           </button>
           <button className={`me${shown === 'me' ? ' active' : ''}`} type="button" aria-current={shown === 'me' ? 'page' : undefined} aria-label={d.account.title} title={d.account.title} onClick={() => go('me')}>
             <span className="av" aria-hidden="true">{[...me.user.displayName][0]?.toUpperCase()}</span>
-            <span className="me-who"><b>{me.user.displayName}</b><small>{d.account.title}</small></span>
+            <span className="me-who">{me.user.email}</span>
             {invites.length > 0 && <span className="dot" aria-label={d.team.invites} />}
           </button>
         </div>

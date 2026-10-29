@@ -22,8 +22,8 @@ test('a display name, a new password and which notices to get', async () => {
   await name.fill('Lin Xiao');
   await win.getByRole('button', { name: 'Save changes' }).click();
   await expect(win.getByRole('status').filter({ hasText: 'Profile saved' })).toBeVisible();
-  await expect(win.locator('.me')).toContainText('Lin Xiao');
-  // Colleagues see the name: the team lists it.
+  // The sidebar names the account by its email; colleagues see the name: the team lists it.
+  await expect(win.locator('.me')).toContainText(acct.email);
   await win.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'Team' }).click();
   await expect(win.getByText('Lin Xiao').first()).toBeVisible();
 
